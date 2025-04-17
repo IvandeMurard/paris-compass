@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Search, Filter, LayoutGrid, MapPin, Euro, Building, Tag } from 'lucide-react';
+import { Search, Filter, LayoutGrid, MapPin, Euro, Building, Tag, Baby, ShoppingCart } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 
 interface SidebarProps {
@@ -124,14 +124,22 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
               Amenities
             </Label>
             <div className="space-y-2">
-              {["Metro Station", "Park", "Shopping Center", "Restaurant Area", "Parking Available"].map(amenity => (
-                <div key={amenity} className="flex items-center space-x-2">
-                  <Checkbox id={`amenity-${amenity}`} />
+              {[
+                { name: "Metro Station", icon: <MapPin size={14} className="mr-2" /> },
+                { name: "Park", icon: <MapPin size={14} className="mr-2" /> },
+                { name: "Shopping Center", icon: <MapPin size={14} className="mr-2" /> },
+                { name: "Restaurant Area", icon: <MapPin size={14} className="mr-2" /> },
+                { name: "Parking Available", icon: <MapPin size={14} className="mr-2" /> },
+                { name: "Daycare", icon: <Baby size={14} className="mr-2" /> },
+                { name: "Markets", icon: <ShoppingCart size={14} className="mr-2" /> }
+              ].map(amenity => (
+                <div key={amenity.name} className="flex items-center space-x-2">
+                  <Checkbox id={`amenity-${amenity.name}`} />
                   <label
-                    htmlFor={`amenity-${amenity}`}
-                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    htmlFor={`amenity-${amenity.name}`}
+                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center"
                   >
-                    {amenity}
+                    {amenity.icon} {amenity.name}
                   </label>
                 </div>
               ))}
