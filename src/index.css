@@ -112,6 +112,12 @@
   background: #f8fafc !important; /* Fallback color */
 }
 
+.leaflet-marker-icon {
+  background-image: url('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png') !important;
+  background-size: contain !important;
+  border: none !important;
+}
+
 /* Fix Leaflet marker icon display issues */
 .leaflet-default-icon-path {
   background-image: url("https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png");
@@ -120,3 +126,4 @@
 .leaflet-marker-shadow {
   background-image: url("https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png");
 }
+

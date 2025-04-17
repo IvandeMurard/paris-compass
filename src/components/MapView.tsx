@@ -1,14 +1,7 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-
-import { fetch15minCityData } from '@/utils/mapData';
-import PropertyMarker from './map/PropertyMarker';
-import AccessibilityCircle from './map/AccessibilityCircle';
-import PropertyDetailsSidebar from './map/PropertyDetailsSidebar';
-import MapControls from './map/MapControls';
 
 // Fix default marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -17,6 +10,12 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
+
+import { fetch15minCityData } from '@/utils/mapData';
+import PropertyMarker from './map/PropertyMarker';
+import AccessibilityCircle from './map/AccessibilityCircle';
+import PropertyDetailsSidebar from './map/PropertyDetailsSidebar';
+import MapControls from './map/MapControls';
 
 // Sample property data that would come from an API
 const sampleProperties = [
@@ -107,15 +106,16 @@ const MapView = () => {
   };
 
   return (
-    <div className="h-screen w-full">
+    <div className="h-[calc(100vh-4rem)] w-full">
       <MapContainer 
+        center={[48.8566, 2.3522]} 
+        zoom={13}
         className="h-full w-full"
-        center={[48.8566, 2.3522] as L.LatLngExpression} 
-        zoom={13} 
       >
         <MapSetup onMapReady={handleMapReady} />
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
         
         {/* Property markers */}
