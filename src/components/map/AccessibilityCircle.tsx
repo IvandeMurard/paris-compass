@@ -30,8 +30,9 @@ const AccessibilityCircle: React.FC<AccessibilityCircleProps> = ({
         color: color,
         weight: 1
       }}
-      radius={30}
-    />
+    >
+      {/* Circle marker content can go here if needed */}
+    </CircleMarker>
   );
 };
 
