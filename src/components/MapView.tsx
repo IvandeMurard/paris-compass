@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -9,6 +8,14 @@ import PropertyMarker from './map/PropertyMarker';
 import AccessibilityCircle from './map/AccessibilityCircle';
 import PropertyDetailsSidebar from './map/PropertyDetailsSidebar';
 import MapControls from './map/MapControls';
+
+// Fix default marker icons
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
 
 // Sample property data that would come from an API
 const sampleProperties = [
@@ -50,7 +57,7 @@ const sampleProperties = [
   }
 ];
 
-// MapSetup component to handle map reference and initialization
+// MapSetup component
 const MapSetup = ({ onMapReady }: { onMapReady: (map: L.Map) => void }) => {
   const map = useMap();
   
@@ -93,26 +100,21 @@ const MapView = () => {
     fetchData();
   }, []);
   
-  // Handle map reference
   const handleMapReady = (map: L.Map) => {
     console.log("Map is ready");
     mapRef.current = map;
   };
 
-  // Paris center coordinates
-  const center: [number, number] = [48.8566, 2.3522];
-
   return (
-    <div className="relative h-full w-full">
+    <div style={{ height: '100%', width: '100%' }}>
       <MapContainer 
-        className="h-full w-full" 
-        center={center}
+        style={{ height: '100%', width: '100%' }}
+        center={[48.8566, 2.3522]}
         zoom={13}
         scrollWheelZoom={true}
       >
         <MapSetup onMapReady={handleMapReady} />
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
