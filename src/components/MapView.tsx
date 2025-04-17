@@ -102,15 +102,14 @@ const MapView = () => {
   return (
     <div className="relative h-full w-full">
       <MapContainer 
-        className="h-full w-full"
+        className="h-full w-full" 
         center={center}
-        zoom={13} 
+        zoom={13}
       >
         <MapSetup onMapReady={handleMapReady} />
         
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
         
         {/* Property markers */}
