@@ -108,6 +108,7 @@ const MapView = () => {
         className="h-full w-full" 
         center={center}
         zoom={13}
+        scrollWheelZoom={true}
       >
         <MapSetup onMapReady={handleMapReady} />
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
