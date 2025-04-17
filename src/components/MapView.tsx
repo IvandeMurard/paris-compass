@@ -129,10 +129,10 @@ const MapView = () => {
   return (
     <div className="relative h-full w-full">
       <MapContainer 
-        center={center} 
+        center={center}
         zoom={13} 
         style={{ height: '100%', width: '100%' }}
-        whenCreated={(map) => { mapRef.current = map; }}
+        ref={(map) => { mapRef.current = map; }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -175,7 +175,6 @@ const MapView = () => {
                   variant="outline" 
                   size="sm"
                   onClick={() => {
-                    // This would navigate to property details in a real app
                     console.log(`View details for property ${property.id}`);
                   }}
                 >
@@ -320,7 +319,6 @@ const MapView = () => {
             variant="default" 
             size="sm"
             onClick={() => {
-              // This would navigate to property details in a real app
               console.log(`View details for property ${selectedProperty.id}`);
             }}
           >
