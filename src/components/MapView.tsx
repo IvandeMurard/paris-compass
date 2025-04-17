@@ -70,6 +70,8 @@ const MapView = () => {
   const [accessibilityType, setAccessibilityType] = useState('walkability');
   const mapRef = useRef<L.Map | null>(null);
   
+  console.log("Rendering MapView component");
+  
   // Load accessibility data for the entire area
   useEffect(() => {
     const fetchData = async () => {
@@ -93,6 +95,7 @@ const MapView = () => {
   
   // Handle map reference
   const handleMapReady = (map: L.Map) => {
+    console.log("Map is ready", map);
     mapRef.current = map;
   };
 
@@ -106,46 +109,52 @@ const MapView = () => {
         center={center}
         zoom={13}
       >
-        <MapSetup onMapReady={handleMapReady} />
-        
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
-        
-        {/* Property markers */}
-        {sampleProperties.map(property => (
-          <PropertyMarker 
-            key={property.id}
-            property={property}
-            onSelect={setSelectedProperty}
-          />
-        ))}
-        
-        {/* Accessibility circles */}
-        {showAccessibility && Object.entries(accessibilityData).map(([id, data]) => {
-          const property = sampleProperties.find(p => p.id === parseInt(id));
-          if (!property) return null;
-          
-          let score = 0;
-          
-          if (accessibilityType === 'walkability') {
-            score = data.walkabilityScore;
-          } else if (data.accessibilityScores && data.accessibilityScores[accessibilityType]) {
-            score = data.accessibilityScores[accessibilityType].score;
-          }
-          
+        {({map}) => {
+          console.log("Map container rendering with map:", map);
           return (
-            <AccessibilityCircle
-              key={`access-${id}-${accessibilityType}`}
-              lat={property.lat}
-              lng={property.lng}
-              score={score}
-              accessibilityType={accessibilityType}
-              id={id}
-            />
+            <>
+              <MapSetup onMapReady={handleMapReady} />
+              
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              
+              {/* Property markers */}
+              {sampleProperties.map(property => (
+                <PropertyMarker 
+                  key={property.id}
+                  property={property}
+                  onSelect={setSelectedProperty}
+                />
+              ))}
+              
+              {/* Accessibility circles */}
+              {showAccessibility && Object.entries(accessibilityData).map(([id, data]) => {
+                const property = sampleProperties.find(p => p.id === parseInt(id));
+                if (!property) return null;
+                
+                let score = 0;
+                
+                if (accessibilityType === 'walkability') {
+                  score = data.walkabilityScore;
+                } else if (data.accessibilityScores && data.accessibilityScores[accessibilityType]) {
+                  score = data.accessibilityScores[accessibilityType].score;
+                }
+                
+                return (
+                  <AccessibilityCircle
+                    key={`access-${id}-${accessibilityType}`}
+                    lat={property.lat}
+                    lng={property.lng}
+                    score={score}
+                    accessibilityType={accessibilityType}
+                    id={id}
+                  />
+                );
+              })}
+            </>
           );
-        })}
+        }}
       </MapContainer>
       
       {/* Map controls overlay */}

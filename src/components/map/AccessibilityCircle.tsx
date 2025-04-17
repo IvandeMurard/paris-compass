@@ -24,16 +24,13 @@ const AccessibilityCircle: React.FC<AccessibilityCircleProps> = ({
   return (
     <CircleMarker
       center={position}
-      radius={30}
       pathOptions={{
         fillColor: color,
         fillOpacity: 0.3,
         color: color,
         weight: 1
       }}
-    >
-      {/* Circle marker content can go here if needed */}
-    </CircleMarker>
+    />
   );
 };
 
