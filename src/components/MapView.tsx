@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -110,11 +109,8 @@ const MapView = () => {
     <div style={{ height: '100%', width: '100%' }}>
       <MapContainer 
         style={{ height: '100%', width: '100%' }}
-        scrollWheelZoom={true}
-        // @ts-ignore - We need to ignore type errors for center and zoom as they are required
-        // but the types in react-leaflet v5 are not properly recognizing them
-        center={[48.8566, 2.3522]} 
         zoom={13}
+        center={[48.8566, 2.3522]}
       >
         <MapSetup onMapReady={handleMapReady} />
         <TileLayer
