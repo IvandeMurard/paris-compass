@@ -24,6 +24,7 @@ const AccessibilityCircle: React.FC<AccessibilityCircleProps> = ({
   return (
     <CircleMarker
       center={position}
+      radius={30}
       pathOptions={{
         fillColor: color,
         fillOpacity: 0.3,

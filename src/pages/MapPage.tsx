@@ -12,6 +12,8 @@ const MapPage = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  console.log("Rendering MapPage component");
+
   return (
     <div className="min-h-screen bg-background font-sans flex flex-col">
       <Header isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
