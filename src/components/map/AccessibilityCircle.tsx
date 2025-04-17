@@ -28,9 +28,9 @@ const AccessibilityCircle: React.FC<AccessibilityCircleProps> = ({
         fillColor: color,
         fillOpacity: 0.3,
         color: color,
-        weight: 1,
-        radius: 30
+        weight: 1
       }}
+      radius={30}
     />
   );
 };
