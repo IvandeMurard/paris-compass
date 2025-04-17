@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Badge } from "@/components/ui/badge";
@@ -72,7 +72,7 @@ const MapController = ({ showAccessibility, accessibilityType }: {
   showAccessibility: boolean;
   accessibilityType: string;
 }) => {
-  const map = useMap();
+  const map = L.map('map');
   
   useEffect(() => {
     if (map) {
@@ -122,6 +122,11 @@ const MapView = () => {
     
     fetchData();
   }, []);
+  
+  // Handle map reference
+  const handleMapCreated = (map: L.Map) => {
+    mapRef.current = map;
+  };
 
   // Paris center coordinates
   const center: [number, number] = [48.8566, 2.3522];
@@ -129,17 +134,15 @@ const MapView = () => {
   return (
     <div className="relative h-full w-full">
       <MapContainer 
-        center={center}
+        defaultCenter={center}
         zoom={13} 
         style={{ height: '100%', width: '100%' }}
-        ref={(map) => { mapRef.current = map; }}
+        whenReady={handleMapCreated}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
-        
-        <MapController showAccessibility={showAccessibility} accessibilityType={accessibilityType} />
         
         {/* Property markers */}
         {sampleProperties.map(property => (
@@ -205,12 +208,12 @@ const MapView = () => {
             <Circle
               key={`access-${id}-${accessibilityType}`}
               center={[property.lat, property.lng]}
-              radius={300}
               pathOptions={{
                 fillColor: color,
                 fillOpacity: 0.3,
                 color: color,
-                weight: 1
+                weight: 1,
+                radius: 300
               }}
             />
           );
