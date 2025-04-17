@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import PropertyCard from './PropertyCard';
+import PropertyDetail from './PropertyDetail';
 
 // Sample data that would come from API/state
 const sampleProperties = [
@@ -73,12 +74,52 @@ const sampleProperties = [
 ];
 
 const PropertyList = () => {
+  const [selectedProperty, setSelectedProperty] = useState<any>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  // Listen for the Details button click from PropertyCard
+  React.useEffect(() => {
+    const handleDetailsClick = (event: CustomEvent) => {
+      const propertyId = event.detail;
+      const property = sampleProperties.find(p => p.id === propertyId);
+      if (property) {
+        setSelectedProperty(property);
+        setDetailOpen(true);
+      }
+    };
+
+    // Add event listener
+    document.addEventListener('viewPropertyDetails', handleDetailsClick as EventListener);
+
+    // Clean up
+    return () => {
+      document.removeEventListener('viewPropertyDetails', handleDetailsClick as EventListener);
+    };
+  }, []);
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 p-6">
-      {sampleProperties.map(property => (
-        <PropertyCard key={property.id} {...property} />
-      ))}
-    </div>
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 p-6">
+        {sampleProperties.map(property => (
+          <div 
+            key={property.id}
+            onClick={() => {
+              setSelectedProperty(property);
+              setDetailOpen(true);
+            }}
+            className="cursor-pointer"
+          >
+            <PropertyCard {...property} />
+          </div>
+        ))}
+      </div>
+      
+      <PropertyDetail 
+        property={selectedProperty} 
+        isOpen={detailOpen} 
+        onClose={() => setDetailOpen(false)}
+      />
+    </>
   );
 };
 

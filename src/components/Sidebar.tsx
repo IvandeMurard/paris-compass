@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Search, Filter, LayoutGrid, MapPin, Euro, Building, Tag, Baby, ShoppingCart } from 'lucide-react';
+import { Search, Filter, LayoutGrid, MapPin, Euro, Building, Tag, Baby, ShoppingCart, BarChart3, Leaf, Waves, Wind } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 
 interface SidebarProps {
@@ -15,6 +15,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
   const [query, setQuery] = useState('');
   const [priceRange, setPriceRange] = useState([500, 5000]);
   const [sizeRange, setSizeRange] = useState([20, 200]);
+  const [walkabilityRange, setWalkabilityRange] = useState([30, 100]);
   
   // This would be replaced with actual data from an API
   const fakePropertyResults = [
@@ -96,6 +97,27 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
             </div>
           </div>
           
+          {/* Walkability score slider - New 15minCity filter */}
+          <div className="mb-4">
+            <Label htmlFor="walkability" className="flex items-center mb-2">
+              <BarChart3 size={16} className="mr-2" />
+              Walkability Score
+            </Label>
+            <Slider
+              id="walkability"
+              min={0}
+              max={100}
+              step={5}
+              value={walkabilityRange}
+              onValueChange={setWalkabilityRange}
+              className="mb-1"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{walkabilityRange[0]}</span>
+              <span>{walkabilityRange[1]}</span>
+            </div>
+          </div>
+          
           {/* Arrondissement checkboxes */}
           <div className="mb-4">
             <Label className="flex items-center mb-2">
@@ -111,6 +133,58 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
                     className="text-xs leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                   >
                     {i+1}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* New 15minCity Accessibility filters */}
+          <div className="mb-4">
+            <Label className="flex items-center mb-2">
+              <BarChart3 size={16} className="mr-2" />
+              Accessibility Requirements
+            </Label>
+            <div className="space-y-2">
+              {[
+                { name: "Groceries within 5min", icon: <ShoppingCart size={14} className="mr-2" /> },
+                { name: "Parks within 10min", icon: <Leaf size={14} className="mr-2" /> },
+                { name: "Public Transport within 5min", icon: <MapPin size={14} className="mr-2" /> },
+                { name: "Restaurants within 5min", icon: <MapPin size={14} className="mr-2" /> },
+                { name: "Healthcare within 15min", icon: <MapPin size={14} className="mr-2" /> }
+              ].map(item => (
+                <div key={item.name} className="flex items-center space-x-2">
+                  <Checkbox id={`access-${item.name}`} />
+                  <label
+                    htmlFor={`access-${item.name}`}
+                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center"
+                  >
+                    {item.icon} {item.name}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Environmental Quality filters */}
+          <div className="mb-4">
+            <Label className="flex items-center mb-2">
+              <Leaf size={16} className="mr-2" />
+              Environmental Quality
+            </Label>
+            <div className="space-y-2">
+              {[
+                { name: "Good Air Quality", icon: <Wind size={14} className="mr-2" /> },
+                { name: "Low Noise Pollution", icon: <Waves size={14} className="mr-2" /> },
+                { name: "High Footfall", icon: <Users size={14} className="mr-2" /> }
+              ].map(item => (
+                <div key={item.name} className="flex items-center space-x-2">
+                  <Checkbox id={`env-${item.name}`} />
+                  <label
+                    htmlFor={`env-${item.name}`}
+                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center"
+                  >
+                    {item.icon} {item.name}
                   </label>
                 </div>
               ))}
