@@ -110,7 +110,7 @@ const MapView = () => {
       <MapContainer 
         style={{ height: '100%', width: '100%' }}
         zoom={13}
-        center={[48.8566, 2.3522]}
+        center={[48.8566, 2.3522] as L.LatLngExpression}
       >
         <MapSetup onMapReady={handleMapReady} />
         <TileLayer
