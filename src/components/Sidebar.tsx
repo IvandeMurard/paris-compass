@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Search, Filter, LayoutGrid, MapPin, Euro, Building, Tag, Baby, ShoppingCart, BarChart3, Leaf, Waves, Wind } from 'lucide-react';
+import { Search, Filter, LayoutGrid, MapPin, Euro, Building, Tag, Baby, ShoppingCart, BarChart3, Leaf, Waves, Wind, Users as UsersIcon } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 
 interface SidebarProps {
@@ -176,7 +176,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
               {[
                 { name: "Good Air Quality", icon: <Wind size={14} className="mr-2" /> },
                 { name: "Low Noise Pollution", icon: <Waves size={14} className="mr-2" /> },
-                { name: "High Footfall", icon: <Users size={14} className="mr-2" /> }
+                { name: "High Footfall", icon: <UsersIcon size={14} className="mr-2" /> }
               ].map(item => (
                 <div key={item.name} className="flex items-center space-x-2">
                   <Checkbox id={`env-${item.name}`} />
