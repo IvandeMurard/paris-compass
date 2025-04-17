@@ -63,6 +63,63 @@ const MapSetup = ({ onMapReady }: { onMapReady: (map: L.Map) => void }) => {
   return null;
 };
 
+// MapContent component that contains all the map elements
+const MapContent: React.FC<{
+  properties: typeof sampleProperties;
+  accessibilityData: Record<string, any>;
+  showAccessibility: boolean;
+  accessibilityType: string;
+  onSelectProperty: (property: any) => void;
+}> = ({ 
+  properties, 
+  accessibilityData, 
+  showAccessibility, 
+  accessibilityType,
+  onSelectProperty 
+}) => {
+  return (
+    <>
+      <TileLayer
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      
+      {/* Property markers */}
+      {properties.map(property => (
+        <PropertyMarker 
+          key={property.id}
+          property={property}
+          onSelect={onSelectProperty}
+        />
+      ))}
+      
+      {/* Accessibility circles */}
+      {showAccessibility && Object.entries(accessibilityData).map(([id, data]) => {
+        const property = properties.find(p => p.id === parseInt(id));
+        if (!property) return null;
+        
+        let score = 0;
+        
+        if (accessibilityType === 'walkability') {
+          score = data.walkabilityScore;
+        } else if (data.accessibilityScores && data.accessibilityScores[accessibilityType]) {
+          score = data.accessibilityScores[accessibilityType].score;
+        }
+        
+        return (
+          <AccessibilityCircle
+            key={`access-${id}-${accessibilityType}`}
+            lat={property.lat}
+            lng={property.lng}
+            score={score}
+            accessibilityType={accessibilityType}
+            id={id}
+          />
+        );
+      })}
+    </>
+  );
+};
+
 const MapView = () => {
   const [accessibilityData, setAccessibilityData] = useState<Record<string, any>>({});
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
@@ -109,52 +166,14 @@ const MapView = () => {
         center={center}
         zoom={13}
       >
-        {({map}) => {
-          console.log("Map container rendering with map:", map);
-          return (
-            <>
-              <MapSetup onMapReady={handleMapReady} />
-              
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              
-              {/* Property markers */}
-              {sampleProperties.map(property => (
-                <PropertyMarker 
-                  key={property.id}
-                  property={property}
-                  onSelect={setSelectedProperty}
-                />
-              ))}
-              
-              {/* Accessibility circles */}
-              {showAccessibility && Object.entries(accessibilityData).map(([id, data]) => {
-                const property = sampleProperties.find(p => p.id === parseInt(id));
-                if (!property) return null;
-                
-                let score = 0;
-                
-                if (accessibilityType === 'walkability') {
-                  score = data.walkabilityScore;
-                } else if (data.accessibilityScores && data.accessibilityScores[accessibilityType]) {
-                  score = data.accessibilityScores[accessibilityType].score;
-                }
-                
-                return (
-                  <AccessibilityCircle
-                    key={`access-${id}-${accessibilityType}`}
-                    lat={property.lat}
-                    lng={property.lng}
-                    score={score}
-                    accessibilityType={accessibilityType}
-                    id={id}
-                  />
-                );
-              })}
-            </>
-          );
-        }}
+        <MapSetup onMapReady={handleMapReady} />
+        <MapContent 
+          properties={sampleProperties}
+          accessibilityData={accessibilityData}
+          showAccessibility={showAccessibility}
+          accessibilityType={accessibilityType}
+          onSelectProperty={setSelectedProperty}
+        />
       </MapContainer>
       
       {/* Map controls overlay */}
