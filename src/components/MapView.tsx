@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -50,6 +50,19 @@ const sampleProperties = [
   }
 ];
 
+// MapSetup component to handle map reference and initialization
+const MapSetup = ({ onMapReady }: { onMapReady: (map: L.Map) => void }) => {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (map) {
+      onMapReady(map);
+    }
+  }, [map, onMapReady]);
+  
+  return null;
+};
+
 const MapView = () => {
   const [accessibilityData, setAccessibilityData] = useState<Record<string, any>>({});
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
@@ -89,11 +102,12 @@ const MapView = () => {
   return (
     <div className="relative h-full w-full">
       <MapContainer 
+        className="h-full w-full"
         center={center}
         zoom={13} 
-        style={{ height: '100%', width: '100%' }}
-        whenCreated={handleMapReady}
       >
+        <MapSetup onMapReady={handleMapReady} />
+        
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

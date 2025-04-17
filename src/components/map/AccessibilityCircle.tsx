@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Circle } from 'react-leaflet';
+import { CircleMarker } from 'react-leaflet';
 import { getScoreColor } from '@/utils/mapData';
 
 interface AccessibilityCircleProps {
@@ -21,10 +21,10 @@ const AccessibilityCircle: React.FC<AccessibilityCircleProps> = ({
   const color = getScoreColor(score);
   
   return (
-    <Circle
+    <CircleMarker
       key={`access-${id}-${accessibilityType}`}
       center={[lat, lng]}
-      radius={300}
+      radius={30}
       pathOptions={{
         fillColor: color,
         fillOpacity: 0.3,
