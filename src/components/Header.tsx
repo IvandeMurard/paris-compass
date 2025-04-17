@@ -2,6 +2,8 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Search, Menu, X } from 'lucide-react';
+import UserMenu from './UserMenu';
+import { Link } from 'react-router-dom';
 
 interface HeaderProps {
   isSidebarOpen: boolean;
@@ -21,11 +23,18 @@ const Header = ({ isSidebarOpen, toggleSidebar }: HeaderProps) => {
         >
           {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
         </Button>
-        <h1 className="text-xl font-bold text-primary">Paris Property Compass</h1>
+        <Link to="/" className="flex items-center">
+          <h1 className="text-xl font-bold text-primary">Paris Property Compass</h1>
+        </Link>
       </div>
       <div className="flex items-center space-x-2">
-        <Button variant="ghost" size="sm">About</Button>
-        <Button variant="ghost" size="sm">Contact</Button>
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/about">About</Link>
+        </Button>
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/contact">Contact</Link>
+        </Button>
+        <UserMenu />
       </div>
     </header>
   );
