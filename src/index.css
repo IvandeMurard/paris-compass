@@ -110,3 +110,12 @@
   height: 100%;
   width: 100%;
 }
+
+/* Fix Leaflet marker icon display issues */
+.leaflet-default-icon-path {
+  background-image: url("https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png");
+}
+
+.leaflet-marker-shadow {
+  background-image: url("https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png");
+}

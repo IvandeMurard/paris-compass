@@ -23,9 +23,9 @@ const MapPage = () => {
           {/* Sidebar with filters */}
           <Sidebar isOpen={isSidebarOpen} />
           
-          {/* Main content area */}
-          <div className="flex-1 overflow-hidden ml-0 md:ml-80">
-            <div className="h-full">
+          {/* Main content area with explicit height for map container */}
+          <div className="flex-1 overflow-hidden ml-0 md:ml-80" style={{ height: '100%' }}>
+            <div className="h-full w-full">
               <MapView />
             </div>
           </div>

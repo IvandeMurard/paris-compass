@@ -54,12 +54,12 @@ const getQualityColor = (quality: string) => {
 
 const PropertyMarker: React.FC<PropertyMarkerProps> = ({ property, onSelect }) => {
   const position: [number, number] = [property.lat, property.lng];
-  const icon = createMarkerIcon(property.price);
+  const markerIcon = createMarkerIcon(property.price); // Store the icon in a properly named variable
   
   return (
     <Marker 
       position={position}
-      icon={icon}
+      icon={markerIcon} // Use the properly named variable
       eventHandlers={{
         click: () => {
           onSelect(property);
