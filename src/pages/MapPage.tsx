@@ -18,7 +18,7 @@ const MapPage = () => {
     <div className="min-h-screen bg-background font-sans flex flex-col">
       <Header isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
 
-      <div className="flex flex-col flex-1 h-[calc(100vh-8rem)]">
+      <div className="flex flex-col flex-1 h-[calc(100vh-4rem)]">
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar with filters */}
           <Sidebar isOpen={isSidebarOpen} />
