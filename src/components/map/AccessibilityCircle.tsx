@@ -19,10 +19,11 @@ const AccessibilityCircle: React.FC<AccessibilityCircleProps> = ({
   id 
 }) => {
   const color = getScoreColor(score);
+  const position: [number, number] = [lat, lng];
   
   return (
     <CircleMarker
-      center={[lat, lng]}
+      center={position}
       pathOptions={{
         fillColor: color,
         fillOpacity: 0.3,
