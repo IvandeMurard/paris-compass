@@ -11,15 +11,12 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
 import { toast } from '@/hooks/use-toast';
-
-interface UserPreferences {
-  email_notifications: boolean;
-  push_notifications: boolean;
-}
+import { UserPreferences } from '@/types/supabase';
 
 const Profile = () => {
   const { user, signOut } = useAuth();
   const [preferences, setPreferences] = useState<UserPreferences>({
+    user_id: user?.id || '',
     email_notifications: false,
     push_notifications: false,
   });
@@ -30,8 +27,9 @@ const Profile = () => {
       if (!user) return;
       
       try {
-        const { data, error } = await supabase
-          .from('user_preferences')
+        // Use type assertion to work around the type constraints
+        const { data, error } = await (supabase
+          .from('user_preferences') as any)
           .select('*')
           .eq('user_id', user.id)
           .single();
@@ -40,13 +38,14 @@ const Profile = () => {
         
         if (data) {
           setPreferences({
+            user_id: user.id,
             email_notifications: data.email_notifications,
             push_notifications: data.push_notifications,
           });
         } else {
           // Create default preferences if none exist
-          const { error: insertError } = await supabase
-            .from('user_preferences')
+          const { error: insertError } = await (supabase
+            .from('user_preferences') as any)
             .insert([{ 
               user_id: user.id,
               email_notifications: false,
@@ -70,14 +69,15 @@ const Profile = () => {
     fetchUserPreferences();
   }, [user]);
 
-  const updatePreference = async (key: keyof UserPreferences, value: boolean) => {
+  const updatePreference = async (key: keyof Omit<UserPreferences, 'user_id' | 'id' | 'created_at' | 'updated_at'>, value: boolean) => {
     if (!user) return;
 
     try {
       setPreferences(prev => ({ ...prev, [key]: value }));
       
-      const { error } = await supabase
-        .from('user_preferences')
+      // Use type assertion to work around the type constraints
+      const { error } = await (supabase
+        .from('user_preferences') as any)
         .update({ [key]: value })
         .eq('user_id', user.id);
       

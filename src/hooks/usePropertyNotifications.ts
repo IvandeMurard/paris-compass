@@ -3,12 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from '@/hooks/use-toast';
-
-interface SavedSearch {
-  id: string;
-  name: string;
-  filters: Record<string, any>;
-}
+import { SavedSearch, SavedProperty } from '@/types/supabase';
 
 interface PropertyMatch {
   id: string;
@@ -31,8 +26,9 @@ export function usePropertyNotifications() {
     const fetchSavedSearches = async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('saved_searches')
+        // Use type assertion to work around the type constraints
+        const { data, error } = await (supabase
+          .from('saved_searches') as any)
           .select('*')
           .eq('user_id', user.id);
         
@@ -53,10 +49,11 @@ export function usePropertyNotifications() {
     // notification system with a separate table for property matches
     
     // For now, we'll simulate notifications with a simple subscription
-    const subscription = supabase
-      .channel('saved_properties_changes')
-      .on('INSERT', { event: 'INSERT', schema: 'public', table: 'saved_properties', filter: `user_id=eq.${user.id}` }, 
-        (payload) => {
+    const subscription = (supabase
+      .channel('saved_properties_changes') as any)
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'saved_properties', filter: `user_id=eq.${user.id}` }, 
+        (payload: { new: SavedProperty }) => {
           const newProperty = payload.new;
           
           // Display a toast notification
