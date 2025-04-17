@@ -26,8 +26,8 @@ const MapPage = () => {
           <Sidebar isOpen={isSidebarOpen} />
           
           {/* Main content area with explicit height for map container */}
-          <div className="flex-1 overflow-hidden ml-0 md:ml-80" style={{ height: '100%' }}>
-            <div className="h-full w-full">
+          <div className="flex-1 overflow-hidden ml-0 md:ml-80 h-screen w-full">
+            <div className="h-screen w-full">
               <Suspense fallback={
                 <div className="h-full w-full flex items-center justify-center">
                   <p className="text-muted-foreground">Loading map...</p>

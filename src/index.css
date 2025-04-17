@@ -107,8 +107,9 @@
 
 /* Ensure Leaflet map containers have proper height and width */
 .leaflet-container {
-  height: 100%;
-  width: 100%;
+  height: 100vh !important;
+  width: 100% !important;
+  background: #f8fafc !important; /* Fallback color */
 }
 
 /* Fix Leaflet marker icon display issues */

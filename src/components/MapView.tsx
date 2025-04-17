@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -106,16 +107,15 @@ const MapView = () => {
   };
 
   return (
-    <div style={{ height: '100%', width: '100%' }}>
+    <div className="h-screen w-full">
       <MapContainer 
-        style={{ height: '100%', width: '100%' }}
-        zoom={13}
-        center={[48.8566, 2.3522] as L.LatLngExpression}
+        className="h-full w-full"
+        center={[48.8566, 2.3522] as L.LatLngExpression} 
+        zoom={13} 
       >
         <MapSetup onMapReady={handleMapReady} />
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
         
         {/* Property markers */}
