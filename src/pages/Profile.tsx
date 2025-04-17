@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import { Navigate } from 'react-router-dom';
@@ -27,9 +26,8 @@ const Profile = () => {
       if (!user) return;
       
       try {
-        // Use type assertion to work around the type constraints
-        const { data, error } = await (supabase
-          .from('user_preferences') as any)
+        const { data, error } = await supabase
+          .from('user_preferences')
           .select('*')
           .eq('user_id', user.id)
           .single();
@@ -44,8 +42,8 @@ const Profile = () => {
           });
         } else {
           // Create default preferences if none exist
-          const { error: insertError } = await (supabase
-            .from('user_preferences') as any)
+          const { error: insertError } = await supabase
+            .from('user_preferences')
             .insert([{ 
               user_id: user.id,
               email_notifications: false,
@@ -75,9 +73,8 @@ const Profile = () => {
     try {
       setPreferences(prev => ({ ...prev, [key]: value }));
       
-      // Use type assertion to work around the type constraints
-      const { error } = await (supabase
-        .from('user_preferences') as any)
+      const { error } = await supabase
+        .from('user_preferences')
         .update({ [key]: value })
         .eq('user_id', user.id);
       

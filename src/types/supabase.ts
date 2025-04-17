@@ -1,5 +1,5 @@
 
-import { Database } from '@/integrations/supabase/types';
+import { Database } from '@/integrations/supabase/client';
 
 // Custom type definitions for tables we need
 export interface SavedSearch {
@@ -38,4 +38,3 @@ export const typedSupabaseQuery = <T>(tableName: string) => {
     queryType: null as unknown as T
   };
 };
-

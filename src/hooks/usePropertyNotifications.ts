@@ -26,9 +26,8 @@ export function usePropertyNotifications() {
     const fetchSavedSearches = async () => {
       setLoading(true);
       try {
-        // Use type assertion to work around the type constraints
-        const { data, error } = await (supabase
-          .from('saved_searches') as any)
+        const { data, error } = await supabase
+          .from('saved_searches')
           .select('*')
           .eq('user_id', user.id);
         
@@ -45,12 +44,8 @@ export function usePropertyNotifications() {
     fetchSavedSearches();
 
     // Subscribe to real-time updates on new property matches
-    // This is simplified - in a real app, you'd have a more complex
-    // notification system with a separate table for property matches
-    
-    // For now, we'll simulate notifications with a simple subscription
-    const subscription = (supabase
-      .channel('saved_properties_changes') as any)
+    const subscription = supabase
+      .channel('saved_properties_changes')
       .on('postgres_changes', 
         { event: 'INSERT', schema: 'public', table: 'saved_properties', filter: `user_id=eq.${user.id}` }, 
         (payload: { new: SavedProperty }) => {
