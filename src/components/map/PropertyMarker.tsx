@@ -63,6 +63,7 @@ const PropertyMarker: React.FC<PropertyMarkerProps> = ({ property, onSelect }) =
           onSelect(property);
         }
       }}
+      icon={icon}
     >
       <Popup>
         <div className="w-64">
