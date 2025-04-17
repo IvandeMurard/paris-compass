@@ -103,7 +103,7 @@ const MapView = () => {
     <div className="relative h-full w-full">
       <MapContainer 
         className="h-full w-full"
-        center={center}
+        defaultCenter={center}
         zoom={13} 
       >
         <MapSetup onMapReady={handleMapReady} />

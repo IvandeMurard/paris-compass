@@ -22,14 +22,13 @@ const AccessibilityCircle: React.FC<AccessibilityCircleProps> = ({
   
   return (
     <CircleMarker
-      key={`access-${id}-${accessibilityType}`}
       center={[lat, lng]}
-      radius={30}
       pathOptions={{
         fillColor: color,
         fillOpacity: 0.3,
         color: color,
-        weight: 1
+        weight: 1,
+        radius: 30
       }}
     />
   );

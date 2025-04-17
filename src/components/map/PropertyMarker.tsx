@@ -58,7 +58,6 @@ const PropertyMarker: React.FC<PropertyMarkerProps> = ({ property, onSelect }) =
   return (
     <Marker 
       position={[property.lat, property.lng]}
-      icon={icon}
       eventHandlers={{
         click: () => {
           onSelect(property);
