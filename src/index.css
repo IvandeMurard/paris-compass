@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -107,7 +106,7 @@
 
 /* Ensure Leaflet map containers have proper height and width */
 .leaflet-container {
-  height: 100vh !important;
+  height: 100% !important;
   width: 100% !important;
   background: #f8fafc !important; /* Fallback color */
 }
@@ -126,4 +125,3 @@
 .leaflet-marker-shadow {
   background-image: url("https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png");
 }
-

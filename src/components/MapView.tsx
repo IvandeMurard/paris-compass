@@ -108,8 +108,9 @@ const MapView = () => {
   return (
     <div className="h-[calc(100vh-4rem)] w-full">
       <MapContainer 
-        center={[48.8566, 2.3522]} 
+        center={[48.8566, 2.3522] as L.LatLngExpression}
         zoom={13}
+        scrollWheelZoom={true}
         className="h-full w-full"
       >
         <MapSetup onMapReady={handleMapReady} />
