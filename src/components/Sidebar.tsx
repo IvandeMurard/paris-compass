@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Search, Filter, LayoutGrid, MapPin, Euro, Building, Tag, Baby, ShoppingCart, School, Hospital, Book, Store, Park } from 'lucide-react';
+import { Search, Filter, LayoutGrid, MapPin, Euro, Building, Tag, Baby, ShoppingCart, School, Hospital, Book, Store, TreePine } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
@@ -175,7 +175,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
                     { name: 'healthcare', icon: <Hospital size={14} />, label: 'Healthcare' },
                     { name: 'groceries', icon: <Store size={14} />, label: 'Groceries' },
                     { name: 'transit', icon: <MapPin size={14} />, label: 'Public Transit' },
-                    { name: 'parks', icon: <Park size={14} />, label: 'Parks & Recreation' }
+                    { name: 'parks', icon: <TreePine size={14} />, label: 'Parks & Recreation' }
                   ].map((amenity) => (
                     <div key={amenity.name} className="space-y-2">
                       <Label className="flex items-center text-xs">
@@ -209,8 +209,8 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
             <div className="space-y-2">
               {[
                 { name: "Metro Station", icon: <MapPin size={14} className="mr-2" /> },
-                { name: "Park", icon: <MapPin size={14} className="mr-2" /> },
-                { name: "Shopping Center", icon: <MapPin size={14} className="mr-2" /> },
+                { name: "Park", icon: <TreePine size={14} className="mr-2" /> },
+                { name: "Shopping Center", icon: <ShoppingCart size={14} className="mr-2" /> },
                 { name: "Restaurant Area", icon: <MapPin size={14} className="mr-2" /> },
                 { name: "Parking Available", icon: <MapPin size={14} className="mr-2" /> },
                 { name: "Daycare", icon: <Baby size={14} className="mr-2" /> },
