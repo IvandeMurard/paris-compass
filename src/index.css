@@ -106,9 +106,10 @@
 
 /* Ensure Leaflet map containers have proper height and width */
 .leaflet-container {
-  height: 100% !important;
-  width: 100% !important;
-  background: #f8fafc !important; /* Fallback color */
+  height: 100vh !important;
+  width: 100vw !important;
+  background: #f8fafc !important;
+  z-index: 0;
 }
 
 .leaflet-marker-icon {
