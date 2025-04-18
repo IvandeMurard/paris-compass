@@ -5,8 +5,6 @@ import { useMapLayers } from '@/hooks/useMapLayers';
 import QualityIndicator from './map/QualityIndicator';
 import { Button } from '@/components/ui/button';
 import { ZoomIn, ZoomOut, Locate, Navigation2 } from 'lucide-react';
-import { SidebarProvider } from "@/components/ui/sidebar";
-import MapSidebar from './map/MapSidebar';
 
 const MapView = () => {
   const [selectedProperty, setSelectedProperty] = useState(null);
@@ -98,111 +96,142 @@ const MapView = () => {
   };
 
   return (
-    <SidebarProvider>
-      <div className="relative h-full w-full flex bg-[#f5f5f5]">
-        <MapSidebar dataLayer={dataLayer} onDataLayerChange={setDataLayer} />
-        
-        <div className="flex-1 relative">
-          <div ref={mapRef} className="h-full w-full" />
+    <div className="relative h-full w-full bg-[#f5f5f5]">
+      <div ref={mapRef} className="h-full w-full" />
 
-          {/* Custom navigation controls */}
-          <div className="absolute left-4 top-4 flex flex-col gap-2 z-[1000]">
-            <Button
-              variant="secondary"
-              size="icon"
-              onClick={handleZoomIn}
-              className="bg-white hover:bg-gray-100"
-            >
-              <ZoomIn className="h-4 w-4 text-gray-700" />
-            </Button>
-            <Button
-              variant="secondary"
-              size="icon"
-              onClick={handleZoomOut}
-              className="bg-white hover:bg-gray-100"
-            >
-              <ZoomOut className="h-4 w-4 text-gray-700" />
-            </Button>
-            <Button
-              variant="secondary"
-              size="icon"
-              onClick={handleLocate}
-              className="bg-white hover:bg-gray-100"
-            >
-              <Locate className="h-4 w-4 text-gray-700" />
-            </Button>
-            <Button
-              variant="secondary"
-              size="icon"
-              onClick={handleResetView}
-              className="bg-white hover:bg-gray-100"
-            >
-              <Navigation2 className="h-4 w-4 text-gray-700" />
-            </Button>
+      {/* Custom navigation controls */}
+      <div className="absolute left-4 top-4 flex flex-col gap-2 z-[1000]">
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={handleZoomIn}
+          className="bg-white hover:bg-gray-100"
+        >
+          <ZoomIn className="h-4 w-4 text-gray-700" />
+        </Button>
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={handleZoomOut}
+          className="bg-white hover:bg-gray-100"
+        >
+          <ZoomOut className="h-4 w-4 text-gray-700" />
+        </Button>
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={handleLocate}
+          className="bg-white hover:bg-gray-100"
+        >
+          <Locate className="h-4 w-4 text-gray-700" />
+        </Button>
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={handleResetView}
+          className="bg-white hover:bg-gray-100"
+        >
+          <Navigation2 className="h-4 w-4 text-gray-700" />
+        </Button>
+      </div>
+
+      {/* Data layer controls */}
+      <div className="absolute top-4 right-4 bg-white/90 p-3 rounded-md shadow-md z-[1000]">
+        <h3 className="text-sm font-medium mb-2">Data Layers</h3>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <input 
+              type="radio" 
+              id="layer-none" 
+              name="dataLayer" 
+              checked={dataLayer === 'none'} 
+              onChange={() => setDataLayer('none')} 
+            />
+            <label htmlFor="layer-none" className="text-sm">None</label>
           </div>
-
-          {/* Selected property info */}
-          {selectedProperty && (
-            <div className="absolute bottom-4 left-4 bg-white/90 p-3 rounded-md shadow-md max-w-md z-[1000]">
-              <h3 className="font-medium mb-1">{selectedProperty.title}</h3>
-              <p className="text-sm text-gray-600 mb-2">{selectedProperty.address}</p>
-              
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="flex flex-col">
-                  <span className="font-medium">{selectedProperty.price}€/month</span>
-                  <span className="text-gray-500 text-xs">Price</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-medium">{selectedProperty.size}m²</span>
-                  <span className="text-gray-500 text-xs">Size</span>
-                </div>
-              </div>
-              
-              <QualityIndicator 
-                footfall={selectedProperty.footfall}
-                airQuality={selectedProperty.airQuality}
-                noise={selectedProperty.noise}
-              />
-            </div>
-          )}
-
-          {/* Overlay with environmental indicators */}
-          <div className="absolute bottom-4 right-4 bg-white/90 p-3 rounded-md shadow-md z-[1000]">
-            <h3 className="text-sm font-medium mb-1">Environmental Indicators</h3>
-            <div className="space-y-1 text-xs">
-              <div className="flex justify-between">
-                <span>Air Quality:</span>
-                <span className={`font-medium`}>
-                  {selectedAreaIndicators.airQuality}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Noise Pollution:</span>
-                <span className={`font-medium`}>
-                  {selectedAreaIndicators.noise}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Green Spaces:</span>
-                <span className="text-secondary font-medium">
-                  {selectedAreaIndicators.greenSpaces}
-                </span>
-              </div>
-            </div>
+          <div className="flex items-center gap-2">
+            <input 
+              type="radio" 
+              id="layer-walkability" 
+              name="dataLayer" 
+              checked={dataLayer === 'walkability'} 
+              onChange={() => setDataLayer('walkability')} 
+            />
+            <label htmlFor="layer-walkability" className="text-sm">15mincity.ai Walkability</label>
           </div>
-
-          {/* Loading placeholder */}
-          {!mapLoaded && (
-            <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-4"></div>
-                <p>Loading map...</p>
-              </div>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <input 
+              type="radio" 
+              id="layer-accessibility" 
+              name="dataLayer" 
+              checked={dataLayer === 'accessibility'} 
+              onChange={() => setDataLayer('accessibility')} 
+            />
+            <label htmlFor="layer-accessibility" className="text-sm">15mincity.ai Accessibility</label>
+          </div>
         </div>
       </div>
-    </SidebarProvider>
+
+      {/* Selected property info */}
+      {selectedProperty && (
+        <div className="absolute bottom-4 left-4 bg-white/90 p-3 rounded-md shadow-md max-w-md z-[1000]">
+          <h3 className="font-medium mb-1">{selectedProperty.title}</h3>
+          <p className="text-sm text-gray-600 mb-2">{selectedProperty.address}</p>
+          
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="flex flex-col">
+              <span className="font-medium">{selectedProperty.price}€/month</span>
+              <span className="text-gray-500 text-xs">Price</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="font-medium">{selectedProperty.size}m²</span>
+              <span className="text-gray-500 text-xs">Size</span>
+            </div>
+          </div>
+          
+          <QualityIndicator 
+            footfall={selectedProperty.footfall}
+            airQuality={selectedProperty.airQuality}
+            noise={selectedProperty.noise}
+          />
+        </div>
+      )}
+
+      {/* Overlay with environmental indicators */}
+      <div className="absolute bottom-4 right-4 bg-white/90 p-3 rounded-md shadow-md z-[1000]">
+        <h3 className="text-sm font-medium mb-1">Environmental Indicators</h3>
+        <div className="space-y-1 text-xs">
+          <div className="flex justify-between">
+            <span>Air Quality:</span>
+            <span className={`font-medium`}>
+              {selectedAreaIndicators.airQuality}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span>Noise Pollution:</span>
+            <span className={`font-medium`}>
+              {selectedAreaIndicators.noise}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span>Green Spaces:</span>
+            <span className="text-secondary font-medium">
+              {selectedAreaIndicators.greenSpaces}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Loading placeholder */}
+      {!mapLoaded && (
+        <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-4"></div>
+            <p>Loading map...</p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
