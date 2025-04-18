@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Euro, Ruler, MapPin, BarChart3, Users, ExternalLink, Heart } from 'lucide-react';
+import { Euro, Ruler, MapPin, Walk, BarChart3, Users, ExternalLink, Heart } from 'lucide-react';
 
 interface PropertyCardProps {
   id: number;
@@ -96,21 +95,21 @@ const PropertyCard = ({
         
         <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
           <div className="flex flex-col items-center">
-            <Users size={14} className="mb-1" />
-            <Badge variant="secondary" className="font-normal">
-              {footfall} Footfall
+            <Walk size={14} className="mb-1" />
+            <Badge variant="secondary" className={`font-normal ${getQualityColor('good')}`}>
+              15min Walk
             </Badge>
           </div>
           
           <div className="flex flex-col items-center">
-            <BarChart3 size={14} className="mb-1" />
+            <MapPin size={14} className="mb-1" />
             <Badge variant="secondary" className={`font-normal ${getQualityColor(airQuality)}`}>
               {airQuality} Air
             </Badge>
           </div>
           
           <div className="flex flex-col items-center">
-            <BarChart3 size={14} className="mb-1" />
+            <Walk size={14} className="mb-1" />
             <Badge variant="secondary" className={`font-normal ${getQualityColor(noise)}`}>
               {noise} Noise
             </Badge>
