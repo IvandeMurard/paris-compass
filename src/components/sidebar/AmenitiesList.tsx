@@ -5,7 +5,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { MapPin, TreePine, ShoppingCart, Baby } from 'lucide-react';
 import { Tag } from 'lucide-react';
 
-const AmenitiesList = () => {
+interface AmenitiesListProps {
+  selectedAmenities: string[];
+  onAmenityToggle: (amenity: string) => void;
+}
+
+const AmenitiesList = ({ selectedAmenities, onAmenityToggle }: AmenitiesListProps) => {
   return (
     <div className="mb-4">
       <Label className="flex items-center mb-2">
@@ -23,7 +28,11 @@ const AmenitiesList = () => {
           { name: "Markets", icon: <ShoppingCart size={14} className="mr-2" /> }
         ].map(amenity => (
           <div key={amenity.name} className="flex items-center space-x-2">
-            <Checkbox id={`amenity-${amenity.name}`} />
+            <Checkbox 
+              id={`amenity-${amenity.name}`}
+              checked={selectedAmenities.includes(amenity.name)}
+              onCheckedChange={() => onAmenityToggle(amenity.name)}
+            />
             <label
               htmlFor={`amenity-${amenity.name}`}
               className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center"
