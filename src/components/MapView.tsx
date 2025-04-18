@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -7,7 +8,7 @@ import QualityIndicator from './map/QualityIndicator';
 const MapView = () => {
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [showWalkability, setShowWalkability] = useState(true);
+  const [dataLayer, setDataLayer] = useState<'walkability' | 'accessibility' | 'none'>('walkability');
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
 
@@ -36,18 +37,21 @@ const MapView = () => {
   }, []);
 
   // Initialize and manage map layers
-  const { walkabilityLayer } = useMapLayers(mapInstanceRef.current);
+  const { walkabilityLayer, accessibilityLayer } = useMapLayers(mapInstanceRef.current);
 
-  // Update walkability layer visibility
+  // Update data layer visibility
   useEffect(() => {
-    if (!mapInstanceRef.current || !walkabilityLayer) return;
+    if (!mapInstanceRef.current || !walkabilityLayer || !accessibilityLayer) return;
     
-    if (showWalkability) {
+    walkabilityLayer.remove();
+    accessibilityLayer.remove();
+    
+    if (dataLayer === 'walkability') {
       walkabilityLayer.addTo(mapInstanceRef.current);
-    } else {
-      walkabilityLayer.remove();
+    } else if (dataLayer === 'accessibility') {
+      accessibilityLayer.addTo(mapInstanceRef.current);
     }
-  }, [showWalkability, walkabilityLayer]);
+  }, [dataLayer, walkabilityLayer, accessibilityLayer]);
 
   const selectedAreaIndicators = {
     airQuality: 'Good',
@@ -68,8 +72,8 @@ const MapView = () => {
               type="radio" 
               id="layer-none" 
               name="dataLayer" 
-              checked={!showWalkability} 
-              onChange={() => setShowWalkability(false)} 
+              checked={dataLayer === 'none'} 
+              onChange={() => setDataLayer('none')} 
             />
             <label htmlFor="layer-none" className="text-sm">None</label>
           </div>
@@ -78,10 +82,20 @@ const MapView = () => {
               type="radio" 
               id="layer-walkability" 
               name="dataLayer" 
-              checked={showWalkability} 
-              onChange={() => setShowWalkability(true)} 
+              checked={dataLayer === 'walkability'} 
+              onChange={() => setDataLayer('walkability')} 
             />
-            <label htmlFor="layer-walkability" className="text-sm">Walkability Scores</label>
+            <label htmlFor="layer-walkability" className="text-sm">15mincity.ai Walkability</label>
+          </div>
+          <div className="flex items-center gap-2">
+            <input 
+              type="radio" 
+              id="layer-accessibility" 
+              name="dataLayer" 
+              checked={dataLayer === 'accessibility'} 
+              onChange={() => setDataLayer('accessibility')} 
+            />
+            <label htmlFor="layer-accessibility" className="text-sm">15mincity.ai Accessibility</label>
           </div>
         </div>
       </div>
@@ -150,3 +164,4 @@ const MapView = () => {
 };
 
 export default MapView;
+

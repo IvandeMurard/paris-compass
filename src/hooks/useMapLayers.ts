@@ -1,12 +1,13 @@
 
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
-import { walkabilityData } from '@/data/mapData';
+import { walkabilityData, accessibilityData, accessibilityColors } from '@/data/mapData';
 import { sampleProperties } from '@/components/PropertyList';
 
 export const useMapLayers = (map: L.Map | null) => {
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
   const walkabilityLayerRef = useRef<L.LayerGroup | null>(null);
+  const accessibilityLayerRef = useRef<L.LayerGroup | null>(null);
 
   useEffect(() => {
     if (!map) return;
@@ -24,11 +25,13 @@ export const useMapLayers = (map: L.Map | null) => {
     // Initialize layers
     const markersLayer = L.layerGroup().addTo(map);
     const walkabilityLayer = L.layerGroup();
+    const accessibilityLayer = L.layerGroup();
 
     markersLayerRef.current = markersLayer;
     walkabilityLayerRef.current = walkabilityLayer;
+    accessibilityLayerRef.current = accessibilityLayer;
 
-    // Add property markers with walkability info
+    // Add property markers
     sampleProperties.forEach(property => {
       const marker = L.marker([property.lat, property.lng], { icon: propertyIcon })
         .bindPopup(`
@@ -36,10 +39,6 @@ export const useMapLayers = (map: L.Map | null) => {
             <h3 class="font-bold">${property.title}</h3>
             <p>${property.address}</p>
             <p>${property.price}€/month | ${property.size}m²</p>
-            <p class="text-sm mt-1">Walkability Score: ${walkabilityData.find(w => 
-              w.center[0] === property.lat && 
-              w.center[1] === property.lng
-            )?.score || 'N/A'}/100</p>
           </div>
         `);
       markersLayer.addLayer(marker);
@@ -56,14 +55,30 @@ export const useMapLayers = (map: L.Map | null) => {
       walkabilityLayer.addLayer(circle);
     });
 
+    // Add accessibility data
+    Object.entries(accessibilityData).forEach(([type, locations]) => {
+      locations.forEach(location => {
+        const circle = L.circle(location.position, {
+          radius: location.radius,
+          color: accessibilityColors[type as keyof typeof accessibilityColors],
+          fillOpacity: 0.3,
+          weight: 1
+        }).bindTooltip(`${type.charAt(0).toUpperCase() + type.slice(1)} Access: ${location.score}/100`);
+        accessibilityLayer.addLayer(circle);
+      });
+    });
+
     return () => {
       markersLayer.remove();
       walkabilityLayer.remove();
+      accessibilityLayer.remove();
     };
   }, [map]);
 
   return {
     markersLayer: markersLayerRef.current,
-    walkabilityLayer: walkabilityLayerRef.current
+    walkabilityLayer: walkabilityLayerRef.current,
+    accessibilityLayer: accessibilityLayerRef.current
   };
 };
+

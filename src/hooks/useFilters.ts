@@ -1,6 +1,14 @@
 
 import { useState } from 'react';
-import { FilterState } from '@/types/filters';
+import { FilterState, AmenityScore } from '@/types/filters';
+
+const initialAmenityScores: AmenityScore = {
+  schools: 0,
+  healthcare: 0,
+  groceries: 0,
+  transit: 0,
+  parks: 0
+};
 
 export const useFilters = () => {
   const [filters, setFilters] = useState<FilterState>({
@@ -8,6 +16,7 @@ export const useFilters = () => {
     priceRange: [500, 5000],
     sizeRange: [20, 200],
     walkabilityScore: [0, 100],
+    amenityScores: initialAmenityScores,
     selectedAmenities: []
   });
 
@@ -27,6 +36,13 @@ export const useFilters = () => {
     setFilters(prev => ({ ...prev, walkabilityScore }));
   };
 
+  const updateAmenityScores = (scores: Partial<AmenityScore>) => {
+    setFilters(prev => ({
+      ...prev,
+      amenityScores: { ...prev.amenityScores, ...scores }
+    }));
+  };
+
   const toggleAmenity = (amenity: string) => {
     setFilters(prev => ({
       ...prev,
@@ -42,6 +58,7 @@ export const useFilters = () => {
     updatePriceRange,
     updateSizeRange,
     updateWalkabilityScore,
+    updateAmenityScores,
     toggleAmenity
   };
 };
