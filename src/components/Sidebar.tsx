@@ -1,11 +1,11 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Search, Filter, LayoutGrid, MapPin, Euro, Building, Tag, Baby, ShoppingCart } from 'lucide-react';
+import { Search, Filter, LayoutGrid, MapPin, Euro, Building, Tag, Baby, ShoppingCart, School, Hospital, Book, Store, Park } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -15,6 +15,16 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
   const [query, setQuery] = useState('');
   const [priceRange, setPriceRange] = useState([500, 5000]);
   const [sizeRange, setSizeRange] = useState([20, 200]);
+  const [walkabilityScore, setWalkabilityScore] = useState([0, 100]);
+  
+  // New state for accessibility scores
+  const [amenityScores, setAmenityScores] = useState({
+    schools: 0,
+    healthcare: 0,
+    groceries: 0,
+    transit: 0,
+    parks: 0
+  });
   
   // This would be replaced with actual data from an API
   const fakePropertyResults = [
@@ -53,72 +63,145 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
             </h3>
             <Button variant="ghost" size="sm" className="text-xs h-7">Reset</Button>
           </div>
-          
-          {/* Price range slider */}
-          <div className="mb-4">
-            <Label htmlFor="price" className="flex items-center mb-2">
-              <Euro size={16} className="mr-2" />
-              Monthly Rent (€)
-            </Label>
-            <Slider
-              id="price"
-              min={0}
-              max={10000}
-              step={100}
-              value={priceRange}
-              onValueChange={setPriceRange}
-              className="mb-1"
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>€{priceRange[0]}</span>
-              <span>€{priceRange[1]}</span>
-            </div>
-          </div>
-          
-          {/* Size range slider */}
-          <div className="mb-4">
-            <Label htmlFor="size" className="flex items-center mb-2">
-              <Building size={16} className="mr-2" />
-              Size (m²)
-            </Label>
-            <Slider
-              id="size"
-              min={0}
-              max={500}
-              step={10}
-              value={sizeRange}
-              onValueChange={setSizeRange}
-              className="mb-1"
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{sizeRange[0]} m²</span>
-              <span>{sizeRange[1]} m²</span>
-            </div>
-          </div>
-          
-          {/* Arrondissement checkboxes */}
-          <div className="mb-4">
-            <Label className="flex items-center mb-2">
-              <MapPin size={16} className="mr-2" />
-              Arrondissement
-            </Label>
-            <div className="grid grid-cols-3 gap-2">
-              {Array.from({ length: 20 }, (_, i) => (
-                <div key={i} className="flex items-center space-x-1">
-                  <Checkbox id={`arr-${i+1}`} />
-                  <label
-                    htmlFor={`arr-${i+1}`}
-                    className="text-xs leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    {i+1}
-                  </label>
+
+          {/* Existing filters */}
+          <Collapsible defaultOpen className="space-y-4">
+            <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium">
+              Basic Filters
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              {/* Price range slider */}
+              <div className="mb-4">
+                <Label htmlFor="price" className="flex items-center mb-2">
+                  <Euro size={16} className="mr-2" />
+                  Monthly Rent (€)
+                </Label>
+                <Slider
+                  id="price"
+                  min={0}
+                  max={10000}
+                  step={100}
+                  value={priceRange}
+                  onValueChange={setPriceRange}
+                  className="mb-1"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>€{priceRange[0]}</span>
+                  <span>€{priceRange[1]}</span>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+              
+              {/* Size range slider */}
+              <div className="mb-4">
+                <Label htmlFor="size" className="flex items-center mb-2">
+                  <Building size={16} className="mr-2" />
+                  Size (m²)
+                </Label>
+                <Slider
+                  id="size"
+                  min={0}
+                  max={500}
+                  step={10}
+                  value={sizeRange}
+                  onValueChange={setSizeRange}
+                  className="mb-1"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{sizeRange[0]} m²</span>
+                  <span>{sizeRange[1]} m²</span>
+                </div>
+              </div>
+              
+              {/* Arrondissement checkboxes */}
+              <div className="mb-4">
+                <Label className="flex items-center mb-2">
+                  <MapPin size={16} className="mr-2" />
+                  Arrondissement
+                </Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {Array.from({ length: 20 }, (_, i) => (
+                    <div key={i} className="flex items-center space-x-1">
+                      <Checkbox id={`arr-${i+1}`} />
+                      <label
+                        htmlFor={`arr-${i+1}`}
+                        className="text-xs leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {i+1}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* New 15-minute city metrics */}
+          <Collapsible className="space-y-4 mt-6">
+            <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-medium">
+              Accessibility Metrics
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              {/* Walkability Score */}
+              <div className="mb-4">
+                <Label htmlFor="walkability" className="flex items-center mb-2">
+                  <MapPin size={16} className="mr-2" />
+                  Walkability Score
+                </Label>
+                <Slider
+                  id="walkability"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={walkabilityScore}
+                  onValueChange={setWalkabilityScore}
+                  className="mb-1"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{walkabilityScore[0]}</span>
+                  <span>{walkabilityScore[1]}</span>
+                </div>
+              </div>
+
+              {/* Amenity Scores */}
+              <div className="space-y-4">
+                <Label className="flex items-center mb-2">
+                  <Tag size={16} className="mr-2" />
+                  Minimum Amenity Scores
+                </Label>
+                
+                <div className="grid gap-4">
+                  {[
+                    { name: 'schools', icon: <School size={14} />, label: 'Schools' },
+                    { name: 'healthcare', icon: <Hospital size={14} />, label: 'Healthcare' },
+                    { name: 'groceries', icon: <Store size={14} />, label: 'Groceries' },
+                    { name: 'transit', icon: <MapPin size={14} />, label: 'Public Transit' },
+                    { name: 'parks', icon: <Park size={14} />, label: 'Parks & Recreation' }
+                  ].map((amenity) => (
+                    <div key={amenity.name} className="space-y-2">
+                      <Label className="flex items-center text-xs">
+                        {amenity.icon}
+                        <span className="ml-2">{amenity.label}</span>
+                      </Label>
+                      <Slider
+                        id={`amenity-${amenity.name}`}
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={[amenityScores[amenity.name as keyof typeof amenityScores]]}
+                        onValueChange={(value) => setAmenityScores(prev => ({
+                          ...prev,
+                          [amenity.name]: value[0]
+                        }))}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
           
           {/* Amenities checkboxes */}
-          <div className="mb-4">
+          <div className="mb-4 mt-6">
             <Label className="flex items-center mb-2">
               <Tag size={16} className="mr-2" />
               Amenities
@@ -146,7 +229,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
             </div>
           </div>
           
-          <Button className="w-full" onClick={() => console.log("Apply filters")}>
+          <Button className="w-full mt-6" onClick={() => console.log("Apply filters")}>
             Apply Filters
           </Button>
         </div>
