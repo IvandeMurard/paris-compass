@@ -1,9 +1,10 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useMapLayers } from '@/hooks/useMapLayers';
 import QualityIndicator from './map/QualityIndicator';
+import { Button } from '@/components/ui/button';
+import { ZoomIn, ZoomOut, Locate, Navigation2 } from 'lucide-react';
 
 const MapView = () => {
   const [selectedProperty, setSelectedProperty] = useState(null);
@@ -53,6 +54,41 @@ const MapView = () => {
     }
   }, [dataLayer, walkabilityLayer, accessibilityLayer]);
 
+  // Custom map controls
+  const handleZoomIn = () => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.zoomIn();
+    }
+  };
+
+  const handleZoomOut = () => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.zoomOut();
+    }
+  };
+
+  const handleLocate = () => {
+    if (!mapInstanceRef.current) return;
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        mapInstanceRef.current?.setView(
+          [position.coords.latitude, position.coords.longitude],
+          13
+        );
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+      }
+    );
+  };
+
+  const handleResetView = () => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setView([48.8566, 2.3522], 12);
+    }
+  };
+
   const selectedAreaIndicators = {
     airQuality: 'Good',
     noise: 'Moderate',
@@ -62,6 +98,42 @@ const MapView = () => {
   return (
     <div className="relative h-full w-full bg-[#f5f5f5]">
       <div ref={mapRef} className="h-full w-full" />
+
+      {/* Custom navigation controls */}
+      <div className="absolute left-4 top-4 flex flex-col gap-2 z-[1000]">
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={handleZoomIn}
+          className="bg-white hover:bg-gray-100"
+        >
+          <ZoomIn className="h-4 w-4 text-gray-700" />
+        </Button>
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={handleZoomOut}
+          className="bg-white hover:bg-gray-100"
+        >
+          <ZoomOut className="h-4 w-4 text-gray-700" />
+        </Button>
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={handleLocate}
+          className="bg-white hover:bg-gray-100"
+        >
+          <Locate className="h-4 w-4 text-gray-700" />
+        </Button>
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={handleResetView}
+          className="bg-white hover:bg-gray-100"
+        >
+          <Navigation2 className="h-4 w-4 text-gray-700" />
+        </Button>
+      </div>
 
       {/* Data layer controls */}
       <div className="absolute top-4 right-4 bg-white/90 p-3 rounded-md shadow-md z-[1000]">
@@ -164,4 +236,3 @@ const MapView = () => {
 };
 
 export default MapView;
-
