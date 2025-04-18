@@ -24,7 +24,7 @@ const Header = ({ isSidebarOpen, toggleSidebar }: HeaderProps) => {
           {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
         </Button>
         <Link to="/" className="flex items-center">
-          <h1 className="text-xl font-bold text-primary">Paris Property Compass</h1>
+          <h1 className="text-xl font-bold text-primary">Compass</h1>
         </Link>
       </div>
       <div className="flex items-center space-x-2">

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
@@ -48,18 +49,18 @@ const Index = () => {
           
           <div className="flex border rounded-md overflow-hidden">
             <Button 
-              variant={viewMode === 'list' ? 'default' : 'ghost'} 
-              onClick={() => setViewMode('list')}
-              className="flex-1 rounded-none"
-            >
-              <LayoutGrid size={18} className="mr-1" /> List
-            </Button>
-            <Button 
               variant={viewMode === 'map' ? 'default' : 'ghost'} 
               onClick={() => setViewMode('map')}
               className="flex-1 rounded-none"
             >
               <MapPin size={18} className="mr-1" /> Map
+            </Button>
+            <Button 
+              variant={viewMode === 'list' ? 'default' : 'ghost'} 
+              onClick={() => setViewMode('list')}
+              className="flex-1 rounded-none"
+            >
+              <LayoutGrid size={18} className="mr-1" /> List
             </Button>
           </div>
         </div>
