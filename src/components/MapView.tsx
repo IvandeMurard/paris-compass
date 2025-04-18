@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, Suspense, lazy } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -29,7 +29,6 @@ const MapView = () => {
         center={[48.8566, 2.3522]}
         zoom={13}
         style={{ height: '100%', width: '100%' }}
-        scrollWheelZoom={true}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
