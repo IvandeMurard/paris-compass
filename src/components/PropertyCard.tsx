@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Euro, Ruler, MapPin, BarChart3, Users, ExternalLink, Heart, Info } from 'lucide-react';
+import { Euro, Ruler, MapPin, BarChart3, Users, ExternalLink, Heart } from 'lucide-react';
 
 interface PropertyCardProps {
   id: number;
@@ -39,13 +39,6 @@ const PropertyCard = ({
       case 'poor': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
-  };
-
-  // Handle click on more details button
-  const handleViewDetails = () => {
-    console.log(`View details for property ${id}`);
-    // In a real app, this would navigate to a details page
-    // or open a modal with more detailed property information
   };
 
   return (
@@ -116,13 +109,8 @@ const PropertyCard = ({
       </CardContent>
       
       <CardFooter className="px-4 pb-4 pt-0 flex justify-between">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="flex-1 mr-2"
-          onClick={handleViewDetails}
-        >
-          <Info size={14} className="mr-1" /> More details
+        <Button variant="outline" size="sm" className="flex-1 mr-2">
+          <ExternalLink size={14} className="mr-1" /> Details
         </Button>
         <Button variant="ghost" size="icon">
           <Heart size={16} />
