@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Euro, Ruler, MapPin, BarChart3, Users, ExternalLink, Heart } from 'lucide-react';
+import { Euro, Ruler, MapPin, BarChart3, Users, ExternalLink, Heart, Navigation } from 'lucide-react';
 
 interface PropertyCardProps {
   id: number;
