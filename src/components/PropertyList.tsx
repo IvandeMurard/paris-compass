@@ -13,7 +13,9 @@ const sampleProperties = [
     arrondissement: 11,
     footfall: "High",
     airQuality: "Good",
-    noise: "Moderate"
+    noise: "Moderate",
+    lat: 48.8534,
+    lng: 2.3751
   },
   { 
     id: 2, 
@@ -24,7 +26,9 @@ const sampleProperties = [
     arrondissement: 9,
     footfall: "Very High",
     airQuality: "Moderate",
-    noise: "High"
+    noise: "High",
+    lat: 48.8728,
+    lng: 2.3378
   },
   { 
     id: 3, 
@@ -35,7 +39,9 @@ const sampleProperties = [
     arrondissement: 1,
     footfall: "Excellent",
     airQuality: "Moderate",
-    noise: "High"
+    noise: "High",
+    lat: 48.8566,
+    lng: 2.3522
   },
   { 
     id: 4, 
@@ -46,7 +52,9 @@ const sampleProperties = [
     arrondissement: 5,
     footfall: "Medium",
     airQuality: "Good",
-    noise: "Low"
+    noise: "Low",
+    lat: 48.8448,
+    lng: 2.3505
   },
   { 
     id: 5, 
@@ -57,7 +65,9 @@ const sampleProperties = [
     arrondissement: 16,
     footfall: "Medium",
     airQuality: "Excellent",
-    noise: "Low"
+    noise: "Low",
+    lat: 48.8673,
+    lng: 2.2898
   },
   { 
     id: 6, 
@@ -68,9 +78,14 @@ const sampleProperties = [
     arrondissement: 8,
     footfall: "Very High",
     airQuality: "Moderate",
-    noise: "High"
+    noise: "High",
+    lat: 48.8703,
+    lng: 2.3072
   }
 ];
+
+// Export the sample data for use in other components
+export { sampleProperties };
 
 const PropertyList = () => {
   return (

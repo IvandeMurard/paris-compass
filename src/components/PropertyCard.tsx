@@ -16,6 +16,8 @@ interface PropertyCardProps {
   footfall?: string;
   airQuality?: string;
   noise?: string;
+  lat?: number;
+  lng?: number;
 }
 
 const PropertyCard = ({ 
@@ -28,7 +30,9 @@ const PropertyCard = ({
   image,
   footfall = "Medium",
   airQuality = "Good",
-  noise = "Moderate"
+  noise = "Moderate",
+  lat,
+  lng
 }: PropertyCardProps) => {
   // Generate a quality score based on environmental factors
   const getQualityColor = (quality: string) => {
@@ -82,6 +86,12 @@ const PropertyCard = ({
             <MapPin size={16} className="mr-2 text-primary" />
             <span className="truncate">{address}</span>
           </div>
+
+          {lat && lng && (
+            <div className="flex items-center text-xs text-gray-500">
+              <span>Coordinates: {lat.toFixed(4)}, {lng.toFixed(4)}</span>
+            </div>
+          )}
         </div>
         
         <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
