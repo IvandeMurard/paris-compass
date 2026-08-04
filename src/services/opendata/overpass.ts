@@ -112,6 +112,9 @@ export async function fetchOverpassSnapshot(bbox: BBox): Promise<OverpassSnapsho
         cacheKey: `overpass:${bboxKey(bbox)}`,
         maxAgeMs: 60 * 60 * 1000,
         timeoutMs: 70000,
+        validate: (payload) =>
+          Array.isArray((payload as OverpassResponse | null)?.elements) &&
+          (payload as OverpassResponse).elements.length > 0,
         init: {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

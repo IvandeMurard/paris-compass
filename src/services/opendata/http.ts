@@ -35,10 +35,12 @@ export interface FetchOptions {
   maxAgeMs?: number;
   timeoutMs?: number;
   init?: RequestInit;
+  /** Reject (and skip caching) responses that parsed fine but carry no usable payload. */
+  validate?: (data: unknown) => boolean;
 }
 
 export async function fetchJson<T>(url: string, options: FetchOptions = {}): Promise<T> {
-  const { cacheKey, maxAgeMs = 30 * 60 * 1000, timeoutMs = 30000, init } = options;
+  const { cacheKey, maxAgeMs = 30 * 60 * 1000, timeoutMs = 30000, init, validate } = options;
 
   if (cacheKey) {
     const cached = readCache<T>(cacheKey, maxAgeMs);
@@ -55,6 +57,9 @@ export async function fetchJson<T>(url: string, options: FetchOptions = {}): Pro
       throw new Error(`Open data request failed [${response.status}] ${url} ${body.slice(0, 200)}`);
     }
     const data = (await response.json()) as T;
+    if (validate && !validate(data)) {
+      throw new Error(`Open data response was empty or invalid: ${url}`);
+    }
     if (cacheKey) writeCache(cacheKey, data);
     return data;
   } finally {
