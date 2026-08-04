@@ -6,7 +6,7 @@ const SUPABASE_URL = "https://pulfdlztjbkgydmyrkfy.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1bGZkbHp0amJrZ3lkbXlya2Z5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3MDg5MTgsImV4cCI6MjA2MDI4NDkxOH0.jQr0zRewcfgagulvHU7PEWVFLrhPaefSf7-zdzY3Vt8";
 
 // Extend the generated database type with our custom tables
-export interface Database extends GeneratedDatabase {
+export type Database = Omit<GeneratedDatabase, 'public'> & {
   public: {
     Tables: {
       saved_searches: {
