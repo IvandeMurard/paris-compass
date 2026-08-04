@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useMapLayers } from '@/hooks/useMapLayers';
@@ -19,8 +19,8 @@ const MapView = () => {
 
   const { data, isFetching, isError } = usePremises(bbox);
   const { matches } = useFiltersContext();
-  const premises = (data?.premises ?? []).filter(matches);
-  const pois = data?.pois ?? [];
+  const premises = useMemo(() => (data?.premises ?? []).filter(matches), [data, matches]);
+  const pois = useMemo(() => data?.pois ?? [], [data]);
 
   const center = { lat: (bbox.south + bbox.north) / 2, lng: (bbox.west + bbox.east) / 2 };
   const { data: environment } = useAreaEnvironment(center.lat, center.lng);
