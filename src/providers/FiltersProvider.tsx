@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useMemo, useState } from 'react';
 import type { AmenityScore, FilterState } from '@/types/filters';
-import type { Premise } from '@/services/opendata/types';
+import type { BBox, Premise } from '@/services/opendata/types';
+import { PARIS_BBOX } from '@/hooks/useOpenData';
 
 const initialAmenityScores: AmenityScore = {
   schools: 0,
@@ -31,6 +32,8 @@ interface FiltersContextValue {
   toggleAmenity: (amenity: string) => void;
   reset: () => void;
   matches: (premise: Premise) => boolean;
+  bbox: BBox;
+  setBbox: (bbox: BBox) => void;
 }
 
 const FiltersContext = createContext<FiltersContextValue | null>(null);
@@ -38,6 +41,7 @@ const FiltersContext = createContext<FiltersContextValue | null>(null);
 export const FiltersProvider = ({ children }: { children: React.ReactNode }) => {
   const [filters, setFilters] = useState<FilterState>(initialFilters);
   const [vacantOnly, setVacantOnly] = useState(false);
+  const [bbox, setBbox] = useState<BBox>(PARIS_BBOX);
 
   const value = useMemo<FiltersContextValue>(() => {
     const matches = (premise: Premise) => {
@@ -96,8 +100,10 @@ export const FiltersProvider = ({ children }: { children: React.ReactNode }) => 
         setVacantOnly(false);
       },
       matches,
+      bbox,
+      setBbox,
     };
-  }, [filters, vacantOnly]);
+  }, [filters, vacantOnly, bbox]);
 
   return <FiltersContext.Provider value={value}>{children}</FiltersContext.Provider>;
 };

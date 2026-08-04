@@ -2,15 +2,15 @@ import React from 'react';
 import PropertyCard from './PropertyCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { usePremises, useAreaEnvironment, PARIS_BBOX } from '@/hooks/useOpenData';
+import { usePremises, useAreaEnvironment } from '@/hooks/useOpenData';
 import { useFiltersContext } from '@/providers/FiltersProvider';
 
 const PropertyList = () => {
-  const { data, isLoading, isError, error } = usePremises(PARIS_BBOX);
-  const { matches } = useFiltersContext();
+  const { matches, bbox } = useFiltersContext();
+  const { data, isLoading, isError, error } = usePremises(bbox);
   const center = {
-    lat: (PARIS_BBOX.south + PARIS_BBOX.north) / 2,
-    lng: (PARIS_BBOX.west + PARIS_BBOX.east) / 2,
+    lat: (bbox.south + bbox.north) / 2,
+    lng: (bbox.west + bbox.east) / 2,
   };
   const { data: environment } = useAreaEnvironment(center.lat, center.lng);
 

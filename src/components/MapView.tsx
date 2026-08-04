@@ -4,21 +4,20 @@ import 'leaflet/dist/leaflet.css';
 import { useMapLayers } from '@/hooks/useMapLayers';
 import { Button } from '@/components/ui/button';
 import { ZoomIn, ZoomOut, Locate, Navigation2, Loader2 } from 'lucide-react';
-import { usePremises, useAreaEnvironment, PARIS_BBOX } from '@/hooks/useOpenData';
+import { usePremises, useAreaEnvironment } from '@/hooks/useOpenData';
 import { useFiltersContext } from '@/providers/FiltersProvider';
 import type { BBox } from '@/services/opendata/types';
 import DataSourcesPanel from './DataSourcesPanel';
 
 const MapView = () => {
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [bbox, setBbox] = useState<BBox>(PARIS_BBOX);
   const [dataLayer, setDataLayer] = useState<'walkability' | 'accessibility' | 'none'>('walkability');
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
 
   const { data, isFetching, isError } = usePremises(bbox);
-  const { matches } = useFiltersContext();
+  const { matches, bbox, setBbox } = useFiltersContext();
   const premises = useMemo(() => (data?.premises ?? []).filter(matches), [data, matches]);
   const pois = useMemo(() => data?.pois ?? [], [data]);
 
