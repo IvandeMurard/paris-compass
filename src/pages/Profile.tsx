@@ -75,7 +75,7 @@ const Profile = () => {
       
       const { error } = await supabase
         .from('user_preferences')
-        .update({ [key]: value })
+        .update({ [key]: value } as Partial<UserPreferences>)
         .eq('user_id', user.id);
       
       if (error) throw error;
