@@ -36,7 +36,14 @@ interface FiltersContextValue {
   setBbox: (bbox: BBox) => void;
 }
 
-const FiltersContext = createContext<FiltersContextValue | null>(null);
+// Keep a single context identity across Vite HMR updates, otherwise a hot reload
+// of this module creates a new context while the mounted provider still holds the old one.
+const globalScope = globalThis as typeof globalThis & {
+  __filtersContext?: React.Context<FiltersContextValue | null>;
+};
+const FiltersContext =
+  globalScope.__filtersContext ??
+  (globalScope.__filtersContext = createContext<FiltersContextValue | null>(null));
 
 export const FiltersProvider = ({ children }: { children: React.ReactNode }) => {
   const [filters, setFilters] = useState<FilterState>(initialFilters);
