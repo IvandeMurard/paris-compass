@@ -31,6 +31,7 @@ export type Database = Omit<GeneratedDatabase, 'public'> & {
           filters?: Record<string, any>;
           created_at?: string;
         };
+        Relationships: [];
       };
       user_preferences: {
         Row: {
@@ -57,6 +58,7 @@ export type Database = Omit<GeneratedDatabase, 'public'> & {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       saved_properties: {
         Row: {
@@ -89,6 +91,7 @@ export type Database = Omit<GeneratedDatabase, 'public'> & {
           };
           created_at?: string;
         };
+        Relationships: [];
       };
     };
     Views: GeneratedDatabase['public']['Views'];
