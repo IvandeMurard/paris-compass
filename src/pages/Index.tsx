@@ -7,11 +7,14 @@ import NaturalLanguageSearch from '@/components/NaturalLanguageSearch';
 import { Button } from '@/components/ui/button';
 import { MapPin, LayoutGrid } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FiltersProvider, useFiltersContext } from '@/providers/FiltersProvider';
+import { geocode } from '@/services/opendata/geocoding';
 
-const Index = () => {
+const IndexContent = () => {
+  const { updateQuery } = useFiltersContext();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map'); // Changed default to 'map'
-  const [searchQuery, setSearchQuery] = useState('');
+
 
   // Handle window resize to auto-show sidebar on desktop
   useEffect(() => {
@@ -30,11 +33,10 @@ const Index = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Handle search queries
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    // In a real implementation, this would trigger a search API call
-    console.log(`Searching for: ${query}`);
+  // Geocode the query with the Base Adresse Nationale, then filter on the matched address.
+  const handleSearch = async (query: string) => {
+    const [match] = await geocode(query, 1);
+    updateQuery(match ? match.label : query);
   };
 
   return (
@@ -113,5 +115,11 @@ const Index = () => {
     </div>
   );
 };
+
+const Index = () => (
+  <FiltersProvider>
+    <IndexContent />
+  </FiltersProvider>
+);
 
 export default Index;
