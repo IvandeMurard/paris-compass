@@ -22,12 +22,12 @@ export function computeScores(
   point: { lat: number; lng: number },
   snapshot: OverpassSnapshot,
 ): AreaScores {
-  const schools = categoryScore(countNear(snapshot.pois, point, 'schools'), 3);
-  const healthcare = categoryScore(countNear(snapshot.pois, point, 'healthcare'), 4);
-  const groceries = categoryScore(countNear(snapshot.pois, point, 'groceries'), 5);
-  const parks = categoryScore(countNear(snapshot.pois, point, 'parks'), 3);
+  const schools = categoryScore(countNear(snapshot.pois, point, 'schools'), 8);
+  const healthcare = categoryScore(countNear(snapshot.pois, point, 'healthcare'), 14);
+  const groceries = categoryScore(countNear(snapshot.pois, point, 'groceries'), 18);
+  const parks = categoryScore(countNear(snapshot.pois, point, 'parks'), 7);
   const transitCount = countNear(snapshot.pois, point, 'transit');
-  const transit = categoryScore(transitCount, 6);
+  const transit = categoryScore(transitCount, 25);
 
   const walkability = Math.round(
     schools * 0.15 + healthcare * 0.2 + groceries * 0.3 + parks * 0.15 + transit * 0.2,
@@ -38,7 +38,7 @@ export function computeScores(
     (p) => distanceM(point, p) <= 400 && p.status === 'occupied',
   ).length;
   const footfall = clamp(
-    Math.round(categoryScore(commerceCount, 15) * 0.65 + transit * 0.35),
+    Math.round(categoryScore(commerceCount, 90) * 0.65 + transit * 0.35),
   );
 
   return { walkability, schools, healthcare, groceries, transit, parks, footfall };
@@ -55,7 +55,7 @@ export function estimateNoise(
     if (d > 500) continue;
     exposure += road.weight * (1 - d / 500);
   }
-  const score = clamp(Math.round(exposure * 12));
+  const score = clamp(Math.round(exposure * 5));
   const label = score >= 70 ? 'High' : score >= 40 ? 'Moderate' : score >= 15 ? 'Low' : 'Very low';
   return { score, label };
 }
