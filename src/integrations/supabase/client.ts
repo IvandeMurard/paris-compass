@@ -96,7 +96,7 @@ export type Database = Omit<GeneratedDatabase, 'public'> & {
     Enums: GeneratedDatabase['public']['Enums'];
     CompositeTypes: GeneratedDatabase['public']['CompositeTypes'];
   };
-}
+};
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
