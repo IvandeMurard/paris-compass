@@ -16,8 +16,8 @@ const MapView = () => {
   const mapInstanceRef = useRef<L.Map | null>(null);
   const [mapInstance, setMapInstance] = useState<L.Map | null>(null);
 
-  const { data, isFetching, isError } = usePremises(bbox);
   const { matches, bbox, setBbox } = useFiltersContext();
+  const { data, isFetching, isError } = usePremises(bbox);
   const premises = useMemo(() => (data?.premises ?? []).filter(matches), [data, matches]);
   const pois = useMemo(() => data?.pois ?? [], [data]);
 
