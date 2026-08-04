@@ -1,145 +1,142 @@
-# Compass — trouver un local commercial par son environnement
+# Compass — find a commercial space through its environment
 
-Compass est une application de recherche de locaux commerciaux à Paris qui ne se
-contente pas d'afficher des offres : elle **replace chaque local dans son
-environnement réel** (marchabilité, commerces, transports, écoles, santé, parcs,
-bruit, qualité de l'air, risques) à partir de données publiques ouvertes.
+Compass is a commercial real estate search application for Paris that does not
+merely list offers: it **puts every space back into its real environment**
+(walkability, retail, transport, schools, healthcare, parks, noise, air quality,
+risks) using open public data.
 
-Fait par Ivan de Murard.
+Made by Ivan de Murard.
 
 ## Ambition
 
-La plupart des plateformes immobilières décrivent un bien (surface, loyer,
-photos) et laissent l'utilisateur deviner le reste. Compass part du principe
-inverse : **le contexte est le produit**.
+Most real estate platforms describe a property (surface, rent, photos) and leave
+the user to guess the rest. Compass takes the opposite view: **context is the
+product**.
 
-1. **Contextualiser les résultats** — chaque local est accompagné de scores
-   calculés à partir de son voisinage réel dans un rayon de 400 à 800 m, et non
-   de descriptions déclaratives.
-2. **Placer les offres dans leur environnement** — la carte superpose les
-   couches d'aménités et de marchabilité aux locaux, et un panneau
-   environnemental affiche en direct l'indice de qualité de l'air, les PM2,5 et
-   les risques recensés autour du point observé.
-3. **Chercher par besoin, pas par référence** — on décrit ce qu'on veut
-   (« 50 m² dans le 10e près d'un parc ») et les filtres portent sur des
-   critères d'usage : marchabilité, densité de commerces, accessibilité
-   transports, proximité écoles/santé, flux piéton estimé, locaux vacants
-   uniquement.
-4. **Transparence** — chaque jeu de données est listé dans le panneau
-   « Sources » avec son producteur et sa licence. Une donnée absente est
-   affichée comme indisponible, jamais inventée.
+1. **Contextualise the results** — each space comes with scores computed from its
+   real neighbourhood within a 400 to 800 m radius, not from declarative
+   descriptions.
+2. **Place offers in their environment** — the map overlays amenity and
+   walkability layers on top of the listings, and an environmental panel shows
+   live air quality index, PM2.5 and recorded risks around the observed point.
+3. **Search by need, not by reference** — you describe what you want
+   ("50 m² in the 10th arrondissement near a park") and the filters apply to
+   usage criteria: walkability, retail density, transport accessibility,
+   proximity to schools and healthcare, estimated footfall, vacant spaces only.
+4. **Transparency** — every dataset is listed in the "Sources" panel with its
+   producer and licence. Missing data is displayed as unavailable, never
+   invented.
 
 ## Stack
 
 - React 18 + TypeScript + Vite 5
 - Tailwind CSS + shadcn/ui (Radix)
-- Leaflet / react-leaflet pour la cartographie
-- TanStack Query pour le cache des requêtes open data
-- Supabase (Lovable Cloud) pour l'authentification, les préférences et les
-  recherches sauvegardées
+- Leaflet / react-leaflet for mapping
+- TanStack Query for caching open data requests
+- Supabase (Lovable Cloud) for authentication, preferences and saved searches
 
-Les API publiques sont appelées directement depuis le navigateur, avec un cache
-`sessionStorage` de courte durée et une bascule automatique entre miroirs
-Overpass en cas de saturation.
+Public APIs are called directly from the browser, with a short-lived
+`sessionStorage` cache and automatic failover between Overpass mirrors when one
+is saturated.
 
 ## Installation
 
-Prérequis : Node.js 18+ et npm (ou bun).
+Requirements: Node.js 18+ and npm (or bun).
 
 ```sh
-git clone <URL_DU_REPO>
+git clone <REPO_URL>
 cd compass
 npm install
 npm run dev
 ```
 
-L'application est servie sur http://localhost:8080.
+The application is served at http://localhost:8080.
 
 ## Scripts
 
 | Script | Description |
 | --- | --- |
-| `npm run dev` | Serveur de développement Vite avec HMR (port 8080) |
-| `npm run build` | Build de production dans `dist/` |
-| `npm run build:dev` | Build en mode development (source maps, non minifié) |
-| `npm run preview` | Sert localement le build de production |
-| `npm run lint` | Analyse ESLint du projet |
+| `npm run dev` | Vite development server with HMR (port 8080) |
+| `npm run build` | Production build into `dist/` |
+| `npm run build:dev` | Development-mode build (source maps, unminified) |
+| `npm run preview` | Serves the production build locally |
+| `npm run lint` | ESLint analysis of the project |
 
-## Variables d'environnement
+## Environment variables
 
-Le projet fonctionne sans configuration : les identifiants Supabase publics sont
-inscrits dans `src/integrations/supabase/client.ts`, et toutes les sources open
-data utilisées sont en accès libre et sans clé.
+The project runs without configuration: the public Supabase credentials live in
+`src/integrations/supabase/client.ts`, and every open data source used is freely
+accessible without a key.
 
-Si vous déployez sur votre propre backend, créez un fichier `.env` à la racine :
+If you deploy against your own backend, create a `.env` file at the root:
 
 ```sh
-VITE_SUPABASE_URL="https://<votre-projet>.supabase.co"
-VITE_SUPABASE_PUBLISHABLE_KEY="<votre-clé-anon-publique>"
+VITE_SUPABASE_URL="https://<your-project>.supabase.co"
+VITE_SUPABASE_PUBLISHABLE_KEY="<your-public-anon-key>"
 ```
 
-Puis lisez-les via `import.meta.env` dans `src/integrations/supabase/client.ts`.
+Then read them via `import.meta.env` in `src/integrations/supabase/client.ts`.
 
-Règles :
+Rules:
 
-- Seules les variables préfixées `VITE_` sont exposées au navigateur.
-- N'y placez jamais de clé privée (service role, clés d'API payantes) : elles
-  seraient publiées dans le bundle. Les secrets serveur vont dans les variables
-  d'environnement des edge functions.
-- Une clé INSEE Sirene n'est nécessaire que si vous passez de l'API publique
-  `recherche-entreprises` à l'API Sirene officielle
-  (`VITE_` interdit dans ce cas : passer par une edge function).
+- Only variables prefixed with `VITE_` are exposed to the browser.
+- Never put a private key there (service role, paid API keys): it would be
+  published in the bundle. Server secrets belong in the edge functions'
+  environment variables.
+- An INSEE Sirene key is only required if you move from the public
+  `recherche-entreprises` API to the official Sirene API
+  (`VITE_` is forbidden in that case: go through an edge function).
 
-## Sources de données
+## Data sources
 
-### Branchées aujourd'hui
+### Connected today
 
-| Source | Producteur | Usage dans Compass | Licence |
+| Source | Producer | Use in Compass | Licence |
 | --- | --- | --- | --- |
-| OpenStreetMap (Overpass API) | Contributeurs OSM | Locaux commerciaux vacants et occupés, commerces, écoles, santé, parcs, arrêts de transport, voirie | ODbL |
-| Base Adresse Nationale | Etalab / IGN | Géocodage des recherches et des adresses | Licence Ouverte 2.0 |
-| Recherche d'entreprises (Sirene) | INSEE / DINUM | Établissements actifs autour du local, dynamisme commercial | Licence Ouverte 2.0 |
-| Encadrement des loyers | Ville de Paris | Loyer de référence €/m² par quartier | ODbL |
-| CAMS Europe (Open-Meteo) | Copernicus | Indice ATMO européen, PM2,5, NO₂ en temps réel | CC BY 4.0 |
-| Géorisques | BRGM / MTE | Risques naturels et technologiques dans un rayon de 1 km | Licence Ouverte 2.0 |
+| OpenStreetMap (Overpass API) | OSM contributors | Vacant and occupied commercial spaces, retail, schools, healthcare, parks, transit stops, road network | ODbL |
+| Base Adresse Nationale | Etalab / IGN | Geocoding of searches and addresses | Licence Ouverte 2.0 |
+| Recherche d'entreprises (Sirene) | INSEE / DINUM | Active establishments around the space, commercial dynamism | Licence Ouverte 2.0 |
+| Rent control dataset | City of Paris | Reference rent €/m² per neighbourhood | ODbL |
+| CAMS Europe (Open-Meteo) | Copernicus | European AQI, PM2.5, NO₂ in real time | CC BY 4.0 |
+| Géorisques | BRGM / MTE | Natural and technological risks within a 1 km radius | Licence Ouverte 2.0 |
 
-Scores dérivés calculés côté client : marchabilité, accessibilité transports,
-densité par catégorie d'aménités, bruit estimé (proximité et classe des axes
-routiers), flux piéton estimé (densité de commerces actifs + desserte). Ces deux
-derniers sont explicitement présentés comme des estimations, faute de source
-ouverte fiable.
+Derived scores computed client-side: walkability, transport accessibility,
+density per amenity category, estimated noise (proximity and class of major
+roads), estimated footfall (density of active businesses + transit coverage).
+The last two are explicitly presented as estimates, for lack of a reliable open
+source.
 
-### À venir
+### Coming next
 
-| Source | Apport prévu |
+| Source | Planned contribution |
 | --- | --- |
-| DVF (Cerema / data.gouv.fr) | Prix de vente réels au m² par quartier |
-| INSEE IRIS | Population, revenus, CSP — pouvoir d'achat de la zone de chalandise |
-| BPE (INSEE) | Base permanente des équipements, en complément d'OSM |
-| GTFS IDFM | Temps de trajet réels et fréquences de desserte |
-| Bruitparif | Niveaux de bruit mesurés, en remplacement du proxy routier |
-| Airparif | Historique fin de la qualité de l'air en Île-de-France |
-| IGN Admin Express / cadastre | Contours de quartiers, parcelles et bâti |
-| Sirene complet (clé INSEE) | Créations et fermetures d'établissements, dynamique commerciale |
+| DVF (Cerema / data.gouv.fr) | Real sale prices per m² by neighbourhood |
+| INSEE IRIS | Population, income, socio-professional categories — purchasing power of the catchment area |
+| BPE (INSEE) | Permanent database of facilities, complementing OSM |
+| GTFS IDFM | Real travel times and service frequencies |
+| Bruitparif | Measured noise levels, replacing the road proxy |
+| Airparif | Fine-grained air quality history for Île-de-France |
+| IGN Admin Express / cadastre | Neighbourhood boundaries, parcels and buildings |
+| Full Sirene (INSEE key) | Business openings and closures, commercial dynamics |
 
-### Périmètre
+### Scope
 
-Île-de-France, Paris intra-muros en priorité, pour limiter le volume des
-requêtes Overpass et la latence.
+Île-de-France, with Paris intra-muros as the priority, to limit Overpass query
+volume and latency.
 
-## Structure du projet
+## Project structure
 
 ```text
 src/
-  components/        Carte, liste, cartes de locaux, panneau sources, sidebar
+  components/        Map, list, space cards, sources panel, sidebar
   hooks/             useOpenData (React Query), useMapLayers
-  providers/         FiltersProvider (filtres + bbox partagés), AuthProvider
-  services/opendata/ Couche d'accès aux API publiques et scoring
+  providers/         FiltersProvider (shared filters + bbox), AuthProvider
+  services/opendata/ Public API access layer and scoring
   pages/             Index, SignIn, SignUp, Profile
 ```
 
 ## Attribution
 
-Les données OpenStreetMap sont sous licence ODbL : toute réutilisation doit
-mentionner « © les contributeurs OpenStreetMap ». Les jeux Etalab requièrent la
-mention de la source et de la date de mise à jour.
+OpenStreetMap data is licensed under ODbL: any reuse must credit
+"© OpenStreetMap contributors". Etalab datasets require mentioning the source and
+its update date.
