@@ -24,21 +24,27 @@ const Header = ({ isSidebarOpen, toggleSidebar }: HeaderProps) => {
           {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
         </Button>
         <Link to="/" className="flex flex-col leading-tight">
-          <h1 className="text-xl font-bold text-primary">Compass</h1>
-          <p className="hidden sm:block text-xs text-muted-foreground">
-            Find the right commercial space in Île-de-France, backed by open data
-          </p>
+          <span className="text-xl font-bold text-primary">Compass</span>
+          <span className="hidden sm:block text-xs text-muted-foreground">
+            Trouver un local commercial en Île-de-France par son environnement
+          </span>
         </Link>
       </div>
-      <div className="flex items-center space-x-2">
-        <span className="hidden lg:inline text-xs text-muted-foreground mr-2">
-          Made by Ivan de Murard
+      <div className="flex items-center space-x-1">
+        <span className="hidden xl:inline text-xs text-muted-foreground mr-2">
+          Conçu par Ivan de Murard
         </span>
-        <Button variant="ghost" size="sm" asChild>
-          <Link to="/about">About</Link>
+        <Button variant="ghost" size="sm" asChild className="hidden md:inline-flex">
+          <Link to="/guides">Guides</Link>
+        </Button>
+        <Button variant="ghost" size="sm" asChild className="hidden md:inline-flex">
+          <Link to="/methodologie">Méthodologie</Link>
+        </Button>
+        <Button variant="ghost" size="sm" asChild className="hidden lg:inline-flex">
+          <Link to="/sources">Sources</Link>
         </Button>
         <Button variant="ghost" size="sm" asChild>
-          <Link to="/contact">Contact</Link>
+          <Link to="/faq">FAQ</Link>
         </Button>
         <UserMenu />
       </div>
