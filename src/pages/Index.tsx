@@ -9,6 +9,11 @@ import { MapPin, LayoutGrid } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FiltersProvider, useFiltersContext } from '@/providers/FiltersProvider';
 import { geocode } from '@/services/opendata/geocoding';
+import Seo from '@/components/Seo';
+import HomeContent from '@/components/HomeContent';
+import SiteFooter from '@/components/SiteFooter';
+import { FAQ } from '@/content/faq';
+import { SITE_URL } from '@/content/site';
 
 const IndexContent = () => {
   const { updateQuery } = useFiltersContext();
@@ -41,6 +46,35 @@ const IndexContent = () => {
 
   return (
     <div className="min-h-screen bg-customBg font-sans flex flex-col">
+      <Seo
+        title="Compass — trouver un local commercial en Île-de-France par son environnement"
+        description="Carte gratuite des locaux commerciaux d’Île-de-France replacés dans leur environnement : commerces, transports, écoles, bruit, qualité de l’air et loyers de référence, à partir de données publiques."
+        path="/"
+        jsonLd={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'WebApplication',
+            name: 'Compass',
+            url: SITE_URL,
+            applicationCategory: 'BusinessApplication',
+            operatingSystem: 'Web',
+            inLanguage: 'fr-FR',
+            offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+            author: { '@type': 'Person', name: 'Ivan de Murard' },
+            description:
+              'Recherche de locaux commerciaux en Île-de-France contextualisée par des données publiques : marchabilité, flux estimé, bruit, qualité de l’air, risques et loyers de référence.',
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: FAQ.slice(0, 5).map((f) => ({
+              '@type': 'Question',
+              name: f.question,
+              acceptedAnswer: { '@type': 'Answer', text: f.answer },
+            })),
+          },
+        ]}
+      />
       <Header isSidebarOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
 
       <div className="flex flex-col flex-1 h-[calc(100vh-4rem)]">
@@ -112,6 +146,9 @@ const IndexContent = () => {
           </div>
         </div>
       </div>
+
+      <HomeContent />
+      <SiteFooter />
     </div>
   );
 };
