@@ -22,8 +22,7 @@ const About = () => (
           },
         },
       ]}
-    >
-    </Seo>
+    />
     <PageLayout
       title="L’ambition : replacer chaque local dans son environnement"
       intro="Une annonce immobilière décrit un local. Compass décrit ce qu’il y a autour, parce que c’est cet environnement qui fait la réussite d’une activité."
