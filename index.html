@@ -1,21 +1,55 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Paris Property Compass</title>
-    <meta name="description" content="Find optimal commercial spaces in Île-de-France using open data and natural language search capabilities" />
-    <meta name="author" content="Lovable" />
+    <title>Compass — Trouver un local commercial à Paris par son environnement</title>
+    <meta
+      name="description"
+      content="Compass replace chaque local commercial d'Île-de-France dans son environnement : commerces, transports, écoles, bruit estimé, qualité de l'air, loyers de référence. Recherche par besoin, données publiques."
+    />
+    <link rel="canonical" href="https://paris-compass.lovable.app/" />
 
-    <meta property="og:title" content="Paris Property Compass" />
-    <meta property="og:description" content="Find optimal commercial spaces in Île-de-France using open data and natural language search capabilities" />
+    <meta property="og:title" content="Compass — Trouver un local commercial à Paris par son environnement" />
+    <meta
+      property="og:description"
+      content="Contextualisez les locaux commerciaux d'Île-de-France avec les données publiques : commerces, transports, bruit, air, loyers de référence."
+    />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta property="og:url" content="https://paris-compass.lovable.app/" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:site_name" content="Compass" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@lovable_dev" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-    
+    <meta name="twitter:title" content="Compass — Trouver un local commercial à Paris par son environnement" />
+    <meta
+      name="twitter:description"
+      content="Contextualisez les locaux commerciaux d'Île-de-France avec les données publiques : commerces, transports, bruit, air, loyers de référence."
+    />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://paris-compass.lovable.app/#organization",
+            "name": "Compass",
+            "url": "https://paris-compass.lovable.app/",
+            "founder": { "@type": "Person", "name": "Ivan de Murard" }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://paris-compass.lovable.app/#website",
+            "name": "Compass",
+            "url": "https://paris-compass.lovable.app/",
+            "inLanguage": "fr-FR",
+            "publisher": { "@id": "https://paris-compass.lovable.app/#organization" }
+          }
+        ]
+      }
+    </script>
+
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
