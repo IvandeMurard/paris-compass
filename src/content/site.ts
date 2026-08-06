@@ -1,14 +1,20 @@
+import type { UiKey } from '@/i18n/ui';
+
 export const SITE_URL = 'https://paris-compass.lovable.app';
 export const SITE_NAME = 'Compass';
-export const SITE_TAGLINE =
-  'Trouver un local commercial en Île-de-France par son environnement';
 
-export const MAIN_NAV = [
-  { to: '/', label: 'Carte' },
-  { to: '/a-propos', label: 'Ambition' },
-  { to: '/methodologie', label: 'Méthodologie' },
-  { to: '/sources', label: 'Sources' },
-  { to: '/guides', label: 'Guides' },
-  { to: '/faq', label: 'FAQ' },
-  { to: '/glossaire', label: 'Glossaire' },
+export interface NavItem {
+  to: string;
+  labelKey: UiKey;
+}
+
+export const MAIN_NAV: NavItem[] = [
+  { to: '/', labelKey: 'nav.map' },
+  { to: '/presentation', labelKey: 'nav.presentation' },
+  { to: '/a-propos', labelKey: 'nav.about' },
+  { to: '/methodologie', labelKey: 'nav.methodology' },
+  { to: '/sources', labelKey: 'nav.sources' },
+  { to: '/guides', labelKey: 'nav.guides' },
+  { to: '/faq', labelKey: 'nav.faq' },
+  { to: '/glossaire', labelKey: 'nav.glossary' },
 ];
