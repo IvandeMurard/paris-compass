@@ -16,6 +16,7 @@ interface SitemapEntry {
 
 const entries: SitemapEntry[] = [
   { path: "/", changefreq: "daily", priority: "1.0" },
+  { path: "/presentation", changefreq: "monthly", priority: "0.9" },
   { path: "/a-propos", changefreq: "monthly", priority: "0.7" },
   { path: "/methodologie", changefreq: "monthly", priority: "0.8" },
   { path: "/sources", changefreq: "monthly", priority: "0.8" },
@@ -33,6 +34,11 @@ const entries: SitemapEntry[] = [
     changefreq: "weekly" as const,
     priority: "0.6",
   })),
+]
+
+const allEntries: SitemapEntry[] = [
+  ...entries,
+  ...entries.map((e) => ({ ...e, path: e.path === "/" ? "/en" : `/en${e.path}` })),
 ]
 
 function generateSitemap(entries: SitemapEntry[]) {
@@ -56,5 +62,5 @@ function generateSitemap(entries: SitemapEntry[]) {
   ].join("\n")
 }
 
-writeFileSync(resolve("public/sitemap.xml"), generateSitemap(entries))
-console.log(`sitemap.xml written (${entries.length} entries)`)
+writeFileSync(resolve("public/sitemap.xml"), generateSitemap(allEntries))
+console.log(`sitemap.xml written (${allEntries.length} entries)`)
