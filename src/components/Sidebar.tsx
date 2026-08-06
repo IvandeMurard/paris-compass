@@ -9,6 +9,7 @@ import AccessibilityMetrics from './sidebar/AccessibilityMetrics';
 import AmenitiesList from './sidebar/AmenitiesList';
 import DataSourcesPanel from './DataSourcesPanel';
 import { useFiltersContext } from '@/providers/FiltersProvider';
+import { useLocale } from '@/i18n/locale';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
     toggleAmenity,
     reset,
   } = useFiltersContext();
+  const { t } = useLocale();
 
   return (
     <div
@@ -40,16 +42,16 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-medium flex items-center">
               <Filter size={16} className="mr-2" />
-              Filtres
+              {t('filters.title')}
             </h3>
             <Button variant="ghost" size="sm" className="text-xs h-7" onClick={reset}>
-              Réinitialiser
+              {t('filters.reset')}
             </Button>
           </div>
 
           <div className="mb-4 flex items-center justify-between rounded-md border p-3">
             <Label htmlFor="vacant-only" className="text-sm">
-              Locaux vacants uniquement
+              {t('filters.vacantOnly')}
             </Label>
             <Switch id="vacant-only" checked={vacantOnly} onCheckedChange={setVacantOnly} />
           </div>
@@ -74,7 +76,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
           />
 
           <p className="mt-6 text-xs text-muted-foreground">
-            Les filtres s’appliquent en direct aux locaux issus des données ouvertes.
+            {t('filters.live')}
           </p>
           <DataSourcesPanel className="mt-3 w-full" />
         </div>

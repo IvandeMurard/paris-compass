@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import { Navigate } from 'react-router-dom';
+import { useLocale } from '@/i18n/locale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,8 +13,73 @@ import Header from '@/components/Header';
 import { toast } from '@/hooks/use-toast';
 import { UserPreferences } from '@/types/supabase';
 
+const COPY = {
+  fr: {
+    myAccount: 'Mon compte',
+    profile: 'Profil',
+    savedProperties: 'Locaux enregistrés',
+    notifications: 'Notifications',
+    settings: 'Paramètres',
+    profileInfo: 'Informations du profil',
+    manageAccount: 'Gérer les informations de votre compte',
+    email: 'E-mail',
+    signOut: 'Se déconnecter',
+    savedTitle: 'Locaux enregistrés',
+    savedDescription: 'Les locaux que vous avez enregistrés pour plus tard',
+    noSaved: "Vous n'avez enregistré aucun local pour le moment",
+    noSavedHint: 'Lorsque vous trouvez des locaux qui vous plaisent, enregistrez-les ici pour les retrouver plus tard',
+    notifPrefs: 'Préférences de notification',
+    notifDescription: 'Choisissez comment être averti des locaux correspondant à vos critères',
+    loadingPrefs: 'Chargement de vos préférences…',
+    emailNotifications: 'Notifications par e-mail',
+    emailNotificationsBody: 'Recevoir un e-mail lorsque de nouveaux locaux correspondent à vos critères',
+    pushNotifications: 'Notifications push',
+    pushNotificationsBody: 'Recevoir des notifications dans votre navigateur lorsque de nouveaux locaux correspondent à vos critères',
+    accountSettings: 'Paramètres du compte',
+    accountSettingsBody: 'Gérer les paramètres et préférences de votre compte',
+    errorTitle: 'Erreur',
+    errorLoadPrefs: 'Impossible de charger vos préférences',
+    prefsUpdatedTitle: 'Préférences mises à jour',
+    prefsUpdatedBody: 'Vos préférences de notification ont été enregistrées',
+    updateFailedTitle: 'Échec de la mise à jour',
+    updateFailedBody: "Impossible d'enregistrer vos préférences",
+  },
+  en: {
+    myAccount: 'My Account',
+    profile: 'Profile',
+    savedProperties: 'Saved Properties',
+    notifications: 'Notifications',
+    settings: 'Settings',
+    profileInfo: 'Profile Information',
+    manageAccount: 'Manage your account information',
+    email: 'Email',
+    signOut: 'Sign Out',
+    savedTitle: 'Saved Properties',
+    savedDescription: "Properties you've bookmarked for later",
+    noSaved: "You haven't saved any properties yet",
+    noSavedHint: 'When you find properties you like, save them here to revisit later',
+    notifPrefs: 'Notification Preferences',
+    notifDescription: 'Choose how you want to be notified about properties that match your criteria',
+    loadingPrefs: 'Loading your preferences...',
+    emailNotifications: 'Email Notifications',
+    emailNotificationsBody: 'Receive notifications via email when new properties match your criteria',
+    pushNotifications: 'Push Notifications',
+    pushNotificationsBody: 'Receive notifications in your browser when new properties match your criteria',
+    accountSettings: 'Account Settings',
+    accountSettingsBody: 'Manage your account settings and preferences',
+    errorTitle: 'Error',
+    errorLoadPrefs: 'Failed to load your preferences',
+    prefsUpdatedTitle: 'Preferences updated',
+    prefsUpdatedBody: 'Your notification preferences have been saved',
+    updateFailedTitle: 'Update failed',
+    updateFailedBody: 'Failed to save your preferences',
+  },
+} as const;
+
 const Profile = () => {
   const { user, signOut } = useAuth();
+  const { locale, lp } = useLocale();
+  const copy = COPY[locale];
   const [preferences, setPreferences] = useState<UserPreferences>({
     user_id: user?.id || '',
     email_notifications: false,
@@ -55,8 +121,8 @@ const Profile = () => {
       } catch (error) {
         console.error('Error fetching user preferences:', error);
         toast({
-          title: 'Error',
-          description: 'Failed to load your preferences',
+          title: copy.errorTitle,
+          description: copy.errorLoadPrefs,
           variant: 'destructive',
         });
       } finally {
@@ -81,8 +147,8 @@ const Profile = () => {
       if (error) throw error;
       
       toast({
-        title: 'Preferences updated',
-        description: 'Your notification preferences have been saved',
+        title: copy.prefsUpdatedTitle,
+        description: copy.prefsUpdatedBody,
       });
     } catch (error) {
       console.error('Error updating preferences:', error);
@@ -90,15 +156,15 @@ const Profile = () => {
       setPreferences(prev => ({ ...prev, [key]: !value }));
       
       toast({
-        title: 'Update failed',
-        description: 'Failed to save your preferences',
+        title: copy.updateFailedTitle,
+        description: copy.updateFailedBody,
         variant: 'destructive',
       });
     }
   };
 
   if (!user) {
-    return <Navigate to="/signin" />;
+    return <Navigate to={lp('/signin')} />;
   }
 
   return (
@@ -107,7 +173,7 @@ const Profile = () => {
       
       <div className="flex-1 container mx-auto p-4 md:p-6 max-w-5xl">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold">My Account</h1>
+          <h1 className="text-2xl font-bold">{copy.myAccount}</h1>
           <p className="text-muted-foreground">{user.email}</p>
         </div>
         
@@ -115,37 +181,37 @@ const Profile = () => {
           <TabsList className="mb-6">
             <TabsTrigger value="profile" className="flex items-center gap-1">
               <UserIcon size={16} />
-              <span className="hidden sm:inline">Profile</span>
+              <span className="hidden sm:inline">{copy.profile}</span>
             </TabsTrigger>
             <TabsTrigger value="saved" className="flex items-center gap-1">
               <BookmarkIcon size={16} />
-              <span className="hidden sm:inline">Saved Properties</span>
+              <span className="hidden sm:inline">{copy.savedProperties}</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" className="flex items-center gap-1">
               <BellIcon size={16} />
-              <span className="hidden sm:inline">Notifications</span>
+              <span className="hidden sm:inline">{copy.notifications}</span>
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-1">
               <SettingsIcon size={16} />
-              <span className="hidden sm:inline">Settings</span>
+              <span className="hidden sm:inline">{copy.settings}</span>
             </TabsTrigger>
           </TabsList>
           
           <TabsContent value="profile">
             <Card>
               <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
+                <CardTitle>{copy.profileInfo}</CardTitle>
                 <CardDescription>
-                  Manage your account information
+                  {copy.manageAccount}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="text-sm font-medium mb-1">Email</p>
+                  <p className="text-sm font-medium mb-1">{copy.email}</p>
                   <p>{user.email}</p>
                 </div>
                 <Button variant="outline" onClick={() => signOut()}>
-                  Sign Out
+                  {copy.signOut}
                 </Button>
               </CardContent>
             </Card>
@@ -154,17 +220,17 @@ const Profile = () => {
           <TabsContent value="saved">
             <Card>
               <CardHeader>
-                <CardTitle>Saved Properties</CardTitle>
+                <CardTitle>{copy.savedTitle}</CardTitle>
                 <CardDescription>
-                  Properties you've bookmarked for later
+                  {copy.savedDescription}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-center py-8 text-muted-foreground">
                   <BookmarkIcon className="mx-auto h-12 w-12 mb-3 opacity-20" />
-                  <p>You haven't saved any properties yet</p>
+                  <p>{copy.noSaved}</p>
                   <p className="text-sm mt-1">
-                    When you find properties you like, save them here to revisit later
+                    {copy.noSavedHint}
                   </p>
                 </div>
               </CardContent>
@@ -174,23 +240,23 @@ const Profile = () => {
           <TabsContent value="notifications">
             <Card>
               <CardHeader>
-                <CardTitle>Notification Preferences</CardTitle>
+                <CardTitle>{copy.notifPrefs}</CardTitle>
                 <CardDescription>
-                  Choose how you want to be notified about properties that match your criteria
+                  {copy.notifDescription}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {loading ? (
-                  <p>Loading your preferences...</p>
+                  <p>{copy.loadingPrefs}</p>
                 ) : (
                   <>
                     <div className="flex items-center justify-between">
                       <div>
                         <Label htmlFor="email-notifications" className="text-base">
-                          Email Notifications
+                          {copy.emailNotifications}
                         </Label>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Receive notifications via email when new properties match your criteria
+                          {copy.emailNotificationsBody}
                         </p>
                       </div>
                       <Switch
@@ -205,10 +271,10 @@ const Profile = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <Label htmlFor="push-notifications" className="text-base">
-                          Push Notifications
+                          {copy.pushNotifications}
                         </Label>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Receive notifications in your browser when new properties match your criteria
+                          {copy.pushNotificationsBody}
                         </p>
                       </div>
                       <Switch
@@ -228,15 +294,15 @@ const Profile = () => {
           <TabsContent value="settings">
             <Card>
               <CardHeader>
-                <CardTitle>Account Settings</CardTitle>
+                <CardTitle>{copy.accountSettings}</CardTitle>
                 <CardDescription>
-                  Manage your account settings and preferences
+                  {copy.accountSettingsBody}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <Button variant="outline" className="w-full sm:w-auto" onClick={() => signOut()}>
-                    Sign Out
+                    {copy.signOut}
                   </Button>
                 </div>
               </CardContent>

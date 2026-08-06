@@ -4,8 +4,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { usePremises, useAreaEnvironment } from '@/hooks/useOpenData';
 import { useFiltersContext } from '@/providers/FiltersProvider';
+import { useLocale } from '@/i18n/locale';
 
 const PropertyList = () => {
+  const { t, locale } = useLocale();
   const { matches, bbox } = useFiltersContext();
   const { data, isLoading, isError, error } = usePremises(bbox);
   const center = {
@@ -28,9 +30,9 @@ const PropertyList = () => {
     return (
       <div className="p-6">
         <Alert variant="destructive">
-          <AlertTitle>Données ouvertes indisponibles</AlertTitle>
+          <AlertTitle>{t('list.errorTitle')}</AlertTitle>
           <AlertDescription>
-            {(error as Error)?.message ?? 'Les services publics interrogés n’ont pas répondu.'}
+            {(error as Error)?.message ?? t('list.errorBody')}
           </AlertDescription>
         </Alert>
       </div>
@@ -42,7 +44,7 @@ const PropertyList = () => {
   if (!premises.length) {
     return (
       <div className="p-6 text-sm text-muted-foreground">
-        Aucun local ne correspond aux filtres dans les données ouvertes de cette zone.
+        {t('list.empty')}
       </div>
     );
   }
@@ -50,8 +52,8 @@ const PropertyList = () => {
   return (
     <div className="p-6">
       <p className="mb-4 text-sm text-muted-foreground">
-        {premises.length} locaux issus de données publiques réelles · mis à jour{' '}
-        {data?.fetchedAt ? new Date(data.fetchedAt).toLocaleTimeString('fr-FR') : ''}
+        {premises.length} {t('list.countPrefix')} · {t('list.updatedAt')}{' '}
+        {data?.fetchedAt ? new Date(data.fetchedAt).toLocaleTimeString(locale === 'en' ? 'en-GB' : 'fr-FR') : ''}
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {premises.map((premise) => (
