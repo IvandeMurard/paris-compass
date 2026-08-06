@@ -2,12 +2,26 @@ import { useParams } from 'react-router-dom';
 import PageLayout from '@/components/PageLayout';
 import Seo from '@/components/Seo';
 import NotFound from '@/pages/NotFound';
-import { getGuide } from '@/content/guides';
+import { getGuideBySlug } from '@/content/localized';
 import { SITE_URL } from '@/content/site';
+import { useLocale } from '@/i18n/locale';
+
+const COPY = {
+  fr: {
+    home: 'Accueil',
+    guides: 'Guides',
+  },
+  en: {
+    home: 'Home',
+    guides: 'Guides',
+  },
+} as const;
 
 const GuideDetail = () => {
   const { slug } = useParams();
-  const guide = getGuide(slug);
+  const { locale, lp } = useLocale();
+  const c = COPY[locale];
+  const guide = getGuideBySlug(locale, slug);
 
   if (!guide) return <NotFound />;
 
@@ -35,8 +49,8 @@ const GuideDetail = () => {
             '@context': 'https://schema.org',
             '@type': 'BreadcrumbList',
             itemListElement: [
-              { '@type': 'ListItem', position: 1, name: 'Accueil', item: `${SITE_URL}/` },
-              { '@type': 'ListItem', position: 2, name: 'Guides', item: `${SITE_URL}/guides` },
+              { '@type': 'ListItem', position: 1, name: c.home, item: `${SITE_URL}/` },
+              { '@type': 'ListItem', position: 2, name: c.guides, item: `${SITE_URL}/guides` },
               { '@type': 'ListItem', position: 3, name: guide.title, item: `${SITE_URL}${path}` },
             ],
           },
@@ -45,7 +59,7 @@ const GuideDetail = () => {
       <PageLayout
         title={guide.title}
         intro={guide.intro}
-        crumbs={[{ label: 'Guides', to: '/guides' }, { label: guide.title }]}
+        crumbs={[{ label: c.guides, to: '/guides' }, { label: guide.title }]}
       >
         {guide.sections.map((s) => (
           <section key={s.heading}>

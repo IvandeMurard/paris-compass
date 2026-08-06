@@ -1,10 +1,38 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import PageLayout from '@/components/PageLayout';
 import Seo from '@/components/Seo';
-import { FAQ } from '@/content/faq';
+import { getFaq } from '@/content/localized';
 import { SITE_URL } from '@/content/site';
+import { useLocale } from '@/i18n/locale';
+
+const COPY = {
+  fr: {
+    title: 'FAQ — locaux commerciaux et données ouvertes',
+    description:
+      'Réponses aux questions fréquentes sur Compass : locaux vacants, scores de marchabilité, flux piéton, loyers de référence, qualité de l’air, sources et licences.',
+    home: 'Accueil',
+    faq: 'FAQ',
+    pageTitle: 'Questions fréquentes',
+    intro:
+      'Comment Compass fonctionne, ce que les données publiques permettent de dire sur un local commercial, et où sont leurs limites.',
+  },
+  en: {
+    title: 'FAQ — commercial premises and open data',
+    description:
+      'Answers to frequently asked questions about Compass: vacant premises, walkability scores, foot traffic, reference rents, air quality, sources and licenses.',
+    home: 'Home',
+    faq: 'FAQ',
+    pageTitle: 'Frequently asked questions',
+    intro:
+      'How Compass works, what public data can tell you about a commercial premises, and where its limits are.',
+  },
+} as const;
 
 const Faq = () => {
+  const { locale, lp } = useLocale();
+  const c = COPY[locale];
+  const FAQ = getFaq(locale);
+
   const faqSchema = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -22,23 +50,23 @@ const Faq = () => {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Accueil', item: `${SITE_URL}/` },
-      { '@type': 'ListItem', position: 2, name: 'FAQ', item: `${SITE_URL}/faq` },
+      { '@type': 'ListItem', position: 1, name: c.home, item: `${SITE_URL}/` },
+      { '@type': 'ListItem', position: 2, name: c.faq, item: `${SITE_URL}/faq` },
     ],
   };
 
   return (
     <>
       <Seo
-        title="FAQ — locaux commerciaux et données ouvertes"
-        description="Réponses aux questions fréquentes sur Compass : locaux vacants, scores de marchabilité, flux piéton, loyers de référence, qualité de l’air, sources et licences."
+        title={c.title}
+        description={c.description}
         path="/faq"
         jsonLd={[faqSchema, breadcrumb]}
       />
       <PageLayout
-        title="Questions fréquentes"
-        intro="Comment Compass fonctionne, ce que les données publiques permettent de dire sur un local commercial, et où sont leurs limites."
-        crumbs={[{ label: 'FAQ' }]}
+        title={c.pageTitle}
+        intro={c.intro}
+        crumbs={[{ label: c.faq }]}
       >
         <Accordion type="single" collapsible className="w-full">
           {FAQ.map((item, i) => (

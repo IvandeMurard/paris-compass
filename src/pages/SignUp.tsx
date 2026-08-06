@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/providers/AuthProvider';
+import { useLocale } from '@/i18n/locale';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -17,18 +18,55 @@ import {
 import { Input } from '@/components/ui/input';
 import { LockIcon, MailIcon, UserIcon } from 'lucide-react';
 
-const formSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  confirmPassword: z.string().min(6, 'Confirm password is required'),
-}).refine(data => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ['confirmPassword'],
-});
+const COPY = {
+  fr: {
+    invalidEmail: 'Veuillez saisir une adresse e-mail valide',
+    passwordMin: 'Le mot de passe doit contenir au moins 6 caractères',
+    confirmRequired: 'La confirmation du mot de passe est requise',
+    passwordsMismatch: 'Les mots de passe ne correspondent pas',
+    brand: 'Paris Property Compass',
+    title: 'Créer un compte',
+    subtitle: 'Inscrivez-vous pour enregistrer vos locaux favoris et recevoir des notifications',
+    email: 'E-mail',
+    password: 'Mot de passe',
+    confirmPassword: 'Confirmer le mot de passe',
+    creating: 'Création du compte…',
+    signUp: "S'inscrire",
+    alreadyAccount: 'Vous avez déjà un compte ?',
+    signIn: 'Se connecter',
+  },
+  en: {
+    invalidEmail: 'Please enter a valid email address',
+    passwordMin: 'Password must be at least 6 characters',
+    confirmRequired: 'Confirm password is required',
+    passwordsMismatch: "Passwords don't match",
+    brand: 'Paris Property Compass',
+    title: 'Create an Account',
+    subtitle: 'Sign up to save your favorite properties and receive notifications',
+    email: 'Email',
+    password: 'Password',
+    confirmPassword: 'Confirm Password',
+    creating: 'Creating account...',
+    signUp: 'Sign Up',
+    alreadyAccount: 'Already have an account?',
+    signIn: 'Sign In',
+  },
+} as const;
 
 const SignUp = () => {
   const { signUp, user } = useAuth();
+  const { locale, lp } = useLocale();
+  const copy = COPY[locale];
   const [isLoading, setIsLoading] = useState(false);
+
+  const formSchema = z.object({
+    email: z.string().email(copy.invalidEmail),
+    password: z.string().min(6, copy.passwordMin),
+    confirmPassword: z.string().min(6, copy.confirmRequired),
+  }).refine(data => data.password === data.confirmPassword, {
+    message: copy.passwordsMismatch,
+    path: ['confirmPassword'],
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -47,17 +85,17 @@ const SignUp = () => {
 
   // Redirect if user is already signed in
   if (user) {
-    return <Navigate to="/" />;
+    return <Navigate to={lp('/')} />;
   }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4">
       <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-lg shadow-md">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-primary">Paris Property Compass</h1>
-          <h2 className="mt-6 text-xl font-semibold">Create an Account</h2>
+          <h1 className="text-2xl font-bold text-primary">{copy.brand}</h1>
+          <h2 className="mt-6 text-xl font-semibold">{copy.title}</h2>
           <p className="mt-2 text-sm text-gray-500">
-            Sign up to save your favorite properties and receive notifications
+            {copy.subtitle}
           </p>
         </div>
 
@@ -70,7 +108,7 @@ const SignUp = () => {
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <MailIcon size={16} />
-                    Email
+                    {copy.email}
                   </FormLabel>
                   <FormControl>
                     <Input placeholder="your@email.com" type="email" {...field} />
@@ -87,7 +125,7 @@ const SignUp = () => {
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <LockIcon size={16} />
-                    Password
+                    {copy.password}
                   </FormLabel>
                   <FormControl>
                     <Input type="password" placeholder="******" {...field} />
@@ -104,7 +142,7 @@ const SignUp = () => {
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <LockIcon size={16} />
-                    Confirm Password
+                    {copy.confirmPassword}
                   </FormLabel>
                   <FormControl>
                     <Input type="password" placeholder="******" {...field} />
@@ -119,16 +157,16 @@ const SignUp = () => {
               className="w-full"
               disabled={isLoading}
             >
-              {isLoading ? 'Creating account...' : 'Sign Up'}
+              {isLoading ? copy.creating : copy.signUp}
             </Button>
           </form>
         </Form>
 
         <div className="mt-6 text-center text-sm">
           <p>
-            Already have an account?{' '}
-            <Link to="/signin" className="text-primary hover:underline font-medium">
-              Sign In
+            {copy.alreadyAccount}{' '}
+            <Link to={lp('/signin')} className="text-primary hover:underline font-medium">
+              {copy.signIn}
             </Link>
           </p>
         </div>

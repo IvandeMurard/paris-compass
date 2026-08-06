@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/providers/AuthProvider';
+import { useLocale } from '@/i18n/locale';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -17,14 +18,45 @@ import {
 import { Input } from '@/components/ui/input';
 import { LockIcon, MailIcon } from 'lucide-react';
 
-const formSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
+const COPY = {
+  fr: {
+    invalidEmail: 'Veuillez saisir une adresse e-mail valide',
+    passwordMin: 'Le mot de passe doit contenir au moins 6 caractères',
+    brand: 'Paris Property Compass',
+    title: 'Connexion',
+    subtitle: 'Saisissez vos identifiants pour accéder à votre compte',
+    email: 'E-mail',
+    password: 'Mot de passe',
+    signingIn: 'Connexion en cours…',
+    signIn: 'Se connecter',
+    noAccount: "Vous n'avez pas de compte ?",
+    signUp: 'Créer un compte',
+  },
+  en: {
+    invalidEmail: 'Please enter a valid email address',
+    passwordMin: 'Password must be at least 6 characters',
+    brand: 'Paris Property Compass',
+    title: 'Sign In',
+    subtitle: 'Enter your details to access your account',
+    email: 'Email',
+    password: 'Password',
+    signingIn: 'Signing in...',
+    signIn: 'Sign In',
+    noAccount: "Don't have an account?",
+    signUp: 'Sign Up',
+  },
+} as const;
 
 const SignIn = () => {
   const { signIn, user } = useAuth();
+  const { locale, lp } = useLocale();
+  const copy = COPY[locale];
   const [isLoading, setIsLoading] = useState(false);
+
+  const formSchema = z.object({
+    email: z.string().email(copy.invalidEmail),
+    password: z.string().min(6, copy.passwordMin),
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -42,17 +74,17 @@ const SignIn = () => {
 
   // Redirect if user is already signed in
   if (user) {
-    return <Navigate to="/" />;
+    return <Navigate to={lp('/')} />;
   }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4">
       <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-lg shadow-md">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-primary">Paris Property Compass</h1>
-          <h2 className="mt-6 text-xl font-semibold">Sign In</h2>
+          <h1 className="text-2xl font-bold text-primary">{copy.brand}</h1>
+          <h2 className="mt-6 text-xl font-semibold">{copy.title}</h2>
           <p className="mt-2 text-sm text-gray-500">
-            Enter your details to access your account
+            {copy.subtitle}
           </p>
         </div>
 
@@ -65,7 +97,7 @@ const SignIn = () => {
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <MailIcon size={16} />
-                    Email
+                    {copy.email}
                   </FormLabel>
                   <FormControl>
                     <Input placeholder="your@email.com" {...field} />
@@ -82,7 +114,7 @@ const SignIn = () => {
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
                     <LockIcon size={16} />
-                    Password
+                    {copy.password}
                   </FormLabel>
                   <FormControl>
                     <Input type="password" placeholder="******" {...field} />
@@ -97,16 +129,16 @@ const SignIn = () => {
               className="w-full"
               disabled={isLoading}
             >
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading ? copy.signingIn : copy.signIn}
             </Button>
           </form>
         </Form>
 
         <div className="mt-6 text-center text-sm">
           <p>
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-primary hover:underline font-medium">
-              Sign Up
+            {copy.noAccount}{' '}
+            <Link to={lp('/signup')} className="text-primary hover:underline font-medium">
+              {copy.signUp}
             </Link>
           </p>
         </div>

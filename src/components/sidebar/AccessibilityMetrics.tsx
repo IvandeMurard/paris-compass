@@ -1,8 +1,9 @@
-
 import React from 'react';
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
 import { MapPin, School, Hospital, Store, TreePine } from 'lucide-react';
+import { useLocale } from '@/i18n/locale';
+import type { UiKey } from '@/i18n/ui';
 
 interface AccessibilityMetricsProps {
   walkabilityScore: number[];
@@ -17,19 +18,28 @@ interface AccessibilityMetricsProps {
   setAmenityScores: (value: any) => void;
 }
 
+const AMENITIES: { name: keyof AccessibilityMetricsProps['amenityScores']; icon: JSX.Element; labelKey: UiKey }[] = [
+  { name: 'schools', icon: <School size={14} />, labelKey: 'amenity.schools' },
+  { name: 'healthcare', icon: <Hospital size={14} />, labelKey: 'amenity.healthcare' },
+  { name: 'groceries', icon: <Store size={14} />, labelKey: 'amenity.groceries' },
+  { name: 'transit', icon: <MapPin size={14} />, labelKey: 'amenity.transit' },
+  { name: 'parks', icon: <TreePine size={14} />, labelKey: 'amenity.parks' },
+];
+
 const AccessibilityMetrics = ({
   walkabilityScore,
   setWalkabilityScore,
   amenityScores,
-  setAmenityScores
+  setAmenityScores,
 }: AccessibilityMetricsProps) => {
+  const { t } = useLocale();
+
   return (
     <>
-      {/* Walkability Score */}
       <div className="mb-4">
         <Label htmlFor="walkability" className="flex items-center mb-2">
           <MapPin size={16} className="mr-2" />
-          Walkability Score
+          {t('filters.walkability')}
         </Label>
         <Slider
           id="walkability"
@@ -46,32 +56,24 @@ const AccessibilityMetrics = ({
         </div>
       </div>
 
-      {/* Amenity Scores */}
       <div className="space-y-4">
-        <Label className="flex items-center mb-2">Minimum Amenity Scores</Label>
+        <Label className="flex items-center mb-2">{t('filters.minAmenityScores')}</Label>
         <div className="grid gap-4">
-          {[
-            { name: 'schools', icon: <School size={14} />, label: 'Schools' },
-            { name: 'healthcare', icon: <Hospital size={14} />, label: 'Healthcare' },
-            { name: 'groceries', icon: <Store size={14} />, label: 'Groceries' },
-            { name: 'transit', icon: <MapPin size={14} />, label: 'Public Transit' },
-            { name: 'parks', icon: <TreePine size={14} />, label: 'Parks & Recreation' }
-          ].map((amenity) => (
-            <div key={amenity.name} className="space-y-2">
-              <Label className="flex items-center text-xs">
-                {amenity.icon}
-                <span className="ml-2">{amenity.label}</span>
+          {AMENITIES.map((a) => (
+            <div key={a.name}>
+              <Label htmlFor={`amenity-score-${a.name}`} className="flex items-center mb-1 text-xs">
+                <span className="mr-2">{a.icon}</span>
+                {t(a.labelKey)}
               </Label>
               <Slider
-                id={`amenity-${amenity.name}`}
+                id={`amenity-score-${a.name}`}
                 min={0}
                 max={100}
                 step={1}
-                value={[amenityScores[amenity.name as keyof typeof amenityScores]]}
-                onValueChange={(value) => setAmenityScores(prev => ({
-                  ...prev,
-                  [amenity.name]: value[0]
-                }))}
+                value={[amenityScores[a.name]]}
+                onValueChange={(value) =>
+                  setAmenityScores((prev: typeof amenityScores) => ({ ...prev, [a.name]: value[0] }))
+                }
               />
             </div>
           ))}
