@@ -12,7 +12,7 @@ const COPY = {
   fr: {
     available: 'Disponible', occupied: 'Occupé', arr: 'e arrondissement', perMonth: '€/mois',
     estimate: '(estimation)', reference: '€/m² de référence', noRent: 'Loyer non disponible',
-    noSize: c.noSize, walkability: 'Marchabilité', footfall: 'Flux', air: 'Air',
+    noSize: 'Surface non renseignée', walkability: 'Marchabilité', footfall: 'Flux', air: 'Air',
     noise: 'Bruit', sources: 'Sources : OpenStreetMap, Ville de Paris, Copernicus', detail: 'Détail', na: 'n/d',
   },
   en: {
