@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/providers/AuthProvider';
+import { useLocale } from '@/i18n/locale';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,19 +15,36 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { LogOut, User, Bell, Bookmark, Settings } from 'lucide-react';
 
+const COPY = {
+  fr: {
+    profile: 'Profil',
+    savedProperties: 'Locaux enregistrés',
+    notifications: 'Notifications',
+    settings: 'Paramètres',
+  },
+  en: {
+    profile: 'Profile',
+    savedProperties: 'Saved Properties',
+    notifications: 'Notifications',
+    settings: 'Settings',
+  },
+} as const;
+
 const UserMenu = () => {
   const { user, signOut } = useAuth();
+  const { locale, t, lp } = useLocale();
+  const copy = COPY[locale];
 
   if (!user) {
     return (
       <div className="flex items-center space-x-2">
-        <Link to="/signin">
+        <Link to={lp('/signin')}>
           <Button variant="ghost" size="sm">
-            Sign In
+            {t('auth.signIn')}
           </Button>
         </Link>
-        <Link to="/signup">
-          <Button size="sm">Sign Up</Button>
+        <Link to={lp('/signup')}>
+          <Button size="sm">{t('auth.signUp')}</Button>
         </Link>
       </div>
     );
@@ -52,7 +70,7 @@ const UserMenu = () => {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">My Account</p>
+            <p className="text-sm font-medium leading-none">{t('auth.account')}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
             </p>
@@ -61,31 +79,31 @@ const UserMenu = () => {
         
         <DropdownMenuSeparator />
         
-        <Link to="/profile">
+        <Link to={lp('/profile')}>
           <DropdownMenuItem className="cursor-pointer">
             <User className="mr-2 h-4 w-4" />
-            <span>Profile</span>
+            <span>{copy.profile}</span>
           </DropdownMenuItem>
         </Link>
         
-        <Link to="/profile?tab=saved">
+        <Link to={`${lp('/profile')}?tab=saved`}>
           <DropdownMenuItem className="cursor-pointer">
             <Bookmark className="mr-2 h-4 w-4" />
-            <span>Saved Properties</span>
+            <span>{copy.savedProperties}</span>
           </DropdownMenuItem>
         </Link>
         
-        <Link to="/profile?tab=notifications">
+        <Link to={`${lp('/profile')}?tab=notifications`}>
           <DropdownMenuItem className="cursor-pointer">
             <Bell className="mr-2 h-4 w-4" />
-            <span>Notifications</span>
+            <span>{copy.notifications}</span>
           </DropdownMenuItem>
         </Link>
         
-        <Link to="/profile?tab=settings">
+        <Link to={`${lp('/profile')}?tab=settings`}>
           <DropdownMenuItem className="cursor-pointer">
             <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
+            <span>{copy.settings}</span>
           </DropdownMenuItem>
         </Link>
         
@@ -93,7 +111,7 @@ const UserMenu = () => {
         
         <DropdownMenuItem className="cursor-pointer" onClick={() => signOut()}>
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Sign Out</span>
+          <span>{t('auth.signOut')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

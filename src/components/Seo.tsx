@@ -1,10 +1,11 @@
 import { Helmet } from 'react-helmet-async';
 import { SITE_NAME, SITE_URL } from '@/content/site';
+import { useLocale } from '@/i18n/locale';
 
 interface SeoProps {
   title: string;
   description: string;
-  /** Route path, e.g. "/faq". Used for canonical and og:url. */
+  /** Canonical (French) route path, e.g. "/faq". The locale prefix is added automatically. */
   path: string;
   type?: 'website' | 'article';
   /** JSON-LD objects rendered for this route. */
@@ -13,20 +14,26 @@ interface SeoProps {
 }
 
 const Seo = ({ title, description, path, type = 'website', jsonLd = [], noindex }: SeoProps) => {
-  const url = `${SITE_URL}${path === '/' ? '/' : path}`;
+  const { locale } = useLocale();
+  const frPath = path === '/' ? '/' : path;
+  const enPath = path === '/' ? '/en' : `/en${path}`;
+  const url = `${SITE_URL}${locale === 'en' ? enPath : frPath}`;
   const fullTitle = path === '/' ? title : `${title} | ${SITE_NAME}`;
 
   return (
-    <Helmet>
+    <Helmet htmlAttributes={{ lang: locale }}>
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
       <link rel="canonical" href={url} />
+      <link rel="alternate" hrefLang="fr" href={`${SITE_URL}${frPath}`} />
+      <link rel="alternate" hrefLang="en" href={`${SITE_URL}${enPath}`} />
+      <link rel="alternate" hrefLang="x-default" href={`${SITE_URL}${frPath}`} />
       {noindex && <meta name="robots" content="noindex, follow" />}
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description} />
       <meta property="og:url" content={url} />
       <meta property="og:type" content={type} />
-      <meta property="og:locale" content="fr_FR" />
+      <meta property="og:locale" content={locale === 'en' ? 'en_GB' : 'fr_FR'} />
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />

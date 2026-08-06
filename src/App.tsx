@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/providers/AuthProvider";
+import { LocaleProvider } from "@/i18n/locale";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import SignIn from "./pages/SignIn";
@@ -18,8 +19,47 @@ import GuideDetail from "./pages/GuideDetail";
 import Glossary from "./pages/Glossary";
 import ParisIndex from "./pages/ParisIndex";
 import Arrondissement from "./pages/Arrondissement";
+import Presentation from "./pages/Presentation";
 
 const queryClient = new QueryClient();
+
+/** Route table shared by both locales; the English tree is mounted under /en. */
+const AppRoutes = () => (
+  <Routes>
+    <Route path="/" element={<Index />} />
+    <Route path="/presentation" element={<Presentation />} />
+    <Route path="/a-propos" element={<About />} />
+    <Route path="/faq" element={<Faq />} />
+    <Route path="/sources" element={<Sources />} />
+    <Route path="/methodologie" element={<Methodology />} />
+    <Route path="/guides" element={<Guides />} />
+    <Route path="/guides/:slug" element={<GuideDetail />} />
+    <Route path="/glossaire" element={<Glossary />} />
+    <Route path="/paris" element={<ParisIndex />} />
+    <Route path="/paris/:slug" element={<Arrondissement />} />
+    <Route path="/signin" element={<SignIn />} />
+    <Route path="/signup" element={<SignUp />} />
+    <Route path="/profile" element={<Profile />} />
+
+    <Route path="/en" element={<Index />} />
+    <Route path="/en/presentation" element={<Presentation />} />
+    <Route path="/en/a-propos" element={<About />} />
+    <Route path="/en/faq" element={<Faq />} />
+    <Route path="/en/sources" element={<Sources />} />
+    <Route path="/en/methodologie" element={<Methodology />} />
+    <Route path="/en/guides" element={<Guides />} />
+    <Route path="/en/guides/:slug" element={<GuideDetail />} />
+    <Route path="/en/glossaire" element={<Glossary />} />
+    <Route path="/en/paris" element={<ParisIndex />} />
+    <Route path="/en/paris/:slug" element={<Arrondissement />} />
+    <Route path="/en/signin" element={<SignIn />} />
+    <Route path="/en/signup" element={<SignUp />} />
+    <Route path="/en/profile" element={<Profile />} />
+
+    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -28,23 +68,9 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/a-propos" element={<About />} />
-            <Route path="/faq" element={<Faq />} />
-            <Route path="/sources" element={<Sources />} />
-            <Route path="/methodologie" element={<Methodology />} />
-            <Route path="/guides" element={<Guides />} />
-            <Route path="/guides/:slug" element={<GuideDetail />} />
-            <Route path="/glossaire" element={<Glossary />} />
-            <Route path="/paris" element={<ParisIndex />} />
-            <Route path="/paris/:slug" element={<Arrondissement />} />
-            <Route path="/signin" element={<SignIn />} />
-            <Route path="/signup" element={<SignUp />} />
-            <Route path="/profile" element={<Profile />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <LocaleProvider>
+            <AppRoutes />
+          </LocaleProvider>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>

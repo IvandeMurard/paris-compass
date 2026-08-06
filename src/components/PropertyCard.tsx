@@ -5,6 +5,23 @@ import { Badge } from '@/components/ui/badge';
 import { Euro, Ruler, MapPin, Users, Wind, Volume2, Footprints, ExternalLink } from 'lucide-react';
 import type { Premise } from '@/services/opendata/types';
 import { scoreLabel } from '@/services/opendata/scoring';
+import { useLocale } from '@/i18n/locale';
+import { translateLabel } from '@/i18n/labels';
+
+const COPY = {
+  fr: {
+    available: 'Disponible', occupied: 'Occupé', arr: 'e arrondissement', perMonth: '€/mois',
+    estimate: '(estimation)', reference: '€/m² de référence', noRent: 'Loyer non disponible',
+    noSize: 'Surface non renseignée', walkability: 'Marchabilité', footfall: 'Flux', air: 'Air',
+    noise: 'Bruit', sources: 'Sources : OpenStreetMap, Ville de Paris, Copernicus', detail: 'Détail', na: 'n/d',
+  },
+  en: {
+    available: 'Available', occupied: 'Occupied', arr: 'th arrondissement', perMonth: '€/month',
+    estimate: '(estimate)', reference: '€/m² reference', noRent: 'Rent not available',
+    noSize: 'Size not specified', walkability: 'Walkability', footfall: 'Footfall', air: 'Air',
+    noise: 'Noise', sources: 'Sources: OpenStreetMap, Ville de Paris, Copernicus', detail: 'Details', na: 'n/a',
+  },
+} as const;
 
 interface PropertyCardProps {
   premise: Premise;
@@ -33,19 +50,22 @@ const toneFor = (label: string) => {
 const PropertyCard = ({ premise, airLabel }: PropertyCardProps) => {
   const osmUrl = `https://www.openstreetmap.org/${premise.id}`;
 
+  const { locale } = useLocale();
+  const c = COPY[locale];
+
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-4">
         <div className="mb-2 flex items-start justify-between gap-2">
           <h3 className="font-medium text-lg leading-tight">{premise.title}</h3>
           <Badge variant={premise.status === 'vacant' ? 'default' : 'secondary'} className="shrink-0">
-            {premise.status === 'vacant' ? 'Disponible' : 'Occupé'}
+            {premise.status === 'vacant' ? c.available : c.occupied}
           </Badge>
         </div>
 
         {premise.arrondissement && (
           <Badge variant="outline" className="text-xs mb-2">
-            {premise.arrondissement}e arrondissement
+            {premise.arrondissement}{c.arr}
           </Badge>
         )}
 
@@ -54,22 +74,22 @@ const PropertyCard = ({ premise, airLabel }: PropertyCardProps) => {
             <Euro size={16} className="mr-2 text-primary shrink-0" />
             {premise.estimatedMonthlyRent !== null ? (
               <span className="font-medium">
-                ~{premise.estimatedMonthlyRent.toLocaleString('fr-FR')} €/mois{' '}
-                <span className="text-xs font-normal text-muted-foreground">(estimation)</span>
+                ~{premise.estimatedMonthlyRent.toLocaleString(locale === 'en' ? 'en-GB' : 'fr-FR')} {c.perMonth}{' '}
+                <span className="text-xs font-normal text-muted-foreground">{c.estimate}</span>
               </span>
             ) : premise.rentReferenceEurM2 !== null ? (
               <span>
-                {premise.rentReferenceEurM2} €/m² de référence
+                {premise.rentReferenceEurM2} {c.reference}
                 {premise.rentQuartier ? ` · ${premise.rentQuartier}` : ''}
               </span>
             ) : (
-              <span className="text-muted-foreground">Loyer non disponible</span>
+              <span className="text-muted-foreground">{c.noRent}</span>
             )}
           </div>
 
           <div className="flex items-center text-sm">
             <Ruler size={16} className="mr-2 text-primary shrink-0" />
-            <span>{premise.sizeM2 ? `${premise.sizeM2} m²` : 'Surface non renseignée'}</span>
+            <span>{premise.sizeM2 ? `${premise.sizeM2} m²` : c.noSize}</span>
           </div>
 
           <div className="flex items-start text-sm">
@@ -80,8 +100,8 @@ const PropertyCard = ({ premise, airLabel }: PropertyCardProps) => {
           <div className="flex items-center text-sm">
             <Footprints size={16} className="mr-2 text-primary shrink-0" />
             <span>
-              Marchabilité {premise.scores.walkability}/100 ·{' '}
-              {scoreLabel(premise.scores.walkability)}
+              {c.walkability} {premise.scores.walkability}/100 ·{' '}
+              {translateLabel(scoreLabel(premise.scores.walkability), locale)}
             </span>
           </div>
         </div>
@@ -90,19 +110,19 @@ const PropertyCard = ({ premise, airLabel }: PropertyCardProps) => {
           <div className="flex flex-col items-center">
             <Users size={14} className="mb-1" />
             <Badge variant="secondary" className="font-normal">
-              Flux {premise.scores.footfall}/100
+              {c.footfall} {premise.scores.footfall}/100
             </Badge>
           </div>
           <div className="flex flex-col items-center">
             <Wind size={14} className="mb-1" />
             <Badge variant="secondary" className={`font-normal ${toneFor(airLabel ?? '')}`}>
-              Air {airLabel ?? 'n/d'}
+              {c.air} {translateLabel(airLabel, locale) ?? c.na}
             </Badge>
           </div>
           <div className="flex flex-col items-center">
             <Volume2 size={14} className="mb-1" />
             <Badge variant="secondary" className={`font-normal ${toneFor(premise.noise.label)}`}>
-              Bruit {premise.noise.label}
+              {c.noise} {translateLabel(premise.noise.label, locale)}
             </Badge>
           </div>
         </div>
@@ -110,11 +130,11 @@ const PropertyCard = ({ premise, airLabel }: PropertyCardProps) => {
 
       <CardFooter className="flex justify-between border-t bg-muted/30 px-4 py-3">
         <span className="text-[11px] text-muted-foreground">
-          Sources : OpenStreetMap, Ville de Paris, Copernicus
+          {c.sources}
         </span>
         <Button variant="ghost" size="sm" asChild>
           <a href={osmUrl} target="_blank" rel="noreferrer">
-            Détail <ExternalLink size={14} className="ml-1" />
+            {c.detail} <ExternalLink size={14} className="ml-1" />
           </a>
         </Button>
       </CardFooter>

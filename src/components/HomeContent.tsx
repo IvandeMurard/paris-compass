@@ -1,84 +1,71 @@
 import { Link } from 'react-router-dom';
-import { FAQ } from '@/content/faq';
-import { GUIDES } from '@/content/guides';
-import { ARRONDISSEMENTS } from '@/content/arrondissements';
+import { getFaq, getGuides, getArrondissements } from '@/content/localized';
 import { DATA_SOURCES } from '@/services/opendata/sources';
+import { useLocale } from '@/i18n/locale';
 
-/** Indexable editorial content rendered below the map on the home page. */
-const HomeContent = () => (
-  <div className="bg-white border-t">
-    <div className="mx-auto max-w-4xl px-6 py-14 space-y-14">
-      <section>
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-          Trouver un local commercial en Île-de-France par son environnement
-        </h1>
-        <p className="mt-4 text-lg text-muted-foreground">
-          Compass est un outil gratuit qui replace chaque local commercial dans son contexte :
-          commerces actifs, transports, écoles, santé, parcs, bruit routier estimé, qualité de
-          l’air et loyer de référence du quartier. Les données proviennent uniquement de sources
-          publiques, interrogées en direct pour la zone affichée sur la carte.
-        </p>
-      </section>
+/** Indexable editorial content of the overview page. */
+const HomeContent = () => {
+  const { t, lp, locale } = useLocale();
+  const faq = getFaq(locale);
+  const guides = getGuides(locale);
+  const arrondissements = getArrondissements(locale);
 
+  return (
+    <div className="space-y-14">
       <section>
-        <h2 className="text-2xl font-semibold">Chercher par besoin, pas seulement par adresse</h2>
-        <p className="mt-3 text-muted-foreground">
-          Un local ne se juge pas sur sa surface et son loyer : il se juge sur ce qui l’entoure.
-          Compass traduit un besoin — « du passage matin et soir », « près d’écoles », « au calme »,
-          « à moins de 300 mètres d’un métro » — en seuils sur des scores calculés à partir de
-          données ouvertes, puis n’affiche que les locaux qui les satisfont.
-        </p>
+        <h2 className="text-2xl font-semibold">{t('presentation.needTitle')}</h2>
+        <p className="mt-3 text-muted-foreground">{t('presentation.needBody')}</p>
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           <div className="rounded-lg border p-4">
-            <h3 className="font-semibold">Marchabilité</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Densité de services accessibles à pied dans un rayon de 800 mètres, pondérée par
-              famille d’équipements.
-            </p>
+            <h3 className="font-semibold">{t('presentation.walkability')}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{t('presentation.walkabilityBody')}</p>
           </div>
           <div className="rounded-lg border p-4">
-            <h3 className="font-semibold">Flux piéton estimé</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Proxy combinant la densité de commerces actifs à 400 mètres et l’accès aux
-              transports.
-            </p>
+            <h3 className="font-semibold">{t('presentation.footfall')}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{t('presentation.footfallBody')}</p>
           </div>
           <div className="rounded-lg border p-4">
-            <h3 className="font-semibold">Environnement</h3>
+            <h3 className="font-semibold">{t('presentation.environment')}</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Qualité de l’air horaire, exposition estimée au bruit routier et risques recensés par
-              Géorisques.
+              {t('presentation.environmentBody')}
             </p>
           </div>
         </div>
       </section>
 
       <section>
-        <h2 className="text-2xl font-semibold">Des données publiques, une méthode publiée</h2>
-        <p className="mt-3 text-muted-foreground">
-          Aucune donnée de démonstration : chaque indicateur provient d’un jeu de données ouvert et
-          chaque formule est documentée.
-        </p>
+        <h2 className="text-2xl font-semibold">{t('presentation.dataTitle')}</h2>
+        <p className="mt-3 text-muted-foreground">{t('presentation.dataBody')}</p>
         <ul className="mt-4 grid gap-2 sm:grid-cols-2 text-sm text-muted-foreground">
           {DATA_SOURCES.map((s) => (
             <li key={s.name}>
-              <span className="font-medium text-foreground">{s.name}</span> — {s.usage}
+              <span className="font-medium text-foreground">
+                {locale === 'en' ? s.nameEn : s.name}
+              </span>{' '}
+              — {locale === 'en' ? s.usageEn : s.usage}
             </li>
           ))}
         </ul>
         <p className="mt-4 text-sm">
-          <Link className="text-primary underline" to="/sources">Toutes les sources et licences</Link>
+          <Link className="text-primary underline" to={lp('/sources')}>
+            {t('presentation.allSources')}
+          </Link>
           {' · '}
-          <Link className="text-primary underline" to="/methodologie">La méthodologie de calcul</Link>
+          <Link className="text-primary underline" to={lp('/methodologie')}>
+            {t('presentation.methodLink')}
+          </Link>
         </p>
       </section>
 
       <section>
-        <h2 className="text-2xl font-semibold">Guides pratiques</h2>
+        <h2 className="text-2xl font-semibold">{t('presentation.guidesTitle')}</h2>
         <ul className="mt-4 space-y-3">
-          {GUIDES.map((g) => (
+          {guides.map((g) => (
             <li key={g.slug}>
-              <Link to={`/guides/${g.slug}`} className="font-medium text-primary hover:underline">
+              <Link
+                to={lp(`/guides/${g.slug}`)}
+                className="font-medium text-primary hover:underline"
+              >
                 {g.title}
               </Link>
               <p className="text-sm text-muted-foreground">{g.description}</p>
@@ -88,12 +75,12 @@ const HomeContent = () => (
       </section>
 
       <section>
-        <h2 className="text-2xl font-semibold">Explorer Paris arrondissement par arrondissement</h2>
+        <h2 className="text-2xl font-semibold">{t('presentation.parisTitle')}</h2>
         <ul className="mt-4 flex flex-wrap gap-2">
-          {ARRONDISSEMENTS.map((a) => (
+          {arrondissements.map((a) => (
             <li key={a.slug}>
               <Link
-                to={`/paris/${a.slug}`}
+                to={lp(`/paris/${a.slug}`)}
                 className="rounded-full border px-3 py-1 text-sm text-muted-foreground hover:text-primary"
               >
                 {a.label} — {a.name}
@@ -104,9 +91,9 @@ const HomeContent = () => (
       </section>
 
       <section>
-        <h2 className="text-2xl font-semibold">Questions fréquentes</h2>
+        <h2 className="text-2xl font-semibold">{t('presentation.faqTitle')}</h2>
         <div className="mt-4 space-y-5">
-          {FAQ.slice(0, 5).map((f) => (
+          {faq.slice(0, 5).map((f) => (
             <div key={f.question}>
               <h3 className="font-semibold">{f.question}</h3>
               <p className="mt-1 text-muted-foreground">{f.answer}</p>
@@ -114,11 +101,13 @@ const HomeContent = () => (
           ))}
         </div>
         <p className="mt-4 text-sm">
-          <Link className="text-primary underline" to="/faq">Voir toutes les questions</Link>
+          <Link className="text-primary underline" to={lp('/faq')}>
+            {t('presentation.allFaq')}
+          </Link>
         </p>
       </section>
     </div>
-  </div>
-);
+  );
+};
 
 export default HomeContent;
