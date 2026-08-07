@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/providers/AuthProvider';
 import { useLocale } from '@/i18n/locale';
+import Seo from '@/components/Seo';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -22,7 +23,7 @@ const COPY = {
   fr: {
     invalidEmail: 'Veuillez saisir une adresse e-mail valide',
     passwordMin: 'Le mot de passe doit contenir au moins 6 caractères',
-    brand: 'Paris Property Compass',
+    brand: 'Compass',
     title: 'Connexion',
     subtitle: 'Saisissez vos identifiants pour accéder à votre compte',
     email: 'E-mail',
@@ -35,7 +36,7 @@ const COPY = {
   en: {
     invalidEmail: 'Please enter a valid email address',
     passwordMin: 'Password must be at least 6 characters',
-    brand: 'Paris Property Compass',
+    brand: 'Compass',
     title: 'Sign In',
     subtitle: 'Enter your details to access your account',
     email: 'Email',
@@ -79,6 +80,7 @@ const SignIn = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4">
+      <Seo title={copy.title} description={copy.subtitle} path="/signin" noindex />
       <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-lg shadow-md">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-primary">{copy.brand}</h1>
