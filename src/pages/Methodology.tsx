@@ -131,7 +131,7 @@ const Methodology = () => {
         <section>
           <h2 className="text-xl font-semibold">{c.walkTitle}</h2>
           <p className="mt-3 text-muted-foreground">
-            {c.walkBody1a}<strong>800 mètres</strong>{c.walkBody1b}
+            {c.walkBody1a}<strong>{locale === 'en' ? '800 metres' : '800 mètres'}</strong>{c.walkBody1b}
           </p>
           <p className="mt-3 text-muted-foreground">
             {c.walkBody2a}
