@@ -22,7 +22,7 @@ const COPY = {
   fr: {
     invalidEmail: 'Veuillez saisir une adresse e-mail valide',
     passwordMin: 'Le mot de passe doit contenir au moins 6 caractères',
-    brand: 'Paris Property Compass',
+    brand: 'Compass',
     title: 'Connexion',
     subtitle: 'Saisissez vos identifiants pour accéder à votre compte',
     email: 'E-mail',
@@ -35,7 +35,7 @@ const COPY = {
   en: {
     invalidEmail: 'Please enter a valid email address',
     passwordMin: 'Password must be at least 6 characters',
-    brand: 'Paris Property Compass',
+    brand: 'Compass',
     title: 'Sign In',
     subtitle: 'Enter your details to access your account',
     email: 'Email',

@@ -37,7 +37,9 @@ const MapView = () => {
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution:
-        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · données ouvertes Etalab, Ville de Paris, Copernicus',
+        locale === 'en'
+          ? '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · open data Etalab, City of Paris, Copernicus'
+          : '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · données ouvertes Etalab, Ville de Paris, Copernicus',
       maxZoom: 19,
     }).addTo(map);
 
