@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
+import Seo from '@/components/Seo';
 import { toast } from '@/hooks/use-toast';
 import { UserPreferences } from '@/types/supabase';
 
@@ -169,6 +170,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-customBg font-sans flex flex-col">
+      <Seo title={copy.myAccount} description={copy.manageAccount} path="/profile" noindex />
       <Header isSidebarOpen={false} toggleSidebar={() => {}} />
       
       <div className="flex-1 container mx-auto p-4 md:p-6 max-w-5xl">
