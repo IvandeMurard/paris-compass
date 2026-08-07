@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/providers/AuthProvider';
 import { useLocale } from '@/i18n/locale';
+import Seo from '@/components/Seo';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -90,6 +91,7 @@ const SignUp = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4">
+      <Seo title={copy.title} description={copy.subtitle} path="/signup" noindex />
       <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-lg shadow-md">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-primary">{copy.brand}</h1>
