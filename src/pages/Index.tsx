@@ -55,6 +55,8 @@ const IndexContent = () => {
         ]}
       />
       <Header isSidebarOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+      <h1 className="sr-only">{t('home.metaTitle')}</h1>
+
 
       <div className="flex flex-col flex-1 min-h-0">
         {/* Mobile search and view toggle */}
