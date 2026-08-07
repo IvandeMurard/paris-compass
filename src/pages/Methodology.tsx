@@ -44,9 +44,9 @@ const COPY = {
     riskTitle: 'Risques',
     riskBody:
       'Les risques naturels et technologiques sont ceux recensés par Géorisques dans un rayon de 1 km. Cette information n’a pas valeur d’état des risques et pollutions (ERP) réglementaire.',
-    rentTitle: 'Loyers de référence',
+    rentTitle: 'Loyer résidentiel du quartier',
     rentBody:
-      'Le loyer affiché est le loyer de référence en €/m²/mois publié par la Ville de Paris dans le cadre de l’encadrement des loyers. Il concerne le logement : aucune base publique ne publie les loyers commerciaux. Il est utilisé comme repère relatif de niveau de marché entre quartiers, jamais comme prix de commercialisation.',
+      'Le chiffre affiché est le loyer de référence en €/m²/mois publié par la Ville de Paris dans le cadre de l’encadrement des loyers. Il ne concerne que le logement et exclut explicitement les locaux commerciaux et professionnels : aucune base publique ne publie les loyers commerciaux. Compass ne l’utilise donc que pour une chose — situer le niveau de vie résidentiel du quartier, c’est-à-dire un signal de zone de chalandise. Il n’est jamais multiplié par une surface, ne produit aucune estimation de loyer commercial et ne filtre aucun résultat.',
     detectTitle: 'Détection des locaux',
     detectBody:
       'Les locaux proviennent d’OpenStreetMap : un local est considéré comme vacant lorsqu’il porte un attribut de local vide ou de commerce désaffecté, et comme occupé lorsqu’une activité y est renseignée. La couverture dépend donc des contributions de la communauté : un local fermé récemment et non signalé n’apparaîtra pas.',
@@ -54,7 +54,7 @@ const COPY = {
     limits: [
       'Les scores dépendent de la complétude d’OpenStreetMap, inégale d’un quartier à l’autre.',
       'Le flux piéton et le bruit sont des estimations, pas des mesures.',
-      'Les loyers de référence ne couvrent que Paris intra-muros et concernent le logement.',
+      'Compass n’affiche aucun loyer commercial : cette donnée n’existe pas en open data en France.',
       'Aucun score ne remplace une visite ni une étude de marché.',
     ],
   },
@@ -90,9 +90,9 @@ const COPY = {
     riskTitle: 'Risks',
     riskBody:
       'Natural and technological risks are those recorded by Géorisques within a 1 km radius. This information does not have the regulatory value of an official risk and pollution disclosure (ERP).',
-    rentTitle: 'Reference rents',
+    rentTitle: 'Neighbourhood residential rent',
     rentBody:
-      'The rent shown is the reference rent in €/m²/month published by the City of Paris as part of rent control. It concerns housing: no public database publishes commercial rents. It is used as a relative market-level benchmark between neighbourhoods, never as a commercialization price.',
+      'The figure shown is the reference rent in €/m²/month published by the City of Paris as part of rent control. It covers housing only and explicitly excludes commercial and professional premises: no public database publishes commercial rents. Compass therefore uses it for one thing — placing the residential standard of living of the neighbourhood, i.e. a catchment-area signal. It is never multiplied by a floor area, produces no commercial rent estimate, and filters no results.',
     detectTitle: 'Detecting spaces',
     detectBody:
       'Spaces come from OpenStreetMap: a space is considered vacant when it carries a vacant-shop or disused-shop attribute, and occupied when an activity is recorded. Coverage therefore depends on community contributions: a recently closed space that hasn’t been reported won’t appear.',
@@ -100,7 +100,7 @@ const COPY = {
     limits: [
       'Scores depend on OpenStreetMap completeness, which varies from one neighbourhood to another.',
       'Foot traffic and noise are estimates, not measurements.',
-      'Reference rents only cover central Paris and concern housing.',
+      'Compass shows no commercial rent: that data does not exist as open data in France.',
       'No score replaces a site visit or a market study.',
     ],
   },

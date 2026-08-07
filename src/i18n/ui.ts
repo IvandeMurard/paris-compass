@@ -56,6 +56,18 @@ export const UI = {
   },
   'map.premises': { fr: 'locaux', en: 'spaces' },
   'map.amenitiesInView': { fr: 'aménités dans la vue', en: 'amenities in view' },
+  'map.searching': {
+    fr: 'Lecture du quartier en cours…',
+    en: 'Reading the neighbourhood…',
+  },
+  'map.tooLarge': {
+    fr: 'Vue trop large pour interroger OpenStreetMap. Rapprochez-vous d’une rue.',
+    en: 'View too wide to query OpenStreetMap. Zoom in on a street.',
+  },
+  'map.noResult': {
+    fr: 'Aucun local commercial recensé dans cette vue.',
+    en: 'No commercial premises recorded in this view.',
+  },
   'map.env.title': { fr: 'Indicateurs environnementaux', en: 'Environmental indicators' },
   'map.env.air': { fr: 'Qualité de l’air (indice EAQI) :', en: 'Air quality (EAQI index):' },
   'map.env.pm25': { fr: 'PM2.5 :', en: 'PM2.5:' },
@@ -103,7 +115,7 @@ export const UI = {
   'filters.title': { fr: 'Filtres', en: 'Filters' },
   'filters.reset': { fr: 'Réinitialiser', en: 'Reset' },
   'filters.vacantOnly': { fr: 'Locaux vacants uniquement', en: 'Vacant spaces only' },
-  'filters.rent': { fr: 'Loyer mensuel (€)', en: 'Monthly rent (€)' },
+  // 'filters.rent' removed: Compass has no commercial rent to filter on. See DIAGNOSTIC.md §1.
   'filters.size': { fr: 'Surface (m²)', en: 'Size (m²)' },
   'filters.arrondissement': { fr: 'Arrondissement', en: 'Arrondissement' },
   'filters.walkability': { fr: 'Score de marchabilité', en: 'Walkability score' },

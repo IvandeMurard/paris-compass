@@ -1,6 +1,6 @@
 import { distanceM } from './http';
 import { fetchOverpassSnapshot } from './overpass';
-import { fetchRentReferences, type RentReference } from './rents';
+import { fetchNeighbourhoodProfiles, type NeighbourhoodProfile } from './neighbourhood';
 import { computeScores, estimateNoise } from './scoring';
 import type { BBox, Poi, Premise } from './types';
 
@@ -39,14 +39,17 @@ function arrondissementFromPostcode(postcode?: string) {
   return Number.isFinite(value) && value > 0 ? value : undefined;
 }
 
-function nearestRent(point: { lat: number; lng: number }, references: RentReference[]) {
-  let best: RentReference | null = null;
+function nearestNeighbourhood(
+  point: { lat: number; lng: number },
+  profiles: NeighbourhoodProfile[],
+) {
+  let best: NeighbourhoodProfile | null = null;
   let bestDistance = Infinity;
-  for (const reference of references) {
-    const d = distanceM(point, reference);
+  for (const profile of profiles) {
+    const d = distanceM(point, profile);
     if (d < bestDistance) {
       bestDistance = d;
-      best = reference;
+      best = profile;
     }
   }
   return bestDistance <= 3000 ? best : null;
@@ -66,9 +69,9 @@ export interface PremiseSearchResult {
 
 /** Build the list of real commercial premises for a viewport from open data only. */
 export async function fetchPremises(bbox: BBox): Promise<PremiseSearchResult> {
-  const [snapshot, rentReferences] = await Promise.all([
+  const [snapshot, neighbourhoods] = await Promise.all([
     fetchOverpassSnapshot(bbox),
-    fetchRentReferences(),
+    fetchNeighbourhoodProfiles(),
   ]);
 
   const premises: Premise[] = snapshot.premises
@@ -79,7 +82,7 @@ export async function fetchPremises(bbox: BBox): Promise<PremiseSearchResult> {
       const point = { lat: raw.lat, lng: raw.lng };
       const scores = computeScores(point, snapshot);
       const noise = estimateNoise(point, snapshot);
-      const rent = nearestRent(point, rentReferences);
+      const neighbourhood = nearestNeighbourhood(point, neighbourhoods);
       const sizeM2 = parseSize(raw.tags);
       const postcode = raw.tags['addr:postcode'];
 
@@ -94,10 +97,10 @@ export async function fetchPremises(bbox: BBox): Promise<PremiseSearchResult> {
         lat: raw.lat,
         lng: raw.lng,
         sizeM2,
-        rentReferenceEurM2: rent?.refEurM2 ?? null,
-        rentQuartier: rent?.quartier,
-        estimatedMonthlyRent:
-          rent && sizeM2 ? Math.round((rent.refEurM2 * sizeM2) / 10) * 10 : null,
+        // Catchment-area signal only. Never multiplied by a floor area: the source covers
+        // housing and says nothing about commercial rents. See DIAGNOSTIC.md §1.
+        residentialRentEurM2: neighbourhood?.residentialRentEurM2 ?? null,
+        quartier: neighbourhood?.quartier,
         scores,
         noise,
       } satisfies Premise;

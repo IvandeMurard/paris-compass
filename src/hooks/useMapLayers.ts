@@ -48,19 +48,24 @@ export const useMapLayers = (map: L.Map | null, premises: Premise[], pois: Poi[]
           <span>${premise.address}</span><br/>
           <span>Marchabilité ${premise.scores.walkability}/100 · Flux ${premise.scores.footfall}/100</span><br/>
           <span>${
-            premise.estimatedMonthlyRent
-              ? `~${premise.estimatedMonthlyRent.toLocaleString('fr-FR')} €/mois (estimation)`
-              : 'Loyer non disponible'
+            premise.residentialRentEurM2 !== null
+              ? `Loyer résidentiel du quartier ${premise.residentialRentEurM2} €/m²${
+                  premise.quartier ? ` · ${premise.quartier}` : ''
+                }`
+              : 'Quartier non renseigné'
           }</span>
         </div>
       `);
       markersLayer.addLayer(marker);
 
+      // One disc per premise, so the radius has to stay well under the spacing between
+      // premises. At 220 m in a street as dense as Montorgueil the discs merged into an
+      // opaque sheet that hid the map. 30 m reads as a score dot and keeps the streets legible.
       const circle = L.circle([premise.lat, premise.lng], {
-        radius: 220,
-        color: walkabilityColor(premise.scores.walkability),
+        radius: 30,
+        color: '#ffffff',
         fillColor: walkabilityColor(premise.scores.walkability),
-        fillOpacity: 0.35,
+        fillOpacity: 0.85,
         weight: 1,
       }).bindTooltip(`Marchabilité : ${premise.scores.walkability}/100`);
       walkabilityLayer.addLayer(circle);

@@ -31,7 +31,7 @@ product**.
 
 - React 18 + TypeScript + Vite 5
 - Tailwind CSS + shadcn/ui (Radix)
-- Leaflet / react-leaflet for mapping
+- Leaflet for mapping (used directly, no React wrapper)
 - TanStack Query for caching open data requests
 - Supabase (Lovable Cloud) for authentication, preferences and saved searches
 

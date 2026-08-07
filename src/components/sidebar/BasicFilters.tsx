@@ -2,41 +2,21 @@ import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Euro, Building, MapPin } from 'lucide-react';
+import { Building, MapPin } from 'lucide-react';
 import { useLocale } from '@/i18n/locale';
 
 interface BasicFiltersProps {
-  priceRange: number[];
-  setPriceRange: (value: number[]) => void;
   sizeRange: number[];
   setSizeRange: (value: number[]) => void;
 }
 
-const BasicFilters = ({ priceRange, setPriceRange, sizeRange, setSizeRange }: BasicFiltersProps) => {
+// There is deliberately no rent filter: commercial rents are not published as open data
+// in France, so Compass has no figure to filter on. See DIAGNOSTIC.md §1.
+const BasicFilters = ({ sizeRange, setSizeRange }: BasicFiltersProps) => {
   const { t } = useLocale();
 
   return (
     <>
-      <div className="mb-4">
-        <Label htmlFor="price" className="flex items-center mb-2">
-          <Euro size={16} className="mr-2" />
-          {t('filters.rent')}
-        </Label>
-        <Slider
-          id="price"
-          min={0}
-          max={10000}
-          step={100}
-          value={priceRange}
-          onValueChange={setPriceRange}
-          className="mb-1"
-        />
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>€{priceRange[0]}</span>
-          <span>€{priceRange[1]}</span>
-        </div>
-      </div>
-
       <div className="mb-4">
         <Label htmlFor="size" className="flex items-center mb-2">
           <Building size={16} className="mr-2" />

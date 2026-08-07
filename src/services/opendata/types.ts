@@ -59,10 +59,13 @@ export interface Premise {
   lat: number;
   lng: number;
   sizeM2: number | null;
-  /** Reference rent (€/m²/month) of the surrounding Paris quartier, when available. */
-  rentReferenceEurM2: number | null;
-  rentQuartier?: string;
-  estimatedMonthlyRent: number | null;
+  /**
+   * Residential rent reference (€/m²/month) of the surrounding Paris quartier — a
+   * catchment-area standard-of-living signal, NOT a commercial rent. Housing only.
+   * See services/opendata/neighbourhood.ts.
+   */
+  residentialRentEurM2: number | null;
+  quartier?: string;
   scores: AreaScores;
   noise: NoiseEstimate;
 }

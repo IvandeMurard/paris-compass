@@ -5,6 +5,6 @@ export * from './scoring';
 export * from './properties';
 export * from './environment';
 export * from './geocoding';
-export * from './rents';
+export * from './neighbourhood';
 export * from './sirene';
 export * from './sources';

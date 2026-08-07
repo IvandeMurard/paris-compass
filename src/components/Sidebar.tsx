@@ -21,7 +21,6 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
     vacantOnly,
     setVacantOnly,
     updateQuery,
-    updatePriceRange,
     updateSizeRange,
     updateWalkabilityScore,
     updateAmenityScores,
@@ -56,12 +55,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
             <Switch id="vacant-only" checked={vacantOnly} onCheckedChange={setVacantOnly} />
           </div>
 
-          <BasicFilters
-            priceRange={filters.priceRange}
-            setPriceRange={updatePriceRange}
-            sizeRange={filters.sizeRange}
-            setSizeRange={updateSizeRange}
-          />
+          <BasicFilters sizeRange={filters.sizeRange} setSizeRange={updateSizeRange} />
 
           <AccessibilityMetrics
             walkabilityScore={filters.walkabilityScore}

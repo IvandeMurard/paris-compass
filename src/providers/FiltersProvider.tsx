@@ -13,7 +13,6 @@ const initialAmenityScores: AmenityScore = {
 
 const initialFilters: FilterState = {
   query: '',
-  priceRange: [0, 10000],
   sizeRange: [0, 500],
   walkabilityScore: [0, 100],
   amenityScores: initialAmenityScores,
@@ -25,7 +24,6 @@ interface FiltersContextValue {
   vacantOnly: boolean;
   setVacantOnly: (value: boolean) => void;
   updateQuery: (query: string) => void;
-  updatePriceRange: (range: number[]) => void;
   updateSizeRange: (range: number[]) => void;
   updateWalkabilityScore: (range: number[]) => void;
   updateAmenityScores: (scores: Partial<AmenityScore>) => void;
@@ -54,12 +52,8 @@ export const FiltersProvider = ({ children }: { children: React.ReactNode }) => 
     const matches = (premise: Premise) => {
       if (vacantOnly && premise.status !== 'vacant') return false;
 
-      const [minPrice, maxPrice] = filters.priceRange;
-      if (premise.estimatedMonthlyRent !== null) {
-        if (premise.estimatedMonthlyRent < minPrice || premise.estimatedMonthlyRent > maxPrice) {
-          return false;
-        }
-      }
+      // No rent filter on purpose: no open dataset carries commercial rents, so filtering
+      // on one would mean filtering on an invented number. See DIAGNOSTIC.md §1.
 
       const [minSize, maxSize] = filters.sizeRange;
       if (premise.sizeM2 !== null && (premise.sizeM2 < minSize || premise.sizeM2 > maxSize)) {
@@ -89,7 +83,6 @@ export const FiltersProvider = ({ children }: { children: React.ReactNode }) => 
       vacantOnly,
       setVacantOnly,
       updateQuery: (query) => setFilters((prev) => ({ ...prev, query })),
-      updatePriceRange: (priceRange) => setFilters((prev) => ({ ...prev, priceRange })),
       updateSizeRange: (sizeRange) => setFilters((prev) => ({ ...prev, sizeRange })),
       updateWalkabilityScore: (walkabilityScore) =>
         setFilters((prev) => ({ ...prev, walkabilityScore })),

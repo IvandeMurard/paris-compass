@@ -20,7 +20,7 @@ const MapView = () => {
 
   const { t, locale } = useLocale();
   const { matches, bbox, setBbox } = useFiltersContext();
-  const { data, isFetching, isError } = usePremises(bbox);
+  const { data, isFetching, isError, tooLarge } = usePremises(bbox);
   const premises = useMemo(() => (data?.premises ?? []).filter(matches), [data, matches]);
   const pois = useMemo(() => data?.pois ?? [], [data]);
 
@@ -31,7 +31,7 @@ const MapView = () => {
   useEffect(() => {
     if (typeof window === 'undefined' || !mapRef.current || mapInstanceRef.current) return;
 
-    const map = L.map(mapRef.current).setView([48.8566, 2.3522], 14);
+    const map = L.map(mapRef.current).setView([48.8655, 2.3475], 16);
     mapInstanceRef.current = map;
     setMapInstance(map);
 
@@ -88,7 +88,7 @@ const MapView = () => {
         mapInstanceRef.current?.setView([position.coords.latitude, position.coords.longitude], 15),
       (error) => console.error('Error getting location:', error),
     );
-  const handleResetView = () => mapInstanceRef.current?.setView([48.8566, 2.3522], 14);
+  const handleResetView = () => mapInstanceRef.current?.setView([48.8655, 2.3475], 16);
 
   return (
     <div className="relative h-full w-full bg-[#f5f5f5]">
@@ -135,10 +135,18 @@ const MapView = () => {
             </div>
           ))}
         </div>
+        {/* Four distinct states. A viewport still loading must never read as an empty
+            result — that was the single most misleading thing about this panel. */}
         <p className="mt-3 text-[11px] text-muted-foreground">
-          {isError
-            ? t('map.unavailable')
-            : `${premises.length} ${t('map.premises')} · ${pois.length} ${t('map.amenitiesInView')}`}
+          {tooLarge
+            ? t('map.tooLarge')
+            : isError
+              ? t('map.unavailable')
+              : isFetching && !data
+                ? t('map.searching')
+                : data && premises.length === 0 && pois.length === 0
+                  ? t('map.noResult')
+                  : `${premises.length} ${t('map.premises')} · ${pois.length} ${t('map.amenitiesInView')}`}
         </p>
         <DataSourcesPanel className="mt-3 w-full" />
       </div>

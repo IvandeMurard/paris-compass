@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Euro, Ruler, MapPin, Users, Wind, Volume2, Footprints, ExternalLink } from 'lucide-react';
+import { Home, Ruler, MapPin, Users, Wind, Volume2, Footprints, ExternalLink } from 'lucide-react';
 import type { Premise } from '@/services/opendata/types';
 import { scoreLabel } from '@/services/opendata/scoring';
 import { useLocale } from '@/i18n/locale';
@@ -10,14 +10,20 @@ import { translateLabel } from '@/i18n/labels';
 
 const COPY = {
   fr: {
-    available: 'Disponible', occupied: 'Occupé', arr: 'e arrondissement', perMonth: '€/mois',
-    estimate: '(estimation)', reference: '€/m² de référence', noRent: 'Loyer non disponible',
+    available: 'Disponible', occupied: 'Occupé', arr: 'e arrondissement',
+    residential: 'Loyer résidentiel du quartier',
+    residentialUnit: '€/m²',
+    residentialHint: 'niveau de vie du quartier — pas un loyer commercial',
+    noResidential: 'Quartier non renseigné',
     noSize: 'Surface non renseignée', walkability: 'Marchabilité', footfall: 'Flux', air: 'Air',
     noise: 'Bruit', sources: 'Sources : OpenStreetMap, Ville de Paris, Copernicus', detail: 'Détail', na: 'n/d',
   },
   en: {
-    available: 'Available', occupied: 'Occupied', arr: 'th arrondissement', perMonth: '€/month',
-    estimate: '(estimate)', reference: '€/m² reference', noRent: 'Rent not available',
+    available: 'Available', occupied: 'Occupied', arr: 'th arrondissement',
+    residential: 'Neighbourhood residential rent',
+    residentialUnit: '€/m²',
+    residentialHint: 'standard of living — not a commercial rent',
+    noResidential: 'Neighbourhood not available',
     noSize: 'Size not specified', walkability: 'Walkability', footfall: 'Footfall', air: 'Air',
     noise: 'Noise', sources: 'Sources: OpenStreetMap, Ville de Paris, Copernicus', detail: 'Details', na: 'n/a',
   },
@@ -70,20 +76,18 @@ const PropertyCard = ({ premise, airLabel }: PropertyCardProps) => {
         )}
 
         <div className="space-y-2">
-          <div className="flex items-center text-sm">
-            <Euro size={16} className="mr-2 text-primary shrink-0" />
-            {premise.estimatedMonthlyRent !== null ? (
-              <span className="font-medium">
-                ~{premise.estimatedMonthlyRent.toLocaleString(locale === 'en' ? 'en-GB' : 'fr-FR')} {c.perMonth}{' '}
-                <span className="text-xs font-normal text-muted-foreground">{c.estimate}</span>
-              </span>
-            ) : premise.rentReferenceEurM2 !== null ? (
+          {/* Catchment-area signal, deliberately not a price. Commercial rents are not
+              published as open data in France. See DIAGNOSTIC.md §1. */}
+          <div className="flex items-start text-sm">
+            <Home size={16} className="mr-2 mt-0.5 text-primary shrink-0" />
+            {premise.residentialRentEurM2 !== null ? (
               <span>
-                {premise.rentReferenceEurM2} {c.reference}
-                {premise.rentQuartier ? ` · ${premise.rentQuartier}` : ''}
+                {c.residential} : {premise.residentialRentEurM2} {c.residentialUnit}
+                {premise.quartier ? ` · ${premise.quartier}` : ''}
+                <span className="block text-xs text-muted-foreground">{c.residentialHint}</span>
               </span>
             ) : (
-              <span className="text-muted-foreground">{c.noRent}</span>
+              <span className="text-muted-foreground">{c.noResidential}</span>
             )}
           </div>
 
