@@ -39,7 +39,20 @@ Public APIs are called directly from the browser, with a short-lived
 `sessionStorage` cache and automatic failover between Overpass mirrors when one
 is saturated.
 
-## Installation
+## Using Compass
+
+**Live app: [paris-compass.lovable.app](https://paris-compass.lovable.app)**
+
+Open the map, pan to the area you have in mind, and Compass instantly reads the
+neighbourhood around every space it finds — walkability, retail density,
+transport, schools, healthcare, air quality, risks — so you can compare
+locations the way your future customers will experience them. Describe your need
+in plain language ("50 m² in the 10th near a park"), refine with the filters on
+the left, and click any space to see the full environmental profile with the
+source and licence behind each number. No account is needed to explore; sign in
+only to save searches and get alerts.
+
+## Running it locally
 
 Requirements: Node.js 18+ and npm (or bun).
 
@@ -51,6 +64,7 @@ npm run dev
 ```
 
 The application is served at http://localhost:8080.
+
 
 ## Scripts
 
