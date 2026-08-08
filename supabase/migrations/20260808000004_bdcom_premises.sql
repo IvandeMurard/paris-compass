@@ -96,7 +96,7 @@ comment on table public.stg_bdcom_2023 is
 -- resolved against 2020: 297 found, 296 of those at the same address (99.7%),
 -- 251 with the same activity (84.5% — the gap is real churn, not noise).
 --
--- The remaining ~0.3% are identifiers reused for a different premise (ordre
+-- 74 identifiers out of 85 344 are reused for a different premise (ordre
 -- 91046 is 10 rue de l'Ours in 2020 and 80 rue du Maine in 2023). Hence the key
 -- is (ordre, address_key), not ordre alone: a reused identifier produces two
 -- locations instead of silently teleporting one, and the observation records

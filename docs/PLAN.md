@@ -45,11 +45,11 @@ structurellement le bug des scores dépendants du cadrage (`DIAGNOSTIC.md` §2) 
 voisinage, plus un rectangle d'affichage. Et c'est aussi ce qui remplace le rattachement d'un
 local à son quartier par centroïde le plus proche par un vrai test d'appartenance au polygone.
 
-> **Écrit et vérifié en local le 8 août 2026.** Cinq migrations dans `supabase/migrations/`,
-> appliquées sur une base locale et testées sur jeu fictif : PostGIS isolé dans son schéma ;
-> géographie de référence (quartiers en polygones, tronçons de voie) ; référentiel BDCom, où
-> **chaque millésime porte sa licence et son périmètre comme donnée**, pas comme commentaire ;
-> locaux et relevés, la géométrie stockée une seule fois ; cinq RPC, toutes point + rayon.
+> **Fait en local le 8 août 2026.** Six migrations dans `supabase/migrations/` : PostGIS isolé
+> dans son schéma ; géographie de référence (quartiers en polygones, tronçons de voie) ;
+> référentiel BDCom, où **chaque millésime porte sa licence et son périmètre comme donnée**, pas
+> comme commentaire ; locaux et relevés, la géométrie stockée une seule fois ; cinq RPC, toutes
+> point + rayon.
 >
 > Deux garanties mécaniques plutôt que documentaires : la comparaison à périmètre commun est le
 > **comportement par défaut** — il faut demander explicitement la version trompeuse — et un local
@@ -58,9 +58,23 @@ local à son quartier par centroïde le plus proche par un vrai test d'appartena
 >
 > **Rien n'est appliqué sur l'instance Lovable.** L'activation de PostGIS là-bas est un « oui plus
 > tard » explicite, à demander avant de l'exécuter.
+>
+> Reste à faire pour clore 2.1 : charger `quartier` et `street_segment`. Tant qu'ils sont vides,
+> `compass_street_rotation` répond correctement — zéro ligne — mais ne peut rien rapporter à une
+> rue, et le rattachement au quartier par polygone n'a pas encore remplacé le centroïde.
 
 **2.2 — `scripts/` devient un pipeline d'ingestion.** Un script par source, idempotent, avec
-journal de millésime : télécharger, normaliser, géocoder si besoin, charger. Node ou Python pur.
+journal de millésime : télécharger, normaliser, charger.
+
+> **Fait pour BDCom le 8 août 2026.** `scripts/ingest/` — un lecteur ArcGIS paginé, un accès
+> Postgres, et `bdcom.ts` qui charge les trois millésimes. `npx.cmd tsx scripts/ingest/bdcom.ts`,
+> environ trois minutes.
+>
+> Idempotent : le staging est vidé par millésime, la promotion fait un upsert sur des clés que la
+> source garantit, et **le chargement entier tient dans une transaction** — un recensement à
+> moitié chargé est pire que pas de recensement, puisque rien en aval ne peut distinguer « absent »
+> de « pas encore chargé ». Un contrôle de complétude refuse de valider si le nombre de relevés
+> promus diffère du nombre de lignes lues.
 
 **2.3 — BDCom (APUR), les trois millésimes.** Recensement de terrain porte-à-porte de tous les
 locaux parisiens en rez-de-chaussée avec vitrine et accès sur rue. Chaque local porte sa
@@ -70,8 +84,16 @@ surface.
 Il n'y a rien à télécharger à la main : l'APUR expose des services ArcGIS paginés. **2017 et 2020**
 sont deux couches du même service `OPENDATA/BDCOM_OD` — 84 031 et 83 399 locaux, périmètre
 complet, licence personnalisée. **2023** est publié à part, sous un schéma de colonnes entièrement
-différent — 60 845 commerces, ODbL, 95 concentrations commerciales. Ingestion en GeoJSON par
-tranches de 1 000, en demandant la sortie en WGS 84 pour ne pas reprojeter le Lambert 93 soi-même.
+différent — 60 845 commerces, ODbL, 95 concentrations commerciales. Les coordonnées sont demandées
+explicitement en Lambert 93 et converties par PostGIS à la promotion : la projection devient une
+propriété du pipeline plutôt que de ce que le service sert ce jour-là.
+
+> **Chargé le 8 août 2026** : 228 275 relevés, 85 418 locaux distincts, 222 codes d'activité.
+> Tous les chiffres annoncés plus haut sont vérifiés sur la base et non plus sur échantillon —
+> vacance 7 853 (9,3 %) en 2017 et 8 764 (10,5 %) en 2020, zéro en 2023 ; série à périmètre commun
+> 62 705 → 61 541 → 60 845. Aucun code d'activité, aucune tranche de surface, aucune situation non
+> résolue. 28 codes utilisés en 2017/2020 n'ont pas de niveau 47/18 : ils n'existent dans aucune
+> source publiée, et la colonne reste nulle plutôt que devinée.
 
 Deux gains. La nomenclature et les tranches de surface écrasent le tagging OSM sur lequel le
 produit repose aujourd'hui. Et surtout, trois millésimes d'un recensement exhaustif dont
@@ -86,8 +108,9 @@ différenciateur.
 >   `c_ord` en 2023. Sur 300 locaux de 2023 tirés au hasard, 297 retrouvés en 2020, dont 99,7 % à
 >   la même adresse. Retracer l'histoire d'un local est donc une jointure exacte, pas un
 >   appariement probabiliste. *(Corrige une version antérieure de cet encadré qui donnait
->   l'identifiant pour absent.)* Reste ~0,3 % d'identifiants réattribués à un autre local : on
->   apparie sur l'identifiant, on **vérifie sur l'adresse**, et on marque la divergence.
+>   l'identifiant pour absent.)* Mesuré au chargement : **74 identifiants sur 85 344** sont
+>   réattribués à un autre local, soit moins de 0,1 %. On apparie sur l'identifiant, on **vérifie
+>   sur l'adresse**, et on marque la divergence au lieu de la lisser.
 > - Les commerces d'une même adresse partagent une coordonnée — jusqu'à 120 sur un seul point. La
 >   coordonnée « bis » est un artefact d'affichage, jamais une position : elle n'est pas chargée.
 > - **La vacance 2023 n'est pas calculable.** Le millésime publié ne contient que les 60 845
@@ -131,7 +154,9 @@ qui est **disponible** — et à ce jour la liste est complète, pas illustrativ
 - **Une disparition en 2023 signifie « ce n'est plus un commerce »**, jamais « c'est vacant ». Le
   local a pu fermer, ou devenir un cabinet dentaire : la couche ne distingue pas les deux, donc la
   base répond « je ne sais pas » plutôt que d'inventer un changement.
-- **Environ 0,3 % des identifiants sont réattribués** à un autre local d'un millésime à l'autre.
+- **74 identifiants sur 85 344 sont réattribués** à un autre local d'un millésime à l'autre,
+  soit moins de 0,1 % — chiffre mesuré au chargement, pas estimé. L'`ordre` 4231 est au 13 rue
+  Vivienne dans le 2ᵉ en 2017 et 2020, et au 88 avenue Kléber dans le 16ᵉ en 2023.
   Sans garde-fou, l'historique recollerait deux commerces différents. L'appariement vérifie donc
   l'adresse en plus de l'identifiant et marque la divergence au lieu de la lisser : un historique
   ainsi marqué est une preuve plus faible, et l'interface doit pouvoir le dire.
@@ -182,6 +207,18 @@ se libérer, souvent des mois avant qu'une annonce paraisse.
 **3.4 — Cessations SIRENE.** L'API `recherche-entreprises` est déjà interrogée et porte les dates
 de cessation d'établissement. Croisée avec BDCom, une cessation à une adresse recensée comme
 commerce, c'est un local qui vient de se vider.
+
+**Et surtout : elle comble le pas de trois ans.** C'est le croisement le plus important du
+produit, parce qu'il répare la principale réserve de l'historique. BDCom dit « boulangerie en
+2020, téléphonie en 2023 » ; SIRENE dit « la boulangerie a cessé en mars 2021, la téléphonie
+s'est immatriculée en septembre 2022 » — donc **dix-huit mois de vide**, que le relevé triennal
+avait effacés. Aucune des deux sources ne peut le dire seule.
+
+Les deux histoires ne sont pas de même nature et il ne faut pas les confondre à l'affichage.
+BDCom est l'histoire du **local** : relevée à pied, physique, tous les trois ans. SIRENE est
+l'histoire des **entreprises** : déclarative, continue, et rattachée à une adresse
+d'immatriculation qui n'est pas forcément une vitrine. Un `Measured<T>` par source, jamais un
+chiffre fusionné qui masquerait laquelle des deux l'a produit.
 
 **3.5 — La vue « ce qui se libère ».** Une seconde entrée dans le produit, à côté de « j'ai une
 adresse ».
