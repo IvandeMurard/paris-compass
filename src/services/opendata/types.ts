@@ -66,6 +66,8 @@ export interface Premise {
    */
   residentialRentEurM2: number | null;
   quartier?: string;
+  /** Vintage of the rent decree the figure above comes from. Always displayed with it. */
+  residentialRentYear?: string;
   scores: AreaScores;
   noise: NoiseEstimate;
 }

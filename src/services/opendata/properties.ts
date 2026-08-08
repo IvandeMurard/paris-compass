@@ -1,7 +1,7 @@
-import { distanceM } from './http';
+import { distanceM } from '@/core';
 import { fetchOverpassSnapshot } from './overpass';
 import { fetchNeighbourhoodProfiles, type NeighbourhoodProfile } from './neighbourhood';
-import { computeScores, estimateNoise } from './scoring';
+import { buildScoringIndex, computeScores, estimateNoise } from './scoring';
 import type { BBox, Poi, Premise } from './types';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -74,14 +74,18 @@ export async function fetchPremises(bbox: BBox): Promise<PremiseSearchResult> {
     fetchNeighbourhoodProfiles(),
   ]);
 
+  // Built once for the whole snapshot, then queried per premise. Passing the bbox lets the
+  // core flag scores whose 800 m search radius is cut off by the edge of the fetched area.
+  const index = buildScoringIndex(snapshot, bbox);
+
   const premises: Premise[] = snapshot.premises
     // Vacant premises first: those are the ones actually available.
     .sort((a, b) => (a.status === b.status ? 0 : a.status === 'vacant' ? -1 : 1))
     .slice(0, 120)
     .map((raw) => {
       const point = { lat: raw.lat, lng: raw.lng };
-      const scores = computeScores(point, snapshot);
-      const noise = estimateNoise(point, snapshot);
+      const scores = computeScores(point, index);
+      const noise = estimateNoise(point, index);
       const neighbourhood = nearestNeighbourhood(point, neighbourhoods);
       const sizeM2 = parseSize(raw.tags);
       const postcode = raw.tags['addr:postcode'];
@@ -101,6 +105,7 @@ export async function fetchPremises(bbox: BBox): Promise<PremiseSearchResult> {
         // housing and says nothing about commercial rents. See DIAGNOSTIC.md §1.
         residentialRentEurM2: neighbourhood?.residentialRentEurM2 ?? null,
         quartier: neighbourhood?.quartier,
+        residentialRentYear: neighbourhood?.year,
         scores,
         noise,
       } satisfies Premise;

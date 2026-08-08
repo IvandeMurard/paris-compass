@@ -1,68 +1,93 @@
-import { clamp, distanceM } from './http';
-import type { AreaScores, NoiseEstimate, Poi, PoiCategory } from './types';
+/**
+ * Adapter between the OpenStreetMap snapshot and the pure scoring core.
+ *
+ * All the arithmetic now lives in `@/core`, where it is testable and reusable by an MCP
+ * server. This file only translates shapes and unwraps provenance for the current UI,
+ * which still expects plain numbers. Surfacing source, licence and caveats in the
+ * interface is the next step — the values already carry them.
+ */
+
+import {
+  buildIndex,
+  noiseLabel,
+  scoreLabel as coreScoreLabel,
+  scoreLocation,
+  OSM_ORIGIN,
+  type Amenity,
+  type AmenityCategory,
+  type PremisePoint,
+  type Road,
+  type ScoringIndex,
+} from '@/core';
+import type { AreaScores, BBox, NoiseEstimate } from './types';
 import type { OverpassSnapshot } from './overpass';
 
-const RADIUS_M = 800;
+const AMENITY_CATEGORIES: readonly AmenityCategory[] = [
+  'schools',
+  'healthcare',
+  'groceries',
+  'parks',
+  'transit',
+];
 
-/** Saturating score: n POIs within 800 m mapped onto 0-100. */
-function categoryScore(count: number, saturation: number) {
-  return clamp(Math.round(100 * (1 - Math.exp(-count / saturation))));
-}
+const isAmenityCategory = (value: string): value is AmenityCategory =>
+  (AMENITY_CATEGORIES as readonly string[]).includes(value);
 
-function countNear(pois: Poi[], point: { lat: number; lng: number }, category: PoiCategory) {
-  let count = 0;
-  for (const poi of pois) {
-    if (poi.category !== category) continue;
-    if (distanceM(point, poi) <= RADIUS_M) count += 1;
+/**
+ * Build the spatial index once per snapshot.
+ *
+ * This used to be implicit: every premise rescanned the whole snapshot, five times over,
+ * inside a map(). With tens of thousands of features that is millions of trigonometric
+ * calls on the main thread. Building the index once and querying it per premise is the
+ * whole fix.
+ */
+export function buildScoringIndex(snapshot: OverpassSnapshot, bounds?: BBox): ScoringIndex {
+  const amenities: Amenity[] = [];
+  for (const poi of snapshot.pois) {
+    if (!isAmenityCategory(poi.category)) continue;
+    amenities.push({ lat: poi.lat, lng: poi.lng, category: poi.category });
   }
-  return count;
+
+  const premises: PremisePoint[] = snapshot.premises.map((p) => ({
+    lat: p.lat,
+    lng: p.lng,
+    status: p.status,
+  }));
+
+  const roads: Road[] = snapshot.roads.map((r) => ({
+    lat: r.lat,
+    lng: r.lng,
+    weight: r.weight,
+  }));
+
+  return buildIndex({ amenities, premises, roads, bounds });
 }
 
+const originForNow = () => OSM_ORIGIN(new Date().toISOString().slice(0, 10));
+
+/** Scores for one point, unwrapped to the plain numbers the current UI expects. */
 export function computeScores(
   point: { lat: number; lng: number },
-  snapshot: OverpassSnapshot,
+  index: ScoringIndex,
 ): AreaScores {
-  const schools = categoryScore(countNear(snapshot.pois, point, 'schools'), 8);
-  const healthcare = categoryScore(countNear(snapshot.pois, point, 'healthcare'), 14);
-  const groceries = categoryScore(countNear(snapshot.pois, point, 'groceries'), 18);
-  const parks = categoryScore(countNear(snapshot.pois, point, 'parks'), 7);
-  const transitCount = countNear(snapshot.pois, point, 'transit');
-  const transit = categoryScore(transitCount, 25);
-
-  const walkability = Math.round(
-    schools * 0.15 + healthcare * 0.2 + groceries * 0.3 + parks * 0.15 + transit * 0.2,
-  );
-
-  // Footfall proxy: density of nearby businesses + transit access (no open dataset exists).
-  const commerceCount = snapshot.premises.filter(
-    (p) => distanceM(point, p) <= 400 && p.status === 'occupied',
-  ).length;
-  const footfall = clamp(
-    Math.round(categoryScore(commerceCount, 90) * 0.65 + transit * 0.35),
-  );
-
-  return { walkability, schools, healthcare, groceries, transit, parks, footfall };
+  const scored = scoreLocation(point, index, originForNow());
+  return {
+    walkability: scored.walkability.value ?? 0,
+    schools: scored.schools.value ?? 0,
+    healthcare: scored.healthcare.value ?? 0,
+    groceries: scored.groceries.value ?? 0,
+    transit: scored.transit.value ?? 0,
+    parks: scored.parks.value ?? 0,
+    footfall: scored.footfall.value ?? 0,
+  };
 }
 
-/** Noise proxy derived from the proximity and class of major OSM roads. */
 export function estimateNoise(
   point: { lat: number; lng: number },
-  snapshot: OverpassSnapshot,
+  index: ScoringIndex,
 ): NoiseEstimate {
-  let exposure = 0;
-  for (const road of snapshot.roads) {
-    const d = distanceM(point, road);
-    if (d > 500) continue;
-    exposure += road.weight * (1 - d / 500);
-  }
-  const score = clamp(Math.round(exposure * 5));
-  const label = score >= 70 ? 'High' : score >= 40 ? 'Moderate' : score >= 15 ? 'Low' : 'Very low';
-  return { score, label };
+  const score = scoreLocation(point, index, originForNow()).noise.value ?? 0;
+  return { score, label: noiseLabel(score) };
 }
 
-export function scoreLabel(score: number) {
-  if (score >= 80) return 'Excellent';
-  if (score >= 60) return 'Good';
-  if (score >= 40) return 'Moderate';
-  return 'Low';
-}
+export const scoreLabel = coreScoreLabel;

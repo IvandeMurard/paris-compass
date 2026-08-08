@@ -84,6 +84,7 @@ const PropertyCard = ({ premise, airLabel }: PropertyCardProps) => {
               <span>
                 {c.residential} : {premise.residentialRentEurM2} {c.residentialUnit}
                 {premise.quartier ? ` · ${premise.quartier}` : ''}
+                {premise.residentialRentYear ? ` · ${premise.residentialRentYear}` : ''}
                 <span className="block text-xs text-muted-foreground">{c.residentialHint}</span>
               </span>
             ) : (

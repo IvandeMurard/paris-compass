@@ -51,7 +51,7 @@ export const useMapLayers = (map: L.Map | null, premises: Premise[], pois: Poi[]
             premise.residentialRentEurM2 !== null
               ? `Loyer résidentiel du quartier ${premise.residentialRentEurM2} €/m²${
                   premise.quartier ? ` · ${premise.quartier}` : ''
-                }`
+                }${premise.residentialRentYear ? ` · ${premise.residentialRentYear}` : ''}`
               : 'Quartier non renseigné'
           }</span>
         </div>

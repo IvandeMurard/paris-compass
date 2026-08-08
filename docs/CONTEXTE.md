@@ -1,0 +1,133 @@
+# Compass — contexte produit et décisions
+
+Document de référence. À lire avant de toucher au périmètre, aux sources de données ou au
+noyau de scoring. Pas nécessaire pour un correctif d'interface isolé.
+
+Voir aussi `DIAGNOSTIC.md` à la racine — défauts identifiés, dont certains encore ouverts.
+
+---
+
+## Ce qu'est le produit
+
+Compass ne liste pas ce qui est à louer. L'utilisateur apporte une adresse — celle qu'un agent
+lui a envoyée, celle du panneau vu hier — et Compass la replace dans son environnement à partir
+de données publiques ouvertes, chaque chiffre traçable jusqu'à sa source et sa licence.
+
+Quand il n'a pas d'adresse, Compass montre celles qui **se libèrent** : cessations
+d'établissement, fonds en liquidation, locaux recensés vacants. En amont de l'annonce, jamais
+en concurrence avec elle.
+
+**Persona : le preneur.** Commerçant, restaurateur, artisan, franchisé, qui décide *où* ouvrir.
+Une à trois fois dans sa vie professionnelle, sur un bail 3/6/9.
+
+**Second ICP : l'agent.** Un LLM instruisant la même question via MCP. Même noyau, sortie JSON
+avec chaîne de raisonnement.
+
+**Pas le courtier.** Refus structurant. Export, portefeuille, comparaison en masse, couverture
+nationale : tout cela alourdit le produit du preneur. Un courtier qui veut Compass prend l'API.
+
+## Les deux contraintes fondatrices
+
+1. **Si un chiffre ne peut pas être re-dérivé depuis une source publique citée, il ne s'affiche
+   pas.** Rendue mécanique par le type `Measured<T>` (`src/core/provenance.ts`) : un chiffre
+   incapable de déclarer source, licence, date et méthode ne compile pas.
+2. **Si deux locaux de la même rue obtiennent le même verdict, Compass n'a rien dit.** La maille
+   utile est le tronçon de rue, pas l'arrondissement.
+
+## Ce que le produit refuse
+
+Pas un portail d'annonces. Pas un CRM. Pas d'estimation de loyer commercial. Pas de prévisionnel
+de chiffre d'affaires. Pas de note globale sur 100 (les pondérations dépendent du métier). Pas de
+couverture nationale — Paris intra-muros, puis Île-de-France. Pas de compte pour explorer.
+
+Détail et contrepartie de chaque refus : section « What it does not do » du README.
+
+---
+
+## Le piège à ne jamais refaire
+
+L'encadrement des loyers parisien **ne concerne que le logement** et exclut explicitement les
+locaux commerciaux et professionnels. Le code multipliait autrefois ce loyer de référence par la
+surface d'un local pour produire un « loyer commercial estimé », qui filtrait ensuite les
+résultats. Corrigé (voir `DIAGNOSTIC.md` §1).
+
+La donnée reste utilisée, sous son vrai nom, dans `src/services/opendata/neighbourhood.ts` :
+un signal de niveau de vie résidentiel, donc de zone de chalandise. **Jamais multipliée par une
+surface. Jamais dans un contexte de prix. Ne filtre rien.**
+
+Deux règles héritées de cette correction :
+
+- La grille préfectorale découpe chaque quartier en **32 cases** (4 époques × 4 tailles ×
+  meublé ou non), pour 80 quartiers. On en fait la **moyenne**, on n'en épingle jamais une
+  seule : la composition est identique partout, donc la comparaison entre quartiers tient.
+- Le **millésime est résolu à l'exécution** et affiché à côté du chiffre. Le jeu ouvert accuse
+  un retard sur l'arrêté en vigueur — 2019 à 2025 disponibles en août 2026. On affiche l'écart,
+  on ne le masque pas.
+
+Il n'existe aucune donnée ouverte de loyers commerciaux en France. Les observatoires locaux des
+loyers portent sur l'habitation ; l'ILC de l'INSEE est un indice de révision, pas un niveau.
+
+---
+
+## Architecture
+
+### Règle de partage avec Lovable
+
+> Lovable touche à ce qui se voit. Le local touche à ce qui se calcule.
+
+Lovable : composants, mise en page, responsive, déploiement.
+Local : ingestion, schéma et migrations, noyau de scoring, types, tests, MCP, docs.
+
+Synchro GitHub bidirectionnelle. Ne jamais éditer les mêmes fichiers des deux côtés dans une
+même session. `git pull` avant de commencer, pousser avant de rouvrir Lovable. Ne pas toucher
+`.lovable/`.
+
+### `src/core/` — le noyau
+
+Pur : aucune dépendance à React, au DOM, à Leaflet ou à `fetch`. Consommé par le navigateur,
+le test runner, et à terme le serveur MCP.
+
+- `geo.ts` — géométrie et `GridIndex`. Toutes les constantes dérivent de `EARTH_RADIUS_M` :
+  ne pas réintroduire de constante ellipsoïdale à côté d'une formule sphérique.
+- `provenance.ts` — `Measured<T>`, méthodes `measured | modelled | derived | estimated`.
+- `scoring.ts` — formules, rayons, pondérations. **Doivent rester synchronisées avec la page
+  Méthodologie** (`src/pages/Methodology.tsx`).
+
+`src/services/opendata/scoring.ts` n'est qu'un adaptateur : il traduit le snapshot Overpass vers
+le noyau et déballe la provenance pour l'UI actuelle, qui attend encore des nombres nus.
+
+### Contraintes de données
+
+- Requête Overpass bornée par surface (`isBboxTooLarge` dans `useOpenData.ts`). Au-delà, on
+  refuse et on le dit plutôt que de laisser pendre.
+- L'index de scoring se construit **une fois par snapshot**, jamais par local.
+- Quatre états distincts sur la carte : vue trop large, panne, lecture en cours, résultat vide.
+  Un chargement ne doit jamais ressembler à un résultat.
+
+---
+
+## Où en est le travail
+
+**Fait** — correction du loyer fabriqué, puis passage à la moyenne des 32 cases avec millésime
+affiché ; déblocage de la carte et distinction des quatre états ; noyau pur avec provenance,
+index spatial et 21 tests ; dépendances assainies (`react-leaflet` retiré car jamais importé,
+`tsx`, `@types/leaflet`, `vitest` ajoutés).
+
+**Suite (phase 2, socle de données)** — décision prise : **Supabase + PostGIS**.
+
+1. Activer PostGIS, écrire les migrations, indexer en GiST, exposer des RPC prenant un point et
+   un rayon (et non une bbox : c'est ce qui corrige le bug des scores dépendants du cadrage,
+   `DIAGNOSTIC.md` §2). C'est aussi ce qui remplacera le rattachement au quartier par centroïde
+   le plus proche par un vrai test d'appartenance au polygone.
+2. `scripts/` devient un pipeline d'ingestion, un script par source, idempotent, versionné par
+   millésime.
+3. **BDCom (APUR)** en premier — 2017, 2020, 2023, ODbL. Recensement de terrain de tous les
+   locaux parisiens en rez-de-chaussée avec vitrine, nomenclature d'activité à 224 postes,
+   tranches de surface. Trois millésimes = trajectoire de vacance et de rotation par tronçon de
+   rue. C'est le différenciateur.
+4. Puis **Mobiliscope** (CNRS, ODbL) — population présente heure par heure par secteur ;
+   **BODACC** (DILA, API libre) — prix des fonds de commerce et procédures collectives ;
+   **PLU protections du commerce** (Ville de Paris) — contrainte binaire ; **validations IDFM**.
+
+**Ensuite** — remonter la provenance dans l'UI, puis serveur MCP (`score_location`,
+`compare_locations`, `explain_score`, `list_sources`), `llms.txt`, prompt d'installation.
