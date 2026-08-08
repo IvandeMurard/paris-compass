@@ -59,9 +59,21 @@ local à son quartier par centroïde le plus proche par un vrai test d'appartena
 > **Rien n'est appliqué sur l'instance Lovable.** L'activation de PostGIS là-bas est un « oui plus
 > tard » explicite, à demander avant de l'exécuter.
 >
-> Reste à faire pour clore 2.1 : charger `quartier` et `street_segment`. Tant qu'ils sont vides,
-> `compass_street_rotation` répond correctement — zéro ligne — mais ne peut rien rapporter à une
-> rue, et le rattachement au quartier par polygone n'a pas encore remplacé le centroïde.
+> **Clos le 8 août 2026.** 80 quartiers et 25 094 tronçons de voie chargés, et les 85 418 locaux
+> rattachés aux deux : 85 403 ont leur quartier par appartenance au polygone — le centroïde le
+> plus proche a disparu — et 84 459 leur tronçon par le nom de rue.
+>
+> Le rattachement à la rue se fait **par le nom d'abord, la géométrie ensuite**. Le plus proche
+> tronçon seul se trompe aux angles : un local du 1 rue de Rivoli est souvent plus près de l'axe
+> de la rue perpendiculaire que du sien. Le nom décide donc de la rue, la distance ne décide que
+> du tronçon.
+>
+> 925 locaux (1,1 %) n'ont pas de correspondance par le nom et sont rattachés par proximité, dans
+> 40 mètres. Ce ne sont pas des erreurs de saisie : **Paris a renommé ces rues depuis le relevé**,
+> en rendant leur prénom aux femmes honorées — « rue de Rochechouart » est devenue « rue Marguerite
+> de Rochechouart », « rue Rodier » est devenue « rue Claude Rodier ». Les deux méthodes sont
+> distinguées par la colonne `street_match`, jamais confondues. 34 locaux n'ont aucun tronçon et
+> 15 aucun quartier : ils restent nuls plutôt que rattachés au hasard.
 
 **2.2 — `scripts/` devient un pipeline d'ingestion.** Un script par source, idempotent, avec
 journal de millésime : télécharger, normaliser, charger.
