@@ -154,6 +154,41 @@ pour un local vu trois fois, et pour un local vu deux fois les deux relevés **p
 « non observé »** au troisième, avec sa raison. Le taux rapporté à la rue donne son sens à
 l'historique, il ne le remplace pas.
 
+### Trois règles de lecture, sans lesquelles le taux ment
+
+**1. La référence est le métier, pas la ville.** Les activités ne tournent pas au même rythme.
+Part des locaux exerçant encore la même activité six ans plus tard, mesurée sur les 62 705 locaux
+de 2017 : hôtel 78 %, santé-beauté 77 %, alimentaire 77 %, café et restaurant 72 %, culture et
+loisirs 63 %, équipement de la maison 60 %, **équipement de la personne 53 %**. Le prêt-à-porter
+tourne deux fois plus vite que l'hôtellerie. Donc 50 % de rotation dans une rue de mode est banal,
+et alarmant dans une rue d'hôtels. Comparer à la moyenne parisienne toutes activités confondues —
+15,5 % entre 2020 et 2023 — est un mauvais étalon.
+
+**2. La fréquence nationale n'a de valeur que rapportée au lieu.** Savoir que 72 % des
+cafés-restaurants parisiens tiennent six ans n'apprend rien à quelqu'un qui a déjà décidé d'ouvrir
+un restaurant : il ne choisit pas entre un restaurant et une boutique. Ce qui l'informe, c'est
+l'écart local. Cafés-restaurants de 2017 encore en activité en 2023 : quartier du Mail **56 %**
+(158 locaux), Bonne-Nouvelle 58 %, Paris entier 72 %, quartier des Halles **77 %** (310 locaux).
+
+Le taux par métier n'est donc pas le produit — c'est le **dénominateur** qui rend le chiffre local
+lisible. Et il faut une échelle : local → tronçon → quartier → ville, en montant d'un cran tant
+que l'effectif est trop faible pour être lu, et **en affichant toujours à quelle maille et sur
+quel effectif** le chiffre a été calculé.
+
+**3. Une fréquence observée n'est pas une probabilité de réussite.** « Sur 14 587 cafés-restaurants
+recensés en 2017, 72 % exerçaient encore la même activité six ans plus tard » est une observation
+sur le passé, avec son effectif nommé. « Votre restaurant a 72 % de chances de tenir six ans » est
+un prévisionnel, donc le même refus que le chiffre d'affaires estimé. La règle d'écriture qui tient
+la frontière : **jamais un pourcentage nu, toujours l'effectif et la période.**
+
+### Changement d'activité n'est pas changement de propriétaire
+
+BDCom voit qu'un local est passé de boulangerie à coiffeur. Il ne voit **pas** un boulanger qui
+vend son fonds à un autre boulanger : le code d'activité ne bouge pas. Les deux événements sont
+distincts et leurs fréquences ne sont pas comparables — une durée de détention de fonds, telle
+qu'on la cite couramment pour la boulangerie, ne se compare pas à un taux de changement
+d'activité. La cession de fonds se mesure avec BODACC (§3.3), avec sa date et son prix.
+
 Quatre réserves à afficher, pas à documenter. Elles bornent ce qu'on peut **affirmer**, pas ce
 qui est **disponible** — et à ce jour la liste est complète, pas illustrative :
 
@@ -169,6 +204,30 @@ qui est **disponible** — et à ce jour la liste est complète, pas illustrativ
 - **74 identifiants sur 85 344 sont réattribués** à un autre local d'un millésime à l'autre,
   soit moins de 0,1 % — chiffre mesuré au chargement, pas estimé. L'`ordre` 4231 est au 13 rue
   Vivienne dans le 2ᵉ en 2017 et 2020, et au 88 avenue Kléber dans le 16ᵉ en 2023.
+
+### À quoi sert la suite des activités
+
+La valeur d'un enchaînement — prêt-à-porter → restaurant → coiffeur → café — n'est pas le récit.
+Elle est **technique**, et elle se lit avant même la visite.
+
+Un local qui a déjà hébergé un restaurant a, selon toute vraisemblance, une extraction, un bac à
+graisses et la puissance électrique qui vont avec. Un local qui n'a jamais accueilli que des
+boutiques n'a rien de tout ça : créer une extraction coûte des dizaines de milliers d'euros et
+suppose l'accord de la copropriété, qui le refuse souvent. Pour quelqu'un qui cherche un local de
+restauration, **« un restaurant a-t-il déjà été ici ? » est la question la plus chère à laquelle
+cette donnée réponde**, et Compass y répond avant le déplacement.
+
+Deux usages secondaires en négociation. Un local qui a changé plusieurs fois de destination
+indique que le bail l'a déjà permis, ce qui pèse dans une demande de déspécialisation. Et une
+période de vacance dans la suite est un argument sur le loyer : le bailleur a eu du mal à relouer.
+
+Ce que la suite ne dit **pas** : pourquoi chacun est parti. Vente réussie, dépôt de bilan,
+départ en retraite, immeuble repris — tout cela s'affiche à l'identique. Une suite d'activités
+n'est pas un verdict, et la fiche ne doit pas la présenter comme tel.
+
+Une réserve technique à afficher avec : Compass peut dire « un restaurant était ici en 2020 », pas
+« l'extraction y est encore ». C'est une indication qui change ce qu'on va vérifier sur place, pas
+une garantie.
   Sans garde-fou, l'historique recollerait deux commerces différents. L'appariement vérifie donc
   l'adresse en plus de l'identifiant et marque la divergence au lieu de la lisser : un historique
   ainsi marqué est une preuve plus faible, et l'interface doit pouvoir le dire.
