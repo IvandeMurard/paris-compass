@@ -10,7 +10,18 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+
+# Secrets. `*.local` couvre déjà .env.local, mais on l'écrit en clair : une clé de service
+# poussée par inadvertance ne se rattrape pas avec un commit de correction.
 *.local
+.env
+.env.*
+!.env.example
+
+# État local de la CLI Supabase. Créé par `supabase start`, propre à chaque
+# machine : le committer ferait diverger l'environnement local de celui de Lovable.
+supabase/.branches/
+supabase/.temp/
 
 # Editor directories and files
 .vscode/*

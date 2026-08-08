@@ -23,8 +23,16 @@ Une à trois fois dans sa vie professionnelle, sur un bail 3/6/9.
 **Second ICP : l'agent.** Un LLM instruisant la même question via MCP. Même noyau, sortie JSON
 avec chaîne de raisonnement.
 
-**Pas le courtier.** Refus structurant. Export, portefeuille, comparaison en masse, couverture
+**Pas le courtier.** Refus structurant. Portefeuille, comparaison en masse, couverture
 nationale : tout cela alourdit le produit du preneur. Un courtier qui veut Compass prend l'API.
+
+Une nuance sur l'export, parce que le mot recouvre deux gestes opposés. Sortir cinquante adresses
+pour les trier est le geste du courtier, et il reste refusé. Sortir **une** adresse avec, pour
+chaque chiffre, sa source, sa licence, son millésime et sa méthode, c'est la promesse de
+traçabilité rendue transportable — et un bail 3/6/9 ne se décide pas seul : il passe par un
+banquier, un comptable, un réseau de franchise. Ce dossier-là est au backlog (`docs/PLAN.md`
+§2.6). La ligne se tient dans la structure : l'export part d'une fiche, jamais de la liste de
+résultats, et il n'existe pas de bouton « exporter tout ».
 
 ## Les deux contraintes fondatrices
 
@@ -121,10 +129,17 @@ index spatial et 21 tests ; dépendances assainies (`react-leaflet` retiré car 
    le plus proche par un vrai test d'appartenance au polygone.
 2. `scripts/` devient un pipeline d'ingestion, un script par source, idempotent, versionné par
    millésime.
-3. **BDCom (APUR)** en premier — 2017, 2020, 2023, ODbL. Recensement de terrain de tous les
-   locaux parisiens en rez-de-chaussée avec vitrine, nomenclature d'activité à 224 postes,
-   tranches de surface. Trois millésimes = trajectoire de vacance et de rotation par tronçon de
-   rue. C'est le différenciateur.
+3. **BDCom (APUR)** en premier — 2017, 2020, 2023. Recensement de terrain de tous les locaux
+   parisiens en rez-de-chaussée avec vitrine, nomenclature d'activité à 224 postes, tranches de
+   surface. L'identifiant de local est stable d'un millésime à l'autre, donc trois millésimes
+   donnent le **taux de rotation d'un local rapporté à celui de son tronçon de rue**, avec ses
+   vies antérieures comme pièce justificative. C'est le différenciateur.
+
+   Deux réserves qui font partie de la promesse, pas de ses notes de bas de page. La **vacance
+   n'est mesurable que sur 2017 et 2020** — 7 853 puis 8 764 locaux vides ; le millésime 2023
+   publié ne contient que les commerces, donc un local qui en disparaît n'est pas « vacant », il
+   n'est « plus un commerce ». Et les **licences diffèrent** : ODbL pour 2023, licence
+   personnalisée à lire pour 2017 et 2020, ce qui interdit d'annoncer ODbL pour BDCom en bloc.
 4. Puis **Mobiliscope** (CNRS, ODbL) — population présente heure par heure par secteur ;
    **BODACC** (DILA, API libre) — prix des fonds de commerce et procédures collectives ;
    **PLU protections du commerce** (Ville de Paris) — contrainte binaire ; **validations IDFM**.

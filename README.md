@@ -40,10 +40,19 @@ MCP server, with no interface. Same scoring core, same traceability requirement,
 different output — JSON and a chain of thought instead of a map.
 
 It is **not** built for brokers. A broker qualifies dozens of locations a month for
-third parties: they need exports, portfolios, bulk comparison and national coverage.
-Every one of those makes the product heavier for someone instructing a single address
-in depth. Serving both serves neither. A broker who wants Compass gets the same thing
-the agent gets: the API.
+third parties: they need portfolios, bulk comparison and national coverage. Every one
+of those makes the product heavier for someone instructing a single address in depth.
+Serving both serves neither. A broker who wants Compass gets the same thing the agent
+gets: the API.
+
+One planned feature sits close to that line, so the line is drawn in the structure
+rather than left to judgement. You will be able to download the file for **one**
+address — every figure with its source, licence, vintage and method beside it, which is
+the traceability promise made portable. A 3/6/9 lease is not decided alone; it goes to a
+banker, an accountant, a franchise network. What you will not find is a way to export a
+list: the download starts from an address, never from search results, and there is no
+"export all" button. Stacking three candidates yourself is your business — Compass just
+will not do it for you.
 
 ## Two founding constraints
 
@@ -191,7 +200,7 @@ In priority order. Everything here is open, free and needs no key.
 
 | Source | Producer | Planned contribution |
 | --- | --- | --- |
-| **BDCom** (2017, 2020, 2023) | APUR | A door-to-door field census of every Paris ground-floor unit with a shop window — 83,154 units in 2023, activity coded on a 224-item nomenclature, with floor-area bands. Three vintages of an exhaustive census means **vacancy and turnover as a trajectory, street by street**, not a snapshot. |
+| **BDCom** (2017, 2020, 2023) | APUR | A door-to-door field census of every Paris ground-floor unit with a shop window, activity coded on a 224-item nomenclature, with floor-area bands. The unit identifier is stable across vintages, so three censuses give **a unit's turnover rate measured against its own street**, with its previous lives as the evidence underneath. Two limits are part of the claim: vacancy is measurable on 2017 and 2020 only — the published 2023 layer carries retail alone, so a unit missing from it is "no longer a shop", not "empty" — and the licence differs by vintage (ODbL for 2023, a custom licence for 2017 and 2020), so BDCom cannot be announced as ODbL across the board. |
 | **Mobiliscope** | CNRS | Population *actually present* in each sector, hour by hour across an average weekday, broken down by age and socio-professional category. Distinguishes an office district that triples at noon from a residential one — two locations that resident population describes identically. |
 | **BODACC** | DILA | Goodwill sales *with their price*, and insolvency proceedings. The closest public figure to what a taker will actually pay, and a public signal that a unit is about to come free, often months before any listing. |
 | **PLU — commercial and craft protections** | City of Paris | A binary, mapped constraint: on a protected commercial frontage, a ground-floor unit cannot change use. The first thing that can kill a project. Informational only, no regulatory value. |
