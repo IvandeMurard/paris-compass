@@ -275,6 +275,37 @@ et cessions de fonds de commerce avec leur prix**, qui est la donnée de prix la
 qu'un preneur paiera réellement ; et les **procédures collectives**, signal public qu'un local va
 se libérer, souvent des mois avant qu'une annonce paraisse.
 
+> **Chargé le 9 août 2026**, Paris depuis 2015 : 43 057 cessions et 120 285 procédures
+> collectives, 156 468 établissements dont **107 499 situés sur une adresse BDCom**. Prix lu sur
+> 25 496 cessions — le prix médian d'un fonds parisien est de **126 000 €** (quartiles 48 000 et
+> 290 000), et par activité déclarée : officine de pharmacie 950 000 €, restaurant 230 000 €,
+> restauration rapide 100 000 €.
+>
+> Ce que le croisement donne, et qu'aucune des deux sources ne dit seule — 26 avenue de la Porte
+> d'Ivry : BDCom voit « pas un commerce » en 2017, restaurant français en 2020, restaurant
+> asiatique en 2023 ; BODACC ajoute l'ouverture d'une sauvegarde en mars 2023, le plan arrêté en
+> mai 2024, et la vente du fonds pour 700 000 € en mars 2025.
+>
+> **Trois réserves, portées par le schéma et pas seulement par ce document.**
+>
+> - Le prix est publié à l'intérieur d'une phrase — « Fonds acquis par achat au prix stipulé de
+>   170 000,00 euros » — donc extrait par expression régulière. La phrase est conservée telle
+>   quelle à côté du nombre : un chiffre produit par une regex doit rester vérifiable contre sa
+>   source. 96 % des cessions se lisent ; les autres gardent la phrase sans nombre.
+> - **Un avis de procédure collective ne donne pas l'adresse du commerce, mais celle du siège
+>   social.** Pour un petit commerçant c'est le même lieu, pour une société ce ne l'est pas — une
+>   liquidation déposée à un siège ne dit rien de la boutique du rez-de-chaussée. La colonne
+>   `address_source` distingue les deux et l'interface doit l'afficher.
+> - BODACC identifie une **adresse**, BDCom un **local**, et jusqu'à 120 locaux partagent une
+>   adresse. La fonction ne désigne donc un local que lorsqu'il est seul à son adresse ; sinon elle
+>   renvoie le nombre de locaux concernés, pour qu'on écrive « l'un des 6 locaux de cette adresse »
+>   au lieu de laisser croire qu'on sait lequel.
+>
+> Une limite à garder en tête pour l'analyse : l'activité déclarée dans BODACC est du texte libre
+> — « Restaurant », « Restaurant. », « Restauration traditionnelle », « restauration » coexistent.
+> Pour tout regroupement par activité, c'est le code BDCom à 224 postes qui fait foi, pas cette
+> chaîne. C'est une raison de plus de croiser plutôt que de choisir.
+
 **3.4 — Cessations SIRENE.** L'API `recherche-entreprises` est déjà interrogée et porte les dates
 de cessation d'établissement. Croisée avec BDCom, une cessation à une adresse recensée comme
 commerce, c'est un local qui vient de se vider.
