@@ -36,6 +36,9 @@ const COPY = {
     signUp: "S'inscrire",
     alreadyAccount: 'Vous avez déjà un compte ?',
     signIn: 'Se connecter',
+    continueWithGoogle: 'Continuer avec Google',
+    or: 'ou',
+    googleError: 'La connexion Google a échoué.',
   },
   en: {
     invalidEmail: 'Please enter a valid email address',
@@ -52,6 +55,9 @@ const COPY = {
     signUp: 'Sign Up',
     alreadyAccount: 'Already have an account?',
     signIn: 'Sign In',
+    continueWithGoogle: 'Continue with Google',
+    or: 'or',
+    googleError: 'Google sign-in failed.',
   },
 } as const;
 
