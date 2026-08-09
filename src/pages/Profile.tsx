@@ -81,7 +81,7 @@ const Profile = () => {
   const { user, signOut } = useAuth();
   const { locale, lp } = useLocale();
   const copy = COPY[locale];
-  const [preferences, setPreferences] = useState<UserPreferences>({
+  const [preferences, setPreferences] = useState<Partial<UserPreferences>>({
     user_id: user?.id || '',
     email_notifications: false,
     push_notifications: false,
@@ -134,7 +134,7 @@ const Profile = () => {
     fetchUserPreferences();
   }, [user]);
 
-  const updatePreference = async (key: keyof Omit<UserPreferences, 'user_id' | 'id' | 'created_at' | 'updated_at'>, value: boolean) => {
+  const updatePreference = async (key: keyof Pick<UserPreferences, 'email_notifications' | 'push_notifications'>, value: boolean) => {
     if (!user) return;
 
     try {

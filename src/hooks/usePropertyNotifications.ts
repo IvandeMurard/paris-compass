@@ -59,9 +59,12 @@ export function usePropertyNotifications() {
           });
 
           // Add to our matches state
+          const propertyName = (typeof newProperty.property_data === 'object' && newProperty.property_data !== null && 'name' in newProperty.property_data)
+            ? String(newProperty.property_data.name)
+            : 'New Property';
           setMatches(prev => [...prev, {
             id: newProperty.id,
-            name: newProperty.property_data.name || 'New Property',
+            name: propertyName,
             searchId: 'auto',
             searchName: 'Automatic Match',
             timestamp: new Date().toISOString()
