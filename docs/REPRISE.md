@@ -150,8 +150,26 @@ Et `npm.ps1` est bloqué — toujours `npm.cmd` et `npx.cmd`.
    `NoiseEstimate` sont nullables, la carte affiche « n/d » et un point gris
    plutôt qu'un rouge qui se lirait comme une mauvaise note, et un score inconnu
    n'exclut plus un local du filtre — l'exclure reviendrait à affirmer qu'il est
-   hors bornes. Couvert par `src/services/opendata/scoring.test.ts`, qui bouchonne
-   le noyau parce que celui-ci ne rend jamais de valeur nulle aujourd'hui.
+   hors bornes. Couvert par `src/services/opendata/scoring.test.ts`.
+
+   **Suite, le même jour, un cran plus bas.** Le chemin nul câblé jusqu'à
+   l'interface était correct mais inatteignable : le noyau n'émettait jamais de
+   valeur nulle, et un `saturating(0, n)` valait 0 — donc une couche absente
+   produisait un zéro *mesuré*. Deux correctifs :
+
+   - `NeighbourhoodContext.loaded` (obligatoire) déclare les couches réellement
+     chargées. Un tableau vide ne tranche pas entre « rien ici » et « rien reçu » ;
+     seul l'appelant le sait, et le noyau reste pur en refusant de deviner.
+     `scoreLocation` rend `unavailable()` par couche manquante, y compris pour les
+     composites qui lisent deux couches.
+   - **Le défaut réellement atteignable en production était ailleurs** : Overpass
+     répond **HTTP 200** avec `elements: []` et un `remark` quand sa requête expire.
+     Le `validate` l'acceptait. Tous les scores tombaient à 0 et le bruit devenait
+     « très faible » — une rue calme affirmée à partir d'une panne. Voir
+     `DIAGNOSTIC.md` §3.e.
+
+   `src/pages/Methodology.tsx` publie désormais la règle, section « Quand une
+   source manque » (règle de `CLAUDE.md` : formule modifiée, page mise à jour).
 4. **Remonter la provenance dans l'interface**, côté Lovable. Débloque le dossier
    exportable (§2.6) et le serveur MCP (§4.1).
 

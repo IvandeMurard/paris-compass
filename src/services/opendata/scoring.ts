@@ -60,7 +60,9 @@ export function buildScoringIndex(snapshot: OverpassSnapshot, bounds?: BBox): Sc
     weight: r.weight,
   }));
 
-  return buildIndex({ amenities, premises, roads, bounds });
+  // `loaded` comes from the snapshot, never from these array lengths: an empty array here
+  // would otherwise be indistinguishable from a layer that failed to arrive.
+  return buildIndex({ amenities, premises, roads, bounds, loaded: snapshot.loaded });
 }
 
 const originForNow = () => OSM_ORIGIN(new Date().toISOString().slice(0, 10));

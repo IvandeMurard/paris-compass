@@ -1,3 +1,4 @@
+import type { Layer } from '@/core';
 import { fetchJson } from './http';
 import type { BBox, Poi, PoiCategory } from './types';
 
@@ -19,6 +20,26 @@ interface OverpassElement {
 
 interface OverpassResponse {
   elements: OverpassElement[];
+  /** Overpass reports its own failures here, not in the HTTP status. See `remarkOf`. */
+  remark?: string;
+}
+
+/**
+ * Overpass signals a failed query in band.
+ *
+ * A query that times out or exhausts memory answers **HTTP 200** with `elements: []` and a
+ * `remark` such as "runtime error: Query timed out". Accepting that as an empty
+ * neighbourhood is how an outage turns into a measured zero on every score — and, for
+ * noise, into a "very low" reading, which is a positive claim drawn from an absence.
+ *
+ * Any remark is treated as a failure rather than only the ones matching known wordings:
+ * this is Overpass's sole channel for partial results, and the response falls through to
+ * the next mirror before anything is surfaced. A spurious error is visible and recoverable;
+ * a silent zero is neither.
+ */
+function remarkOf(payload: unknown): string | undefined {
+  const remark = (payload as OverpassResponse | null)?.remark;
+  return typeof remark === 'string' && remark.trim() ? remark : undefined;
 }
 
 const round = (v: number) => Math.round(v * 1000) / 1000;
@@ -91,6 +112,15 @@ export interface OverpassSnapshot {
     tags: Record<string, string>;
     status: 'vacant' | 'occupied';
   }[];
+  /**
+   * Which layers this snapshot actually carries, for the scoring core.
+   *
+   * All three, always, and that is not redundant: the three families are fetched in one
+   * union query, so either the whole snapshot arrives or `fetchOverpassSnapshot` throws.
+   * Stating it here rather than assuming it downstream is what will keep the next source
+   * — BDCom premises joined to OSM amenities, which can fail separately — honest.
+   */
+  loaded: Layer[];
 }
 
 const ROAD_WEIGHT: Record<string, number> = {
@@ -114,7 +144,8 @@ export async function fetchOverpassSnapshot(bbox: BBox): Promise<OverpassSnapsho
         timeoutMs: 70000,
         // A well-formed response with zero elements is a legitimate answer, not a failure:
         // some viewports genuinely hold nothing. Only a malformed payload is an error.
-        validate: (payload) => Array.isArray((payload as OverpassResponse | null)?.elements),
+        validate: (payload) =>
+          Array.isArray((payload as OverpassResponse | null)?.elements) && !remarkOf(payload),
         init: {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -129,7 +160,12 @@ export async function fetchOverpassSnapshot(bbox: BBox): Promise<OverpassSnapsho
 
   if (!data) throw lastError instanceof Error ? lastError : new Error('Overpass unavailable');
 
-  const snapshot: OverpassSnapshot = { pois: [], roads: [], premises: [] };
+  const snapshot: OverpassSnapshot = {
+    pois: [],
+    roads: [],
+    premises: [],
+    loaded: ['amenities', 'roads', 'premises'],
+  };
 
   for (const el of data.elements ?? []) {
     const tags = el.tags ?? {};

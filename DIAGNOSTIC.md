@@ -116,11 +116,21 @@ une panne.
 
 **d. Même en cas de succès, le fil principal bloque.** Voir le point 4.
 
+**e. Overpass signale ses pannes en bande, pas par le statut HTTP.** *Corrigé le 9 août.* Une
+requête qui expire ou sature la mémoire répond **200** avec `elements: []` et un champ `remark`.
+Une fois la contrainte `length > 0` retirée (point 4 ci-dessous), ce corps devenait un quartier
+vide parfaitement valide : tous les scores à 0, et un bruit à 0 que `noiseLabel` traduisait en
+« très faible ». Une panne se lisait comme une rue calme. `remarkOf` rejette désormais toute
+réponse portant un `remark`, ce qui bascule sur le miroir suivant. Couvert par
+`src/services/opendata/overpass.test.ts`.
+
 **Correctif, dans l'ordre :**
 1. Réduire l'emprise par défaut à un secteur dense et lisible plutôt qu'au centre de Paris entier.
 2. Découper la requête par famille de tags plutôt qu'un `union` unique, ou plafonner par `[maxsize]`.
 3. Distinguer trois états dans l'UI : chargement, panne de source, et zéro résultat réel.
-4. Retirer la contrainte `length > 0` de `validate`, et traiter le vide comme un vide.
+4. ~~Retirer la contrainte `length > 0` de `validate`, et traiter le vide comme un vide.~~ Fait —
+   mais à ne pas faire sans le point **e**, sinon on échange une panne bruyante contre une panne
+   silencieuse.
 
 ---
 

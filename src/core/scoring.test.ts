@@ -36,8 +36,19 @@ function offset(point: Point, northM: number, eastM: number): Point {
   };
 }
 
+/**
+ * A context whose three layers all loaded and simply hold nothing — the "genuinely empty
+ * neighbourhood" case. Tests that need the other case, a layer that never arrived, pass
+ * `loaded` explicitly.
+ */
 function context(partial: Partial<NeighbourhoodContext> = {}): NeighbourhoodContext {
-  return { amenities: [], roads: [], premises: [], ...partial };
+  return {
+    amenities: [],
+    roads: [],
+    premises: [],
+    loaded: ['amenities', 'roads', 'premises'],
+    ...partial,
+  };
 }
 
 describe('distanceM', () => {
@@ -144,6 +155,58 @@ describe('scoreLocation', () => {
     const scores = scoreLocation(MONTORGUEIL, buildIndex(context()), ORIGIN);
     expect(scores.walkability.value).toBe(0);
     expect(scores.groceries.value).toBe(0);
+  });
+
+  // The counterpart to the test above, and the whole point of `loaded`. Both contexts hold
+  // three empty arrays; only the declaration tells "counted nothing" from "counted nothing
+  // because the layer never arrived". Before this, an Overpass outage scored as a real 0.
+  it('returns nulls, not zeros, when a layer never loaded', () => {
+    const scores = scoreLocation(
+      MONTORGUEIL,
+      buildIndex(context({ loaded: [] })),
+      ORIGIN,
+    );
+
+    for (const measured of Object.values(scores)) {
+      expect(measured.value).toBeNull();
+      expect(measured.missingReason).toBeTruthy();
+    }
+  });
+
+  // The most damaging case: 0 exposure is labelled "Very low" downstream, so a road layer
+  // that failed to load used to read as a quiet street. An absence became a selling point.
+  it('does not report silence when the road layer is missing', () => {
+    const scores = scoreLocation(
+      MONTORGUEIL,
+      buildIndex(context({ loaded: ['amenities', 'premises'] })),
+      ORIGIN,
+    );
+
+    expect(scores.noise.value).toBeNull();
+    expect(scores.noise.missingReason).toContain('unmeasured');
+    // The layers that did load are unaffected: absence is per-layer, not all-or-nothing.
+    expect(scores.walkability.value).toBe(0);
+    expect(scores.footfall.value).toBe(0);
+  });
+
+  it('withholds a composite when either layer behind it is missing', () => {
+    const noPremises = scoreLocation(
+      MONTORGUEIL,
+      buildIndex(context({ loaded: ['amenities', 'roads'] })),
+      ORIGIN,
+    );
+    expect(noPremises.footfall.value).toBeNull();
+    // Walkability does not read the premises layer, so it still stands.
+    expect(noPremises.walkability.value).toBe(0);
+
+    const noAmenities = scoreLocation(
+      MONTORGUEIL,
+      buildIndex(context({ loaded: ['premises', 'roads'] })),
+      ORIGIN,
+    );
+    expect(noAmenities.footfall.value).toBeNull();
+    expect(noAmenities.walkability.value).toBeNull();
+    expect(noAmenities.noise.value).toBe(0);
   });
 
   it('keeps every score within 0-100', () => {

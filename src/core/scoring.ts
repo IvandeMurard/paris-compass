@@ -11,6 +11,7 @@
 
 import { GridIndex, boundsCoverRadius, clamp, distanceM, type BBox, type Point } from './geo';
 import {
+  unavailable,
   withValue,
   type Measured,
   type Origin,
@@ -36,6 +37,9 @@ export interface PremisePoint extends Point {
   status: 'vacant' | 'occupied';
 }
 
+/** The three families of data a context carries, each loaded independently by the caller. */
+export type Layer = 'amenities' | 'roads' | 'premises';
+
 /** Everything the core needs to score a location. Assembled by the caller, never fetched here. */
 export interface NeighbourhoodContext {
   amenities: readonly Amenity[];
@@ -46,6 +50,16 @@ export interface NeighbourhoodContext {
    * search radius fits inside it and degrades the figure when it does not.
    */
   bounds?: BBox;
+  /**
+   * Which layers the caller actually loaded.
+   *
+   * Required, and deliberately not inferred from array length, because an empty array is
+   * ambiguous: it means "nothing here" for a layer that loaded, and "we do not know" for
+   * one that did not. Those two must not produce the same score — a road layer that failed
+   * to load would otherwise score as silence, which is an assertion drawn from an absence.
+   * Only the caller can tell them apart, and the core stays pure by refusing to guess.
+   */
+  loaded: readonly Layer[];
 }
 
 /** Radius used for amenity counting — roughly a ten-minute walk. */
@@ -95,6 +109,7 @@ export interface ScoringIndex {
   premises: GridIndex<PremisePoint>;
   roads: readonly Road[];
   bounds?: BBox;
+  loaded: ReadonlySet<Layer>;
 }
 
 export function buildIndex(context: NeighbourhoodContext): ScoringIndex {
@@ -103,11 +118,27 @@ export function buildIndex(context: NeighbourhoodContext): ScoringIndex {
     premises: new GridIndex(context.premises),
     roads: context.roads,
     bounds: context.bounds,
+    loaded: new Set(context.loaded),
   };
 }
 
 const TRUNCATED =
   'The data covering this point stops before the full search radius, so the count is a floor, not a total.';
+
+/**
+ * Why a figure is missing, per layer.
+ *
+ * These read as full sentences because they are shown, not logged: `missingReason` is what
+ * the interface and the MCP layer put in front of a caller in place of the number.
+ */
+const MISSING = {
+  amenities:
+    'The amenity layer did not load for this area, so nothing was counted. Nothing counted is not the same as nothing there.',
+  premises:
+    'The premises layer did not load for this area, so surrounding activity is unknown rather than absent.',
+  roads:
+    'The road layer did not load for this area, so exposure could not be modelled. This is not a quiet location, it is an unmeasured one.',
+} as const;
 
 function coverageNote(point: Point, radiusM: number, bounds?: BBox): string | undefined {
   if (!bounds) return undefined;
@@ -144,47 +175,70 @@ export function scoreLocation(
   origin: Origin,
 ): AreaScores {
   const amenityNote = coverageNote(point, AMENITY_RADIUS_M, index.bounds);
+  const hasAmenities = index.loaded.has('amenities');
+  const hasPremises = index.loaded.has('premises');
+  const hasRoads = index.loaded.has('roads');
 
   const byCategory = {} as Record<AmenityCategory, Measured<number>>;
   const rawByCategory = {} as Record<AmenityCategory, number>;
 
   for (const category of Object.keys(SATURATION) as AmenityCategory[]) {
+    if (!hasAmenities) {
+      byCategory[category] = unavailable(origin, MISSING.amenities);
+      continue;
+    }
     const count = countAmenities(point, category, index);
     const score = saturating(count, SATURATION[category]);
     rawByCategory[category] = score;
     byCategory[category] = withValue(score, origin, 'derived', amenityNote);
   }
 
-  const walkability = Math.round(
-    (Object.keys(WALKABILITY_WEIGHTS) as AmenityCategory[]).reduce(
-      (sum, category) => sum + rawByCategory[category] * WALKABILITY_WEIGHTS[category],
-      0,
-    ),
-  );
+  // Every composite below is guarded by the layers it reads. A composite computed from a
+  // layer that never loaded would be arithmetic on an assumption, not a derivation.
+  const walkability = hasAmenities
+    ? withValue(
+        Math.round(
+          (Object.keys(WALKABILITY_WEIGHTS) as AmenityCategory[]).reduce(
+            (sum, category) => sum + rawByCategory[category] * WALKABILITY_WEIGHTS[category],
+            0,
+          ),
+        ),
+        origin,
+        'derived',
+        amenityNote,
+      )
+    : unavailable<number>(origin, MISSING.amenities);
 
-  const occupiedNearby = index.premises
-    .within(point, FOOTFALL_RADIUS_M)
-    .filter((p) => p.status === 'occupied').length;
-
-  const footfall = clamp(
-    Math.round(saturating(occupiedNearby, 90) * 0.65 + rawByCategory.transit * 0.35),
-  );
-
-  return {
-    ...byCategory,
-    walkability: withValue(walkability, origin, 'derived', amenityNote),
-    footfall: withValue(
-      footfall,
+  // Footfall mixes two layers, so it survives only if both are there.
+  let footfall: Measured<number>;
+  if (!hasPremises) {
+    footfall = unavailable<number>(origin, MISSING.premises);
+  } else if (!hasAmenities) {
+    footfall = unavailable<number>(origin, MISSING.amenities);
+  } else {
+    const occupiedNearby = index.premises
+      .within(point, FOOTFALL_RADIUS_M)
+      .filter((p) => p.status === 'occupied').length;
+    footfall = withValue(
+      clamp(Math.round(saturating(occupiedNearby, 90) * 0.65 + rawByCategory.transit * 0.35)),
       origin,
       'estimated',
       'No open pedestrian count exists for Île-de-France. This is a proxy from active-business density and transport access: it compares two locations against each other, it does not predict footfall.',
-    ),
-    noise: withValue(
-      noiseExposure(point, index.roads),
-      origin,
-      'estimated',
-      'Modelled from the proximity and class of major roads only. Buildings, traffic volume and time of day are not taken into account.',
-    ),
+    );
+  }
+
+  return {
+    ...byCategory,
+    walkability,
+    footfall,
+    noise: hasRoads
+      ? withValue(
+          noiseExposure(point, index.roads),
+          origin,
+          'estimated',
+          'Modelled from the proximity and class of major roads only. Buildings, traffic volume and time of day are not taken into account.',
+        )
+      : unavailable<number>(origin, MISSING.roads),
   };
 }
 

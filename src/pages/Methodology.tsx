@@ -50,6 +50,9 @@ const COPY = {
     detectTitle: 'Détection des locaux',
     detectBody:
       'Les locaux proviennent d’OpenStreetMap : un local est considéré comme vacant lorsqu’il porte un attribut de local vide ou de commerce désaffecté, et comme occupé lorsqu’une activité y est renseignée. La couverture dépend donc des contributions de la communauté : un local fermé récemment et non signalé n’apparaîtra pas.',
+    missingTitle: 'Quand une source manque',
+    missingBody:
+      'Un score n’est calculé que si la couche de données dont il dépend a réellement été chargée. Si elle manque, Compass n’affiche pas 0 : il affiche « n/d » et indique pourquoi. La distinction compte surtout pour le bruit, où un 0 se lirait « très faible » — soit une rue calme affirmée à partir d’une donnée absente. Un quartier réellement dépourvu d’équipements, lui, reçoit bien un 0 : c’est un comptage, pas une lacune.',
     limitsTitle: 'Limites assumées',
     limits: [
       'Les scores dépendent de la complétude d’OpenStreetMap, inégale d’un quartier à l’autre.',
@@ -96,6 +99,9 @@ const COPY = {
     detectTitle: 'Detecting spaces',
     detectBody:
       'Spaces come from OpenStreetMap: a space is considered vacant when it carries a vacant-shop or disused-shop attribute, and occupied when an activity is recorded. Coverage therefore depends on community contributions: a recently closed space that hasn’t been reported won’t appear.',
+    missingTitle: 'When a source is missing',
+    missingBody:
+      'A score is only computed if the data layer it depends on actually loaded. When that layer is missing, Compass does not show 0: it shows "n/a" and says why. The distinction matters most for noise, where a 0 would read as "very low" — a quiet street asserted from absent data. A neighbourhood genuinely without amenities does get a 0: that is a count, not a gap.',
     limitsTitle: 'Acknowledged limitations',
     limits: [
       'Scores depend on OpenStreetMap completeness, which varies from one neighbourhood to another.',
@@ -192,6 +198,11 @@ const Methodology = () => {
         <section>
           <h2 className="text-xl font-semibold">{c.detectTitle}</h2>
           <p className="mt-3 text-muted-foreground">{c.detectBody}</p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold">{c.missingTitle}</h2>
+          <p className="mt-3 text-muted-foreground">{c.missingBody}</p>
         </section>
 
         <section>
