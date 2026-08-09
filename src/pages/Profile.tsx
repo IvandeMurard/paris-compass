@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BellIcon, BookmarkIcon, UserIcon, MapPinIcon, SettingsIcon } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import Header from '@/components/Header';
 import Seo from '@/components/Seo';
 import { toast } from '@/hooks/use-toast';

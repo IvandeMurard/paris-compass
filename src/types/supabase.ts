@@ -1,34 +1,10 @@
+// Custom type definitions for tables used by the application.
+import type { Database } from '@/types/database';
 
-import { Database } from '@/integrations/supabase/client';
-
-// Custom type definitions for tables we need
-export interface SavedSearch {
-  id: string;
-  user_id: string;
-  name: string;
-  filters: Record<string, any>;
-  created_at?: string;
-}
-
-export interface UserPreferences {
-  id?: string;
-  user_id: string;
-  email_notifications: boolean;
-  push_notifications: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface SavedProperty {
-  id: string;
-  user_id: string;
-  property_id: string;
-  property_data: {
-    name?: string;
-    [key: string]: any;
-  };
-  created_at?: string;
-}
+export type SavedSearch = Database['public']['Tables']['saved_searches']['Row'];
+export type UserPreferences = Database['public']['Tables']['user_preferences']['Row'];
+export type SavedProperty = Database['public']['Tables']['saved_properties']['Row'];
+export type NotificationSettings = Database['public']['Tables']['notification_settings']['Row'];
 
 // Type-safe client wrapper functions
 export const typedSupabaseQuery = <T>(tableName: string) => {
