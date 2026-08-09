@@ -1,10 +1,10 @@
 # Projet Supabase de Compass.
 #
-# Ce fichier pointait vers `pulfdlztjbkgydmyrkfy`, qui est le projet
-# « ComparaCourse » — sans rapport. Toute migration poussée depuis ce dépôt
-# serait partie s'appliquer dessus. Corrigé le 9 août 2026.
+# Historique : ce fichier a pointé vers `pulfdlztjbkgydmyrkfy` (« ComparaCourse »,
+# sans rapport), puis `amowtlbaqwoobdooitip`. Base courante depuis le 9 août 2026 :
+# `dbefhvmyfmmhjeetdddu`.
 #
 # `src/integrations/supabase/client.ts` porte encore l'URL et la clé publique de
-# ComparaCourse : ce basculement-là se fait côté Lovable, qui gère la connexion
+# l'ancienne base : ce basculement-là se fait côté Lovable, qui gère la connexion
 # du projet et régénérerait le fichier s'il était modifié à la main.
-project_id = "amowtlbaqwoobdooitip"
+project_id = "dbefhvmyfmmhjeetdddu"
