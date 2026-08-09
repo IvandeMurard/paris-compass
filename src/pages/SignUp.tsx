@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/providers/AuthProvider';
 import { useLocale } from '@/i18n/locale';
+import { lovable } from '@/integrations/lovable';
 import Seo from '@/components/Seo';
 import { Button } from '@/components/ui/button';
 import {
