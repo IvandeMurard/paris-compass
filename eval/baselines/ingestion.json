@@ -1,0 +1,66 @@
+{
+  "measured_on": "2026-08-09",
+  "note": "Effectifs gelés au chargement complet. Un écart n'est pas forcément une faute — l'APUR et la DILA republient — mais il ne doit jamais passer inaperçu. Au-delà de 1 %, ce n'est plus une correction de source mais un changement de comportement du pipeline : voir eval/FAILURE_MODES.md, bras B.",
+  "counts": {
+    "bdcom_releves_2017": {
+      "value": 84031,
+      "sql": "select count(*) n from public.premise_observation where vintage_id = 2017"
+    },
+    "bdcom_releves_2020": {
+      "value": 83399,
+      "sql": "select count(*) n from public.premise_observation where vintage_id = 2020"
+    },
+    "bdcom_releves_2023": {
+      "value": 60845,
+      "sql": "select count(*) n from public.premise_observation where vintage_id = 2023"
+    },
+    "bdcom_vacants_2017": {
+      "value": 7853,
+      "sql": "select count(*) n from public.premise_observation o join public.bdcom_activity a on a.code = o.activity_code where o.vintage_id = 2017 and a.is_vacant"
+    },
+    "bdcom_vacants_2020": {
+      "value": 8764,
+      "sql": "select count(*) n from public.premise_observation o join public.bdcom_activity a on a.code = o.activity_code where o.vintage_id = 2020 and a.is_vacant"
+    },
+    "bdcom_perimetre_commun_2017": {
+      "value": 62705,
+      "sql": "select count(*) n from public.premise_observation o join public.bdcom_activity a on a.code = o.activity_code where o.vintage_id = 2017 and a.in_retail_scope"
+    },
+    "bdcom_perimetre_commun_2020": {
+      "value": 61541,
+      "sql": "select count(*) n from public.premise_observation o join public.bdcom_activity a on a.code = o.activity_code where o.vintage_id = 2020 and a.in_retail_scope"
+    },
+    "bdcom_perimetre_commun_2023": {
+      "value": 60845,
+      "sql": "select count(*) n from public.premise_observation o join public.bdcom_activity a on a.code = o.activity_code where o.vintage_id = 2023 and a.in_retail_scope"
+    },
+    "locaux_distincts": {
+      "value": 85418,
+      "sql": "select count(*) n from public.premise_location"
+    },
+    "identifiants_reattribues": {
+      "value": 74,
+      "sql": "select count(*) n from public.premise_observation where match_method = 'ordre_address_conflict'"
+    },
+    "rue_rattachee_par_nom": {
+      "value": 84459,
+      "sql": "select count(*) n from public.premise_location where street_match = 'name'"
+    },
+    "rue_rattachee_par_proximite": {
+      "value": 925,
+      "sql": "select count(*) n from public.premise_location where street_match = 'spatial'"
+    },
+    "quartier_rattache": {
+      "value": 85403,
+      "sql": "select count(*) n from public.premise_location where quartier_id is not null"
+    },
+    "bodacc_cessions_avec_prix": {
+      "value": 25496,
+      "sql": "select count(*) n from public.bodacc_establishment where price_eur is not null"
+    },
+    "bodacc_etablissements_localises": {
+      "value": 107499,
+      "sql": "select count(*) n from public.bodacc_establishment where geom is not null"
+    }
+  }
+}
