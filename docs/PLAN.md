@@ -359,6 +359,35 @@ se libérer, souvent des mois avant qu'une annonce paraisse.
 > Pour tout regroupement par activité, c'est le code BDCom à 224 postes qui fait foi, pas cette
 > chaîne. C'est une raison de plus de croiser plutôt que de choisir.
 
+> **Volet géolocalisation chargé le 9 août 2026.** L'INSEE publie un fichier des
+> établissements géolocalisés — SIRET et coordonnées, sans dates ni état. Filtré à
+> Paris et aux 38 122 entreprises que BODACC nomme : 68 672 établissements, 37 974
+> entreprises couvertes. Il répond à une seule question, « cette entreprise
+> a-t-elle un établissement ici », et c'est celle qui bloquait.
+>
+> Résultat : sur 84 026 avis déposés à un siège social, **82 144 sont confirmés
+> sur place et 1 882 infirmés** — des entreprises qui déposent là et opèrent
+> ailleurs. Ce second nombre est la raison de vérifier plutôt que de supposer.
+>
+> D'où un quatrième niveau de fiabilité, `corrobore`, entre `etabli` et
+> `probable` : deux sources publiques indépendantes placent l'entreprise à
+> l'adresse, et **aucune des deux ne nomme le local**. SIRENE dit « cette
+> entreprise a un établissement ici », jamais « cette entreprise est la boutique
+> du rez-de-chaussée » — l'établissement peut être un bureau à l'étage.
+>
+> **Et la mesure a corrigé ma prédiction.** J'annonçais l'ambiguïté du siège
+> social comme le premier levier de qualité. Elle l'était, mais plus petite que
+> prévu : une fois résolue, **plus une seule ligne ne reste `probable` pour cette
+> raison**, et le résidu — 36,5 % — vient entièrement d'ailleurs. BODACC nomme une
+> adresse, BDCom un local, et **69 % des locaux partagent leur numéro**. Aucune
+> corroboration ne peut désigner la vitrine, et aucune donnée publique ne le dira.
+>
+> Le levier suivant n'est donc pas une source de plus mais un **rétrécissement du
+> champ des possibles** : si trois locaux partagent une adresse et qu'un seul est
+> un restaurant, un avis mentionnant la restauration désigne probablement
+> celui-là. Ça ne rendrait pas le fait `etabli` — ça réduirait le nombre de
+> candidats, et c'est déjà beaucoup.
+
 **3.4 — Cessations SIRENE.** L'API `recherche-entreprises` est déjà interrogée et porte les dates
 de cessation d'établissement. Croisée avec BDCom, une cessation à une adresse recensée comme
 commerce, c'est un local qui vient de se vider.

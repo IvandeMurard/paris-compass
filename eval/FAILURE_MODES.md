@@ -68,10 +68,27 @@ peut republier — mais il ne doit jamais passer inaperçu.
 | Locaux distincts | 85 418 | L'appariement inter-millésimes a changé de comportement |
 | Identifiants réattribués | 74 | Le taux de réattribution est une propriété de la source |
 | Rattachement rue par le nom | 84 459 | Paris a renommé des rues, ou la correspondance s'est dégradée |
+| **Composition de fiabilité** | 27 580 / 3 144 / 19 517 / 3 198 | Voir ci-dessous — c'est la métrique de qualité du produit |
 
 **Seuil.** Une variation est signalée (`WARN`) ; elle bloque (`FAIL`) au-delà de
 **1 %**, parce qu'au-delà ce n'est plus une correction de source mais un
 changement de comportement du pipeline.
+
+### La composition de fiabilité est la métrique de qualité
+
+Quatre nombres — `etabli`, `corrobore`, `probable`, `indetermine` — comptés sur
+une cohorte **fixe** de 10 000 locaux. Fixe et non aléatoire : son rôle est
+d'être comparable d'une exécution à l'autre, pas de décrire la base.
+
+Pour un produit dont la promesse est la traçabilité, « s'améliorer » veut dire
+une chose et une seule : **déplacer ces quatre nombres vers la gauche**. Chaque
+source branchée, chaque jointure améliorée se juge à ça.
+
+Un déplacement **vers la gauche** est un progrès et doit quand même être signalé,
+parce qu'il n'arrive jamais tout seul : il vient d'un changement délibéré, dont
+les cas dorés doivent être mis à jour dans la même PR. C'est ce qui s'est passé
+au chargement de SIRENE — la porte a fait échouer `gold-siege-001`, qui attendait
+`probable` là où la fonction renvoyait désormais `corrobore`.
 
 ---
 
@@ -84,8 +101,8 @@ par catégorie ; les deux premiers sont les fautes réellement commises.
 | --- | --- |
 | `absence_non_observee` | Une année sans relevé sort en `indetermine`, libellé nul |
 | `prix_etabli` | Un prix `etabli` porte sa phrase et son adresse d'établissement |
-| `siege_social` | Un avis à une adresse de siège sort en `probable` |
-| `adresse_partagee` | Plusieurs locaux à l'adresse : jamais `etabli`, jamais de local désigné |
+| `siege_social` | Un siège confirmé par SIRENE sort en `corrobore` ; infirmé, il reste `probable` |
+| `adresse_partagee` | Plusieurs locaux au même numéro : `probable`, quoi qu'en dise toute corroboration |
 | `identifiant_reattribue` | Un `ordre` réutilisé sort en `probable` |
 | `perimetre_2023` | Une absence en 2023 dit « plus un commerce », jamais « vacant » |
 

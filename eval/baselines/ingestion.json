@@ -61,6 +61,35 @@
     "bodacc_etablissements_localises": {
       "value": 107499,
       "sql": "select count(*) n from public.bodacc_establishment where geom is not null"
+    },
+    "confiance_etabli": {
+      "value": 27580,
+      "sql": "with ech as (select id from public.premise_location order by id limit 10000) select count(*) n from ech l cross join lateral public.compass_address_timeline(l.id) t where t.confidence = 'etabli'"
+    },
+    "confiance_corrobore": {
+      "value": 3144,
+      "sql": "with ech as (select id from public.premise_location order by id limit 10000) select count(*) n from ech l cross join lateral public.compass_address_timeline(l.id) t where t.confidence = 'corrobore'"
+    },
+    "confiance_probable": {
+      "value": 19517,
+      "sql": "with ech as (select id from public.premise_location order by id limit 10000) select count(*) n from ech l cross join lateral public.compass_address_timeline(l.id) t where t.confidence = 'probable'"
+    },
+    "confiance_indetermine": {
+      "value": 3198,
+      "sql": "with ech as (select id from public.premise_location order by id limit 10000) select count(*) n from ech l cross join lateral public.compass_address_timeline(l.id) t where t.confidence = 'indetermine'"
+    },
+    "sirene_etablissements": {
+      "value": 68672,
+      "sql": "select count(*) n from public.sirene_establishment"
+    },
+    "bodacc_avis_confirmes_sur_place": {
+      "value": 82144,
+      "sql": "select count(*) n from public.bodacc_establishment where operator_confirmed"
+    },
+    "bodacc_avis_infirmes": {
+      "value": 1882,
+      "sql": "select count(*) n from public.bodacc_establishment where operator_confirmed = false"
     }
-  }
+  },
+  "note_confiance": "La composition de fiabilité est la métrique de qualité du produit : « s'améliorer » veut dire déplacer ces quatre nombres vers etabli. Mesurée sur une cohorte FIXE de 10 000 locaux (les 10 000 plus petits identifiants), choisie pour être comparable d'une exécution à l'autre — pas pour être représentative. Son rôle est de détecter un déplacement, pas de décrire la base."
 }
