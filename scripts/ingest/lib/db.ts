@@ -7,13 +7,35 @@
 // instance it is the service connection string, which belongs in .env.local and
 // never in the repository.
 
+import { existsSync } from "fs"
+import { resolve } from "path"
+
 import { Client } from "pg"
+
+/**
+ * `.env.local` is read here rather than exported by hand, so the connection
+ * string to a hosted instance never has to be typed on a command line — where it
+ * would land in shell history. The file is gitignored.
+ */
+const ENV_FILE = resolve(import.meta.dirname, "../../../.env.local")
+if (existsSync(ENV_FILE)) process.loadEnvFile(ENV_FILE)
 
 /** Local default: the port `supabase start` exposes. Overridden by DATABASE_URL. */
 const LOCAL_URL = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 
 export function connectionString(): string {
   return process.env.DATABASE_URL ?? LOCAL_URL
+}
+
+/**
+ * The project the URL points at, for confirming a load is aimed where it should
+ * be. Never returns the password — this is printed.
+ */
+export function connectionTarget(url = connectionString()): string {
+  if (isLocal(url)) return "base locale"
+  const ref = /(?:db\.|postgres\.)([a-z0-9]{20})/.exec(url)?.[1]
+  const host = /@([^:/]+)/.exec(url)?.[1] ?? "hôte inconnu"
+  return `${ref ?? "réf. inconnue"} via ${host}`
 }
 
 export async function connect(): Promise<Client> {

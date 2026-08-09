@@ -1,10 +1,39 @@
-# Compass — judge a commercial address by its environment
+# Compass — what happened at this address before you
 
-Compass does not list what is for rent. You bring the address — the one an agent
-sent you, the one on a sign you walked past, the one you cannot decide about — and
-Compass puts it back into its real environment (walkability, retail, transport,
-schools, healthcare, parks, noise, air quality, risks), using public open data,
-with every figure traceable to the source and licence behind it.
+You are about to commit to nine years. Bring the address — the one an agent sent
+you, the one on a sign you walked past — and Compass tells you what was there
+before, how fast the street turns over, and what people actually paid nearby.
+
+**What was here before you.** A florist in 2017, a florist in 2020, gone by 2023.
+A door-to-door census of every Paris ground-floor unit with a shop window, three
+times over, on a 224-activity nomenclature.
+
+**Whether a kitchen has ever been here.** If a restaurant occupied the unit, the
+extraction, the grease trap and the power are probably already in. If not,
+creating them runs into tens of thousands and needs the building's agreement.
+That is the most expensive question this data answers, and it answers it before
+you travel.
+
+**Whether this address is a graveyard or a good street.** Rue d'Argout turned
+over half its shops in three years — but it also filled its three empty units, so
+it is churning upward, not dying. And turnover only means something against its
+own trade: fashion turns over twice as fast as hotels, everywhere, always. Of the
+cafés and restaurants trading in 2017, **77% were still trading six years later
+around Les Halles, 56% in the quartier du Mail** — same city, same trade, a
+different bet.
+
+**What people actually paid.** 25 496 goodwill sales published with their price.
+The median Paris fonds changes hands at **126 000 €** — a pharmacy at 950 000 €,
+a fast-food unit at 100 000 €.
+
+**What is happening right now.** An insolvency filed at an address is public
+months before any listing appears.
+
+Every figure arrives with its source, its licence, its date — and how sure it is.
+*Established* means the source names this unit. *Corroborated* means two
+independent public sources place it here and neither names the shopfront.
+*Undetermined* means the source is silent, and Compass says so instead of
+guessing. No listings, no estimated rent, no score out of 100.
 
 Made by Ivan de Murard.
 
