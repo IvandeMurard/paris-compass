@@ -35,11 +35,30 @@ rayon**, jamais une bbox.
 
 **Rien n'a jamais été poussé ni chargé sur une instance distante.**
 
-Il manque `.env.local` à la racine, contenant `DATABASE_URL`. Le fichier a été
-demandé plusieurs fois et n'est jamais arrivé sur le disque. Sans lui, les
-scripts retombent silencieusement sur la base locale — `connectionTarget()` dans
-`scripts/ingest/lib/db.ts` affiche la cible sans jamais montrer le mot de passe,
-**s'en servir avant tout chargement**.
+`.env.local` existe désormais et porte un `DATABASE_URL` visant bien
+`nwnhhvogwrzstslxtxca`, port 5432. Ce qui reste faux, c'est **l'hôte**.
+`connectionTarget()` dans `scripts/ingest/lib/db.ts` affiche la cible sans jamais
+montrer le mot de passe : **s'en servir avant tout chargement**.
+
+Ce qui a été vérifié le 9 août au soir, pour ne pas le refaire :
+
+| Cible | Réponse |
+| --- | --- |
+| `aws-0-eu-west-3.pooler.supabase.com:5432` (celle du fichier) | `tenant/user postgres.nwnhhvogwrzstslxtxca not found` |
+| `aws-1-eu-west-3.pooler.supabase.com:5432` | même refus |
+| `db.nwnhhvogwrzstslxtxca.supabase.co:5432` (direct) | enregistrement **AAAA seul**, et la machine n'a pas d'IPv6 → `ENOTFOUND` |
+| `https://nwnhhvogwrzstslxtxca.supabase.co/rest/v1/` | 401 avec `sb-project-ref` renvoyé — **le projet est vivant** |
+
+Donc : la référence et le mot de passe ne sont pas en cause, la **région** l'est.
+Le projet ne vit pas en eu-west-3. Il faut la chaîne exacte affichée là où le
+backend est provisionné, pas une chaîne reconstruite à la main autour de la
+référence. Le connecteur Lovable ne montre pas ce projet : dix projets listés
+dans l'espace d'Ivan, aucun Compass — donc cette voie-là ne donnera pas l'hôte
+non plus, il faut passer par l'écran du backend.
+
+Le balayage de plusieurs régions à la suite avec le mot de passe **est bloqué par
+la politique d'exécution** — cela ressemble à un essai de connexions en série.
+Tester une cible à la fois.
 
 ### Le nœud Supabase, à ne pas redécouvrir
 
@@ -119,15 +138,20 @@ Et `npm.ps1` est bloqué — toujours `npm.cmd` et `npx.cmd`.
 
 ## La suite, par ordre
 
-1. **`.env.local`**, puis migrations et chargement sur Lovable Cloud, puis la
-   porte contre l'instance distante. Une vingtaine de minutes.
+1. **L'hôte de connexion** (voir le tableau plus haut), puis migrations et
+   chargement sur Lovable Cloud, puis la porte contre l'instance distante. Une
+   vingtaine de minutes une fois la chaîne en main.
 2. **Message à l'APUR** — rédigé, à envoyer le lundi 10 août. Il décide si 2017 et
    2020 sortent publiquement, et si le service `bdcom20032020` (sept couches de
    2003 à 2020, vacants compris) est utilisable — ce qui porterait l'historique de
    six à vingt ans.
-3. **Corriger `?? 0`** dans `src/services/opendata/scoring.ts` lignes 75-82 et 89.
-   Un score absent y devient zéro, ce que `src/core/provenance.ts` interdit
-   explicitement. Défaut ouvert depuis la phase 1.
+3. ~~**Corriger `?? 0`** dans `src/services/opendata/scoring.ts`.~~ **Fait le
+   9 août.** L'absence remonte maintenant jusqu'à l'interface : `AreaScores` et
+   `NoiseEstimate` sont nullables, la carte affiche « n/d » et un point gris
+   plutôt qu'un rouge qui se lirait comme une mauvaise note, et un score inconnu
+   n'exclut plus un local du filtre — l'exclure reviendrait à affirmer qu'il est
+   hors bornes. Couvert par `src/services/opendata/scoring.test.ts`, qui bouchonne
+   le noyau parce que celui-ci ne rend jamais de valeur nulle aujourd'hui.
 4. **Remonter la provenance dans l'interface**, côté Lovable. Débloque le dossier
    exportable (§2.6) et le serveur MCP (§4.1).
 

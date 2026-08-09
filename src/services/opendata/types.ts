@@ -28,9 +28,14 @@ export interface AirQuality {
   label: string;
 }
 
+/**
+ * Null means the estimate could not be produced, not that the place is silent.
+ * `src/core/provenance.ts` forbids substituting zero for an absent figure, so the
+ * absence travels all the way to the interface, which renders it as "n/d".
+ */
 export interface NoiseEstimate {
-  score: number;
-  label: string;
+  score: number | null;
+  label: string | null;
 }
 
 export interface RiskInfo {
@@ -38,14 +43,15 @@ export interface RiskInfo {
   commune?: string;
 }
 
+/** Same rule as NoiseEstimate: an absent score is null, never zero. */
 export interface AreaScores {
-  walkability: number;
-  schools: number;
-  healthcare: number;
-  groceries: number;
-  transit: number;
-  parks: number;
-  footfall: number;
+  walkability: number | null;
+  schools: number | null;
+  healthcare: number | null;
+  groceries: number | null;
+  transit: number | null;
+  parks: number | null;
+  footfall: number | null;
 }
 
 export interface Premise {

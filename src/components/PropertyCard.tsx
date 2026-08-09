@@ -105,8 +105,16 @@ const PropertyCard = ({ premise, airLabel }: PropertyCardProps) => {
           <div className="flex items-center text-sm">
             <Footprints size={16} className="mr-2 text-primary shrink-0" />
             <span>
-              {c.walkability} {premise.scores.walkability}/100 ·{' '}
-              {translateLabel(scoreLabel(premise.scores.walkability), locale)}
+              {premise.scores.walkability !== null ? (
+                <>
+                  {c.walkability} {premise.scores.walkability}/100 ·{' '}
+                  {translateLabel(scoreLabel(premise.scores.walkability), locale)}
+                </>
+              ) : (
+                <span className="text-muted-foreground">
+                  {c.walkability} {c.na}
+                </span>
+              )}
             </span>
           </div>
         </div>
@@ -115,7 +123,7 @@ const PropertyCard = ({ premise, airLabel }: PropertyCardProps) => {
           <div className="flex flex-col items-center">
             <Users size={14} className="mb-1" />
             <Badge variant="secondary" className="font-normal">
-              {c.footfall} {premise.scores.footfall}/100
+              {c.footfall} {premise.scores.footfall !== null ? `${premise.scores.footfall}/100` : c.na}
             </Badge>
           </div>
           <div className="flex flex-col items-center">
@@ -126,8 +134,8 @@ const PropertyCard = ({ premise, airLabel }: PropertyCardProps) => {
           </div>
           <div className="flex flex-col items-center">
             <Volume2 size={14} className="mb-1" />
-            <Badge variant="secondary" className={`font-normal ${toneFor(premise.noise.label)}`}>
-              {c.noise} {translateLabel(premise.noise.label, locale)}
+            <Badge variant="secondary" className={`font-normal ${toneFor(premise.noise.label ?? '')}`}>
+              {c.noise} {translateLabel(premise.noise.label ?? undefined, locale) ?? c.na}
             </Badge>
           </div>
         </div>

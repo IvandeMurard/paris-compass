@@ -11,7 +11,12 @@ const CATEGORY_COLORS: Record<string, string> = {
   commerce: '#94a3b8',
 };
 
-function walkabilityColor(score: number) {
+/** A score that could not be computed is written out as such, never as 0/100. */
+const outOf100 = (score: number | null) => (score === null ? 'n/d' : `${score}/100`);
+
+/** Grey, not red: an unknown score must not read as a bad one. */
+function walkabilityColor(score: number | null) {
+  if (score === null) return '#94a3b8';
   if (score >= 80) return '#16a34a';
   if (score >= 60) return '#4ade80';
   if (score >= 40) return '#facc15';
@@ -46,7 +51,7 @@ export const useMapLayers = (map: L.Map | null, premises: Premise[], pois: Poi[]
         <div class="p-1">
           <strong>${premise.title}</strong><br/>
           <span>${premise.address}</span><br/>
-          <span>Marchabilité ${premise.scores.walkability}/100 · Flux ${premise.scores.footfall}/100</span><br/>
+          <span>Marchabilité ${outOf100(premise.scores.walkability)} · Flux ${outOf100(premise.scores.footfall)}</span><br/>
           <span>${
             premise.residentialRentEurM2 !== null
               ? `Loyer résidentiel du quartier ${premise.residentialRentEurM2} €/m²${
@@ -67,7 +72,7 @@ export const useMapLayers = (map: L.Map | null, premises: Premise[], pois: Poi[]
         fillColor: walkabilityColor(premise.scores.walkability),
         fillOpacity: 0.85,
         weight: 1,
-      }).bindTooltip(`Marchabilité : ${premise.scores.walkability}/100`);
+      }).bindTooltip(`Marchabilité : ${outOf100(premise.scores.walkability)}`);
       walkabilityLayer.addLayer(circle);
     });
 

@@ -60,13 +60,18 @@ export const FiltersProvider = ({ children }: { children: React.ReactNode }) => 
         return false;
       }
 
+      // Same rule as the size filter above: a score we could not compute never excludes
+      // a premise. Dropping it would be asserting it falls outside the range, which is
+      // precisely what the data does not say.
       const [minWalk, maxWalk] = filters.walkabilityScore;
-      if (premise.scores.walkability < minWalk || premise.scores.walkability > maxWalk) {
+      const walkability = premise.scores.walkability;
+      if (walkability !== null && (walkability < minWalk || walkability > maxWalk)) {
         return false;
       }
 
       for (const [key, min] of Object.entries(filters.amenityScores)) {
-        if (min > 0 && premise.scores[key as keyof AmenityScore] < min) return false;
+        const score = premise.scores[key as keyof AmenityScore];
+        if (min > 0 && score !== null && score < min) return false;
       }
 
       if (filters.query.trim()) {

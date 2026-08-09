@@ -65,20 +65,27 @@ export function buildScoringIndex(snapshot: OverpassSnapshot, bounds?: BBox): Sc
 
 const originForNow = () => OSM_ORIGIN(new Date().toISOString().slice(0, 10));
 
-/** Scores for one point, unwrapped to the plain numbers the current UI expects. */
+/**
+ * Scores for one point, unwrapped to the plain numbers the current UI expects.
+ *
+ * The unwrapping drops source, licence and caveats — which is why it is confined to
+ * this adapter — but it must not drop the distinction between "zero" and "unknown".
+ * These fields stay nullable on purpose: a missing score once became a zero here, and
+ * a zero reads as a measurement. `src/core/provenance.ts` states the rule.
+ */
 export function computeScores(
   point: { lat: number; lng: number },
   index: ScoringIndex,
 ): AreaScores {
   const scored = scoreLocation(point, index, originForNow());
   return {
-    walkability: scored.walkability.value ?? 0,
-    schools: scored.schools.value ?? 0,
-    healthcare: scored.healthcare.value ?? 0,
-    groceries: scored.groceries.value ?? 0,
-    transit: scored.transit.value ?? 0,
-    parks: scored.parks.value ?? 0,
-    footfall: scored.footfall.value ?? 0,
+    walkability: scored.walkability.value,
+    schools: scored.schools.value,
+    healthcare: scored.healthcare.value,
+    groceries: scored.groceries.value,
+    transit: scored.transit.value,
+    parks: scored.parks.value,
+    footfall: scored.footfall.value,
   };
 }
 
@@ -86,8 +93,8 @@ export function estimateNoise(
   point: { lat: number; lng: number },
   index: ScoringIndex,
 ): NoiseEstimate {
-  const score = scoreLocation(point, index, originForNow()).noise.value ?? 0;
-  return { score, label: noiseLabel(score) };
+  const score = scoreLocation(point, index, originForNow()).noise.value;
+  return { score, label: score === null ? null : noiseLabel(score) };
 }
 
 export const scoreLabel = coreScoreLabel;
