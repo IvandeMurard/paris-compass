@@ -89,7 +89,16 @@
     "bodacc_avis_infirmes": {
       "value": 1882,
       "sql": "select count(*) n from public.bodacc_establishment where operator_confirmed = false"
+    },
+    "prix_median_local_identifiable": {
+      "value": 160368,
+      "sql": "select round(percentile_cont(0.5) within group (order by e.price_eur))::text as n from public.bodacc_establishment e join public.bodacc_announcement a on a.id = e.announcement_id join public.premise_location l on l.street_key = e.street_key and l.num = e.house_number_int where e.price_eur is not null and e.geom is not null and a.family = 'vente' and (select count(*) from public.premise_location q where q.street_key = l.street_key and q.num = l.num) = 1"
+    },
+    "cessions_local_identifiable": {
+      "value": 5934,
+      "sql": "select count(*) n from public.bodacc_establishment e join public.bodacc_announcement a on a.id = e.announcement_id join public.premise_location l on l.street_key = e.street_key and l.num = e.house_number_int where e.price_eur is not null and e.geom is not null and a.family = 'vente' and (select count(*) from public.premise_location q where q.street_key = l.street_key and q.num = l.num) = 1"
     }
   },
-  "note_confiance": "La composition de fiabilité est la métrique de qualité du produit : « s'améliorer » veut dire déplacer ces quatre nombres vers etabli. Mesurée sur une cohorte FIXE de 10 000 locaux (les 10 000 plus petits identifiants), choisie pour être comparable d'une exécution à l'autre — pas pour être représentative. Son rôle est de détecter un déplacement, pas de décrire la base."
+  "note_confiance": "La composition de fiabilité est la métrique de qualité du produit : « s'améliorer » veut dire déplacer ces quatre nombres vers etabli. Mesurée sur une cohorte FIXE de 10 000 locaux (les 10 000 plus petits identifiants), choisie pour être comparable d'une exécution à l'autre — pas pour être représentative. Son rôle est de détecter un déplacement, pas de décrire la base.",
+  "note_prix": "Les prix publies dans le README sortent de ces deux mesures. Ils sont groupes sur le code d'activite BDCom du local, jamais sur le champ texte libre de BODACC ou « Restauration rapide » et « Restauration rapide. » sont deux categories distinctes. Et ils sont restreints aux cessions dont le local est seul a son numero : ailleurs on ignore laquelle des vitrines a ete vendue, donc a quel metier rattacher le prix."
 }

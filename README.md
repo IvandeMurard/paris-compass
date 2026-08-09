@@ -22,9 +22,11 @@ cafés and restaurants trading in 2017, **77% were still trading six years later
 around Les Halles, 56% in the quartier du Mail** — same city, same trade, a
 different bet.
 
-**What people actually paid.** 25 496 goodwill sales published with their price.
-The median Paris fonds changes hands at **126 000 €** — a pharmacy at 950 000 €,
-a fast-food unit at 100 000 €.
+**What people actually paid.** 25 496 goodwill sales published with their price
+since 2015. For the 5 934 that can be tied to a single shopfront, the median
+Paris fonds changes hands at **160 000 €** — and the trade decides almost
+everything: 250 000 € for a food shop, 220 000 € for a café or restaurant, 86 000 €
+for clothing, 50 000 € for a personal-services unit.
 
 **What is happening right now.** An insolvency filed at an address is public
 months before any listing appears.
