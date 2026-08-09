@@ -10,6 +10,7 @@ Volontairement **non importés** ici : ce fichier est chargé à chaque session,
 
 | Fichier | Quand le lire |
 | --- | --- |
+| `docs/REPRISE.md` | **À lire en premier en début de session.** Où en est le travail, ce qui bloque, et les pièges qui ont déjà coûté du temps. Notamment : quel projet Supabase viser, et pourquoi il y en a eu trois. |
 | `docs/CONTEXTE.md` | Périmètre, persona, refus assumés, décisions d'architecture, état d'avancement. Avant toute modification du périmètre, des sources de données ou du noyau. |
 | `docs/PLAN.md` | Backlog ordonné : ce qui est fait, les phases 2 à 4 en détail, les sources à brancher et pourquoi. Avant de commencer un chantier. |
 | `docs/PERIMETRE.md` | Le raisonnement long : les questions auxquelles Compass peut répondre, celles qui sont partielles, celles qui sont bloquées, et les contournements. Avant d'ajouter une source ou de discuter du positionnement. |
