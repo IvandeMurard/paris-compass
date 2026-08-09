@@ -60,6 +60,8 @@ const SignIn = () => {
   const { locale, lp } = useLocale();
   const copy = COPY[locale];
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
 
   const formSchema = z.object({
     email: z.string().email(copy.invalidEmail),
@@ -76,8 +78,20 @@ const SignIn = () => {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
-    const { success } = await signIn(values.email, values.password);
+    await signIn(values.email, values.password);
     setIsLoading(false);
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    setGoogleError(null);
+    const result = await lovable.auth.signInWithOAuth('google', {
+      redirect_uri: window.location.origin,
+    });
+    setIsGoogleLoading(false);
+    if (result.error) {
+      setGoogleError(copy.googleError);
+    }
   };
 
   // Redirect if user is already signed in
