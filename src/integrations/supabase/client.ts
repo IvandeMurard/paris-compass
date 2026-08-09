@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database as GeneratedDatabase } from './types';
 
-const SUPABASE_URL = "https://pulfdlztjbkgydmyrkfy.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1bGZkbHp0amJrZ3lkbXlya2Z5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3MDg5MTgsImV4cCI6MjA2MDI4NDkxOH0.jQr0zRewcfgagulvHU7PEWVFLrhPaefSf7-zdzY3Vt8";
+const SUPABASE_URL = "https://dbefhvmyfmmhjeetdddu.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_JbcXM8Z_k6ND5jyaiWU3kQ_wVGzamwD";
 
 // Extend the generated database type with our custom tables
 export type Database = Omit<GeneratedDatabase, 'public'> & {
