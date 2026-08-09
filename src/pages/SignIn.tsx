@@ -111,6 +111,30 @@ const SignIn = () => {
           </p>
         </div>
 
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={handleGoogleSignIn}
+          disabled={isGoogleLoading}
+        >
+          {isGoogleLoading ? (
+            <span className="animate-pulse">{copy.continueWithGoogle}</span>
+          ) : (
+            <>
+              <GoogleIcon className="mr-2 h-4 w-4" />
+              {copy.continueWithGoogle}
+            </>
+          )}
+        </Button>
+
+        <div className="relative flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200" />
+          </div>
+          <span className="relative bg-white px-3 text-xs text-gray-500">{copy.or}</span>
+        </div>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
