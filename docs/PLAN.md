@@ -154,6 +154,17 @@ pour un local vu trois fois, et pour un local vu deux fois les deux relevés **p
 « non observé »** au troisième, avec sa raison. Le taux rapporté à la rue donne son sens à
 l'historique, il ne le remplace pas.
 
+> **Règle d'affichage, apprise en s'y trompant.** Un libellé d'activité absent ne doit jamais être
+> remplacé par un texte de substitution. Il faut brancher sur la colonne `observed` :
+> `observed = false` signifie « ce local n'a pas été recensé cette année-là », ce qui n'est ni
+> « vacant » ni « plus un commerce ». Rendre l'un de ces deux textes à la place transforme un
+> « je ne sais pas » en affirmation — la faute exacte que le produit existe pour empêcher, et
+> qu'un `coalesce` sur le libellé suffit à commettre.
+>
+> Dans un millésime au périmètre complet (2017, 2020), une absence signifie que le local n'existait
+> pas comme rez-de-chaussée avec vitrine : créé plus tard, transformé, ou manqué par l'enquête. La
+> donnée ne tranche pas entre les trois, et l'affichage non plus.
+
 ### Trois règles de lecture, sans lesquelles le taux ment
 
 **1. La référence est le métier, pas la ville.** Les activités ne tournent pas au même rythme.
@@ -204,6 +215,48 @@ qui est **disponible** — et à ce jour la liste est complète, pas illustrativ
 - **74 identifiants sur 85 344 sont réattribués** à un autre local d'un millésime à l'autre,
   soit moins de 0,1 % — chiffre mesuré au chargement, pas estimé. L'`ordre` 4231 est au 13 rue
   Vivienne dans le 2ᵉ en 2017 et 2020, et au 88 avenue Kléber dans le 16ᵉ en 2023.
+
+### Le niveau de fiabilité, et pourquoi il est calculé et non écrit
+
+Décidé le 9 août 2026, après deux erreurs commises **dans la prose et non dans la base** en
+présentant un même local : une absence de relevé rendue par « pas un commerce » alors que la
+donnée disait seulement « non observé », et un prix d'exemple pris sur un autre local qui se
+lisait comme celui du local discuté. La base était juste les deux fois. Le récit ne l'était pas.
+
+**Chaque fait affiché porte un niveau, et ce niveau est dérivé de colonnes existantes** — jamais
+saisi, jamais estimé. Pas de score sur 100 : un pourcentage de confiance serait exactement le
+genre de chiffre fabriqué que le produit refuse. Trois niveaux, dont la règle est publiée sur la
+page Méthodologie au même titre que les formules de score.
+
+| Niveau | Ce que ça veut dire | Ce qui le déclenche |
+| --- | --- | --- |
+| **Établi** | La source nomme directement ce local, et la pièce est jointe | `observed = true` et `match_method` ∈ {`ordre`, `new`} ; pour un prix : `price_source` renseigné **et** `address_source = 'etablissement'` **et** un seul local à l'adresse |
+| **Probable** | Le fait est documenté, mais son rattachement à *ce* local est déduit | `address_source = 'siege_social'` ; plusieurs locaux à l'adresse ; `street_match = 'spatial'` ; `match_method = 'ordre_address_conflict'` |
+| **Indéterminé** | La source est muette, et on le dit | `observed = false` ; `origin_raw` présent sans prix lu ; niveaux 47/18 absents |
+
+Le niveau accompagne la valeur, il ne la remplace pas : un fait « probable » s'affiche, avec ce
+qui manque pour qu'il soit établi. C'est l'inverse de le masquer.
+
+### Le récit se génère, il ne se rédige pas
+
+La leçon de fond des deux erreurs ci-dessus : **le problème n'était pas la donnée, c'était le
+passage par une main humaine.** Recharger un champ de plus aurait corrigé un cas ; ce qu'il faut,
+c'est qu'aucune affirmation ne puisse circuler sans sa pièce.
+
+Trois procédés, par ordre d'importance :
+
+1. **Une fonction unique produit la chronologie d'une adresse** — relevés BDCom, événements
+   BODACC, avec pour chaque ligne sa source, sa date, son niveau de fiabilité et ce qui le
+   justifie. Personne ne retape une chronologie à la main, donc personne ne peut rendre un
+   « non observé » en « plus un commerce », ni emprunter un chiffre à un autre local. Une
+   définition, trois consommateurs : l'interface, le dossier exportable (§2.6) et le serveur MCP
+   (§4.1).
+2. **Chaque RPC renvoie la pièce à côté du fait**, jamais le fait seul. Déjà vrai pour le prix
+   (`origin_raw`), l'origine de l'adresse et la méthode d'appariement ; à tenir pour tout ce qui
+   s'ajoutera.
+3. **Le pipeline refuse de valider un fait sans sa pièce.** Le contrôle de complétude de BDCom est
+   le premier du genre ; il en faut un par invariant — pas de prix sans phrase source, pas de
+   relevé sans licence de millésime, pas de rattachement spatial sans distance enregistrée.
 
 ### À quoi sert la suite des activités
 
