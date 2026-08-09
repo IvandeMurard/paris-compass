@@ -18,6 +18,16 @@ dist-ssr
 .env.*
 !.env.example
 
+# Sauvegardes de base. Ce dépôt est public : un dump embarque le schéma `auth`
+# — utilisateurs, sessions, jetons de rafraîchissement — et un `git add -A` suffit
+# à le publier. Celui du 24 avril 2025 s'est trouvé vide de tout compte, mais on
+# ne veut pas que la prochaine fois dépende de la chance.
+*.backup
+*.backup.gz
+*.dump
+*.sql.gz
+db_cluster-*
+
 # État local de la CLI Supabase. Créé par `supabase start`, propre à chaque
 # machine : le committer ferait diverger l'environnement local de celui de Lovable.
 supabase/.branches/
