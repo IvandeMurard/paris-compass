@@ -33,6 +33,9 @@ const COPY = {
     signIn: 'Se connecter',
     noAccount: "Vous n'avez pas de compte ?",
     signUp: 'Créer un compte',
+    continueWithGoogle: 'Continuer avec Google',
+    or: 'ou',
+    googleError: 'La connexion Google a échoué.',
   },
   en: {
     invalidEmail: 'Please enter a valid email address',
@@ -46,6 +49,9 @@ const COPY = {
     signIn: 'Sign In',
     noAccount: "Don't have an account?",
     signUp: 'Sign Up',
+    continueWithGoogle: 'Continue with Google',
+    or: 'or',
+    googleError: 'Google sign-in failed.',
   },
 } as const;
 
