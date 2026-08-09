@@ -44,6 +44,8 @@ interface Invariant {
   id: string
   description: string
   sql: string
+  /** Role to impersonate, from an optional `-- @as <role>` line. */
+  as?: string
 }
 
 /** Splits invariants.sql on its `-- @invariant <id> :: <description>` markers. */
@@ -53,7 +55,8 @@ function readInvariants(): Invariant[] {
   return blocks.map((block) => {
     const [header, ...rest] = block.split("\n")
     const [id, description] = header.split("::").map((s) => s.trim())
-    return { id, description, sql: rest.join("\n").trim() }
+    const body = rest.join("\n")
+    return { id, description, as: /^--\s*@as\s+(\S+)/m.exec(body)?.[1], sql: body.trim() }
   })
 }
 
@@ -61,7 +64,17 @@ async function runInvariants(client: Client): Promise<void> {
   log("A — invariants", "chaque requête doit renvoyer zéro ligne")
   for (const invariant of readInvariants()) {
     const started = Date.now()
+    // Impersonation is transaction-local, so the privileged connection is
+    // restored whatever the invariant does. Without this the gate could only
+    // ever exercise the privileged path — the one that always works.
+    await client.query("begin")
+    if (invariant.as) {
+      await client.query("select set_config('request.jwt.claims', $1, true)", [
+        JSON.stringify({ role: invariant.as }),
+      ])
+    }
     const result = await client.query(invariant.sql)
+    await client.query("rollback")
     const seconds = ((Date.now() - started) / 1000).toFixed(1)
     if (result.rowCount === 0) {
       pass(invariant.id, `${invariant.description} (${seconds}s)`)

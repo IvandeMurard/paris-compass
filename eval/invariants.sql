@@ -110,3 +110,34 @@ where o.vintage_id = 2023
   and not exists (
     select 1 from public.stg_bdcom_2023 s where s.c_ord = o.source_ordre)
 limit 20;
+
+-- @invariant I9 :: un appelant anonyme voit le contenu d'un millésime non redistribuable
+-- @as anon
+-- 2017 and 2020 carry a licence we have not read, so an anonymous caller gets a
+-- row saying the content is withheld — never the content, and never an absence.
+-- Exercised as `anon` because the privileged path always works, which is exactly
+-- why running it proves nothing about what a visitor sees.
+select l.id as location_id, t.occurred_on, t.label, t.observed
+from (select id from public.premise_location order by id limit 400) l
+cross join lateral public.compass_address_timeline(l.id) t
+join public.bdcom_vintage v
+  on t.kind = 'survey' and make_date(v.year, 1, 1) = t.occurred_on
+where not v.publicly_redistributable
+  and (t.label is not null or t.activity_code is not null
+       or t.observed is not null or not t.withheld)
+limit 20;
+-- Note: `observed is not null` is deliberate. A withheld vintage must not even
+-- say "not surveyed" — that sentence is still about the restricted dataset.
+
+-- @invariant I10 :: un millésime redistribuable est retenu par erreur
+-- @as anon
+-- The mirror of I9: over-restricting is a failure too. An ODbL vintage must
+-- reach an anonymous caller with its content, or the licence column has been
+-- set wrong and the product silently hides what it is allowed to show.
+select l.id as location_id, t.occurred_on
+from (select id from public.premise_location order by id limit 400) l
+cross join lateral public.compass_address_timeline(l.id) t
+join public.bdcom_vintage v
+  on t.kind = 'survey' and make_date(v.year, 1, 1) = t.occurred_on
+where v.publicly_redistributable and t.withheld
+limit 20;
