@@ -137,6 +137,10 @@ const SignIn = () => {
           )}
         </Button>
 
+        {googleError && (
+          <p className="text-sm text-red-600 text-center">{googleError}</p>
+        )}
+
         <div className="relative flex items-center justify-center">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-200" />
