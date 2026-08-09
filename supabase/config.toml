@@ -1,10 +1,1 @@
-# Projet Supabase de Compass.
-#
-# Historique : ce fichier a pointé vers `pulfdlztjbkgydmyrkfy` (« ComparaCourse »,
-# sans rapport), puis `amowtlbaqwoobdooitip`. Base courante depuis le 9 août 2026 :
-# `dbefhvmyfmmhjeetdddu`.
-#
-# `src/integrations/supabase/client.ts` porte encore l'URL et la clé publique de
-# l'ancienne base : ce basculement-là se fait côté Lovable, qui gère la connexion
-# du projet et régénérerait le fichier s'il était modifié à la main.
-project_id = "dbefhvmyfmmhjeetdddu"
+project_id = "nwnhhvogwrzstslxtxca"

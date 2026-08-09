@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from '@/hooks/use-toast';
 import { SavedSearch, SavedProperty } from '@/types/supabase';
@@ -30,9 +29,9 @@ export function usePropertyNotifications() {
           .from('saved_searches')
           .select('*')
           .eq('user_id', user.id);
-        
+
         if (error) throw error;
-        
+
         setSavedSearches(data || []);
       } catch (error) {
         console.error('Error fetching saved searches:', error);
@@ -46,29 +45,33 @@ export function usePropertyNotifications() {
     // Subscribe to real-time updates on new property matches
     const subscription = supabase
       .channel('saved_properties_changes')
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'saved_properties', filter: `user_id=eq.${user.id}` }, 
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'saved_properties', filter: `user_id=eq.${user.id}` },
         (payload: { new: SavedProperty }) => {
           const newProperty = payload.new;
-          
+
           // Display a toast notification
           toast({
             title: 'New Property Match!',
             description: `A new property matching your search criteria is available.`,
             duration: 5000,
           });
-          
+
           // Add to our matches state
+          const propertyName = (typeof newProperty.property_data === 'object' && newProperty.property_data !== null && 'name' in newProperty.property_data)
+            ? String(newProperty.property_data.name)
+            : 'New Property';
           setMatches(prev => [...prev, {
             id: newProperty.id,
-            name: newProperty.property_data.name || 'New Property',
+            name: propertyName,
             searchId: 'auto',
             searchName: 'Automatic Match',
             timestamp: new Date().toISOString()
           }]);
         })
       .subscribe();
-    
+
     return () => {
       subscription.unsubscribe();
     };
