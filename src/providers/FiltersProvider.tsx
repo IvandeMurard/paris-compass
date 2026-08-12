@@ -64,13 +64,13 @@ export const FiltersProvider = ({ children }: { children: React.ReactNode }) => 
       // a premise. Dropping it would be asserting it falls outside the range, which is
       // precisely what the data does not say.
       const [minWalk, maxWalk] = filters.walkabilityScore;
-      const walkability = premise.scores.walkability;
+      const walkability = premise.scores.walkability.value;
       if (walkability !== null && (walkability < minWalk || walkability > maxWalk)) {
         return false;
       }
 
       for (const [key, min] of Object.entries(filters.amenityScores)) {
-        const score = premise.scores[key as keyof AmenityScore];
+        const score = premise.scores[key as keyof AmenityScore].value;
         if (min > 0 && score !== null && score < min) return false;
       }
 

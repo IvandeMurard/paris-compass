@@ -1,11 +1,14 @@
 /**
  * The adapter's only real risk is losing information on the way out of the core.
  *
- * It unwraps `Measured<number>` into the plain numbers the current UI expects, and for a
- * long time it did so with `?? 0` — turning "we could not compute this" into a measured
- * zero, the one substitution `src/core/provenance.ts` forbids by name. The core never
- * returns a null score today, so only a stubbed core can exercise the path; that is the
- * point of the mock below.
+ * It used to unwrap `Measured<number>` into plain numbers, and for a while it did so
+ * with `?? 0` — turning "we could not compute this" into a measured zero, the one
+ * substitution `src/core/provenance.ts` forbids by name. The unwrapping is gone
+ * entirely: provenance now travels to the component, and the rendering rules are tested
+ * in `src/components/figureText.test.ts`.
+ *
+ * What is left to guard here is that nothing is dropped or flattened in transit — which
+ * is exactly the regression that would reintroduce the bug.
  */
 
 import { describe, expect, it, vi } from 'vitest';
@@ -19,9 +22,9 @@ vi.mock('@/core', async (importOriginal) => ({
   scoreLocation,
 }));
 
-const { computeScores, estimateNoise } = await import('./scoring');
+const { computeScores } = await import('./scoring');
 
-const ORIGIN = OSM_ORIGIN('2026-08-09');
+const ORIGIN = OSM_ORIGIN('2026-08-10');
 const POINT = { lat: 48.8566, lng: 2.3522 };
 const INDEX = {} as never;
 
@@ -35,54 +38,55 @@ function coreResult(overrides: Partial<CoreScores> = {}): CoreScores {
     groceries: present(40),
     parks: present(30),
     transit: present(20),
-    footfall: present(10),
-    noise: present(5),
+    footfall: withValue(10, ORIGIN, 'estimated', 'proxy, not a count'),
+    noise: withValue(5, ORIGIN, 'estimated', 'roads only'),
     ...overrides,
   };
 }
 
 describe('computeScores', () => {
-  it('passes the core values through unchanged', () => {
+  it('hands the core result over without flattening it', () => {
+    const result = coreResult();
+    scoreLocation.mockReturnValue(result);
+    expect(computeScores(POINT, INDEX)).toEqual(result);
+  });
+
+  // The regression that would matter: a figure arriving at the card as a bare number,
+  // with nothing left to say where it came from or how much to trust it.
+  it('keeps source, licence, vintage and method on every score', () => {
     scoreLocation.mockReturnValue(coreResult());
-
-    expect(computeScores(POINT, INDEX)).toEqual({
-      walkability: 70,
-      schools: 60,
-      healthcare: 50,
-      groceries: 40,
-      parks: 30,
-      transit: 20,
-      footfall: 10,
-    });
+    for (const measured of Object.values(computeScores(POINT, INDEX))) {
+      expect(measured.source).toBe(ORIGIN.source);
+      expect(measured.licence).toBe(ORIGIN.licence);
+      expect(measured.asOf).toBe(ORIGIN.asOf);
+      expect(measured.method).toBeTruthy();
+    }
   });
 
-  it('keeps an absent score absent rather than turning it into zero', () => {
-    scoreLocation.mockReturnValue(
-      coreResult({
-        walkability: unavailable(ORIGIN, 'no amenity data covers this point'),
-        footfall: unavailable(ORIGIN, 'no premises loaded'),
-      }),
-    );
-
+  it('keeps the caveat that makes a proxy readable as one', () => {
+    scoreLocation.mockReturnValue(coreResult());
     const scores = computeScores(POINT, INDEX);
-    expect(scores.walkability).toBeNull();
-    expect(scores.footfall).toBeNull();
-    // A genuine zero still reads as zero — that is the distinction being defended.
-    scoreLocation.mockReturnValue(coreResult({ walkability: withValue(0, ORIGIN, 'derived') }));
-    expect(computeScores(POINT, INDEX).walkability).toBe(0);
-  });
-});
-
-describe('estimateNoise', () => {
-  it('labels a score it has', () => {
-    scoreLocation.mockReturnValue(coreResult({ noise: withValue(75, ORIGIN, 'estimated') }));
-    expect(estimateNoise(POINT, INDEX)).toEqual({ score: 75, label: 'High' });
+    expect(scores.footfall.method).toBe('estimated');
+    expect(scores.footfall.note).toBe('proxy, not a count');
   });
 
-  it('returns no label at all when there is no score', () => {
-    scoreLocation.mockReturnValue(coreResult({ noise: unavailable(ORIGIN, 'no road data') }));
+  // Noise used to be unwrapped into its own `{ score, label }` shape, which stripped the
+  // caveat from the single figure that most needs it: 0 was labelled "very low", so a
+  // missing road layer read as a quiet street.
+  it('carries noise as a score with its caveat, not as a bare label', () => {
+    scoreLocation.mockReturnValue(coreResult());
+    const noise = computeScores(POINT, INDEX).noise;
+    expect(noise.value).toBe(5);
+    expect(noise.method).toBe('estimated');
+    expect(noise.note).toBe('roads only');
+  });
 
-    // The trap this guards: 0 would have been labelled "Very low" — silence, asserted.
-    expect(estimateNoise(POINT, INDEX)).toEqual({ score: null, label: null });
+  it('lets an absent score through as absent', () => {
+    scoreLocation.mockReturnValue(
+      coreResult({ noise: unavailable(ORIGIN, 'no road data loaded') }),
+    );
+    const noise = computeScores(POINT, INDEX).noise;
+    expect(noise.value).toBeNull();
+    expect(noise.missingReason).toBe('no road data loaded');
   });
 });

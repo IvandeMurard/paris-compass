@@ -68,35 +68,23 @@ export function buildScoringIndex(snapshot: OverpassSnapshot, bounds?: BBox): Sc
 const originForNow = () => OSM_ORIGIN(new Date().toISOString().slice(0, 10));
 
 /**
- * Scores for one point, unwrapped to the plain numbers the current UI expects.
+ * Scores for one point, provenance included.
  *
- * The unwrapping drops source, licence and caveats — which is why it is confined to
- * this adapter — but it must not drop the distinction between "zero" and "unknown".
- * These fields stay nullable on purpose: a missing score once became a zero here, and
- * a zero reads as a measurement. `src/core/provenance.ts` states the rule.
+ * This function used to unwrap `Measured<T>` into plain numbers, on the grounds that
+ * the interface only wanted numbers. That was the leak: a figure arrived at the card
+ * with no source, no vintage and no caveat, and nothing could tell a modelled proxy
+ * from a count. The values now travel intact — rendering them is the caller's job, and
+ * `Measured<T>` makes it impossible to render one without being able to attribute it.
+ *
+ * Noise is part of the record rather than a separate shape, for the same reason: it is
+ * the score whose caveat matters most, so it must carry it like the others.
  */
 export function computeScores(
   point: { lat: number; lng: number },
   index: ScoringIndex,
 ): AreaScores {
-  const scored = scoreLocation(point, index, originForNow());
-  return {
-    walkability: scored.walkability.value,
-    schools: scored.schools.value,
-    healthcare: scored.healthcare.value,
-    groceries: scored.groceries.value,
-    transit: scored.transit.value,
-    parks: scored.parks.value,
-    footfall: scored.footfall.value,
-  };
-}
-
-export function estimateNoise(
-  point: { lat: number; lng: number },
-  index: ScoringIndex,
-): NoiseEstimate {
-  const score = scoreLocation(point, index, originForNow()).noise.value;
-  return { score, label: score === null ? null : noiseLabel(score) };
+  return scoreLocation(point, index, originForNow());
 }
 
 export const scoreLabel = coreScoreLabel;
+export { noiseLabel };

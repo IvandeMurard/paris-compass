@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+import type { Measured } from '@/core';
 import type { Poi, Premise } from '@/services/opendata/types';
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -11,8 +12,15 @@ const CATEGORY_COLORS: Record<string, string> = {
   commerce: '#94a3b8',
 };
 
-/** A score that could not be computed is written out as such, never as 0/100. */
-const outOf100 = (score: number | null) => (score === null ? 'n/d' : `${score}/100`);
+/**
+ * A score as it appears in a Leaflet popup.
+ *
+ * These popups are raw HTML rather than React, so they cannot reuse `MeasuredScore`.
+ * The two rules it enforces are reproduced here instead: an uncomputable score is
+ * written out as such and never as 0/100, and a modelled proxy says that it is one.
+ */
+const outOf100 = (m: Measured<number>) =>
+  m.value === null ? 'n/d' : `${m.value}/100${m.method === 'estimated' ? ' (est.)' : ''}`;
 
 /** Grey, not red: an unknown score must not read as a bad one. */
 function walkabilityColor(score: number | null) {
@@ -58,7 +66,8 @@ export const useMapLayers = (map: L.Map | null, premises: Premise[], pois: Poi[]
                   premise.quartier ? ` · ${premise.quartier}` : ''
                 }${premise.residentialRentYear ? ` · ${premise.residentialRentYear}` : ''}`
               : 'Quartier non renseigné'
-          }</span>
+          }</span><br/>
+          <span class="text-[11px] opacity-70">${premise.scores.walkability.source} · ${premise.scores.walkability.asOf}</span>
         </div>
       `);
       markersLayer.addLayer(marker);
@@ -69,7 +78,7 @@ export const useMapLayers = (map: L.Map | null, premises: Premise[], pois: Poi[]
       const circle = L.circle([premise.lat, premise.lng], {
         radius: 30,
         color: '#ffffff',
-        fillColor: walkabilityColor(premise.scores.walkability),
+        fillColor: walkabilityColor(premise.scores.walkability.value),
         fillOpacity: 0.85,
         weight: 1,
       }).bindTooltip(`Marchabilité : ${outOf100(premise.scores.walkability)}`);

@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Home, Ruler, MapPin, Users, Wind, Volume2, Footprints, ExternalLink } from 'lucide-react';
 import type { Premise } from '@/services/opendata/types';
-import { scoreLabel } from '@/services/opendata/scoring';
+import { noiseLabel, scoreLabel } from '@/services/opendata/scoring';
+import { MeasuredOrigin, MeasuredScore } from '@/components/MeasuredFigure';
 import { useLocale } from '@/i18n/locale';
 import { translateLabel } from '@/i18n/labels';
 
@@ -59,6 +60,14 @@ const PropertyCard = ({ premise, airLabel }: PropertyCardProps) => {
   const { locale } = useLocale();
   const c = COPY[locale];
 
+  // Labels are derived here rather than in the score component: turning a number into a
+  // word is a presentation choice, whereas showing the caveat is not optional.
+  const walk = premise.scores.walkability;
+  const walkLabel = walk.value === null ? undefined : translateLabel(scoreLabel(walk.value), locale);
+  const noise = premise.scores.noise;
+  const noiseLabelText =
+    noise.value === null ? undefined : translateLabel(noiseLabel(noise.value), locale);
+
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-4">
@@ -102,19 +111,14 @@ const PropertyCard = ({ premise, airLabel }: PropertyCardProps) => {
             <span>{premise.address}</span>
           </div>
 
-          <div className="flex items-center text-sm">
-            <Footprints size={16} className="mr-2 text-primary shrink-0" />
+          <div className="flex items-start text-sm">
+            <Footprints size={16} className="mr-2 mt-0.5 text-primary shrink-0" />
             <span>
-              {premise.scores.walkability !== null ? (
-                <>
-                  {c.walkability} {premise.scores.walkability}/100 ·{' '}
-                  {translateLabel(scoreLabel(premise.scores.walkability), locale)}
-                </>
-              ) : (
-                <span className="text-muted-foreground">
-                  {c.walkability} {c.na}
-                </span>
-              )}
+              {c.walkability} <MeasuredScore measured={premise.scores.walkability} />
+              {walkLabel ? ` · ${walkLabel}` : ''}
+              <span className="mt-0.5 block">
+                <MeasuredOrigin measured={premise.scores.walkability} />
+              </span>
             </span>
           </div>
         </div>
@@ -123,7 +127,7 @@ const PropertyCard = ({ premise, airLabel }: PropertyCardProps) => {
           <div className="flex flex-col items-center">
             <Users size={14} className="mb-1" />
             <Badge variant="secondary" className="font-normal">
-              {c.footfall} {premise.scores.footfall !== null ? `${premise.scores.footfall}/100` : c.na}
+              {c.footfall} <MeasuredScore measured={premise.scores.footfall} />
             </Badge>
           </div>
           <div className="flex flex-col items-center">
@@ -134,8 +138,8 @@ const PropertyCard = ({ premise, airLabel }: PropertyCardProps) => {
           </div>
           <div className="flex flex-col items-center">
             <Volume2 size={14} className="mb-1" />
-            <Badge variant="secondary" className={`font-normal ${toneFor(premise.noise.label ?? '')}`}>
-              {c.noise} {translateLabel(premise.noise.label ?? undefined, locale) ?? c.na}
+            <Badge variant="secondary" className={`font-normal ${toneFor(noiseLabelText ?? '')}`}>
+              {c.noise} <MeasuredScore measured={premise.scores.noise} display={noiseLabelText} />
             </Badge>
           </div>
         </div>

@@ -35,26 +35,34 @@ rayon**, jamais une bbox.
 
 **Rien n'a jamais été poussé ni chargé sur une instance distante.**
 
-`.env.local` existe désormais et porte un `DATABASE_URL` visant bien
-`nwnhhvogwrzstslxtxca`, port 5432. Ce qui reste faux, c'est **l'hôte**.
+`.env.local` existe, et **tout y est juste sauf le mot de passe**.
 `connectionTarget()` dans `scripts/ingest/lib/db.ts` affiche la cible sans jamais
-montrer le mot de passe : **s'en servir avant tout chargement**.
+montrer le secret : **s'en servir avant tout chargement**.
 
-Ce qui a été vérifié le 9 août au soir, pour ne pas le refaire :
+La région est `eu-north-1` (Stockholm), donnée par Lovable et **vérifiée** le
+10 août. L'hôte du fichier a été corrigé en conséquence.
 
 | Cible | Réponse |
 | --- | --- |
-| `aws-0-eu-west-3.pooler.supabase.com:5432` (celle du fichier) | `tenant/user postgres.nwnhhvogwrzstslxtxca not found` |
+| `aws-0-eu-west-3.pooler.supabase.com:5432` (hôte d'origine) | `XX000 tenant/user postgres.nwnhhvogwrzstslxtxca not found` |
 | `aws-1-eu-west-3.pooler.supabase.com:5432` | même refus |
-| `db.nwnhhvogwrzstslxtxca.supabase.co:5432` (direct) | enregistrement **AAAA seul**, et la machine n'a pas d'IPv6 → `ENOTFOUND` |
+| `db.nwnhhvogwrzstslxtxca.supabase.co:5432` (direct) | enregistrement **AAAA seul**, machine sans IPv6 → `ENOTFOUND` |
 | `https://nwnhhvogwrzstslxtxca.supabase.co/rest/v1/` | 401 avec `sb-project-ref` renvoyé — **le projet est vivant** |
+| **`aws-0-eu-north-1.pooler.supabase.com:5432`** | **`28P01 password authentication failed`** |
 
-Donc : la référence et le mot de passe ne sont pas en cause, la **région** l'est.
-Le projet ne vit pas en eu-west-3. Il faut la chaîne exacte affichée là où le
-backend est provisionné, pas une chaîne reconstruite à la main autour de la
-référence. Le connecteur Lovable ne montre pas ce projet : dix projets listés
-dans l'espace d'Ivan, aucun Compass — donc cette voie-là ne donnera pas l'hôte
-non plus, il faut passer par l'écran du backend.
+Ce dernier changement d'erreur est le résultat utile : passer de `XX000` à
+`28P01` prouve que **le tenant est trouvé**. Hôte, port, rôle et chemin IPv4
+sont donc validés. Le pooler eu-north-1 répond en IPv4 : ni option payante, ni
+`db.<ref>.supabase.co`, ni IPv6 nécessaires.
+
+**Il ne reste qu'une inconnue : le mot de passe.** Celui du fichier vient d'un
+autre projet et n'a jamais été bon — il n'avait simplement jamais pu être
+testé, le refus de tenant arrivant avant l'authentification.
+
+Lovable ne peut pas *lire* le mot de passe : sur Lovable Cloud ni l'agent ni
+l'interface n'y ont accès. Mais il peut le **réinitialiser** — c'est une action
+de propriétaire, et Lovable est propriétaire du projet. Ne pas redemander « le
+mot de passe » (question sans réponse possible), demander **une rotation**.
 
 Le balayage de plusieurs régions à la suite avec le mot de passe **est bloqué par
 la politique d'exécution** — cela ressemble à un essai de connexions en série.
@@ -74,10 +82,11 @@ Trois références ont circulé. Deux sont mortes.
 doivent vivre dans le même projet, parce que le front appellera les fonctions
 avec la clé anonyme et que la règle de licence dépend du rôle porté par le jeton.
 
-Donc : récupérer la chaîne de connexion côté Lovable, vérifier qu'elle contient
-bien `nwnhhvogwrzstslxtxca` et non `dbefhvmyfmmhjeetdddu`, port **5432** et non
-6543 — le pooler en mode transaction casse les tables temporaires dont les
-chargeurs se servent.
+Donc : la chaîne visée est
+`postgres.nwnhhvogwrzstslxtxca@aws-0-eu-north-1.pooler.supabase.com:5432`, port
+**5432** et non 6543 — le pooler en mode transaction casse les tables
+temporaires dont les chargeurs se servent. Elle est déjà dans `.env.local` ;
+seul le mot de passe reste à y remplacer.
 
 ---
 

@@ -1,7 +1,7 @@
 import { distanceM } from '@/core';
 import { fetchOverpassSnapshot } from './overpass';
 import { fetchNeighbourhoodProfiles, type NeighbourhoodProfile } from './neighbourhood';
-import { buildScoringIndex, computeScores, estimateNoise } from './scoring';
+import { buildScoringIndex, computeScores } from './scoring';
 import type { BBox, Poi, Premise } from './types';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -85,7 +85,6 @@ export async function fetchPremises(bbox: BBox): Promise<PremiseSearchResult> {
     .map((raw) => {
       const point = { lat: raw.lat, lng: raw.lng };
       const scores = computeScores(point, index);
-      const noise = estimateNoise(point, index);
       const neighbourhood = nearestNeighbourhood(point, neighbourhoods);
       const sizeM2 = parseSize(raw.tags);
       const postcode = raw.tags['addr:postcode'];
@@ -107,7 +106,6 @@ export async function fetchPremises(bbox: BBox): Promise<PremiseSearchResult> {
         quartier: neighbourhood?.quartier,
         residentialRentYear: neighbourhood?.year,
         scores,
-        noise,
       } satisfies Premise;
     });
 

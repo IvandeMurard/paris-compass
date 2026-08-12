@@ -1,3 +1,5 @@
+import type { AreaScores } from '@/core';
+
 export interface BBox {
   south: number;
   west: number;
@@ -28,31 +30,21 @@ export interface AirQuality {
   label: string;
 }
 
-/**
- * Null means the estimate could not be produced, not that the place is silent.
- * `src/core/provenance.ts` forbids substituting zero for an absent figure, so the
- * absence travels all the way to the interface, which renders it as "n/d".
- */
-export interface NoiseEstimate {
-  score: number | null;
-  label: string | null;
-}
-
 export interface RiskInfo {
   labels: string[];
   commune?: string;
 }
 
-/** Same rule as NoiseEstimate: an absent score is null, never zero. */
-export interface AreaScores {
-  walkability: number | null;
-  schools: number | null;
-  healthcare: number | null;
-  groceries: number | null;
-  transit: number | null;
-  parks: number | null;
-  footfall: number | null;
-}
+/**
+ * Scores reach the interface with their provenance attached.
+ *
+ * This used to be a record of plain numbers, unwrapped in the adapter. The unwrapping
+ * dropped source, licence, vintage and caveats — so the interface could show a figure
+ * it was unable to attribute, which is the one thing Compass refuses. The core type is
+ * re-exported as-is: `value` stays nullable (absent is not zero), and `method` plus
+ * `note` are what the card turns into a visible caveat.
+ */
+export type { AreaScores };
 
 export interface Premise {
   id: string;
@@ -74,6 +66,6 @@ export interface Premise {
   quartier?: string;
   /** Vintage of the rent decree the figure above comes from. Always displayed with it. */
   residentialRentYear?: string;
+  /** Noise lives inside this record too — it is a score, and it carries the heaviest caveat. */
   scores: AreaScores;
-  noise: NoiseEstimate;
 }
