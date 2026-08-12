@@ -17,7 +17,7 @@ import { resolve } from "path"
 
 import type { Client } from "pg"
 
-import { connect, log } from "../ingest/lib/db"
+import { connect, connectionTarget, log } from "../ingest/lib/db"
 
 const ROOT = resolve(import.meta.dirname, "../..")
 
@@ -244,6 +244,14 @@ async function runGolden(client: Client): Promise<void> {
 // ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
+  // Both ends of the run name the database, because a verdict that does not say what it
+  // judged is worth nothing — and the failure mode is real: two hours were once lost to a
+  // config pointing at an unrelated project. The header is for watching it run, the
+  // footer for the line that gets pasted into a report. `connectionTarget()` never
+  // returns the password.
+  const target = connectionTarget()
+  log("CIBLE", target)
+
   const client = await connect()
   try {
     await runInvariants(client)
@@ -255,13 +263,13 @@ async function main(): Promise<void> {
 
   process.stdout.write("\n")
   if (failures > 0) {
-    log("ÉCHEC", `${failures} défaillance(s), ${warnings} avertissement(s)`)
+    log("ÉCHEC", `${failures} défaillance(s), ${warnings} avertissement(s) — ${target}`)
     process.exitCode = 1
   } else if (warnings > 0) {
-    log("AVERTISSEMENT", `${warnings} écart(s) sous le seuil bloquant`)
+    log("AVERTISSEMENT", `${warnings} écart(s) sous le seuil bloquant — ${target}`)
     process.exitCode = 3
   } else {
-    log("PASS", "invariants, baselines et jeu doré au vert")
+    log("PASS", `invariants, baselines et jeu doré au vert — ${target}`)
   }
 }
 

@@ -9,8 +9,30 @@ qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.m
 
 ## Ce qui existe et fonctionne — en local uniquement
 
-Vingt-et-une migrations appliquées sur une base locale (`npx.cmd supabase start`),
-quatre sources chargées, la porte d'évaluation au vert.
+**Dix-neuf** migrations appliquées sur une base locale, quatre sources chargées,
+la porte d'évaluation au vert — rejouée et confirmée le **10 août**.
+
+Dix-neuf, pas vingt-et-une : `supabase/migrations/` contient 21 fichiers, mais les
+deux derniers (`20260809131158`, `20260809131210`, générés par Lovable) ne sont
+pas appliqués en local. À vérifier avant toute bascule, ce sont eux qui portent
+les tables utilisateur côté Lovable.
+
+### Ne pas lancer `supabase start` sans regarder d'abord
+
+La pile locale qui tourne s'appelle **`supabase_db_pulfdlztjbkgydmyrkfy`** — la
+référence *ComparaCourse*, « sans rapport » d'après le tableau plus bas. Les
+conteneurs portent ce nom parce que `config.toml` pointait dessus quand ils ont
+été créés, et **toute la donnée de référence est dans ce volume**.
+
+Depuis que `config.toml` dit `nwnhhvogwrzstslxtxca`, `supabase start` veut créer
+une pile neuve et vide sous ce nom-là. Elle échoue sur un conflit de port 54322 —
+ce qui est une chance : en cas de succès elle aurait donné une base vide, avec
+l'air d'être la bonne. Se connecter directement à `127.0.0.1:54322`, qui reste la
+bonne adresse quel que soit le nom du conteneur.
+
+```powershell
+docker ps --format "{{.Names}} | {{.Ports}}"   # voir quelle pile tourne vraiment
+```
 
 | | Volume |
 | --- | --- |
@@ -21,8 +43,16 @@ quatre sources chargées, la porte d'évaluation au vert.
 | Établissements SIRENE géolocalisés | 68 672 |
 
 ```powershell
-npm.cmd run eval      # 10 invariants, 24 baselines, 8 cas dorés — environ 2 min
+# .env.local vise le distant : sans cette variable, la porte partirait vers eu-north-1.
+# Les variables du shell priment sur .env.local — vérifié, inutile de toucher au fichier.
+$env:DATABASE_URL = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+npm.cmd run eval      # 10 invariants, 24 baselines, 8 cas dorés — environ 45 s
+Remove-Item Env:\DATABASE_URL
 ```
+
+Le lanceur **annonce désormais sa cible**, en en-tête et dans la ligne de verdict :
+un « PASS » collé dans un rapport dit contre quelle base il a été rendu. Sans ça,
+une porte au vert contre la mauvaise base ne veut rien dire.
 
 Les fonctions exposées : `compass_premises_within`, `compass_scoring_context_within`,
 `compass_premise_history`, `compass_street_rotation`, `compass_bodacc_within`,
@@ -139,6 +169,13 @@ corrigé ; seule la transaction a sauvé le chargement.
 main. `docker restart` du seul conteneur de base recrée la liaison sans toucher
 au volume — ne pas faire `supabase stop`, plus risqué pour les données. Si le
 démon lui-même ne répond plus : `wsl --shutdown`, puis relancer Docker Desktop.
+
+Vécu le 10 août, avec une variante : le démon répondait sur le tube nommé mais
+rendait **500 sur toutes les routes `/info`**. Épingler une version d'API basse
+(`DOCKER_API_VERSION`) n'y change rien — ce n'est pas un décalage client/serveur.
+Il faut tuer les processus `Docker Desktop` et `com.docker.backend`, puis
+`wsl --shutdown`, puis relancer. Compter deux à trois minutes avant que le démon
+réponde ; les conteneurs remontent seuls, volumes intacts.
 
 **Le terminal d'Ivan est PowerShell 5.1**, pas 7 : ni `&&`, ni `grep`, ni `ls -l`.
 Et `npm.ps1` est bloqué — toujours `npm.cmd` et `npx.cmd`.
