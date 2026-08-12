@@ -179,8 +179,27 @@ Et `npm.ps1` est bloqué — toujours `npm.cmd` et `npx.cmd`.
 
    `src/pages/Methodology.tsx` publie désormais la règle, section « Quand une
    source manque » (règle de `CLAUDE.md` : formule modifiée, page mise à jour).
-4. **Remonter la provenance dans l'interface**, côté Lovable. Débloque le dossier
-   exportable (§2.6) et le serveur MCP (§4.1).
+4. ~~**Remonter la provenance dans l'interface.**~~ **Fait le 10 août**, dans le
+   dépôt et non côté Lovable. `computeScores` ne déballe plus `Measured<T>` : le
+   noyau rend, l'interface affiche. Le bruit a rejoint les autres scores, sa
+   forme propre `{ score, label }` étant celle qui lui faisait perdre sa réserve.
+   Trois règles tenues en un point unique — absent en « n/d », estimation
+   annoncée, source et millésime collés au nombre. Le marqueur de réserve est un
+   **lien** vers `/methodologie`, pas une infobulle : une réserve au survol
+   n'existe pas sur écran tactile et ne survit pas à une lecture à voix haute.
+   La décision d'affichage est isolée dans `src/components/figureText.ts`, sans
+   JSX, parce que le harnais tourne en `environment: 'node'`.
+
+5. **Afficher la composition de fiabilité — après la bascule.** Les quatre
+   niveaux (`etabli`, `corrobore`, `probable`, `indetermine`) sont **un
+   instrument de traçabilité, pas un indicateur de tableau de bord** : un agent
+   qui répond doit pouvoir annoncer son degré de confiance dans la donnée qu'il
+   cite. C'est donc autant le serveur MCP (§4.1) que l'écran qui en a besoin.
+
+   Bloqué tant que le front ne parle qu'à Overpass : ces quatre nombres viennent
+   du croisement BDCom × BODACC, donc de la base. Les écrire en dur serait
+   exactement le chiffre invérifiable que le produit refuse. À reprendre une fois
+   `dbefhvmyfmmhjeetdddu` chargé, et pas avant.
 
 ---
 
