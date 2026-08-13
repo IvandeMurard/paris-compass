@@ -1,4 +1,4 @@
-# Reprise — état au 9 août 2026, fin de session
+# Reprise — état au 12 août 2026, fin de session
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`
@@ -10,7 +10,7 @@ qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.m
 ## Ce qui existe et fonctionne — en local uniquement
 
 **Dix-neuf** migrations appliquées sur une base locale, quatre sources chargées,
-la porte d'évaluation au vert — rejouée et confirmée le **10 août**.
+la porte d'évaluation au vert — rejouée et confirmée le **12 août**.
 
 Dix-neuf, pas vingt-et-une : `supabase/migrations/` contient 21 fichiers, mais les
 deux derniers (`20260809131158`, `20260809131210`, générés par Lovable) ne sont
@@ -70,7 +70,7 @@ rayon**, jamais une bbox.
 montrer le secret : **s'en servir avant tout chargement**.
 
 La région est `eu-north-1` (Stockholm), donnée par Lovable et **vérifiée** le
-10 août. L'hôte du fichier a été corrigé en conséquence.
+12 août. L'hôte du fichier a été corrigé en conséquence.
 
 | Cible | Réponse |
 | --- | --- |
@@ -170,7 +170,7 @@ main. `docker restart` du seul conteneur de base recrée la liaison sans toucher
 au volume — ne pas faire `supabase stop`, plus risqué pour les données. Si le
 démon lui-même ne répond plus : `wsl --shutdown`, puis relancer Docker Desktop.
 
-Vécu le 10 août, avec une variante : le démon répondait sur le tube nommé mais
+Vécu le 12 août, avec une variante : le démon répondait sur le tube nommé mais
 rendait **500 sur toutes les routes `/info`**. Épingler une version d'API basse
 (`DOCKER_API_VERSION`) n'y change rien — ce n'est pas un décalage client/serveur.
 Il faut tuer les processus `Docker Desktop` et `com.docker.backend`, puis
@@ -216,7 +216,7 @@ Et `npm.ps1` est bloqué — toujours `npm.cmd` et `npx.cmd`.
 
    `src/pages/Methodology.tsx` publie désormais la règle, section « Quand une
    source manque » (règle de `CLAUDE.md` : formule modifiée, page mise à jour).
-4. ~~**Remonter la provenance dans l'interface.**~~ **Fait le 10 août**, dans le
+4. ~~**Remonter la provenance dans l'interface.**~~ **Fait le 12 août**, dans le
    dépôt et non côté Lovable. `computeScores` ne déballe plus `Measured<T>` : le
    noyau rend, l'interface affiche. Le bruit a rejoint les autres scores, sa
    forme propre `{ score, label }` étant celle qui lui faisait perdre sa réserve.
@@ -237,6 +237,28 @@ Et `npm.ps1` est bloqué — toujours `npm.cmd` et `npx.cmd`.
    du croisement BDCom × BODACC, donc de la base. Les écrire en dur serait
    exactement le chiffre invérifiable que le produit refuse. À reprendre une fois
    `dbefhvmyfmmhjeetdddu` chargé, et pas avant.
+
+6. **Cap de long terme : l'agent s'évalue lui-même.** Décidé le 12 août. La
+   métacognition et l'amélioration continue — l'agent sachant dire ce qu'il sait,
+   ce qu'il ignore, et à quel point sa réponse s'est améliorée depuis la dernière
+   source branchée — doivent devenir **une capacité autonome du produit**, pas un
+   travail refait à la main à chaque session.
+
+   Ce que ça implique, et qui n'est pas encore vrai :
+
+   - **`confidence_reason` est du texte libre**, construit par concaténation SQL.
+     Un humain le lit, une machine ne peut pas raisonner dessus. Pour qu'un agent
+     s'auto-évalue il faut un motif **structuré** — la règle déclenchée et les
+     valeurs de colonnes qui l'ont déclenchée, pas une phrase.
+   - **La composition de fiabilité doit être historisée.** Aujourd'hui les 24
+     baselines la figent à une date ; « s'améliorer » se démontre en comparant
+     deux instantanés, donc il faut les garder.
+   - **La porte d'évaluation est déjà la brique de mesure.** Elle sait dire si la
+     qualité a dérivé ; il lui manque de savoir dire de combien elle a *progressé*,
+     et contre quelle base — d'où l'annonce de cible ajoutée le 12 août.
+
+   Ne pas confondre avec un score de confiance en pourcentage : le refus reste
+   entier. C'est la *traçabilité* qui devient autonome, pas la certitude.
 
 ---
 
