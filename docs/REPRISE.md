@@ -14,8 +14,45 @@ la porte d'évaluation au vert — rejouée et confirmée le **12 août**.
 
 Dix-neuf, pas vingt-et-une : `supabase/migrations/` contient 21 fichiers, mais les
 deux derniers (`20260809131158`, `20260809131210`, générés par Lovable) ne sont
-pas appliqués en local. À vérifier avant toute bascule, ce sont eux qui portent
-les tables utilisateur côté Lovable.
+pas appliqués en local.
+
+### La répétition générale, et les deux défauts qu'elle a trouvés
+
+Le 12 août, les 21 fichiers ont été rejoués **depuis zéro** sur une base vierge du
+même agrégat, dans l'ordre des noms, chacun dans sa transaction — comme le fait la
+CLI Supabase. Résultat final : **21/21, 18 tables, 10 fonctions `compass_*`**,
+identique à la base de référence.
+
+Elle n'est pas passée du premier coup, et c'était tout l'intérêt.
+
+**1. Les tables utilisateur dépendaient de `uuid-ossp` sans jamais le déclarer.**
+`uuid_generate_v4()` vient de cette extension, qu'un projet Supabase active par
+défaut. Les migrations Compass déclarent proprement PostGIS ; les tables
+utilisateur étaient l'exception, et s'appuyaient sur un provisionnement ambiant.
+Corrigé dans `20250417000001` par deux lignes idempotentes — le schéma
+`extensions` est déclaré aussi, ce fichier se classant **avant** la migration
+PostGIS qui le crée. Sans savoir si `dbefhvmyfmmhjeetdddu` a l'extension activée,
+la déclarer coûte deux lignes et supprime le pari.
+
+**2. `20250417000001` et `20260809131158` sont des doublons exacts** — mêmes
+quatre tables, mêmes quatorze politiques, mêmes noms. `CREATE TABLE IF NOT EXISTS`
+absorbait la collision sur les tables, mais **Postgres n'a pas de
+`CREATE POLICY IF NOT EXISTS`** : rejouer l'ensemble échouait au second passage.
+Jamais vu jusqu'ici parce que les deux fichiers n'ont **jamais tourné ensemble** —
+le local ne porte que le premier, Lovable n'a appliqué que le second. Une bascule
+sur une base neuve les aurait rencontrés tous les deux. Corrigé par un
+`DROP POLICY IF EXISTS` devant chacune des quatorze.
+
+> Contrairement à ce qui a pu être dit, les tables utilisateur **ne tournent pas
+> sans politique en local** : `20250417000001` les crée toutes, et elle est
+> appliquée.
+
+**Ce que la répétition ne prouve pas.** La base vierge est créée par
+`create database` dans l'agrégat local : elle hérite des rôles, pas du
+provisionnement par base que fait Supabase. Le schéma `auth` y est une **doublure**
+— `auth.users` réduit à deux colonnes et `auth.uid()` lisant le claim JWT. Les
+19 migrations Compass sont donc éprouvées pour de vrai ; les trois qui touchent
+aux tables utilisateur ne le sont que sur cette doublure.
 
 ### Ne pas lancer `supabase start` sans regarder d'abord
 

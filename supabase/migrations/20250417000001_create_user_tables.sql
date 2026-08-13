@@ -1,3 +1,16 @@
+-- `uuid_generate_v4()` lives in uuid-ossp, which a Supabase project happens to enable by
+-- default. Every table below depended on that default without ever saying so — and a
+-- rehearsal of the whole migration set against a virgin database failed here, along with
+-- the two later migrations that reuse the same function.
+--
+-- Declaring the dependency costs two idempotent lines and removes the guess. The Compass
+-- migrations already do this for PostGIS; the user tables were the exception.
+--
+-- The schema is declared too, and not only the extension: this file sorts before the
+-- PostGIS migration that creates `extensions`, so on a database Supabase has not
+-- provisioned there is nowhere to put it. Both statements are no-ops on a real project.
+CREATE SCHEMA IF NOT EXISTS extensions;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
 
 -- Create table for user preferences
 CREATE TABLE IF NOT EXISTS public.user_preferences (

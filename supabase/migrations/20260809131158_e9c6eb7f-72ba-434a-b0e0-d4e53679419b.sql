@@ -48,61 +48,85 @@ ALTER TABLE public.saved_properties ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notification_settings ENABLE ROW LEVEL SECURITY;
 
 -- Create policies
+--
+-- This file duplicates 20250417000001 exactly: same four tables, same fourteen policy
+-- names. `CREATE TABLE IF NOT EXISTS` made the tables survive that, but Postgres has no
+-- `CREATE POLICY IF NOT EXISTS`, so replaying the whole set against a fresh database
+-- failed here. It had never been caught because the two files have never both run: the
+-- local database carries 20250417000001 only, and this one was applied on its own by
+-- Lovable. A rehearsal on a virgin database found it before the switch did.
+--
+-- Each policy is dropped first, which makes the file idempotent and order-independent
+-- without changing what it grants.
+DROP POLICY IF EXISTS "Users can view own preferences" ON public.user_preferences;
 CREATE POLICY "Users can view own preferences" 
 ON public.user_preferences
 FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own preferences" ON public.user_preferences;
 CREATE POLICY "Users can update own preferences" 
 ON public.user_preferences
 FOR UPDATE USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own preferences" ON public.user_preferences;
 CREATE POLICY "Users can insert own preferences" 
 ON public.user_preferences
 FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Saved searches policies
+DROP POLICY IF EXISTS "Users can view own saved searches" ON public.saved_searches;
 CREATE POLICY "Users can view own saved searches" 
 ON public.saved_searches
 FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can create own saved searches" ON public.saved_searches;
 CREATE POLICY "Users can create own saved searches" 
 ON public.saved_searches
 FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own saved searches" ON public.saved_searches;
 CREATE POLICY "Users can update own saved searches" 
 ON public.saved_searches
 FOR UPDATE USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete own saved searches" ON public.saved_searches;
 CREATE POLICY "Users can delete own saved searches" 
 ON public.saved_searches
 FOR DELETE USING (auth.uid() = user_id);
 
 -- Saved properties policies
+DROP POLICY IF EXISTS "Users can view own saved properties" ON public.saved_properties;
 CREATE POLICY "Users can view own saved properties" 
 ON public.saved_properties
 FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can create own saved properties" ON public.saved_properties;
 CREATE POLICY "Users can create own saved properties" 
 ON public.saved_properties
 FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete own saved properties" ON public.saved_properties;
 CREATE POLICY "Users can delete own saved properties" 
 ON public.saved_properties
 FOR DELETE USING (auth.uid() = user_id);
 
 -- Notification settings policies
+DROP POLICY IF EXISTS "Users can view own notification settings" ON public.notification_settings;
 CREATE POLICY "Users can view own notification settings" 
 ON public.notification_settings
 FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can create own notification settings" ON public.notification_settings;
 CREATE POLICY "Users can create own notification settings" 
 ON public.notification_settings
 FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own notification settings" ON public.notification_settings;
 CREATE POLICY "Users can update own notification settings" 
 ON public.notification_settings
 FOR UPDATE USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete own notification settings" ON public.notification_settings;
 CREATE POLICY "Users can delete own notification settings" 
 ON public.notification_settings
 FOR DELETE USING (auth.uid() = user_id);
