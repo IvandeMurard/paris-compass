@@ -72,10 +72,33 @@ par un visiteur :
 Les XSS hautes de React Router, elles, **sont corrigées** : c'était la seule
 famille qui atteignait réellement le navigateur, avec `nanoid`, passé en 3.3.18.
 
-⚠️ **`bun.lockb` n'a pas été mis à jour** — bun n'est pas installé sur la machine.
-Lovable construit avec bun, donc tant que ce verrou n'est pas régénéré, les
-correctifs ne partent pas en production. À faire côté Lovable, ou en installant
-bun. Les deux verrous sont suivis par git et divergent depuis le 12 août.
+**`bun.lockb` a été régénéré** le 12 août et porte les mêmes versions que
+`package-lock.json` — vérifié paquet par paquet sur les seize que les avis
+nommaient. Les deux verrous sont donc alignés, et les correctifs partiront en
+production au prochain build Lovable.
+
+### Bun ne tourne pas sur cette machine : passer par Docker
+
+**Le poste est en Windows ARM64** — le Postgres local le confirme, compilé en
+`aarch64`. Bun ne publie **aucun binaire Windows ARM64** : `npm install -g bun`
+échoue sur `Unsupported platform: win32 arm64`, quelle que soit la version, et
+`npx bun` échoue en silence avec un code 1 sans message. Ce n'est pas un problème
+de version, c'est l'architecture.
+
+WSL ne contient que `docker-desktop` et `docker-desktop-data` — pas de Linux
+généraliste à exploiter. La voie qui marche est l'image officielle, qui existe en
+Linux ARM64, avec un répertoire jetable contenant **seulement `package.json`** :
+
+```powershell
+# Sans bun.lockb dans le repertoire : la resolution repart de zero et prend les
+# dernieres versions dans les plages de package.json — donc les correctifs. Avec
+# le verrou present, bun conserverait les versions epinglees et ne corrigerait rien.
+docker run --rm -v "${tmp}:/app" -w /app oven/bun:1.1.38 bun install
+```
+
+Rester en **bun 1.1.x** : à partir de 1.2, bun migre `bun.lockb` vers `bun.lock`
+en texte, ce qui changerait le format que Lovable attend. Ne pas monter le dépôt
+lui-même — bun y écrirait un `node_modules` Linux par-dessus celui de Windows.
 
 ### Ne pas lancer `supabase start` sans regarder d'abord
 
