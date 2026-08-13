@@ -54,6 +54,29 @@ provisionnement par base que fait Supabase. Le schéma `auth` y est une **doublu
 19 migrations Compass sont donc éprouvées pour de vrai ; les trois qui touchent
 aux tables utilisateur ne le sont que sur cette doublure.
 
+### Vulnérabilités : 21 → 9, et pourquoi les neuf restent
+
+`npm.cmd audit fix` (jamais `--force`) le 12 août. `package.json` n'a pas bougé :
+aucune plage de version élargie, seul le verrou a changé. Typecheck, 43 tests et
+build de production vérifiés après coup.
+
+Les neuf restantes exigent toutes une **majeure**, et aucune n'est atteignable
+par un visiteur :
+
+| Paquet | Gravité | Pourquoi on ne bouge pas |
+| --- | --- | --- |
+| `vitest` | critique | L'avis vise le **serveur d'interface** de Vitest. Le projet lance `vitest run`, jamais `--ui`. Correctif = vitest 4 |
+| `vite`, `esbuild` | haute / modérée | Serveur de **développement** uniquement. Le produit est un site statique sans backend joignable. Correctif = vite 8 |
+| `react-router-dom` | modérée | *Open redirect* par antislash. `6.30.4` est déjà le dernier 6.x — corrigé seulement en 7.x, donc cassant malgré l'étiquette « non cassant » de npm |
+
+Les XSS hautes de React Router, elles, **sont corrigées** : c'était la seule
+famille qui atteignait réellement le navigateur, avec `nanoid`, passé en 3.3.18.
+
+⚠️ **`bun.lockb` n'a pas été mis à jour** — bun n'est pas installé sur la machine.
+Lovable construit avec bun, donc tant que ce verrou n'est pas régénéré, les
+correctifs ne partent pas en production. À faire côté Lovable, ou en installant
+bun. Les deux verrous sont suivis par git et divergent depuis le 12 août.
+
 ### Ne pas lancer `supabase start` sans regarder d'abord
 
 La pile locale qui tourne s'appelle **`supabase_db_pulfdlztjbkgydmyrkfy`** — la
@@ -216,6 +239,12 @@ réponde ; les conteneurs remontent seuls, volumes intacts.
 
 **Le terminal d'Ivan est PowerShell 5.1**, pas 7 : ni `&&`, ni `grep`, ni `ls -l`.
 Et `npm.ps1` est bloqué — toujours `npm.cmd` et `npx.cmd`.
+
+**Ne jamais passer `--omit=optional` à npm sur ce projet.** Rollup livre son
+binaire natif (`@rollup/rollup-win32-x64-msvc`) en dépendance *optionnelle* :
+l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
+`rollup/dist/native.js`, dont le message ne dit pas d'où vient le manque. Un
+`npm.cmd install` simple répare.
 
 ---
 
