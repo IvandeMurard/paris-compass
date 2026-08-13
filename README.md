@@ -1,16 +1,27 @@
+<div align="center">
+
 # Compass
 
-**What happened at this address before you.**
+**Context is the product.**
 
-*A 3/6/9 lease is a nine-year bet, decided today on one visit and a hunch about passing trade. Compass replaces the hunch with the public record — and tells you how sure it is.*
+*Every commercial-property tool describes the unit — surface, rent, photos — and leaves you to guess the rest. Compass reads the street instead, from public records only, and tells you how sure it is of each answer.*
 
 [![Live app](https://img.shields.io/badge/live-paris--compass.lovable.app-0f766e?style=flat)](https://paris-compass.lovable.app)
 [![Scope](https://img.shields.io/badge/scope-Paris%20intra--muros-334155?style=flat)](#scope)
 [![Data](https://img.shields.io/badge/data-public%20sources%20only-1d4ed8?style=flat)](#where-every-number-comes-from)
 [![Eval gate](https://img.shields.io/badge/eval%20gate-10%20invariants%20·%2024%20baselines-16a34a?style=flat)](#how-a-number-earns-its-place)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue?style=flat)](LICENSE)
 [![Stack](https://img.shields.io/badge/React%2018-TypeScript-38bdf8?style=flat)](#stack)
 
 **[Open the map →](https://paris-compass.lovable.app)** · no account needed
+
+</div>
+
+---
+
+> Compass sells neither coverage nor granularity — it sells **interpretation**. The value is not the number of sources plugged in; it is the distance between a raw figure and a sentence you can decide on.
+
+A 3/6/9 lease is a nine-year bet, made today on one visit, a hunch about passing trade, and whatever the landlord says.
 
 ---
 
@@ -18,13 +29,24 @@
 
 You are standing in front of an empty shopfront. The agent says the street is lively.
 
-Compass says: **a florist in 2017, a florist in 2020, gone by 2023.**
+Compass answers on six axes at once.
 
-Not an opinion about the street. A door-to-door census of every Paris ground-floor unit with a shop window, taken three times, coded on a 224-activity nomenclature.
+| | |
+| --- | --- |
+| **What was here** | florist 2017 → florist 2020 → gone by 2023 |
+| **How the street behaves** | half the units turned over in three years — and the empty ones refilled |
+| **What it costs** | median *fonds* 160 000 €, 220 000 € for a café |
+| **What is moving now** | an insolvency filed here is public months before any listing |
+| **What is around it** | schools, healthcare, food, parks and transit counted within **800 m**, aggregated into walkability |
+| **What the environment is worth** | air quality **measured** (Copernicus), natural and technological risks within **1 km**, noise **modelled** from major roads at 500 m |
+
+Each of those arrives with its source, its date and its confidence level.
+
+Note the wording, because the product keeps it too: air quality is *measured*, noise is *modelled*. Noise and footfall are proxies, labelled as such on screen and here.
 
 ---
 
-## What it tells you
+## Three that deserve more than a line
 
 **Has a kitchen ever been here?**
 If a restaurant occupied the unit, the extraction, grease trap and power are probably already in. If not, creating them runs into tens of thousands and needs the building's agreement. The most expensive question this data answers — before you travel.
@@ -38,9 +60,6 @@ Rue d'Argout turned over half its shops in three years — but it also filled it
 | Food shop | Café / restaurant | Clothing | Personal services |
 | --- | --- | --- | --- |
 | 250 000 € | 220 000 € | 86 000 € | 50 000 € |
-
-**What is happening right now?**
-An insolvency filed at an address is public months before any listing appears.
 
 ---
 
@@ -94,7 +113,7 @@ The useful granularity is the street segment, sometimes the side of the pavement
 
 ## Who it is for
 
-**The taker** — the shopkeeper, restaurateur, craftsperson or franchisee who decides *where* to open. Once or twice in a working life, committing to nine years.
+**The entrepreneur** — the shopkeeper, restaurateur, craftsperson or franchisee who decides *where* to open. Once or twice in a working life, committing to nine years.
 
 **An agent** — an LLM asking the same question through an MCP server. Same scoring core, same traceability requirement, different output: JSON and a chain of thought instead of a map.
 
@@ -180,7 +199,7 @@ Scores computed client-side: walkability, transport access, density per category
 | Source | Producer | Contribution |
 | --- | --- | --- |
 | **BDCom** 2017 / 2020 / 2023 | APUR | Door-to-door census of every ground-floor unit with a shop window, 224-activity nomenclature, floor-area bands. The unit identifier is stable across vintages, so three censuses give **turnover measured against its own street**, with previous lives as the evidence. Two limits are part of the claim: vacancy is measurable on 2017 and 2020 only — the 2023 layer carries retail alone, so a missing unit is "no longer a shop", not "empty" — and the licence differs by vintage, so BDCom cannot be announced as ODbL across the board |
-| **BODACC** | DILA | Goodwill sales *with their price*, and insolvency proceedings — the closest public figure to what a taker will pay, and a signal that a unit is coming free |
+| **BODACC** | DILA | Goodwill sales *with their price*, and insolvency proceedings — the closest public figure to what an entrepreneur will pay, and a signal that a unit is coming free |
 | **Sirene** geolocated | INSEE | Corroboration: places an establishment of the same company at the address, which raises a notice to *corroborated* without ever making it *established* |
 
 </details>
@@ -245,9 +264,21 @@ Open data sources need no key. For your own backend, put `VITE_SUPABASE_URL` and
 
 ---
 
-## Attribution
+## Licence and attribution
 
-OpenStreetMap data is ODbL: any reuse must credit *© OpenStreetMap contributors*. Etalab datasets require mentioning the source and its update date.
+**The code is [Apache-2.0](LICENSE). The data is not.**
+
+That distinction matters more than it looks on a product built entirely from open data. The licence covers what is in this repository — the scoring core, the ingestion pipeline, the interface. It grants nothing over the datasets, which keep their own terms:
+
+| | Requires |
+| --- | --- |
+| **ODbL** — OpenStreetMap, rent control dataset, BDCom 2023 | Attribution *and* share-alike. Any reuse must credit *© OpenStreetMap contributors* |
+| **Licence Ouverte 2.0** — Base Adresse Nationale, Sirene, Géorisques | Naming the source and its update date |
+| **CC BY 4.0** — CAMS Europe / Copernicus | Attribution |
+
+**BDCom 2017 and 2020 are not redistributable at all.** Their licence differs from the 2023 vintage, which is why the database carries a `publicly_redistributable` flag per vintage and withholds their content from an anonymous caller — content *and* absence alike, so that withholding leaks nothing either.
+
+This repository contains **no data extract**, and must not. It contains the code that fetches, models and cites the data.
 
 Made by **[Ivan de Murard](https://github.com/IvandeMurard)**.
 
