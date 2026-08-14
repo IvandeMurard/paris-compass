@@ -435,6 +435,122 @@ une fois.
 
 ---
 
+## Phase 5 — l'exposition : ce qui se passe autour et pendant
+
+Les phases 2 à 4 répondent à « qu'est-ce qui a été là » et « qu'est-ce qu'il y a autour ».
+Il manque une dimension : **ce qui va arriver pendant le bail**. Un preneur signe neuf ans ;
+l'environnement est autant temporel que spatial.
+
+Ordre de priorité. Le premier point est de loin le meilleur rapport valeur/effort du backlog.
+
+**5.1 — Chantiers de voirie.** ✅ *Vérifié le 12 août : les jeux existent et portent la
+géométrie.*
+
+`opendata.paris.fr` publie l'historique géolocalisé année par année — `chantiers-a-paris-copie`
+(2019) à `chantiers-a-paris-copie3` (2023) — plus `chantiers-perturbants`, « travaux perturbant
+la circulation », mis à jour quotidiennement, en polygones.
+
+C'est peut-être l'information la plus rentable du produit entier. Dix-huit mois de travaux
+devant une vitrine décident d'un commerce, et personne ne le dit au preneur avant la
+signature. La forme est un **fait d'exposition, jamais une prévision** :
+
+> Ce local est à 40 m d'un chantier déclaré perturbant, prévu de septembre 2026 à mars 2027.
+> Source : Ville de Paris.
+
+Daté, sourcé, décisif, et sans un mot de prédiction. Entre directement dans `Measured<T>` en
+`measured` — c'est un acte administratif, pas un modèle.
+
+**5.2 — Croiser SIRENE et BDCom.** Aucune source nouvelle, aucune licence nouvelle : les deux
+sont déjà ingérées.
+
+BDCom donne trois photos (2017, 2020, 2023). SIRENE porte les **dates de création et de
+cessation en continu**. Le croisement comble les années aveugles entre recensements et
+transforme la rotation triennale en **courbe de survie par activité et par tronçon**.
+
+Attention au piège déjà documenté en §2.4 : un établissement SIRENE n'est pas un local. La
+jointure doit rester au niveau où elle est défendable, et un résultat non rattachable à un
+local reste `probable`.
+
+**5.3 — Inondation : passer du booléen au zonage.**
+
+`fetchRisks` (`src/services/opendata/environment.ts:45`) appelle déjà Géorisques en point +
+rayon 1 km, sans clé. Mais il ne remonte que des booléens libellés : `{ present: true,
+libelle: "Inondation" }`. À Paris, sur 1 km, c'est vrai presque partout.
+
+**Cet affichage tombe donc sous la règle fondatrice** : si deux locaux de la même rue reçoivent
+le même verdict, Compass n'a rien dit. Le booléen actuel décore, il ne discrimine pas.
+
+| Donnée | Granularité | Pourquoi elle décide |
+| --- | --- | --- |
+| Zonage **PPRI** | polygone, varie rue par rue le long de la Seine | Assurabilité, travaux imposés, parfois interdiction d'usage en rez-de-chaussée |
+| **Remontée de nappe** (BRGM) | maille fine | C'est elle qui inonde une réserve en sous-sol, loin du fleuve |
+| Arrêtés **CatNat** | commune | **À écarter** : uniforme sur Paris entier, donc muet |
+
+Ne pas en faire un « indice ». Un score composite d'inondation serait exactement le chiffre
+invérifiable que le produit refuse partout ailleurs. La forme juste est catégorielle et
+sourcée. Angle propre : l'exposition dépend du **type de commerce** — une chambre froide en
+cave n'est pas le prêt-à-porter du même immeuble.
+
+**5.4 — Sources d'appoint.** À vérifier avant engagement, aucune n'a été confirmée.
+
+| Source | Producteur | Apport |
+| --- | --- | --- |
+| Terrasses et étalages | Ville de Paris | Signal de vitalité **et** réponse directe à « puis-je avoir une terrasse ici ? », décisive pour un restaurateur |
+| Filosofi **carroyé 200 m** | INSEE | Revenus et population sur une maille de 200 m — satisfait la règle de granularité, contrairement à l'IRIS |
+| **BPE** | INSEE | Équipements recensés administrativement. Croisé avec OSM, il fait passer un comptage de *probable* à **corroboré** : deux sources indépendantes, la mécanique de §2.5 exactement |
+| Comptages vélo permanents | Ville de Paris | Pas des piétons, mais un rythme horaire **mesuré**, au tronçon, sur plusieurs années. Honnêtement étiqueté, meilleur que le proxy actuel |
+| Marchés alimentaires | Ville de Paris | Jours et emprises : un flux périodique qui change tout pour un commerce de bouche |
+
+**5.5 — L'étude rétrospective chantiers × BDCom.** Un résultat de méthode, pas une
+fonctionnalité.
+
+Une fois 5.1 branché, le corpus permet une question testable : *les locaux à moins de N mètres
+d'un chantier de plus de M mois ont-ils disparu plus souvent entre les recensements 2020 et
+2023 que leurs voisins de la même rue et du même métier ?*
+
+Publiable sur la page méthodologie, falsifiable, et **c'est ce qui donnerait le droit**
+d'afficher plus tard une association *mesurée* plutôt qu'une intuition. Si l'effet n'existe
+pas, on l'apprend aussi et on ne l'affiche pas. C'est la démarche qui sépare Compass d'un
+tableau de bord.
+
+---
+
+## Concurrence — Aino
+
+« AI infrastructure for the built environment », couche de décision au-dessus du SIG :
+opérations spatiales en langage naturel (*« Draw a 1 km buffer », « Show me the foot traffic »*),
+couches OSM avec décompte, export CSV/PNG, format éditorial « Daily Agent #N » et webinaires
+gratuits.
+
+**Ce qu'ils font mieux : le discours.** Leur phrase — *« Every figure is traceable to its
+dataset. This is not a mood board, it's evidence for a submission »* — est mot pour mot la
+thèse de Compass. Nous avons la version plus forte de cet engagement (niveaux calculés,
+licences bloquantes, `Measured<T>` qui rend la règle mécanique) et l'énonçons dans un README
+quand eux en font une accroche. **Produit supérieur, discours inférieur.** À corriger.
+
+**À voler.** Le décompte par couche : ils écrivent « Parks: 43 features, OpenStreetMap ». Ils
+affichent le **dénominateur**. Compass affiche `source · millésime · méthode` mais pas
+*combien d'éléments ont été comptés*. « 12 commerces alimentaires dans 800 m » est refaisable
+par le lecteur ; « alimentation 64/100 » ne l'est pas. Peu de travail, très aligné.
+
+**À voler aussi.** Le format sériel numéroté, un cas d'usage par publication.
+
+**À ne pas copier.** Leur généralité horizontale : un outil pour des professionnels qui savent
+déjà faire du SIG et veulent aller plus vite. Compass est vertical — une décision, une
+personne, un avis argumenté. Notre équivalent existe et s'appelle §4.1.
+
+**À refuser franchement.** Ils revendiquent le « foot traffic ». Or aucun comptage piéton
+ouvert ne couvre l'Île-de-France, c'est documenté en §3. Ils utilisent donc un proxy tu, ou une
+source commerciale. **Notre refus explicite est un actif concurrentiel, pas un manque** : ils
+promettent le chiffre que tout le monde veut, nous expliquons pourquoi personne ne peut le
+donner honnêtement. C'est le terrain où nous gagnons contre eux, et il vaut d'être tenu
+explicitement dans la case study (§4.4).
+
+Ne pas copier non plus leur export libre : le refus d'exporter une liste est structurant
+(§2.6), pas un retard.
+
+---
+
 ## Différé, à garder en vue
 
 - **Vélib' en GBFS** — API sans clé, ~1 400 stations, rafraîchie chaque minute. Le cycle de
@@ -446,6 +562,16 @@ une fois.
   trottoir, méthode d'extrapolation incluse. Transforme un trou de données en méthode.
 - Vérifier si les déclarations de cession du droit de préemption commercial parisien (5e, 6e et
   partie du 7e, obligatoires depuis le 7 août 2024) sont publiées en open data.
-- Trancher entre `bun.lockb` et `package-lock.json`, ajouter un `.gitattributes`
-  (`* text=auto eol=lf`), sortir `public/sitemap.xml` du suivi git.
-- Regarder les vulnérabilités `npm audit` à froid, sans `--force`.
+- ~~Trancher entre `bun.lockb` et `package-lock.json`~~ **Fait le 12 août** : les deux sont
+  conservés et **alignés**, vérifiés paquet par paquet. Bun ne tourne pas sur cette machine
+  (Windows ARM64, aucun binaire publié) — la régénération passe par l'image `oven/bun` en
+  conteneur, avec un répertoire ne contenant que `package.json`. Procédure dans `REPRISE.md`.
+- Reste ouvert : ajouter un `.gitattributes` (`* text=auto eol=lf`), sortir
+  `public/sitemap.xml` du suivi git.
+- ~~Regarder les vulnérabilités `npm audit` à froid~~ **Fait le 12 août**, sans `--force` :
+  50 → 8 côté GitHub. Le tri s'est fait sur la **portée**, pas la gravité — les seules failles
+  atteignant un visiteur (XSS React Router, `nanoid`) sont corrigées. Les huit restantes
+  exigent une majeure et ne sont pas atteignables : l'avis critique de `vitest` vise son
+  serveur d'interface, jamais lancé ; ceux de `vite` et `esbuild` visent le serveur de
+  développement, alors que le produit est statique. Seule candidate discutable à terme :
+  React Router 7, la seule des huit qui touche le code livré.
