@@ -551,6 +551,54 @@ d'afficher plus tard une association *mesurée* plutôt qu'une intuition. Si l'e
 pas, on l'apprend aussi et on ne l'affiche pas. C'est la démarche qui sépare Compass d'un
 tableau de bord.
 
+**5.6 — Droit de préemption commercial.** Remonté du différé le 12 août, parce que c'est
+l'équivalent **ouvert et amont** de l'annonce commerciale (voir le refus d'Appear Here
+ci-dessous).
+
+Les déclarations d'intention d'aliéner un fonds ou un bail commercial sont obligatoires dans
+les périmètres de sauvegarde du commerce — 5ᵉ, 6ᵉ et une partie du 7ᵉ depuis le 7 août 2024.
+C'est une **déclaration administrative d'intention de céder** : exactement le signal qu'une
+place de marché vend, mais dans une forme sourçable, gratuite et sans dépendance commerciale.
+
+Préalable, non tranché : vérifier si ces déclarations sont publiées en open data. Si elles ne
+le sont pas, la piste s'arrête là et il faut le dire.
+
+**5.7 — Tester avant de signer.** Une page de méthode, aucune donnée, aucune dépendance.
+
+Le pop-up n'est pas un concurrent du produit : c'est un **instrument de dérisquage de la
+décision que Compass instruit**. Avant de s'engager neuf ans sur une rue, on peut la louer un
+mois. Bail dérogatoire contre bail 3/6/9 : ce que chacun engage, ce qu'il coûte, quand tester
+vaut mieux que signer.
+
+C'est de l'interprétation — ce que le produit dit vendre — et ça se livre sans lire une seule
+ligne de qui que ce soit.
+
+---
+
+## Refusé — les places de marché de locaux (Appear Here et assimilées)
+
+Examiné le 12 août à propos d'`appearhere.fr` : pop-up, boutiques et *showrooms* louables au
+jour, à la semaine ou au mois, concentrés sur le Marais, République et Saint-Germain.
+
+**Trois refus déjà écrits s'appliquent.** Le produit ne détient aucun stock et ne moissonne
+aucun portail ; les annonces d'une plateforme privée ne sont pas de la donnée ouverte, et leurs
+conditions d'utilisation en interdisent la reprise ; et la position de Compass est **en amont
+de l'annonce**, seul endroit où il possède un avantage que personne d'autre n'a. En aval il
+affronte des portails avec du stock, des contrats et de la fraîcheur, et il perd.
+
+**Mais l'argument décisif est ailleurs, et il est interne au produit.** Ces plateformes
+couvrent quelques centaines d'emplacements en quartiers prime. Le corpus en couvre 85 418.
+Superposer les deux fabriquerait une **fausse absence** : « pas d'annonce ici » se lirait
+« rien à saisir ici », alors que la vérité est « cette plateforme ne couvre pas ce quartier ».
+
+C'est le défaut corrigé le 12 août dans tout le chemin de scoring — absent n'est pas zéro. Le
+réintroduire par la porte d'un partenariat serait incohérent.
+
+Un lien d'affiliation, lui, ne casserait aucune règle de traçabilité — ce n'est pas un chiffre.
+Mais il casse le positionnement, crée une dépendance commerciale et se périme sans prévenir.
+**Non maintenant, et vraisemblablement jamais dans l'interface.** Ce qui reste de l'idée est
+en 5.6 et 5.7.
+
 ---
 
 ## Concurrence — Aino
@@ -598,8 +646,9 @@ Ne pas copier non plus leur export libre : le refus d'exporter une liste est str
   la projection : un bail engage sur neuf ans, l'environnement est autant temporel que spatial.
 - **Protocole de comptage piéton manuel**, publié comme outil autonome — vingt minutes sur le
   trottoir, méthode d'extrapolation incluse. Transforme un trou de données en méthode.
-- Vérifier si les déclarations de cession du droit de préemption commercial parisien (5e, 6e et
-  partie du 7e, obligatoires depuis le 7 août 2024) sont publiées en open data.
+- ~~Vérifier si les déclarations de cession du droit de préemption commercial parisien sont
+  publiées en open data.~~ **Remonté en §5.6 le 12 août** : c'est l'équivalent ouvert et amont
+  de l'annonce commerciale, donc mieux qu'un différé.
 - ~~Trancher entre `bun.lockb` et `package-lock.json`~~ **Fait le 12 août** : les deux sont
   conservés et **alignés**, vérifiés paquet par paquet. Bun ne tourne pas sur cette machine
   (Windows ARM64, aucun binaire publié) — la régénération passe par l'image `oven/bun` en
