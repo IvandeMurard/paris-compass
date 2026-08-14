@@ -486,10 +486,48 @@ le même verdict, Compass n'a rien dit. Le booléen actuel décore, il ne discri
 | **Remontée de nappe** (BRGM) | maille fine | C'est elle qui inonde une réserve en sous-sol, loin du fleuve |
 | Arrêtés **CatNat** | commune | **À écarter** : uniforme sur Paris entier, donc muet |
 
-Ne pas en faire un « indice ». Un score composite d'inondation serait exactement le chiffre
-invérifiable que le produit refuse partout ailleurs. La forme juste est catégorielle et
-sourcée. Angle propre : l'exposition dépend du **type de commerce** — une chambre froide en
-cave n'est pas le prêt-à-porter du même immeuble.
+#### Des niveaux, oui — mais transcrits, jamais synthétisés
+
+La ligne de partage n'est pas *score contre niveaux*. Des niveaux nommés sont la bonne forme,
+et la doctrine les emploie déjà : la fiabilité tient en quatre niveaux **précisément parce
+qu'**un pourcentage serait invérifiable (§2.5). La ligne est ailleurs.
+
+**Transcrit — légitime.** Le PPRI est *déjà* catégoriel : l'autorité publie des zones
+réglementaires et des classes d'aléa, et le BRGM publie la remontée de nappe en classes. Ces
+niveaux ne sont pas une invention de Compass, ce sont ceux du régulateur, et ils portent une
+valeur juridique. Les afficher relève de la transcription, donc de `measured`.
+
+**Synthétisé — interdit.** Fondre PPRI + remontée de nappe + CatNat en un « risque
+inondation : 3/4 ». Les pondérations seraient inventées, et deux locaux aux expositions
+réellement différentes s'écraseraient sur le même niveau. C'est mot pour mot l'argument du
+README contre le score unique sur 100 : un score moyenne ce qui tire en sens contraire.
+
+**Donc un niveau par dimension, côte à côte**, comme les scores d'aménités qui sont affichés
+par catégorie et jamais moyennés. Le métier arbitre : une chambre froide en cave n'a pas la
+même exposition que le prêt-à-porter du même immeuble.
+
+#### Transcrire ne suffit pas
+
+Un preneur ne sait pas ce que « zone bleue » veut dire. La thèse du produit étant la distance
+entre la donnée brute et une phrase sur laquelle on peut décider, il faut trois couches :
+
+1. **La zone** — transcrite, `measured`.
+2. **Ce que le règlement dit de cette zone** — transcrit aussi : ce qu'il interdit, impose ou
+   conditionne. Avec la précaution déjà retenue pour le PLU : *informatif, sans valeur
+   réglementaire*.
+3. **Ce que ça implique pour ce métier** — `derived`, et énoncé comme tel.
+
+#### Le test de granularité, avant de s'engager
+
+La question n'est pas « est-ce que ça varie » mais « est-ce que ça sépare ». Nuance qui joue
+en notre faveur : *« hors zone PPRI »* dans le 20ᵉ est une **vraie réponse discriminante**,
+elle sépare les berges du reste de la ville. L'actuel *« inondation : présent »* dans un rayon
+d'un kilomètre est vrai partout et ne sépare rien. C'est la différence entre un négatif vrai
+et un non-dit.
+
+Le périmètre parisien est un avantage ici : les classes de PPRI diffèrent d'un document à
+l'autre en France, et une échelle nationale uniforme exigerait une normalisation — donc une
+invention. Paris n'a qu'un PPRI, dont les classes se reprennent **telles quelles**.
 
 **5.4 — Sources d'appoint.** À vérifier avant engagement, aucune n'a été confirmée.
 
