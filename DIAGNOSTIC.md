@@ -311,11 +311,38 @@ n'y est plus exporté — vestige du 12 août, quand le bruit a rejoint `AreaSco
 type, effacé par esbuild) et invisible en test (vitest ne type-check pas). Non corrigé ici,
 sans rapport avec la migration et hors périmètre de cette session — signalé séparément.
 
-**Vulnérabilités : 9 → 7.** `react-router-dom` sortait du tableau de `docs/REPRISE.md` comme
-seule vulnérabilité modérée corrigible uniquement par une majeure — c'est fait, l'*open
-redirect* par antislash disparaît avec la v6. Restent les sept de la chaîne
-vite/esbuild/vitest, toutes encore inatteignables par un visiteur (serveur de développement
-sur un produit qui est un site statique) : voir le tableau de `docs/REPRISE.md`.
+**Vulnérabilités : 9 → 7 côté `npm audit`, 8 → 5 côté Dependabot.** Les deux outils ne comptent
+pas pareil — `npm audit` compte un chemin de dépendance par paquet affecté (`vite`, `esbuild`,
+`vitest`, `vite-node`, `@vitest/mocker`, `@vitejs/plugin-react-swc`, `lovable-tagger`),
+Dependabot déduplique sur l'avis réel. Vérifié après coup via `gh api
+repos/IvandeMurard/paris-compass/dependabot/alerts` : `react-router-dom`, `react-router` et
+`@remix-run/router` sont passés à `fixed` à l'heure du push (2026-08-15T13:43:23Z). Le
+« 8 vulnérabilités » affiché par GitHub juste après le `git push` était un instantané pris
+avant la fin du re-scan — trompeur sur le moment, pas sur le fond.
+
+Il reste cinq alertes ouvertes, la même famille vite/esbuild/vitest déjà documentée dans
+`docs/REPRISE.md` — sauf une qui mérite une nuance non notée jusqu'ici :
+
+| GHSA | Paquet | Gravité | Portée réelle |
+| --- | --- | --- | --- |
+| GHSA-5xrq-8626-4rwp | `vitest` | critique | Serveur UI de Vitest (`--ui`), jamais lancé ici |
+| GHSA-fx2h-pf6j-xcff | `vite` | haute | Contournement de `server.fs.deny`, serveur de dev |
+| GHSA-4w7w-66w2-5vf9 | `vite` | modérée | Traversée de chemin dans les deps optimisées, serveur de dev |
+| GHSA-67mh-4wv8-2f99 | `esbuild` | modérée | Le serveur de dev répond à n'importe quel site |
+| GHSA-v6wh-96g9-6wx3 | `vite` | modérée | Voir ci-dessous — pas un pur « inatteignable » |
+
+Les quatre premières visent strictement le **serveur de développement**, jamais exposé en
+production sur un produit qui est un site statique — inatteignables par construction, comme
+l'affirme `docs/REPRISE.md`.
+
+**La cinquième (`GHSA-v6wh-96g9-6wx3`) ne vise pas le réseau mais le poste du développeur.**
+Elle passe par `launch-editor`, la dépendance de Vite qui ouvre un fichier dans l'éditeur
+depuis l'overlay d'erreur en dev. Sous Windows, un chemin UNC forgé dans ce lien peut faire
+fuiter un hash NTLMv2 vers un serveur SMB distant au moment du clic. Toujours inatteignable par
+un visiteur du site déployé — mais le vecteur (`npm run dev`, overlay d'erreur, clic sur un
+lien malveillant, sur Windows) touche la machine du développeur, pas un serveur qu'on ne fait
+jamais tourner. Aucune de ces conditions n'est réunie en usage normal ; ce n'est donc pas non
+plus une urgence. Correctif = vite 8 pour les cinq, une majeure non tentée ici.
 
 **`bun.lockb` régénéré** via le conteneur `oven/bun:1.1.38`, procédure de `docs/REPRISE.md`.
 Les paquets nommés par les avis de sécurité portent exactement les mêmes versions dans les deux
