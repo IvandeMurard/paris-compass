@@ -12,7 +12,7 @@
 //
 // Contract and rationale: eval/FAILURE_MODES.md.
 
-import { readFileSync } from "fs"
+import { existsSync, readFileSync, writeFileSync } from "fs"
 import { resolve } from "path"
 
 import type { Client } from "pg"
@@ -102,15 +102,18 @@ interface Baseline {
   counts: Record<string, { value: number; sql: string }>
 }
 
-async function runBaselines(client: Client): Promise<void> {
+/** Actual values measured this run, keyed by baseline name — `confiance_*` feeds runConfidenceHistory. */
+async function runBaselines(client: Client): Promise<Record<string, number>> {
   const baseline = JSON.parse(
     readFileSync(resolve(ROOT, "eval/baselines/ingestion.json"), "utf8"),
   ) as Baseline
   log("B — baselines", `gelées le ${baseline.measured_on}`)
 
+  const actuals: Record<string, number> = {}
   for (const [name, expected] of Object.entries(baseline.counts)) {
     const result = await client.query<{ n: string }>(expected.sql)
     const actual = Number(result.rows[0]?.n ?? 0)
+    actuals[name] = actual
     if (actual === expected.value) {
       pass(name, `${actual}`)
       continue
@@ -120,6 +123,85 @@ async function runBaselines(client: Client): Promise<void> {
     if (drift > DRIFT_FAIL) fail(name, detail)
     else warn(name, detail)
   }
+  return actuals
+}
+
+// ---------------------------------------------------------------------------
+// B bis — historique de la composition de fiabilité
+// ---------------------------------------------------------------------------
+// La baseline gelée (ci-dessus) dit seulement si on s'est écarté du 9 août. Elle
+// ne dit jamais si la composition avance ou recule d'une exécution à l'autre —
+// PLAN.md §6.8, troisième manque : « la porte sait dire si la qualité a dérivé,
+// jamais de combien elle a avancé ». Ce bloc journalise un point par (cible,
+// jour) dans eval/confidence_history.jsonl, git-suivi, et rapporte le delta
+// contre le point précédent, quelle que soit sa cible.
+
+const CONFIDENCE_KEYS = ["confiance_etabli", "confiance_corrobore", "confiance_probable", "confiance_indetermine"] as const
+type ConfidenceKey = (typeof CONFIDENCE_KEYS)[number]
+
+interface ConfidencePoint {
+  measured_on: string
+  target: string
+  confiance_etabli: number
+  confiance_corrobore: number
+  confiance_probable: number
+  confiance_indetermine: number
+}
+
+function recordConfidenceHistory(target: string, actuals: Record<string, number>): void {
+  const path = resolve(ROOT, "eval/confidence_history.jsonl")
+  const lines = existsSync(path)
+    ? readFileSync(path, "utf8").split("\n").map((l) => l.trim()).filter(Boolean)
+    : []
+  const history = lines.map((l) => JSON.parse(l) as ConfidencePoint)
+
+  const today = new Date().toISOString().slice(0, 10)
+  const previous = history.length > 0 ? history[history.length - 1] : undefined
+
+  const point: ConfidencePoint = {
+    measured_on: today,
+    target,
+    confiance_etabli: actuals.confiance_etabli ?? 0,
+    confiance_corrobore: actuals.confiance_corrobore ?? 0,
+    confiance_probable: actuals.confiance_probable ?? 0,
+    confiance_indetermine: actuals.confiance_indetermine ?? 0,
+  }
+
+  // One entry per (target, day): replays on the same day overwrite rather than
+  // pile up, so the file grows with the calendar, not with how often the gate
+  // is run while iterating.
+  const kept = history.filter((p) => !(p.target === target && p.measured_on === today))
+  kept.push(point)
+  writeFileSync(path, kept.map((p) => JSON.stringify(p)).join("\n") + "\n", "utf8")
+
+  log("B bis — composition de fiabilité", `journalisée pour ${target}`)
+  if (!previous) {
+    pass("historique", "premier point, rien à comparer")
+    return
+  }
+  const LEFT: ConfidenceKey[] = ["confiance_etabli", "confiance_corrobore"]
+  const totalOf = (p: ConfidencePoint) => CONFIDENCE_KEYS.reduce((s, k) => s + p[k], 0)
+  const totalNow = totalOf(point)
+  const totalBefore = totalOf(previous)
+  // Each point's share is taken against its own total, not the current run's —
+  // otherwise a cohort-size change between runs would distort the "before" side.
+  const leftShare = (p: ConfidencePoint) => LEFT.reduce((s, k) => s + p[k], 0) / Math.max(totalOf(p), 1)
+  for (const key of CONFIDENCE_KEYS) {
+    const delta = point[key] - previous[key]
+    const sign = delta > 0 ? "+" : ""
+    pass(key, `${previous[key]} → ${point[key]} (${sign}${delta})`)
+  }
+  if (totalNow !== totalBefore) {
+    pass("cohorte", `taille ${totalBefore} → ${totalNow} — comparaison sur cohorte fixe de 10 000, un écart signale une dérive du chargement`)
+  }
+  const shareBefore = leftShare(previous)
+  const shareNow = leftShare(point)
+  const shareDeltaPts = (shareNow - shareBefore) * 100
+  const verdict = shareDeltaPts > 0.01 ? "s'améliore" : shareDeltaPts < -0.01 ? "recule" : "stable"
+  pass(
+    "tendance établi+corroboré",
+    `${(shareBefore * 100).toFixed(2)}% → ${(shareNow * 100).toFixed(2)}% (${shareDeltaPts >= 0 ? "+" : ""}${shareDeltaPts.toFixed(2)} pt) — ${verdict} depuis ${previous.measured_on} (${previous.target})`,
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -134,6 +216,7 @@ interface GoldenRow {
   detail?: string | null
   amount_eur?: number
   confidence?: string
+  rule?: string
   evidence_contains?: string
   reason_contains?: string
 }
@@ -156,6 +239,7 @@ interface TimelineRow {
   detail: string | null
   amount_eur: string | null
   confidence: string
+  confidence_rule: string | null
   evidence: string | null
   confidence_reason: string | null
 }
@@ -178,7 +262,7 @@ async function timelineFor(client: Client, input: Golden["input"]): Promise<Time
   for (const { id } of located.rows) {
     const timeline = await client.query<TimelineRow>(
       `select occurred_on::text, kind, observed, label, detail, amount_eur::text,
-              confidence::text, evidence, confidence_reason
+              confidence::text, confidence_rule::text, evidence, confidence_reason
          from public.compass_address_timeline($1)`,
       [id],
     )
@@ -196,6 +280,7 @@ function matches(row: TimelineRow, expected: GoldenRow): boolean {
     [expected.label !== undefined, row.label === expected.label],
     [expected.detail !== undefined, row.detail === expected.detail],
     [expected.confidence !== undefined, row.confidence === expected.confidence],
+    [expected.rule !== undefined, row.confidence_rule === expected.rule],
     [expected.amount_eur !== undefined, Number(row.amount_eur) === expected.amount_eur],
     [
       expected.evidence_contains !== undefined,
@@ -255,7 +340,8 @@ async function main(): Promise<void> {
   const client = await connect()
   try {
     await runInvariants(client)
-    await runBaselines(client)
+    const baselineActuals = await runBaselines(client)
+    recordConfidenceHistory(target, baselineActuals)
     await runGolden(client)
   } finally {
     await client.end()

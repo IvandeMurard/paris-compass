@@ -141,3 +141,22 @@ join public.bdcom_vintage v
   on t.kind = 'survey' and make_date(v.year, 1, 1) = t.occurred_on
 where v.publicly_redistributable and t.withheld
 limit 20;
+
+-- @invariant I11 :: une fonction compass_* n'est pas exécutable par anon
+-- PLAN.md §6.8/§6.9 — le demi backend de « aucun chiffre n'existe que côté
+-- privilégié ». `has_function_privilege` lit le droit du rôle nommé, pas celui
+-- de l'appelant : pas besoin de `@as anon` ici, la requête vaut quel que soit
+-- qui la lance.
+--
+-- Trouve aujourd'hui ce que 20260815000002 corrige : compass_street_key et
+-- compass_bodacc_street_key n'avaient aucun GRANT explicite, et ne marchaient
+-- que par le défaut PUBLIC de Postgres — jamais vérifié jusqu'ici. Le même
+-- angle mort que l'incident RLS-sans-GRANT de 20260809000009, sous une autre
+-- forme : une règle vraie par accident plutôt que par déclaration.
+select p.proname
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.proname like 'compass\_%'
+  and not has_function_privilege('anon', p.oid, 'execute')
+limit 20;
