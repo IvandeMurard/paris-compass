@@ -14,5 +14,13 @@ export interface FilterState {
   sizeRange: number[];
   walkabilityScore: number[];
   amenityScores: AmenityScore;
-  selectedAmenities: string[];
+  /**
+   * Empty means no constraint. Arrondissement is derived from the OpenStreetMap postcode,
+   * so it is often unknown — and an unknown one never excludes a premise.
+   *
+   * This replaced a `selectedAmenities: string[]` that offered seven checkboxes — parking,
+   * shopping centre, restaurant area — for categories Compass has no data on. They were
+   * stored and never read; filtering on them would have meant filtering on nothing.
+   */
+  arrondissements: number[];
 }

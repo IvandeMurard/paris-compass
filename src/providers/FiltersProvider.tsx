@@ -2,6 +2,7 @@ import React, { createContext, useContext, useMemo, useState } from 'react';
 import type { AmenityScore, FilterState } from '@/types/filters';
 import type { BBox, Premise } from '@/services/opendata/types';
 import { PARIS_BBOX } from '@/hooks/useOpenData';
+import { matchesPremise } from './matchPremise';
 
 const initialAmenityScores: AmenityScore = {
   schools: 0,
@@ -16,7 +17,7 @@ const initialFilters: FilterState = {
   sizeRange: [0, 500],
   walkabilityScore: [0, 100],
   amenityScores: initialAmenityScores,
-  selectedAmenities: [],
+  arrondissements: [],
 };
 
 interface FiltersContextValue {
@@ -27,7 +28,7 @@ interface FiltersContextValue {
   updateSizeRange: (range: number[]) => void;
   updateWalkabilityScore: (range: number[]) => void;
   updateAmenityScores: (scores: Partial<AmenityScore>) => void;
-  toggleAmenity: (amenity: string) => void;
+  toggleArrondissement: (arrondissement: number) => void;
   reset: () => void;
   matches: (premise: Premise) => boolean;
   bbox: BBox;
@@ -49,39 +50,8 @@ export const FiltersProvider = ({ children }: { children: React.ReactNode }) => 
   const [bbox, setBbox] = useState<BBox>(PARIS_BBOX);
 
   const value = useMemo<FiltersContextValue>(() => {
-    const matches = (premise: Premise) => {
-      if (vacantOnly && premise.status !== 'vacant') return false;
-
-      // No rent filter on purpose: no open dataset carries commercial rents, so filtering
-      // on one would mean filtering on an invented number. See DIAGNOSTIC.md §1.
-
-      const [minSize, maxSize] = filters.sizeRange;
-      if (premise.sizeM2 !== null && (premise.sizeM2 < minSize || premise.sizeM2 > maxSize)) {
-        return false;
-      }
-
-      // Same rule as the size filter above: a score we could not compute never excludes
-      // a premise. Dropping it would be asserting it falls outside the range, which is
-      // precisely what the data does not say.
-      const [minWalk, maxWalk] = filters.walkabilityScore;
-      const walkability = premise.scores.walkability.value;
-      if (walkability !== null && (walkability < minWalk || walkability > maxWalk)) {
-        return false;
-      }
-
-      for (const [key, min] of Object.entries(filters.amenityScores)) {
-        const score = premise.scores[key as keyof AmenityScore].value;
-        if (min > 0 && score !== null && score < min) return false;
-      }
-
-      if (filters.query.trim()) {
-        const needle = filters.query.trim().toLowerCase();
-        const haystack = `${premise.title} ${premise.address} ${premise.category}`.toLowerCase();
-        if (!haystack.includes(needle)) return false;
-      }
-
-      return true;
-    };
+    // The rules live in matchPremise.ts, where they can be tested without a DOM.
+    const matches = (premise: Premise) => matchesPremise(premise, filters, vacantOnly);
 
     return {
       filters,
@@ -93,12 +63,12 @@ export const FiltersProvider = ({ children }: { children: React.ReactNode }) => 
         setFilters((prev) => ({ ...prev, walkabilityScore })),
       updateAmenityScores: (scores) =>
         setFilters((prev) => ({ ...prev, amenityScores: { ...prev.amenityScores, ...scores } })),
-      toggleAmenity: (amenity) =>
+      toggleArrondissement: (arrondissement) =>
         setFilters((prev) => ({
           ...prev,
-          selectedAmenities: prev.selectedAmenities.includes(amenity)
-            ? prev.selectedAmenities.filter((a) => a !== amenity)
-            : [...prev.selectedAmenities, amenity],
+          arrondissements: prev.arrondissements.includes(arrondissement)
+            ? prev.arrondissements.filter((a) => a !== arrondissement)
+            : [...prev.arrondissements, arrondissement],
         })),
       reset: () => {
         setFilters(initialFilters);

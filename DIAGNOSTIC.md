@@ -188,10 +188,11 @@ base spatiale de la phase 2 et sortir ce calcul du navigateur. Le refactor du no
 
 ---
 
-## 5. Trois filtres qui ne filtrent pas — relevé le 12 août
+## 5. Trois filtres qui ne filtrent pas — relevé le 12 août, **corrigé le 15**
 
-Découverts en inventoriant `src/`. Aucun n'a été corrigé : ils sont consignés ici pour être
-traités ensemble, avec le test qui manque.
+Découverts en inventoriant `src/`, tous trois corrigés ensemble avec le harnais de test qui
+manquait. Ce qui suit garde le diagnostic d'origine, parce que la cause commune vaut plus
+que les symptômes.
 
 **5.a — Les cinq curseurs de minimum d'aménité sont inertes.** *C'est un vrai bug, pas un
 oubli de câblage.* `sidebar/AccessibilityMetrics.tsx:75` appelle
@@ -213,6 +214,36 @@ les rend sans `checked`, sans `onCheckedChange`, sans état.
 et `environment: 'node'`, donc **aucun `.tsx` n'est testable** et `FiltersProvider.matches`
 — où vivent ces trois défauts — n'a aucun test. Corriger les filtres sans ouvrir cette zone
 aveugle laisserait la prochaine régression tout aussi invisible.
+
+### Ce qui a été fait le 15 août
+
+**La règle a quitté le `.tsx`.** `matchesPremise` vit désormais dans
+`src/providers/matchPremise.ts`, un module pur — même déplacement que `figureText.ts`, et
+pour la même raison : le rendre atteignable par un lanceur qui ne sait pas rendre de
+composant. **19 tests** le couvrent, dont un par défaut ci-dessus. Aucune dépendance
+ajoutée : pas de jsdom, pas de bibliothèque de rendu.
+
+**5.a — corrigé à la racine, pas au symptôme.** Le site d'appel passe maintenant un patch
+(`{ [name]: value[0] }`) et la prop est typée `(scores: Partial<AmenityScore>) => void`. Le
+`any` disparaît : la même faute ne compilerait plus.
+
+**5.b — supprimé plutôt que câblé.** Les sept cases promettaient de filtrer sur des
+catégories dont Compass n'a **aucune donnée** — parking disponible, centre commercial,
+quartier de restaurants. Les câbler aurait exigé soit d'inventer une correspondance avec les
+cinq catégories réelles, soit de promettre des données inexistantes. Un filtre qui ne repose
+sur rien est le même défaut que le zéro à la place d'une absence. `AmenitiesList.tsx`,
+`selectedAmenities` et les sept clés i18n devenues orphelines sont retirés ; les cinq
+curseurs, eux, portent les catégories que le noyau mesure vraiment.
+
+**5.c — câblé, parce que la donnée existe.** `premise.arrondissement` est dérivé du code
+postal OSM, donc le filtre repose sur une vraie colonne. Réserve tenue et testée : un
+arrondissement **inconnu n'exclut jamais** — OSM omet souvent le code postal, et exclure
+reviendrait à affirmer que le local est ailleurs.
+
+**Code mort retiré au passage** : `QualityIndicator.tsx` (version pré-provenance de la
+carte, que quelqu'un aurait fini par réutiliser), `usePropertyNotifications.ts`,
+`typedSupabaseQuery`, `reverseGeocode`. `isReliable` est conservé : il appartient au
+vocabulaire de `provenance.ts` que le serveur MCP consommera.
 
 ---
 

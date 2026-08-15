@@ -123,7 +123,6 @@ export const UI = {
     fr: 'Scores d’aménités minimum',
     en: 'Minimum amenity scores',
   },
-  'filters.amenities': { fr: 'Aménités', en: 'Amenities' },
   'filters.live': {
     fr: 'Les filtres s’appliquent en direct aux locaux issus des données ouvertes.',
     en: 'Filters apply live to the spaces returned by open data.',
@@ -133,13 +132,6 @@ export const UI = {
   'amenity.groceries': { fr: 'Commerces alimentaires', en: 'Groceries' },
   'amenity.transit': { fr: 'Transports en commun', en: 'Public transit' },
   'amenity.parks': { fr: 'Parcs et loisirs', en: 'Parks & recreation' },
-  'amenity.metro': { fr: 'Station de métro', en: 'Metro station' },
-  'amenity.park': { fr: 'Parc', en: 'Park' },
-  'amenity.mall': { fr: 'Centre commercial', en: 'Shopping centre' },
-  'amenity.restaurants': { fr: 'Quartier de restaurants', en: 'Restaurant area' },
-  'amenity.parking': { fr: 'Parking disponible', en: 'Parking available' },
-  'amenity.daycare': { fr: 'Crèche', en: 'Daycare' },
-  'amenity.markets': { fr: 'Marchés', en: 'Markets' },
 
   // List
   'list.errorTitle': { fr: 'Données ouvertes indisponibles', en: 'Open data unavailable' },

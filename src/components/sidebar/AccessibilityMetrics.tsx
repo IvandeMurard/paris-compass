@@ -4,18 +4,19 @@ import { Slider } from '@/components/ui/slider';
 import { MapPin, School, Hospital, Store, TreePine } from 'lucide-react';
 import { useLocale } from '@/i18n/locale';
 import type { UiKey } from '@/i18n/ui';
+import type { AmenityScore } from '@/types/filters';
 
 interface AccessibilityMetricsProps {
   walkabilityScore: number[];
   setWalkabilityScore: (value: number[]) => void;
-  amenityScores: {
-    schools: number;
-    healthcare: number;
-    groceries: number;
-    transit: number;
-    parks: number;
-  };
-  setAmenityScores: (value: any) => void;
+  amenityScores: AmenityScore;
+  /**
+   * Takes a patch, never an updater function. Typing this `any` is what let the sliders
+   * ship inert: the call site passed `(prev) => ({...})`, the provider spread it into
+   * state, and spreading a function yields no enumerable properties — so nothing changed
+   * and nothing complained.
+   */
+  setAmenityScores: (scores: Partial<AmenityScore>) => void;
 }
 
 const AMENITIES: { name: keyof AccessibilityMetricsProps['amenityScores']; icon: JSX.Element; labelKey: UiKey }[] = [
@@ -71,9 +72,7 @@ const AccessibilityMetrics = ({
                 max={100}
                 step={1}
                 value={[amenityScores[a.name]]}
-                onValueChange={(value) =>
-                  setAmenityScores((prev: typeof amenityScores) => ({ ...prev, [a.name]: value[0] }))
-                }
+                onValueChange={(value) => setAmenityScores({ [a.name]: value[0] })}
               />
             </div>
           ))}

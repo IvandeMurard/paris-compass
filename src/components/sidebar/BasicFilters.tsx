@@ -8,11 +8,18 @@ import { useLocale } from '@/i18n/locale';
 interface BasicFiltersProps {
   sizeRange: number[];
   setSizeRange: (value: number[]) => void;
+  selectedArrondissements: number[];
+  onArrondissementToggle: (arrondissement: number) => void;
 }
 
 // There is deliberately no rent filter: commercial rents are not published as open data
 // in France, so Compass has no figure to filter on. See DIAGNOSTIC.md §1.
-const BasicFilters = ({ sizeRange, setSizeRange }: BasicFiltersProps) => {
+const BasicFilters = ({
+  sizeRange,
+  setSizeRange,
+  selectedArrondissements,
+  onArrondissementToggle,
+}: BasicFiltersProps) => {
   const { t } = useLocale();
 
   return (
@@ -43,14 +50,18 @@ const BasicFilters = ({ sizeRange, setSizeRange }: BasicFiltersProps) => {
           {t('filters.arrondissement')}
         </Label>
         <div className="grid grid-cols-3 gap-2">
-          {Array.from({ length: 20 }, (_, i) => (
-            <div key={i} className="flex items-center space-x-1">
-              <Checkbox id={`arr-${i + 1}`} />
+          {Array.from({ length: 20 }, (_, i) => i + 1).map((arr) => (
+            <div key={arr} className="flex items-center space-x-1">
+              <Checkbox
+                id={`arr-${arr}`}
+                checked={selectedArrondissements.includes(arr)}
+                onCheckedChange={() => onArrondissementToggle(arr)}
+              />
               <label
-                htmlFor={`arr-${i + 1}`}
+                htmlFor={`arr-${arr}`}
                 className="text-xs leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                {i + 1}
+                {arr}
               </label>
             </div>
           ))}

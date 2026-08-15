@@ -37,25 +37,3 @@ export async function geocode(query: string, limit = 5): Promise<GeocodeResult[]
   }
 }
 
-/** Reverse geocode a point to the nearest official address. */
-export async function reverseGeocode(lat: number, lng: number): Promise<GeocodeResult | null> {
-  const url = `${BAN}/reverse/?lat=${lat.toFixed(6)}&lon=${lng.toFixed(6)}&limit=1`;
-  try {
-    const data = await fetchJson<{ features: BanFeature[] }>(url, {
-      cacheKey: `ban-rev:${lat.toFixed(5)},${lng.toFixed(5)}`,
-      maxAgeMs: 24 * 60 * 60 * 1000,
-    });
-    const feature = data.features?.[0];
-    if (!feature) return null;
-    return {
-      label: feature.properties.label,
-      lat: feature.geometry.coordinates[1],
-      lng: feature.geometry.coordinates[0],
-      postcode: feature.properties.postcode,
-      city: feature.properties.city,
-    };
-  } catch (error) {
-    console.error('Reverse geocoding failed', error);
-    return null;
-  }
-}

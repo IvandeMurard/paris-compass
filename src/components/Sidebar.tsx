@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import SidebarSearch from './sidebar/SidebarSearch';
 import BasicFilters from './sidebar/BasicFilters';
 import AccessibilityMetrics from './sidebar/AccessibilityMetrics';
-import AmenitiesList from './sidebar/AmenitiesList';
 import DataSourcesPanel from './DataSourcesPanel';
 import { useFiltersContext } from '@/providers/FiltersProvider';
 import { useLocale } from '@/i18n/locale';
@@ -24,7 +23,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
     updateSizeRange,
     updateWalkabilityScore,
     updateAmenityScores,
-    toggleAmenity,
+    toggleArrondissement,
     reset,
   } = useFiltersContext();
   const { t } = useLocale();
@@ -55,18 +54,18 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
             <Switch id="vacant-only" checked={vacantOnly} onCheckedChange={setVacantOnly} />
           </div>
 
-          <BasicFilters sizeRange={filters.sizeRange} setSizeRange={updateSizeRange} />
+          <BasicFilters
+            sizeRange={filters.sizeRange}
+            setSizeRange={updateSizeRange}
+            selectedArrondissements={filters.arrondissements}
+            onArrondissementToggle={toggleArrondissement}
+          />
 
           <AccessibilityMetrics
             walkabilityScore={filters.walkabilityScore}
             setWalkabilityScore={updateWalkabilityScore}
             amenityScores={filters.amenityScores}
             setAmenityScores={updateAmenityScores}
-          />
-
-          <AmenitiesList
-            selectedAmenities={filters.selectedAmenities}
-            onAmenityToggle={toggleAmenity}
           />
 
           <p className="mt-6 text-xs text-muted-foreground">
