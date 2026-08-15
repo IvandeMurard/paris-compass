@@ -90,6 +90,52 @@ journal de millésime : télécharger, normaliser, charger.
 > de « pas encore chargé ». Un contrôle de complétude refuse de valider si le nombre de relevés
 > promus diffère du nombre de lignes lues.
 
+**2.2bis — Rien ne se recharge tout seul. Constat du 15 août, vérifié et pas supposé.**
+`bdcom.ts`, `geography.ts`, `bodacc.ts`, `sirene.ts` sont idempotents et rejouables — mais
+rien ne les rejoue. Vérifié : aucun `.github/workflows`, aucun `cron.schedule` dans les
+migrations, aucune Edge Function d'ingestion (la seule qui existe,
+`send-property-notification`, sert les notifications utilisateur, pas le chargement de
+données). Chaque exécution à ce jour a été déclenchée à la main.
+
+Une ancienne intention existe : `.lovable/plan/brancher-des-sources-de-données-réelles-…md`
+(4 août) prévoyait des « Edge functions d'ingestion (cron) ». Le pipeline réellement construit
+a pris une autre forme — Node + DuckDB + connexion Postgres à privilèges élevés, jamais la clé
+anon — qui ne se transpose pas telle quelle dans une Edge Function Supabase (runtime Deno, pas
+de DuckDB, limite de temps d'exécution). L'automatisation reste donc à concevoir, pas à
+retrouver.
+
+Les sources n'ont pas le même rythme naturel : SIRENE se republie **mensuellement**
+(commentaire de `sirene.ts`), BODACC en continu, BDCom tous les trois ans sans calendrier
+fixe, la géographie (quartiers, voies) rarement. Une seule cadence pour les quatre serait
+fausse pour au moins trois d'entre elles.
+
+À trancher avant d'automatiser, pas après : où tourne un job planifié qui a besoin d'une
+connexion à privilèges élevés — GitHub Actions avec le secret en dépôt, `pg_cron` côté
+Supabase s'il peut appeler un webhook externe, ou autre — puisque cette connexion ne doit
+jamais être accessible autrement que depuis un environnement serveur maîtrisé (voir
+`scripts/ingest/lib/db.ts`).
+
+*Exemple donné le 15 août : le PLU.* Le jeu `plub_protcom` (§2.4) répond justement à ce
+scénario — mais il n'est **pas encore ingéré du tout**, indépendamment de toute question
+d'automatisation. §2.4 reste un item ouvert, pas encore construit une première fois.
+
+**2.2ter — Date de dernière mise à jour par jeu de données, demandé le 15 août.**
+L'infrastructure existe déjà, à moitié : `bdcom_vintage.ingested_at` est posé et exposé par
+`compass_vintages` — mais seul `bdcom.ts` l'écrit
+(`scripts/ingest/bdcom.ts:385`). Géographie, BODACC et SIRENE n'ont **aucune** colonne ni
+table équivalente : impossible aujourd'hui de répondre « quand cette table a-t-elle été
+chargée pour la dernière fois » pour trois sources sur quatre.
+
+À construire : une table générique (source, dernière exécution réussie, nombre de lignes)
+que les quatre scripts écrivent en fin de course, exposée par une fonction `compass_*` au même
+titre que `compass_vintages` — dans l'esprit `Measured<T>` déjà en place (CLAUDE.md), pas un
+concept séparé.
+
+**Un couplage à ne pas rater avec 2.2bis** : afficher une date de dernière mise à jour n'est
+honnête que si le rythme de rafraîchissement est soit réel, soit déclaré. Poser la date sans
+l'automatisation ferait la même faute que le loyer fabriqué (`DIAGNOSTIC.md` §1) sous une autre
+forme — un chiffre qui a l'air à jour et ne l'est pas forcément.
+
 **2.3 — BDCom (APUR), les trois millésimes.** Recensement de terrain porte-à-porte de tous les
 locaux parisiens en rez-de-chaussée avec vitrine et accès sur rue. Chaque local porte sa
 localisation fine, son type, son activité sur une nomenclature à 224 postes et une tranche de
