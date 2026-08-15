@@ -246,7 +246,7 @@ Trois conséquences. Le flux BODACC de procédures collectives, que §5 bis B pr
 
 | Donnée | Producteur | Accès | Réserve |
 |---|---|---|---|
-| BDCom — recensement des commerces parisiens | APUR | ODbL, KML/CSV/GeoJSON/SHP + API, millésimes 2017/2020/2023 | Triennal, terrain ; rez-de-chaussée avec vitrine et accès sur rue uniquement |
+| BDCom — recensement des commerces parisiens | APUR | **Licence par millésime** : ODbL 1.0 pour 2023 ; licence personnalisée non lue pour 2017 et 2020. KML/CSV/GeoJSON/SHP + API | Triennal, terrain ; rez-de-chaussée avec vitrine et accès sur rue uniquement. **Ne jamais annoncer « ODbL » en bloc** — la base porte un drapeau `publicly_redistributable` par millésime, et un appelant anonyme se voit retenir 2017 et 2020, contenu *et* existence. Voir `BDCOM.md` §7 |
 | PLU bioclimatique — protections du commerce et de l'artisanat (`plub_protcom`) | Ville de Paris / Direction de l'Urbanisme | opendata.paris.fr, version votée le 20 novembre 2024 | **Fourni pour information, sans valeur réglementaire** — renvoyer au Portail des Règles d'Urbanisme |
 | Validations réseau ferré | Île-de-France Mobilités | Ouvert, historique depuis 2015 | Mise à jour trimestrielle à semestrielle |
 | DVF | DGFiP | Ouvert, 5 ans glissants, avril et octobre | Hors fonds de commerce et cessions de parts |

@@ -154,7 +154,11 @@ base spatiale de la phase 2 et sortir ce calcul du navigateur. Le refactor du no
 
 ## Points mineurs
 
-- **Deux lockfiles.** `bun.lockb` et `package-lock.json` coexistent. En garder un.
+- ~~**Deux lockfiles.** En garder un.~~ **Tranché le 12 août dans l'autre sens : les deux
+  sont conservés et *alignés*.** Lovable construit avec bun, la machine locale avec npm ;
+  supprimer l'un aurait cassé une des deux chaînes. Ils sont vérifiés identiques paquet par
+  paquet. Procédure de régénération dans `REPRISE.md` — bun ne tourne pas sur ce poste
+  (Windows ARM64), elle passe par un conteneur `oven/bun`.
 - **Étiquettes en dur en français.** `properties.ts:7-15` (`CATEGORY_LABELS`) et
   `premiseTitle` produisent du français alors que le projet a une couche i18n (`src/i18n/`).
   L'interface anglaise affichera « Local vacant (ancien Boulangerie) ».
@@ -176,8 +180,39 @@ base spatiale de la phase 2 et sortir ce calcul du navigateur. Le refactor du no
 - **Troncature silencieuse à 120 locaux.** `properties.ts` applique `.slice(0, 120)` après
   avoir trié les vacants en tête. L'utilisateur croit voir l'exhaustivité de sa vue. Soit
   lever le plafond maintenant que la surface interrogée est bornée, soit l'afficher.
+  *Ironie relevée le 12 août :* `compass_premises_within` renvoie déjà `total_matched`
+  **précisément pour corriger ce défaut** — le commentaire de la migration le dit — mais
+  aucun code du front n'appelle cette fonction.
 - **Étiquettes en dur dans le popup de carte.** `useMapLayers` produit du français quelle
   que soit la langue de l'interface.
+
+---
+
+## 5. Trois filtres qui ne filtrent pas — relevé le 12 août
+
+Découverts en inventoriant `src/`. Aucun n'a été corrigé : ils sont consignés ici pour être
+traités ensemble, avec le test qui manque.
+
+**5.a — Les cinq curseurs de minimum d'aménité sont inertes.** *C'est un vrai bug, pas un
+oubli de câblage.* `sidebar/AccessibilityMetrics.tsx:75` appelle
+`setAmenityScores((prev) => ({ ...prev, [name]: value[0] }))` — une **fonction de mise à
+jour** — alors que `FiltersProvider.updateAmenityScores` attend un **objet** et fait
+`{ ...prev.amenityScores, ...scores }`. Étaler une fonction ne produit aucune propriété
+énumérable : l'état ne bouge jamais. Le défaut est masqué parce que la prop est typée
+`(value: any) => void`, ce qui empêche TypeScript de le voir.
+
+**5.b — Les sept cases d'aménités ne sont jamais lues.** `filters.selectedAmenities` est
+bien basculé et stocké, mais `FiltersProvider.matches()` ne le consulte pas. Les valeurs des
+cases (« Metro Station », « Park »…) ne correspondent d'ailleurs à aucune catégorie connue du
+noyau — il faudra les aligner sur `AmenityCategory` avant de les brancher.
+
+**5.c — Les vingt cases d'arrondissement sont décoratives.** `sidebar/BasicFilters.tsx:45-57`
+les rend sans `checked`, sans `onCheckedChange`, sans état.
+
+**La cause commune est structurelle** : `vitest.config.ts` fixe `include: ['src/**/*.test.ts']`
+et `environment: 'node'`, donc **aucun `.tsx` n'est testable** et `FiltersProvider.matches`
+— où vivent ces trois défauts — n'a aucun test. Corriger les filtres sans ouvrir cette zone
+aveugle laisserait la prochaine régression tout aussi invisible.
 
 ---
 
@@ -187,3 +222,10 @@ base spatiale de la phase 2 et sortir ce calcul du navigateur. Le refactor du no
 2. Point 3 — sans cela, rien n'est démontrable.
 3. Point 4 — conditionne le confort dès que le point 3 laisse passer des données.
 4. Point 2 — résolu proprement par la phase 2 du plan, palliatif possible avant.
+
+> **Relecture du 12 août.** Le point 2 est le plus ancien défaut de justesse encore ouvert
+> **en production**. Il devait être « résolu proprement par la phase 2 » — mais la phase 2
+> est construite et **jamais déployée**, et le palliatif proposé ici (interroger un anneau
+> plus large que la fenêtre, n'afficher que la fenêtre) n'a jamais été fait. Attendre un
+> déploiement bloqué sur un mot de passe n'est pas une stratégie de correction. À trancher :
+> palliatif maintenant, ou report assumé et écrit.

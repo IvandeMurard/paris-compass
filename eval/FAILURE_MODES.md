@@ -51,6 +51,14 @@ ligne fait échouer la porte.
 | **I6** | Un rattachement à une rue sans méthode enregistrée | Nom ou proximité : la différence doit rester lisible |
 | **I7** | Un avis BODACC `etabli` alors que l'adresse est un siège social ou partagée | La faute d'inférence du 9 août 2026, rendue impossible |
 | **I8** | Un relevé promu sans ligne de staging correspondante | Un recensement à moitié chargé est indiscernable d'un recensement incomplet |
+| **I9** | Un appelant **anonyme** voit quoi que ce soit d'un millésime non redistribuable — contenu, absence, ou simple existence | La licence de 2017 et 2020 n'est pas lue. Trois migrations ont été nécessaires : retenir le contenu laissait fuiter l'absence, ce qui révélait l'existence |
+| **I10** | Un millésime redistribuable revient retenu par erreur | Le miroir de I9. **Sur-restreindre est aussi une faute** : retenir de l'ODbL prive sans raison et masque un défaut de logique |
+
+> **I9 et I10 tournent en rôle `anon`** (marqueur `-- @as anon`). C'est la leçon la plus
+> chère du 9 août : *le chemin privilégié réussit toujours*. Les trois défauts d'exposition
+> n'ont été trouvés qu'en jouant le chemin anonyme, jamais en testant en propriétaire — dans
+> une fonction `SECURITY DEFINER`, `current_user` est le propriétaire et conclut donc
+> toujours « privilégié ».
 
 ---
 
@@ -105,6 +113,13 @@ par catégorie ; les deux premiers sont les fautes réellement commises.
 | `adresse_partagee` | Plusieurs locaux au même numéro : `probable`, quoi qu'en dise toute corroboration |
 | `identifiant_reattribue` | Un `ordre` réutilisé sort en `probable` |
 | `perimetre_2023` | Une absence en 2023 dit « plus un commerce », jamais « vacant » |
+
+**Dette assumée : il manque la septième catégorie.** `millesime_retenu` — le comportement
+que verrouillent I9 et I10 — n'a **aucun cas doré**, alors qu'une migration a affirmé le
+contraire (« les deux chemins ont désormais un cas doré »). Les invariants couvrent la règle
+sur 100 % des lignes, ce qui est plus fort ; ce qui manque est le cas *nommé* qui rendrait le
+comportement lisible à la relecture. À écrire contre l'instance distante, une fois chargée —
+le cas doit être joué en rôle `anon`, ce qui suppose une base déployée.
 
 ---
 

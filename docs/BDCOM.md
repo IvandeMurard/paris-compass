@@ -115,22 +115,36 @@ colonne — pour qu'aucune requête ne s'en serve par erreur.
 
 ---
 
-## 5. L'identifiant : `c_ord` existe, sa stabilité reste à prouver
+## 5. L'identifiant : stable, et le test a été fait
 
-Le champ `c_ord` porte l'alias « Identifiant » et il y a un `seq` qui donne le rang dans la pile
-d'une adresse. Leur existence change la conception — mais **rien ne garantit que `c_ord` désigne
-le même local d'un millésime à l'autre**, l'enquête étant refaite porte-à-porte.
+> **Mis à jour le 12 août.** Cette section disait « stabilité à prouver » et prescrivait un
+> test. **Le test a été exécuté le 8 août et il a inversé la conclusion** (PLAN §2.3). Ce qui
+> suit est le résultat, pas l'hypothèse — la version précédente induisait en erreur alors que
+> `CLAUDE.md` rend ce fichier obligatoire avant toute migration touchant BDCom.
 
-Le test à faire en premier, avant toute migration : tirer quelques centaines de `c_ord` de 2020,
-les chercher dans 2023, et regarder si l'adresse concorde. Cinq minutes de requêtes qui décident
-du schéma.
+Le champ `c_ord` porte l'alias « Identifiant » (`ORDRE` en 2017 et 2020), et `seq` donne le
+rang dans la pile d'une adresse. L'enquête étant refaite porte-à-porte, rien ne garantissait
+*a priori* qu'il désigne le même local d'un millésime à l'autre.
 
-- Si `c_ord` est stable → clé naturelle de la trajectoire.
-- Sinon → appariement sur **adresse normalisée** (`num` + `let` + `typ_voie` + `lib_voie`),
-  désambiguïsée par `seq`, puis par `type` ou `niv18`.
+**Résultat du test**, échantillon de 300 locaux de 2023 cherchés dans 2020 :
 
-Dans les deux cas, concevoir la trajectoire **à l'adresse et au tronçon**, pas au local :
-`c_ord` devient une colonne qui améliore l'appariement, jamais son fondement.
+| Mesure | Valeur |
+| --- | --- |
+| Retrouvés | 297 / 300 |
+| À la même adresse | **296, soit 99,7 %** |
+| Même activité | 251, soit 84,5 % |
+| Identifiants réattribués à un autre local | **74 sur 85 344, moins de 0,1 %** |
+
+**L'identifiant est donc la clé de la trajectoire — mais il n'est jamais cru sur parole.** La
+règle retenue : *apparié sur l'identifiant, vérifié sur l'adresse*. Quand les deux divergent,
+la divergence est **marquée et non lissée** — `match_method = 'ordre_address_conflict'`, ce
+qui fait tomber le fait à `probable` au lieu de `etabli`. Exemple conservé comme cas doré :
+l'`ordre` 4231 est au 13 rue Vivienne en 2017 et 2020, au 88 avenue Kléber en 2023.
+
+La prescription « concevoir la trajectoire à l'adresse et au tronçon, jamais au local » n'est
+plus la règle générale, mais elle reste vraie là où elle compte : **69 % des locaux partagent
+leur numéro**, donc tout rattachement d'un fait BODACC — qui ne connaît qu'une adresse —
+reste au niveau de l'adresse et ne descend au local que lorsqu'un seul y répond.
 
 ---
 

@@ -23,9 +23,9 @@ une adaptation qui n'est pas cosmétique et qui est expliquée dans `FAILURE_MOD
 
 | Fichier | Ce qu'il vérifie | Tolérance |
 | --- | --- | --- |
-| `invariants.sql` | Huit requêtes qui doivent renvoyer zéro ligne, sur **100 % de la base** | Zéro |
-| `baselines/ingestion.json` | Quinze effectifs gelés au chargement | Signalé, bloquant au-delà de 1 % |
-| `golden.jsonl` | Six chronologies vérifiées à la main | Zéro |
+| `invariants.sql` | **Dix** requêtes qui doivent renvoyer zéro ligne, sur **100 % de la base** | Zéro |
+| `baselines/ingestion.json` | **Vingt-quatre** effectifs gelés au chargement | Signalé, bloquant au-delà de 1 % |
+| `golden.jsonl` | **Huit** chronologies vérifiées à la main | Zéro |
 
 Codes de sortie, repris d'Aetherix : `0` PASS · `1` FAIL · `2` ERROR · `3` WARN.
 Comptez environ une minute — deux invariants balaient les 85 418 locaux.

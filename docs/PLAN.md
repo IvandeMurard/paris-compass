@@ -27,9 +27,11 @@ déploiement. Contexte et décisions produit dans `docs/CONTEXTE.md`.
   quadratique qui figeait l'onglet a disparu.
 - 21 tests, dont la cohérence de l'index avec un balayage brut et les deux cas de troncature.
 
-**Reste ouvert** — la provenance est portée par les valeurs mais pas encore affichée dans
-l'interface, qui consomme des nombres nus via l'adaptateur
-`src/services/opendata/scoring.ts`.
+~~**Reste ouvert** — la provenance est portée par les valeurs mais pas encore affichée dans
+l'interface.~~ **Fait le 12 août** : l'adaptateur ne déballe plus `Measured<T>`, la décision
+d'affichage vit dans `src/components/figureText.ts` (testée sans DOM), et chaque score porte
+source, millésime et réserve à l'écran. Ce point était le prérequis commun de §2.6 et §4.1 —
+**les deux sont donc débloqués**.
 
 ---
 
@@ -225,14 +227,16 @@ lisait comme celui du local discuté. La base était juste les deux fois. Le ré
 
 **Chaque fait affiché porte un niveau, et ce niveau est dérivé de colonnes existantes** — jamais
 saisi, jamais estimé. Pas de score sur 100 : un pourcentage de confiance serait exactement le
-genre de chiffre fabriqué que le produit refuse. Trois niveaux, dont la règle est publiée sur la
-page Méthodologie au même titre que les formules de score.
+genre de chiffre fabriqué que le produit refuse. **Quatre niveaux** — le quatrième,
+`corrobore`, est arrivé avec SIRENE (§3.3) et cette table ne l'avait pas suivi — dont la
+règle est publiée sur la page Méthodologie au même titre que les formules de score.
 
 | Niveau | Ce que ça veut dire | Ce qui le déclenche |
 | --- | --- | --- |
 | **Établi** | La source nomme directement ce local, et la pièce est jointe | `observed = true` et `match_method` ∈ {`ordre`, `new`} ; pour un prix : `price_source` renseigné **et** `address_source = 'etablissement'` **et** un seul local à l'adresse |
-| **Probable** | Le fait est documenté, mais son rattachement à *ce* local est déduit | `address_source = 'siege_social'` ; plusieurs locaux à l'adresse ; `street_match = 'spatial'` ; `match_method = 'ordre_address_conflict'` |
-| **Indéterminé** | La source est muette, et on le dit | `observed = false` ; `origin_raw` présent sans prix lu ; niveaux 47/18 absents |
+| **Corroboré** | Deux sources publiques indépendantes placent l'entreprise ici, aucune ne nomme le local | `address_source = 'siege_social'` **et** `operator_confirmed` (SIRENE place un établissement de la même entreprise à moins de 50 m) — et jamais quand plusieurs locaux partagent l'adresse |
+| **Probable** | Le fait est documenté, mais son rattachement à *ce* local est déduit | `address_source = 'siege_social'` sans confirmation ; plusieurs locaux à l'adresse (ce cas **gagne sur tout**, corroboration comprise) ; `street_match = 'spatial'` ; `match_method = 'ordre_address_conflict'` |
+| **Indéterminé** | La source est muette, et on le dit | `observed = false` ; `origin_raw` présent sans prix lu ; millésime retenu pour licence |
 
 Le niveau accompagne la valeur, il ne la remplace pas : un fait « probable » s'affiche, avec ce
 qui manque pour qu'il soit établi. C'est l'inverse de le masquer.
@@ -298,14 +302,43 @@ La ligne se tient dans la structure, pas dans la discipline : **l'export part d'
 de la liste de résultats.** Pas de bouton « exporter tout ». Un utilisateur qui empile lui-même
 ses deux ou trois candidats fait son travail ; Compass ne le fait pas à sa place.
 
-Prérequis : la remontée de la provenance dans l'interface, le point resté ouvert de la phase 1.
-Tant que l'interface consomme des nombres nus, il n'y a rien à exporter d'intéressant. Partage :
+~~Prérequis : la remontée de la provenance dans l'interface, le point resté ouvert de la
+phase 1.~~ **Prérequis levé le 12 août** — la provenance est affichée, l'adaptateur ne
+déballe plus. Ce chantier n'attend plus que le déploiement. Partage :
 le contenu — la fonction qui transforme une adresse évaluée en lignes portant leur provenance —
 est du noyau ; le bouton, sa place et la génération du fichier sont de Lovable. Une définition,
 deux sorties : **c'est le même contenu que renverra le serveur MCP** (4.1) à un agent.
 
 Google Sheets en direct demanderait une connexion de compte pour peu de gain : un fichier
 téléchargé se colle dans Sheets en deux secondes.
+
+### 2.7 — La fiche locale : le consommateur qui manque
+
+**Constat du 12 août, et c'est le plus structurant du projet.** Le front et la base sont deux
+produits agrafés sans pont : `compass_*` et `.rpc(` ont **zéro occurrence dans `src/`**.
+Supabase n'y sert qu'à l'authentification et aux quatre tables utilisateur ; toutes les
+données affichées viennent d'appels directs à Overpass, opendata.paris.fr, Open-Meteo, BAN et
+Géorisques.
+
+Autrement dit : **dix fonctions `compass_*`, la machinerie de confiance à quatre niveaux et
+les 85 418 locaux n'ont aucun consommateur** en dehors de la porte d'évaluation. Le récit
+généré — la feature qui distingue réellement Compass — est construit, testé par huit cas
+dorés, et invisible.
+
+La fiche locale est la page qui consomme `compass_address_timeline` : une chronologie par
+adresse, chaque ligne portant son fait, sa pièce, son niveau et sa raison. §2.5 la décrit
+comme ayant « trois consommateurs » sans jamais lui donner d'entrée de backlog.
+
+**Débloquée par le déploiement, comme tout ce qui touche la base.** À faire dans la foulée :
+
+- **Le dénominateur par couche** (le vol assumé à Aino) : afficher « 12 commerces alimentaires
+  dans 800 m » et pas seulement « 64/100 ». Un décompte est refaisable par le lecteur, un
+  score ne l'est pas. `compass_premises_within` renvoie déjà `total_matched`.
+- **Les cinq scores par catégorie**, calculés pour chaque local et jamais affichés — la carte
+  montre trois chiffres sur huit.
+- **La troncature à 120 locaux**, à afficher plutôt qu'à taire (voir `DIAGNOSTIC.md`).
+- **L'air par local et non par vue** : `useAreaEnvironment` calcule un indice au centre de la
+  carte, qui est ensuite présenté sur chaque fiche comme s'il lui appartenait.
 
 ---
 
@@ -333,6 +366,13 @@ se libérer, souvent des mois avant qu'une annonce paraisse.
 > 25 496 cessions — le prix médian d'un fonds parisien est de **126 000 €** (quartiles 48 000 et
 > 290 000), et par activité déclarée : officine de pharmacie 950 000 €, restaurant 230 000 €,
 > restauration rapide 100 000 €.
+>
+> **Deux médianes circulent, et les deux sont justes — sur des dénominateurs différents.**
+> 126 000 € porte sur les 25 496 cessions dont le prix a été lu, où qu'elles soient. Le README
+> et la baseline `prix_median_local_identifiable` disent **160 000 €** : c'est la médiane des
+> **5 934 cessions rattachables à une vitrine unique** — le sous-ensemble où l'on sait *quel*
+> local a été vendu. Toujours citer le dénominateur avec la médiane ; l'écart entre les deux
+> est lui-même une information (les cessions bien localisées valent plus cher).
 >
 > Ce que le croisement donne, et qu'aucune des deux sources ne dit seule — 26 avenue de la Porte
 > d'Ivry : BDCom voit « pas un commerce » en 2017, restaurant français en 2020, restaurant
@@ -404,6 +444,13 @@ l'histoire des **entreprises** : déclarative, continue, et rattachée à une ad
 d'immatriculation qui n'est pas forcément une vitrine. Un `Measured<T>` par source, jamais un
 chiffre fusionné qui masquerait laquelle des deux l'a produit.
 
+**3.6 — Sirene au front : brancher ou dépublier.** `fetchEstablishmentsNear` et
+`useNearbyEstablishments` existent et fonctionnent, mais **aucun composant ne les appelle**.
+Or Sirene est annoncée comme source active dans `DATA_SOURCES`, sur la page Sources et dans
+la FAQ. En l'état, le produit **déclare une source qu'il n'interroge pas** — c'est un écart
+d'affichage de provenance, exactement ce que le reste du projet s'interdit. Deux issues,
+aucune tierce : la brancher, ou la retirer des sources annoncées jusqu'à ce qu'elle le soit.
+
 **3.5 — La vue « ce qui se libère ».** Une seconde entrée dans le produit, à côté de « j'ai une
 adresse ».
 
@@ -467,7 +514,7 @@ BDCom donne trois photos (2017, 2020, 2023). SIRENE porte les **dates de créati
 cessation en continu**. Le croisement comble les années aveugles entre recensements et
 transforme la rotation triennale en **courbe de survie par activité et par tronçon**.
 
-Attention au piège déjà documenté en §2.4 : un établissement SIRENE n'est pas un local. La
+Attention au piège déjà documenté en §3.3 : un établissement SIRENE n'est pas un local. La
 jointure doit rester au niveau où elle est défendable, et un résultat non rattachable à un
 local reste `probable`.
 
@@ -572,6 +619,83 @@ vaut mieux que signer.
 
 C'est de l'interprétation — ce que le produit dit vendre — et ça se livre sans lire une seule
 ligne de qui que ce soit.
+
+**5.8 — Les sources articulées dans `PERIMETRE.md` et sans maison dans ce plan.** Relevé le
+12 août : elles sont raisonnées, sourcées, parfois annoncées « Planned » dans le README, mais
+n'ont **aucune entrée de backlog** — donc personne ne les prend jamais.
+
+| Source | Ce qu'elle répond | Réserve déjà écrite |
+| --- | --- | --- |
+| **DVF** (DGFiP) | €/m² des **murs** commerciaux vendus dans la rue sur 5 ans | Exclut les fonds et les cessions de parts |
+| **GTFS IDFM** | Temps de trajet **réels** et fréquences — « combien de temps met-on vraiment pour venir ici », en isochrones | — |
+| **Comptes RNE / INPI** | Les commerces voisins gagnent-ils de l'argent | **~45 % déposés avec déclaration de confidentialité**, biais structurel vers les grandes structures : un échantillon, jamais une moyenne de rue |
+| **Bruitparif** + BD TOPO | Remplace le proxy routier de 500 m | Bon à l'échelle du quartier, insuffisant au trottoir — **l'idée transposable de Tacet** : ray-tracing sur la volumétrie bâtie. La doctrine §5.3 (transcrit / synthétisé) s'y applique telle quelle |
+| **Série IRIS historique — la *pente*** | La gentrification et le déclin sont des **tendances, pas des états** : la pente du revenu médian sur 15 ans en dit plus qu'un instantané | Filosofi carroyé 200 m (§5.4) est un instantané — l'idée de pente n'avait aucune maison |
+| **Logements autorisés et commencés** | Série mensuelle communale : les futurs habitants, deux ans à l'avance | Distincte de Sitadel, restée au différé |
+
+**5.9 — `bdcom20032020` : porter l'historique de six à vingt ans.** Le service APUR expose
+**sept couches datées de 2003 à 2020, vacants inclus** — dix-sept ans d'évolution déjà
+calculés à la source. C'est vraisemblablement **le levier le plus élevé de tout le corpus**,
+et il n'avait aucune entrée de backlog malgré une section entière dans `BDCOM.md`.
+
+Deux réserves qui commandent : le service **ne porte aucune licence explicite** — techniquement
+joignable n'est pas juridiquement réutilisable — et il alimente une application interne de
+l'APUR. **Suspendu à la réponse au courrier envoyé le 10 août**, qui demande aussi si une
+couche 2023 complète (avec les vacants) est distribuable.
+
+---
+
+## Phase 6 — la capacité d'analyse déjà dans le schéma
+
+Relevé le 12 août : le modèle répond à des questions que **rien ne pose**. Aucune de ces
+analyses n'exige de source nouvelle — seulement le déploiement, et une fonction pour chacune.
+
+**6.1 — Matrices de transition d'activité.** « Que devient une boulangerie ? »
+`premise_observation.activity_code` × trois millésimes par local donne la matrice complète,
+par un `lag()` sur `(location_id, vintage_year)`. Aujourd'hui cette information n'existe que
+sous forme de **booléen** (`changed_from_previous`) : on sait qu'il y a eu changement, jamais
+vers quoi.
+
+**6.2 — Analyse de survie.** `first_seen_vintage_id` / `last_seen_vintage_id` plus les avis
+BODACC datés donnent une durée de tenure par local. L'ingrédient manquant — les **dates de
+cessation SIRENE** — est déjà identifié en §3.4. Rappel de prudence porté par la migration
+BODACC : une durée médiane avant revente n'est **pas** un taux de rotation.
+
+**6.3 — Agrégation par rue entière.** `street_segment.voie_id` regroupe les tronçons d'une
+même voie ; rien ne l'utilise. Et `compass_street_rotation`, seule fonction qui descend au
+tronçon, n'est appelée par personne — pas même par la porte.
+
+**6.4 — Exposer les prix par activité.** Le prix médian par métier n'existe aujourd'hui que
+comme **baseline d'évaluation figée** ; aucune fonction ne le sert. Règle rappelée : grouper
+sur le code d'activité BDCom, **jamais** sur le champ texte libre de BODACC.
+
+**6.5 — Ventes contre liquidations, par quartier et par activité.** Entièrement joignable,
+jamais posé. C'est la lecture qui distingue une rue qui se renouvelle d'une rue qui meurt.
+
+**6.6 — Resserrer les candidats par activité.** Le levier nommé en §3.3 contre le résidu
+structurel de 36,5 % `probable` : quand trois locaux partagent une adresse et qu'un seul est
+un restaurant, un avis visant un restaurant se rattache mieux. **Cela ne rendra jamais un
+fait `etabli`** — la source ne nomme toujours pas le local — mais peut faire passer de
+`probable` à `corrobore`.
+
+**6.7 — Colonnes chargées que rien ne lit.** À servir ou à documenter comme volontairement
+dormantes : `is_bio` (densité bio par quartier, à une requête), `situation` (angle, cour
+d'immeuble, concentration commerciale — la survie comparée par exposition n'a jamais été
+posée), les bandes de surface, et surtout **`bodacc_judgment.judged_on`** : la date de
+jugement est chargée et jamais utilisée, la chronologie plaçant les procédures à leur date de
+**publication**, qui n'est pas la date de décision.
+
+**6.8 — L'agent qui s'évalue** (repris de `REPRISE.md`, qui n'avait pas d'écho ici). Trois
+manques concrets plutôt qu'une intention : `confidence_reason` est du **texte libre**
+concaténé en SQL, qu'aucune machine ne peut relire — il faut la règle déclenchée et les
+valeurs en colonnes ; la **composition de fiabilité n'est pas historisée**, donc aucun progrès
+n'est démontrable, seulement la dérive ; et la porte sait dire si la qualité a dérivé, jamais
+de combien elle a avancé.
+
+**6.9 — Rendre vérifiable l'invariant de `PERIMETRE.md` §8** : *aucun chiffre ne peut exister
+uniquement dans l'UI*. La règle est écrite, la porte d'évaluation existe, et rien ne relie les
+deux. `FAILURE_MODES.md` reconnaît d'ailleurs que le rendu n'est pas couvert — « une interface
+peut toujours montrer une colonne en en cachant une autre ».
 
 ---
 
