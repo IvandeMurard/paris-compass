@@ -1,4 +1,5 @@
 import type { AreaScores } from '@/core';
+import type { PremiseNaming } from '@/i18n/premiseName';
 
 export interface BBox {
   south: number;
@@ -48,10 +49,12 @@ export type { AreaScores };
 
 export interface Premise {
   id: string;
-  title: string;
+  /** OpenStreetMap values, rendered into a language by `src/i18n/premiseName.ts`. */
+  naming: PremiseNaming;
   category: string;
   status: 'vacant' | 'occupied';
-  address: string;
+  /** Null when OpenStreetMap carries no address. The interface phrases the absence. */
+  address: string | null;
   postcode?: string;
   arrondissement?: number;
   lat: number;

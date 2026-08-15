@@ -159,10 +159,20 @@ base spatiale de la phase 2 et sortir ce calcul du navigateur. Le refactor du no
   supprimer l'un aurait cassé une des deux chaînes. Ils sont vérifiés identiques paquet par
   paquet. Procédure de régénération dans `REPRISE.md` — bun ne tourne pas sur ce poste
   (Windows ARM64), elle passe par un conteneur `oven/bun`.
-- **Étiquettes en dur en français.** `properties.ts:7-15` (`CATEGORY_LABELS`) et
-  `premiseTitle` produisent du français alors que le projet a une couche i18n (`src/i18n/`).
-  L'interface anglaise affichera « Local vacant (ancien Boulangerie) ».
-- **Accord grammatical.** `premiseTitle` produit « ancien Boulangerie » : le genre n'est pas géré.
+- ~~**Étiquettes en dur en français** (`CATEGORY_LABELS`, `premiseTitle`).~~ ~~**Accord
+  grammatical** — « ancien Boulangerie ».~~ **Corrigés le 15 août, à la racine.**
+
+  Le défaut était architectural : un *service* fabriquait des phrases d'affichage. `Premise`
+  porte désormais `naming`, les valeurs OpenStreetMap brutes, et `src/i18n/premiseName.ts`
+  les rend dans la langue du lecteur. L'adresse suit la même règle — `address` devient
+  `string | null`, et c'est l'interface qui formule l'absence.
+
+  L'accord est traité pour de bon : la table des métiers porte le **genre**, donc
+  « ancienne boulangerie » et « ancien restaurant ». Un métier inconnu est affiché tel quel,
+  sans article inventé. **11 tests**, dont la faute d'origine mot pour mot.
+
+  La recherche textuelle porte maintenant sur les valeurs source et non sur le titre rendu :
+  une requête doit trouver le même local quelle que soit la langue de l'interface.
 - **`fetchRentReferences` avale ses erreurs** (`catch` → `return []`), donc une panne de source est
   indistinguable d'une absence de donnée. Le même motif que le point 3c, en plus discret.
 
@@ -183,8 +193,11 @@ base spatiale de la phase 2 et sortir ce calcul du navigateur. Le refactor du no
   *Ironie relevée le 12 août :* `compass_premises_within` renvoie déjà `total_matched`
   **précisément pour corriger ce défaut** — le commentaire de la migration le dit — mais
   aucun code du front n'appelle cette fonction.
-- **Étiquettes en dur dans le popup de carte.** `useMapLayers` produit du français quelle
-  que soit la langue de l'interface.
+- ~~**Étiquettes en dur dans le popup de carte.**~~ **Corrigé le 15 août.** `useMapLayers`
+  lit `useLocale`, et `locale` entre dans les dépendances de l'effet — le HTML des popups
+  étant construit une fois, changer de langue doit reconstruire les couches, sinon les
+  popups gardent la précédente. Les valeurs OpenStreetMap qui y entrent sont désormais
+  **échappées** : ces popups sont des chaînes HTML, là où React protège partout ailleurs.
 
 ---
 

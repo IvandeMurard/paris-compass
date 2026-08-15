@@ -4,33 +4,27 @@ import { fetchNeighbourhoodProfiles, type NeighbourhoodProfile } from './neighbo
 import { buildScoringIndex, computeScores } from './scoring';
 import type { BBox, Poi, Premise } from './types';
 
-const CATEGORY_LABELS: Record<string, string> = {
-  vacant: 'Local vacant',
-  convenience: 'Supérette',
-  supermarket: 'Supermarché',
-  bakery: 'Boulangerie',
-  clothes: 'Prêt-à-porter',
-  hairdresser: 'Salon de coiffure',
-  restaurant: 'Restaurant',
-};
-
-function premiseTitle(tags: Record<string, string>, status: 'vacant' | 'occupied') {
+/**
+ * What OpenStreetMap says about the premise, with no language chosen.
+ *
+ * This used to return a French sentence — "Local vacant (ancien Boulangerie)" — which the
+ * English interface showed verbatim, wrong language and wrong gender at once. Rendering
+ * belongs to `src/i18n/premiseName.ts`; a service carries values, not prose.
+ */
+function premiseNaming(tags: Record<string, string>, status: 'vacant' | 'occupied') {
   if (status === 'vacant') {
-    const previous = tags['disused:shop'] ?? tags['was:shop'];
-    return previous
-      ? `Local vacant (ancien ${CATEGORY_LABELS[previous] ?? previous})`
-      : 'Local commercial vacant';
+    return { previousKind: tags['disused:shop'] ?? tags['was:shop'] };
   }
-  const kind = tags.shop ?? tags.office ?? 'commerce';
-  return tags.name ?? CATEGORY_LABELS[kind] ?? `Local ${kind}`;
+  return { name: tags.name, kind: tags.shop ?? tags.office ?? 'commerce' };
 }
 
-function premiseAddress(tags: Record<string, string>) {
+/** Null when the source carries no address — the interface says so in its own language. */
+function premiseAddress(tags: Record<string, string>): string | null {
   const parts = [
     [tags['addr:housenumber'], tags['addr:street']].filter(Boolean).join(' '),
     [tags['addr:postcode'], tags['addr:city']].filter(Boolean).join(' '),
   ].filter(Boolean);
-  return parts.join(', ') || tags.address || 'Adresse non renseignée dans OpenStreetMap';
+  return parts.join(', ') || tags.address || null;
 }
 
 function arrondissementFromPostcode(postcode?: string) {
@@ -91,7 +85,7 @@ export async function fetchPremises(bbox: BBox): Promise<PremiseSearchResult> {
 
       return {
         id: raw.id,
-        title: premiseTitle(raw.tags, raw.status),
+        naming: premiseNaming(raw.tags, raw.status),
         category: raw.tags.shop ?? raw.tags['disused:shop'] ?? raw.tags.office ?? 'commerce',
         status: raw.status,
         address: premiseAddress(raw.tags),

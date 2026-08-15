@@ -6,6 +6,7 @@ import { Home, Ruler, MapPin, Users, Wind, Volume2, Footprints, ExternalLink } f
 import type { Premise } from '@/services/opendata/types';
 import { noiseLabel, scoreLabel } from '@/services/opendata/scoring';
 import { MeasuredOrigin, MeasuredScore } from '@/components/MeasuredFigure';
+import { premiseAddressLabel, premiseTitle } from '@/i18n/premiseName';
 import { useLocale } from '@/i18n/locale';
 import { translateLabel } from '@/i18n/labels';
 
@@ -72,7 +73,9 @@ const PropertyCard = ({ premise, airLabel }: PropertyCardProps) => {
     <Card className="overflow-hidden">
       <CardContent className="p-4">
         <div className="mb-2 flex items-start justify-between gap-2">
-          <h3 className="font-medium text-lg leading-tight">{premise.title}</h3>
+          <h3 className="font-medium text-lg leading-tight">
+            {premiseTitle(premise.naming, premise.status, locale)}
+          </h3>
           <Badge variant={premise.status === 'vacant' ? 'default' : 'secondary'} className="shrink-0">
             {premise.status === 'vacant' ? c.available : c.occupied}
           </Badge>
@@ -108,7 +111,9 @@ const PropertyCard = ({ premise, airLabel }: PropertyCardProps) => {
 
           <div className="flex items-start text-sm">
             <MapPin size={16} className="mr-2 mt-0.5 text-primary shrink-0" />
-            <span>{premise.address}</span>
+            <span className={premise.address ? undefined : 'text-muted-foreground'}>
+              {premiseAddressLabel(premise.address, locale)}
+            </span>
           </div>
 
           <div className="flex items-start text-sm">

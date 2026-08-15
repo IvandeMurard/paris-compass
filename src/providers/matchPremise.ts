@@ -50,7 +50,18 @@ export function matchesPremise(
 
   if (filters.query.trim()) {
     const needle = filters.query.trim().toLowerCase();
-    const haystack = `${premise.title} ${premise.address} ${premise.category}`.toLowerCase();
+    // Searched against the source values, not the rendered title: a query must find the
+    // same premise whichever language the interface is in.
+    const haystack = [
+      premise.naming.name,
+      premise.naming.kind,
+      premise.naming.previousKind,
+      premise.address,
+      premise.category,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
     if (!haystack.includes(needle)) return false;
   }
 

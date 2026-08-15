@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import type { Measured } from '@/core';
 import type { Poi, Premise } from '@/services/opendata/types';
+import { useLocale, type Locale } from '@/i18n/locale';
+import { premiseAddressLabel, premiseTitle } from '@/i18n/premiseName';
 
 const CATEGORY_COLORS: Record<string, string> = {
   schools: '#3b82f6',
@@ -19,8 +21,10 @@ const CATEGORY_COLORS: Record<string, string> = {
  * The two rules it enforces are reproduced here instead: an uncomputable score is
  * written out as such and never as 0/100, and a modelled proxy says that it is one.
  */
-const outOf100 = (m: Measured<number>) =>
-  m.value === null ? 'n/d' : `${m.value}/100${m.method === 'estimated' ? ' (est.)' : ''}`;
+const outOf100 = (m: Measured<number>, locale: Locale) => {
+  if (m.value === null) return locale === 'fr' ? 'n/d' : 'n/a';
+  return `${m.value}/100${m.method === 'estimated' ? ' (est.)' : ''}`;
+};
 
 /** Grey, not red: an unknown score must not read as a bad one. */
 function walkabilityColor(score: number | null) {
@@ -33,7 +37,17 @@ function walkabilityColor(score: number | null) {
 }
 
 /** Renders real premises, walkability and amenity layers computed from open data. */
+/**
+ * Popups are built as raw HTML strings, so anything coming from OpenStreetMap — a business
+ * name, a neighbourhood — has to be escaped by hand. React does this for us everywhere else.
+ */
+const escapeHtml = (value: string) =>
+  value.replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string,
+  );
+
 export const useMapLayers = (map: L.Map | null, premises: Premise[], pois: Poi[]) => {
+  const { locale, t } = useLocale();
   const [layers, setLayers] = useState<{
     markersLayer: L.LayerGroup | null;
     walkabilityLayer: L.LayerGroup | null;
@@ -57,17 +71,17 @@ export const useMapLayers = (map: L.Map | null, premises: Premise[], pois: Poi[]
         weight: 2,
       }).bindPopup(`
         <div class="p-1">
-          <strong>${premise.title}</strong><br/>
-          <span>${premise.address}</span><br/>
-          <span>Marchabilité ${outOf100(premise.scores.walkability)} · Flux ${outOf100(premise.scores.footfall)}</span><br/>
+          <strong>${escapeHtml(premiseTitle(premise.naming, premise.status, locale))}</strong><br/>
+          <span>${escapeHtml(premiseAddressLabel(premise.address, locale))}</span><br/>
+          <span>${t('map.popup.walkability')} ${outOf100(premise.scores.walkability, locale)} · ${t('map.popup.footfall')} ${outOf100(premise.scores.footfall, locale)}</span><br/>
           <span>${
             premise.residentialRentEurM2 !== null
-              ? `Loyer résidentiel du quartier ${premise.residentialRentEurM2} €/m²${
-                  premise.quartier ? ` · ${premise.quartier}` : ''
+              ? `${t('map.popup.residentialRent')} ${premise.residentialRentEurM2} €/m²${
+                  premise.quartier ? ` · ${escapeHtml(premise.quartier)}` : ''
                 }${premise.residentialRentYear ? ` · ${premise.residentialRentYear}` : ''}`
-              : 'Quartier non renseigné'
+              : t('map.popup.noQuartier')
           }</span><br/>
-          <span class="text-[11px] opacity-70">${premise.scores.walkability.source} · ${premise.scores.walkability.asOf}</span>
+          <span class="text-[11px] opacity-70">${escapeHtml(premise.scores.walkability.source)} · ${premise.scores.walkability.asOf}</span>
         </div>
       `);
       markersLayer.addLayer(marker);
@@ -81,7 +95,9 @@ export const useMapLayers = (map: L.Map | null, premises: Premise[], pois: Poi[]
         fillColor: walkabilityColor(premise.scores.walkability.value),
         fillOpacity: 0.85,
         weight: 1,
-      }).bindTooltip(`Marchabilité : ${outOf100(premise.scores.walkability)}`);
+      }).bindTooltip(
+        `${t('map.popup.walkability')} : ${outOf100(premise.scores.walkability, locale)}`,
+      );
       walkabilityLayer.addLayer(circle);
     });
 
@@ -104,7 +120,9 @@ export const useMapLayers = (map: L.Map | null, premises: Premise[], pois: Poi[]
       walkabilityLayer.remove();
       accessibilityLayer.remove();
     };
-  }, [map, premises, pois]);
+    // `locale` is a dependency: popup HTML is built once here, so switching language has to
+    // rebuild the layers or the popups keep the previous language.
+  }, [map, premises, pois, locale, t]);
 
   return layers;
 };

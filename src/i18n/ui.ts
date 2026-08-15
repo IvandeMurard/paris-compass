@@ -68,6 +68,14 @@ export const UI = {
     fr: 'Aucun local commercial recensé dans cette vue.',
     en: 'No commercial premises recorded in this view.',
   },
+  // Leaflet popups are built as HTML strings, outside React, so they read these directly.
+  'map.popup.walkability': { fr: 'Marchabilité', en: 'Walkability' },
+  'map.popup.footfall': { fr: 'Flux', en: 'Footfall' },
+  'map.popup.residentialRent': {
+    fr: 'Loyer résidentiel du quartier',
+    en: 'Neighbourhood residential rent',
+  },
+  'map.popup.noQuartier': { fr: 'Quartier non renseigné', en: 'Neighbourhood not available' },
   'map.env.title': { fr: 'Indicateurs environnementaux', en: 'Environmental indicators' },
   'map.env.air': { fr: 'Qualité de l’air (indice EAQI) :', en: 'Air quality (EAQI index):' },
   'map.env.pm25': { fr: 'PM2.5 :', en: 'PM2.5:' },

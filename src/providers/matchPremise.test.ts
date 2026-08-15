@@ -33,7 +33,7 @@ function scores(overrides: Partial<AreaScores> = {}): AreaScores {
 function premise(overrides: Partial<Premise> = {}): Premise {
   return {
     id: 'node/1',
-    title: 'Boulangerie Martin',
+    naming: { name: 'Boulangerie Martin', kind: 'bakery' },
     category: 'bakery',
     status: 'vacant',
     address: '7 rue Clauzel',
