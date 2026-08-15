@@ -6,7 +6,7 @@
  * wrong language, and wrong gender even in French. A service has no business producing
  * display text; it now carries the OpenStreetMap values and this module renders them.
  *
- * Pure on purpose, like `components/figureText.ts`: no JSX, so the node-environment runner
+ * Pure on purpose, like `figureText.ts` beside it: no JSX, so the node-environment runner
  * can exercise it.
  */
 

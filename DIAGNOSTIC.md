@@ -260,6 +260,30 @@ vocabulaire de `provenance.ts` que le serveur MCP consommera.
 
 ---
 
+## 6. Deux rendus, deux comportements — corrigé le 15 août
+
+Les popups Leaflet ne peuvent pas rendre `MeasuredScore` : ils sont construits en HTML brut,
+hors de React. Ils **réimplémentaient donc ses règles**, et moins bien. `outOf100` savait
+qu'une valeur absente s'écrit « n/d » et qu'une estimation se signale, mais ignorait qu'une
+`note` l'emporte sur la formulation générique, et ne disait jamais *pourquoi* la valeur
+manquait. Deux rendus, deux comportements, dont un discrètement plus pauvre.
+
+`describeFigure` décide désormais pour les deux ; seul le balisage diffère. La réserve
+devient un `title` plutôt qu'un lien — un popup n'est pas un endroit d'où l'on navigue.
+
+Le module a suivi : `figureText.ts` passe de `components/` à `i18n/`, à côté de
+`premiseName.ts`. Il n'appartenait plus aux composants dès lors qu'un hook le consomme, et
+les deux modules font la même chose — décider d'un affichage, sans JSX, testables sans DOM.
+
+**Une divergence plus discrète corrigée au passage.** `walkabilityColor` portait ses propres
+seuils — 80/60/40/**20** — quand `scoreLabel` en publie quatre, 80/60/40. La carte et la
+fiche se contredisaient : un score de 30 et un score de 10 formaient un seul libellé sur la
+fiche et deux couleurs sur la carte, et **le seuil de 20 n'apparaissait dans aucune
+méthodologie**. La couleur se lit maintenant depuis `scoreLabel` : une seule échelle, celle
+qui est publiée.
+
+---
+
 ## Ordre d'attaque suggéré
 
 1. Point 1 — c'est une donnée fausse qui pilote un filtre. Rien d'autre ne devrait passer avant.

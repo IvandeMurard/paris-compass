@@ -12,12 +12,13 @@
  *  - the source and the vintage sit next to the number, not in a card footer that
  *    applies to everything and therefore to nothing in particular.
  *
- * The decisions themselves live in `figureText.ts`, where they are tested without a DOM.
+ * The decisions themselves live in `i18n/figureText.ts`, where they are tested without a DOM
+ * and shared with the Leaflet popups, which cannot render a component.
  */
 
 import { Link } from 'react-router-dom';
 import type { Measured } from '@/core';
-import { describeFigure, FIGURE_COPY } from './figureText';
+import { describeFigure, FIGURE_COPY } from '@/i18n/figureText';
 import { useLocale } from '@/i18n/locale';
 
 interface ScoreProps {

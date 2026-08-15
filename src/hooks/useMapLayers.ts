@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
-import type { Measured } from '@/core';
+import { scoreLabel, type Measured } from '@/core';
 import type { Poi, Premise } from '@/services/opendata/types';
 import { useLocale, type Locale } from '@/i18n/locale';
+import { describeFigure } from '@/i18n/figureText';
 import { premiseAddressLabel, premiseTitle } from '@/i18n/premiseName';
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -15,29 +16,6 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 /**
- * A score as it appears in a Leaflet popup.
- *
- * These popups are raw HTML rather than React, so they cannot reuse `MeasuredScore`.
- * The two rules it enforces are reproduced here instead: an uncomputable score is
- * written out as such and never as 0/100, and a modelled proxy says that it is one.
- */
-const outOf100 = (m: Measured<number>, locale: Locale) => {
-  if (m.value === null) return locale === 'fr' ? 'n/d' : 'n/a';
-  return `${m.value}/100${m.method === 'estimated' ? ' (est.)' : ''}`;
-};
-
-/** Grey, not red: an unknown score must not read as a bad one. */
-function walkabilityColor(score: number | null) {
-  if (score === null) return '#94a3b8';
-  if (score >= 80) return '#16a34a';
-  if (score >= 60) return '#4ade80';
-  if (score >= 40) return '#facc15';
-  if (score >= 20) return '#fb923c';
-  return '#ef4444';
-}
-
-/** Renders real premises, walkability and amenity layers computed from open data. */
-/**
  * Popups are built as raw HTML strings, so anything coming from OpenStreetMap — a business
  * name, a neighbourhood — has to be escaped by hand. React does this for us everywhere else.
  */
@@ -46,6 +24,49 @@ const escapeHtml = (value: string) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string,
   );
 
+/**
+ * A score as it appears in a Leaflet popup.
+ *
+ * These popups are raw HTML rather than React, so they cannot render `MeasuredScore` — but
+ * they must not restate its rules either. This function used to reimplement them, badly: it
+ * knew that an absent value reads "n/d" and that an estimate is flagged, but not that a
+ * `note` outranks the generic wording, nor what to say about the absence. Two renderers,
+ * two behaviours, one of them quietly poorer.
+ *
+ * `describeFigure` now decides for both; only the markup differs. The caveat becomes a
+ * `title` rather than a link, a popup being no place to navigate away from.
+ */
+const figureHtml = (m: Measured<number>, locale: Locale) => {
+  const { text, absent, caveat, marker } = describeFigure(m, locale);
+  const body = escapeHtml(text);
+  const title = caveat ? ` title="${escapeHtml(caveat)}"` : '';
+  if (absent) return `<span class="opacity-70"${title}>${body}</span>`;
+  if (!marker) return body;
+  return `${body} <span class="text-[11px] opacity-70"${title}>(${escapeHtml(marker)})</span>`;
+};
+
+/**
+ * Disc colour, keyed on the core's own bands.
+ *
+ * It used to carry its own five thresholds — 80/60/40/20 — while `scoreLabel` publishes
+ * four, 80/60/40. The map and the card therefore disagreed: a score of 30 and a score of 10
+ * were one label on the card and two colours on the map, and the 20 cut-off appeared in no
+ * methodology. Reading the band from `scoreLabel` keeps a single scale, the published one.
+ *
+ * Grey, not red, for an unknown score: an absent figure must not read as a bad one.
+ */
+const BAND_COLOURS: Record<ReturnType<typeof scoreLabel>, string> = {
+  Excellent: '#16a34a',
+  Good: '#4ade80',
+  Moderate: '#facc15',
+  Low: '#ef4444',
+};
+
+function walkabilityColor(score: number | null) {
+  return score === null ? '#94a3b8' : BAND_COLOURS[scoreLabel(score)];
+}
+
+/** Renders real premises, walkability and amenity layers computed from open data. */
 export const useMapLayers = (map: L.Map | null, premises: Premise[], pois: Poi[]) => {
   const { locale, t } = useLocale();
   const [layers, setLayers] = useState<{
@@ -73,7 +94,7 @@ export const useMapLayers = (map: L.Map | null, premises: Premise[], pois: Poi[]
         <div class="p-1">
           <strong>${escapeHtml(premiseTitle(premise.naming, premise.status, locale))}</strong><br/>
           <span>${escapeHtml(premiseAddressLabel(premise.address, locale))}</span><br/>
-          <span>${t('map.popup.walkability')} ${outOf100(premise.scores.walkability, locale)} · ${t('map.popup.footfall')} ${outOf100(premise.scores.footfall, locale)}</span><br/>
+          <span>${t('map.popup.walkability')} ${figureHtml(premise.scores.walkability, locale)} · ${t('map.popup.footfall')} ${figureHtml(premise.scores.footfall, locale)}</span><br/>
           <span>${
             premise.residentialRentEurM2 !== null
               ? `${t('map.popup.residentialRent')} ${premise.residentialRentEurM2} €/m²${
@@ -96,7 +117,7 @@ export const useMapLayers = (map: L.Map | null, premises: Premise[], pois: Poi[]
         fillOpacity: 0.85,
         weight: 1,
       }).bindTooltip(
-        `${t('map.popup.walkability')} : ${outOf100(premise.scores.walkability, locale)}`,
+        `${t('map.popup.walkability')} : ${figureHtml(premise.scores.walkability, locale)}`,
       );
       walkabilityLayer.addLayer(circle);
     });

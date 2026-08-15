@@ -2,7 +2,7 @@
  * Does a premise survive the current filters?
  *
  * Extracted from `FiltersProvider` so the rules can be tested by the node-environment
- * runner the project already has — the same move as `components/figureText.ts`. It is not
+ * runner the project already has — the same move as `i18n/figureText.ts`. It is not
  * cosmetic: three filters were silently doing nothing, and the reason none of it was caught
  * is that `vitest.config.ts` only collects `src/**\/*.test.ts`, so nothing inside a `.tsx`
  * has ever been exercised.
