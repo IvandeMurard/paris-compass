@@ -444,12 +444,17 @@ l'histoire des **entreprises** : déclarative, continue, et rattachée à une ad
 d'immatriculation qui n'est pas forcément une vitrine. Un `Measured<T>` par source, jamais un
 chiffre fusionné qui masquerait laquelle des deux l'a produit.
 
-**3.6 — Sirene au front : brancher ou dépublier.** `fetchEstablishmentsNear` et
-`useNearbyEstablishments` existent et fonctionnent, mais **aucun composant ne les appelle**.
-Or Sirene est annoncée comme source active dans `DATA_SOURCES`, sur la page Sources et dans
-la FAQ. En l'état, le produit **déclare une source qu'il n'interroge pas** — c'est un écart
-d'affichage de provenance, exactement ce que le reste du projet s'interdit. Deux issues,
-aucune tierce : la brancher, ou la retirer des sources annoncées jusqu'à ce qu'elle le soit.
+**3.6 — Sirene au front.** ~~Brancher ou dépublier.~~ **Dépubliée le 15 août.**
+`fetchEstablishmentsNear` et `useNearbyEstablishments` existent, mais aucun composant ne les
+appelle : l'interface n'affiche rien qui vienne de l'INSEE. Elle était pourtant annoncée
+comme source active dans `DATA_SOURCES`, sur la page Sources, dans le README — et dans une
+réponse de FAQ affirmant que Sirene est **lue à chaque déplacement de carte**, ce qui était
+faux.
+
+Dépubliée plutôt que branchée, parce que la brancher n'est pas cheap : il n'existe pas
+d'écran de fiche locale, et interroger l'API pour chacun des 120 locaux d'une vue est
+exclu. Elle rejoint donc le tableau des sources **à venir**, avec la raison écrite. Le vrai
+branchement viendra avec la fiche locale (§2.7), qui interroge une adresse à la fois.
 
 **3.5 — La vue « ce qui se libère ».** Une seconde entrée dans le produit, à côté de « j'ai une
 adresse ».
@@ -777,8 +782,19 @@ Ne pas copier non plus leur export libre : le refus d'exporter une liste est str
   conservés et **alignés**, vérifiés paquet par paquet. Bun ne tourne pas sur cette machine
   (Windows ARM64, aucun binaire publié) — la régénération passe par l'image `oven/bun` en
   conteneur, avec un répertoire ne contenant que `package.json`. Procédure dans `REPRISE.md`.
-- Reste ouvert : ajouter un `.gitattributes` (`* text=auto eol=lf`), sortir
-  `public/sitemap.xml` du suivi git.
+- **Les deux dernières lignes d'hygiène sont écartées le 15 août, avec leurs raisons.**
+
+  `sortir public/sitemap.xml du suivi git` — le hook `prebuild` le régénère bien, donc
+  l'idée tient *si* la chaîne de déploiement passe par `run build`. Impossible à vérifier :
+  Lovable construit avec bun et son pipeline exact n'est pas lisible d'ici. Si elle appelle
+  `vite build` directement, le sitemap disparaît du site publié — silencieusement, sur un
+  produit qui a investi dans le SEO (guides, données structurées, routes bilingues).
+  **Risque invérifiable contre bénéfice cosmétique : on garde le fichier suivi.**
+
+  `ajouter un .gitattributes (* text=auto eol=lf)` — renormaliserait les fins de ligne du
+  dépôt entier, donc un diff massif touchant tous les fichiers, en pleine synchronisation
+  bidirectionnelle avec Lovable. Les avertissements CRLF sont bruyants mais inoffensifs :
+  `core.autocrlf` fait déjà le travail. **Le remède est plus risqué que le symptôme.**
 - ~~Regarder les vulnérabilités `npm audit` à froid~~ **Fait le 12 août**, sans `--force` :
   50 → 8 côté GitHub. Le tri s'est fait sur la **portée**, pas la gravité — les seules failles
   atteignant un visiteur (XSS React Router, `nanoid`) sont corrigées. Les huit restantes
