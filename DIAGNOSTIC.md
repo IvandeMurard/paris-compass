@@ -284,6 +284,51 @@ qui est publiée.
 
 ---
 
+## 7. Dépendances : react-router-dom passé en v7 — et un vérificateur de types qui ne vérifiait rien, le 15 août
+
+Migration menée en deux temps vérifiables, comme demandé. D'abord les *future flags* v6
+(`v7_startTransition`, `v7_relativeSplatPath`) posées sur `<BrowserRouter>` dans `src/App.tsx`
+et éprouvées en navigateur — les huit usages du dépôt (`Link`, `Navigate`, `useLocation`,
+`useNavigate`, `useParams`, plus `BrowserRouter`/`Routes`/`Route`), aucun routeur de données,
+zéro avertissement. Puis le bump vers `react-router-dom@7.18.2`. Le prop `future` disparaît du
+composant déclaratif en v7 — les deux comportements deviennent permanents, sans flag — et a été
+retiré après le bump plutôt que laissé en `future={{}}` mort.
+
+**Découverte en cours de route : `npm.cmd run typecheck` ne vérifiait rien.** Le script
+lançait `tsc --noEmit` sur `tsconfig.json`, un tsconfig « solution » — `"files": []`, seulement
+des `references` vers `tsconfig.app.json` et `tsconfig.node.json`. Un `tsc` invoqué sans
+`--build` ne construit pas les projets référencés : il n'y a aucun fichier à la racine, donc
+rien à vérifier, et la commande sort en succès quel que soit le contenu de `src/`. Vérifié en
+injectant un prop inexistant sur `<BrowserRouter>` et un import inexistant depuis
+`react-router-dom` : zéro erreur remontée dans les deux cas. Corrigé en passant le script à
+`tsc --build` (`package.json`), qui construit réellement les deux projets référencés.
+`*.tsbuildinfo` (cache incrémental de `--build`) ajouté au `.gitignore`.
+
+**Ce que la réparation a fait remonter, sans rapport avec React Router.**
+`src/services/opendata/scoring.ts:22` importe `NoiseEstimate` depuis `./types`, un type qui
+n'y est plus exporté — vestige du 12 août, quand le bruit a rejoint `AreaScores` sous la forme
+`{ score, label }` (voir `docs/REPRISE.md`). Import mort : invisible à l'exécution (import de
+type, effacé par esbuild) et invisible en test (vitest ne type-check pas). Non corrigé ici,
+sans rapport avec la migration et hors périmètre de cette session — signalé séparément.
+
+**Vulnérabilités : 9 → 7.** `react-router-dom` sortait du tableau de `docs/REPRISE.md` comme
+seule vulnérabilité modérée corrigible uniquement par une majeure — c'est fait, l'*open
+redirect* par antislash disparaît avec la v6. Restent les sept de la chaîne
+vite/esbuild/vitest, toutes encore inatteignables par un visiteur (serveur de développement
+sur un produit qui est un site statique) : voir le tableau de `docs/REPRISE.md`.
+
+**`bun.lockb` régénéré** via le conteneur `oven/bun:1.1.38`, procédure de `docs/REPRISE.md`.
+Les paquets nommés par les avis de sécurité portent exactement les mêmes versions dans les deux
+verrous — `vite` 5.4.21, `esbuild` 0.21.5 (la copie imbriquée sous `vite`, pas celle hissée
+pour `tsx`, qui en réclame une plus récente sans rapport avec l'avis), `vitest` et `vite-node`
+et `@vitest/mocker` 2.1.9, `nanoid` 3.3.18 — ainsi que `react-router`/`react-router-dom`,
+7.18.2 des deux côtés. `@vitejs/plugin-react-swc` et `lovable-tagger` divergent en version
+mineure (résolution fraîche côté bun le 15 août, verrou npm non retouché depuis le 12) : sans
+conséquence, leur propre vulnérabilité déclarée est entièrement héritée de `vite`, identique
+dans les deux arbres.
+
+---
+
 ## Ordre d'attaque suggéré
 
 1. Point 1 — c'est une donnée fausse qui pilote un filtre. Rien d'autre ne devrait passer avant.

@@ -54,28 +54,38 @@ provisionnement par base que fait Supabase. Le schéma `auth` y est une **doublu
 19 migrations Compass sont donc éprouvées pour de vrai ; les trois qui touchent
 aux tables utilisateur ne le sont que sur cette doublure.
 
-### Vulnérabilités : 21 → 9, et pourquoi les neuf restent
+### Vulnérabilités : 21 → 9 → 7, et pourquoi les sept restent
 
 `npm.cmd audit fix` (jamais `--force`) le 12 août. `package.json` n'a pas bougé :
 aucune plage de version élargie, seul le verrou a changé. Typecheck, 43 tests et
 build de production vérifiés après coup.
 
-Les neuf restantes exigent toutes une **majeure**, et aucune n'est atteignable
+**`react-router-dom` passé en v7 le 15 août** (voir `DIAGNOSTIC.md` §7) : l'*open
+redirect* par antislash disparaît avec la version majeure. Il ne restait que celle-là
+à exiger un changement cassant pour se corriger ; les sept autres n'en sortiront pas
+plus aujourd'hui.
+
+Les sept restantes exigent toutes une **majeure**, et aucune n'est atteignable
 par un visiteur :
 
 | Paquet | Gravité | Pourquoi on ne bouge pas |
 | --- | --- | --- |
 | `vitest` | critique | L'avis vise le **serveur d'interface** de Vitest. Le projet lance `vitest run`, jamais `--ui`. Correctif = vitest 4 |
 | `vite`, `esbuild` | haute / modérée | Serveur de **développement** uniquement. Le produit est un site statique sans backend joignable. Correctif = vite 8 |
-| `react-router-dom` | modérée | *Open redirect* par antislash. `6.30.4` est déjà le dernier 6.x — corrigé seulement en 7.x, donc cassant malgré l'étiquette « non cassant » de npm |
 
 Les XSS hautes de React Router, elles, **sont corrigées** : c'était la seule
 famille qui atteignait réellement le navigateur, avec `nanoid`, passé en 3.3.18.
 
-**`bun.lockb` a été régénéré** le 12 août et porte les mêmes versions que
-`package-lock.json` — vérifié paquet par paquet sur les seize que les avis
-nommaient. Les deux verrous sont donc alignés, et les correctifs partiront en
-production au prochain build Lovable.
+**`bun.lockb` a été régénéré** le 12 août, puis à nouveau le 15 août après le
+passage de `react-router-dom` en v7 — même procédure, même conteneur jetable sans
+lockfile préexistant. Il porte les mêmes versions que `package-lock.json` sur les
+paquets que les avis nomment (détail dans `DIAGNOSTIC.md` §7) ; deux paquets sans
+rapport avec un avis (`@vitejs/plugin-react-swc`, `lovable-tagger`) divergent en
+version mineure, une résolution fraîche prenant plus récent qu'un verrou npm non
+retouché depuis le 12 — sans conséquence, leur vulnérabilité déclarée n'est
+qu'héritée de `vite`, identique des deux côtés. Les deux verrous restent alignés
+là où ça compte, et les correctifs partiront en production au prochain build
+Lovable.
 
 ### Bun ne tourne pas sur cette machine : passer par Docker
 

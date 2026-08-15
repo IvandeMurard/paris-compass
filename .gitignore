@@ -11,6 +11,9 @@ node_modules
 dist
 dist-ssr
 
+# Cache incrémental de `tsc --build` (voir le script `typecheck`).
+*.tsbuildinfo
+
 # Secrets. `*.local` couvre déjà .env.local, mais on l'écrit en clair : une clé de service
 # poussée par inadvertance ne se rattrape pas avec un commit de correction.
 *.local
