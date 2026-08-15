@@ -468,7 +468,38 @@ adresse ».
 raisonnement, construite à partir du type `Measured`. Prérequis : remonter la provenance dans
 l'UI, ou au moins cesser de la déballer dans l'adaptateur.
 
+> **Fait le 15 août 2026.** `mcp-server/`, paquet indépendant (son propre `package.json`,
+> aucun workspace npm root touché — zéro risque sur la chaîne de build Vite/Lovable). Les
+> quatre outils, tous branchés sur `../src/core` et le rôle `anon` de Supabase, jamais une
+> clé de service. Pas de REST maison à côté : chaque fonction `compass_*` est déjà exposée en
+> REST par PostgREST, en construire une seconde aurait dupliqué ce qui existe déjà.
+>
+> Vérifié : les quatre outils s'enregistrent et répondent via un vrai client MCP
+> (`src/smoke-test.ts`, `@modelcontextprotocol/sdk`). `list_sources` et la couche BDCom de
+> `score_location` vérifiés en direct contre `dbefhvmyfmmhjeetdddu`. La construction de
+> requête Overpass et le parsing des amenités vérifiés — l'un en direct, l'autre en rejouant
+> hors-ligne une réponse réelle capturée — après que les miroirs publics ont commencé à
+> répondre 429 sous le rythme des tests successifs, un comportement déjà documenté
+> (`DIAGNOSTIC.md` §3a), pas un défaut du serveur.
+>
+> **Deux manques restants, délibérément non comblés maintenant :**
+> - `scoreLocation` (`src/core/scoring.ts`) prend une seule `Origin` pour tout le résultat —
+>   chaque axe affiche « OpenStreetMap via Overpass » même quand les locaux viennent de BDCom.
+>   Hérité de l'adaptateur front existant, pas introduit ici ; corriger demande de changer la
+>   signature d'une fonction partagée avec le navigateur, donc une décision séparée.
+> - Aucun outil n'expose `compass_address_timeline` (BODACC, niveaux de fiabilité) : les
+>   quatre outils nommés ici ne couvrent pas cette fonction. Même trou que §2.7 côté front —
+>   un cinquième outil se justifierait une fois cette forme décidée, pas avant.
+
 **4.2 — `llms.txt`** à la racine du site.
+
+> **Fait le 15 août 2026.** `public/llms.txt` — ce que Compass répond, les deux contraintes
+> fondatrices, les refus assumés, comment lire `method` et le niveau de fiabilité, et le
+> serveur MCP décrit honnêtement : pas encore publié ni référencé sur un registre, cloner le
+> dépôt. Repéré en creusant §4.2/4.3 : `robots.txt` autorisait déjà GPTBot/ClaudeBot/
+> PerplexityBot — le crawl était couvert, la découverte agentique (MCP) ne l'était pas. Deux
+> canaux distincts, comblés séparément. Tableau *Status* du README mis à jour en même temps
+> (`MCP server for agents` : Design → Built).
 
 **4.3 — Prompt d'installation** à coller dans un agent de code, qui installe et lance Compass en
 une fois.

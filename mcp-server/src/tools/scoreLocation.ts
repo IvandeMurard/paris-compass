@@ -1,0 +1,63 @@
+// score_location — point + radius in, AreaScores out, provenance intact.
+//
+// Never unwraps Measured<T> into plain numbers — that was the leak the front's own adapter
+// comment warns against (src/services/opendata/scoring.ts): a figure with no source, no
+// vintage and no caveat is exactly what an agent cannot explain to whoever asked it a
+// question. Every field ships as `{ value, source, licence, asOf, method, note?,
+// missingReason? }`.
+
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
+import { z } from "zod"
+
+import { AMENITY_RADIUS_M } from "../../../src/core"
+import { scorePoint } from "../scorePoint"
+
+const inputShape = {
+  lat: z.number().min(48.6).max(49.1).describe("Latitude, Paris intra-muros (roughly 48.81–48.91)"),
+  lng: z.number().min(2.1).max(2.5).describe("Longitude, Paris intra-muros (roughly 2.22–2.47)"),
+  radius_m: z
+    .number()
+    .positive()
+    .max(2000)
+    .default(AMENITY_RADIUS_M)
+    .describe("Search radius in metres. Capped at 2000 — beyond that the question stops being 'this neighbourhood' (compass_max_radius_m)."),
+  vintage_year: z
+    .union([z.literal(2017), z.literal(2020), z.literal(2023)])
+    .default(2023)
+    .describe("BDCom survey year for the premises layer (occupancy, vacancy)."),
+}
+
+export function registerScoreLocation(server: McpServer): void {
+  server.registerTool(
+    "score_location",
+    {
+      title: "Score a location",
+      description:
+        "Scores one point on five amenity categories (schools, healthcare, groceries, parks, transit), " +
+        "walkability, a footfall proxy, and a road-noise proxy — each figure carrying its source, " +
+        "licence, date and method. No single score out of 100: PERIMETRE.md refuses one on the grounds " +
+        "that weights depend on the trade, so axes are returned separately.",
+      inputSchema: inputShape,
+    },
+    async ({ lat, lng, radius_m, vintage_year }) => {
+      const { scores, failures } = await scorePoint(lat, lng, radius_m, vintage_year)
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                point: { lat, lng },
+                radius_m,
+                scores,
+                context_failures: failures.length > 0 ? failures : undefined,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      }
+    },
+  )
+}

@@ -1,0 +1,32 @@
+# Compass
+
+> Context for a Paris commercial-lease decision, from public records only. Every figure carries its source, licence, date and confidence level — the same scoring core serves a map for a human and JSON for an agent.
+
+Compass answers one question: what is this shopfront worth for what I want to do here. It does not list what is for rent — it shows what is coming free (ceased trading, goodwill sold, court-wound-up, censused vacant) and what surrounds an address once you name one. Paris intra-muros only.
+
+## Two founding constraints
+
+- If a number cannot be re-derived from a cited public source, it is not shown. Missing data displays as missing, never as zero.
+- If two units on the same street get the same verdict, Compass has said nothing. The useful granularity is the street segment, sometimes the side of the pavement.
+
+## What it refuses, on purpose
+
+No rent estimate (no open dataset of French commercial rents exists), no revenue forecast, no single score out of 100 (weights depend on the trade), no listings inventory, no national coverage, no account required. Each refusal is argued in the README, not just asserted.
+
+## For an agent
+
+An MCP server exposes the same scoring core a browser uses: `score_location`, `compare_locations`, `explain_score`, `list_sources`. Every response carries `{ value, source, licence, asOf, method, note? }` per figure — never a bare number. No combined verdict from `compare_locations`, by the same refusal as the single score.
+
+Not yet published to npm or listed on an MCP registry. Clone the repository and run it locally: see `mcp-server/README.md` for setup (`npm install`, a Supabase anon key — the same one the browser uses, never a service key — then `npm run start`).
+
+## Key pages
+
+- [Home](https://paris-compass.lovable.app): the map
+- [Methodology](https://paris-compass.lovable.app/en/methodologie): the scoring formulas, published and versioned with the code that implements them
+- [Sources](https://paris-compass.lovable.app/en/sources): every dataset actually queried, with licence and usage
+- [README](https://github.com/IvandeMurard/paris-compass/blob/main/README.md): full write-up, status table, what is built versus designed versus research
+- [mcp-server](https://github.com/IvandeMurard/paris-compass/tree/main/mcp-server): the MCP server source and setup instructions
+
+## Reading a Compass figure
+
+A value's `method` is one of: `measured` (counted or surveyed — the strongest claim), `modelled` (output of a published model, e.g. air quality), `derived` (computed from other values by a published formula), `estimated` (a proxy for data that does not exist openly — always labelled). Reliability on the timeline of an address is one of `etabli` (source names this unit directly), `corrobore` (two independent sources agree, neither names the unit), `probable` (the fact is documented but its attachment to this unit is inferred), `indetermine` (the source is silent). Never a percentage — the level is computed from columns that already exist, never entered by hand.

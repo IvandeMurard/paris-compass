@@ -166,7 +166,7 @@ Honest labels, in the sense that *built* means the code runs and the gate passes
 | BDCom ×3 · BODACC · Sirene · geography — 21 migrations | **Built** — 85 418 units, 228 275 census records, gate green |
 | Deployed to the hosted database | **Next** |
 | Exportable one-address file | Design |
-| MCP server for agents | Design |
+| MCP server for agents | **Built** — runs locally (`mcp-server/`), not published to npm or listed on an MCP registry yet |
 | Agent self-assessment of its own confidence | Research |
 
 ---
