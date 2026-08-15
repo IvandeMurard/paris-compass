@@ -38,7 +38,7 @@ export const FAQ: FaqItem[] = [
   {
     question: 'D’où viennent les données affichées ?',
     answer:
-      'Toutes les données proviennent de sources publiques : OpenStreetMap, Base Adresse Nationale, Sirene (INSEE), open data de la Ville de Paris, Copernicus/CAMS pour l’air et Géorisques pour les risques.',
+      'Toutes les données proviennent de sources publiques : OpenStreetMap, Base Adresse Nationale, open data de la Ville de Paris, Copernicus/CAMS pour l’air et Géorisques pour les risques.',
     details: [
       'Elles sont appelées à la volée depuis le navigateur, sans base intermédiaire, puis mises en cache pour la durée de la session.',
       'Producteur, usage et licence de chaque jeu de données sont listés sur la page Sources.',
@@ -107,12 +107,12 @@ export const FAQ: FaqItem[] = [
   {
     question: 'Puis-je réutiliser les données affichées ?',
     answer:
-      'Oui, dans le respect de la licence de chaque source : ODbL avec attribution pour OpenStreetMap et l’open data de la Ville de Paris, Licence Ouverte Etalab 2.0 pour la BAN, Sirene et Géorisques, CC BY 4.0 pour la qualité de l’air.',
+      'Oui, dans le respect de la licence de chaque source : ODbL avec attribution pour OpenStreetMap et l’open data de la Ville de Paris, Licence Ouverte Etalab 2.0 pour la BAN et Géorisques, CC BY 4.0 pour la qualité de l’air.',
   },
   {
     question: 'À quelle fréquence les données sont-elles mises à jour ?',
     answer:
-      'Les données sont lues à chaque déplacement de carte : OpenStreetMap et Sirene reflètent l’état courant des bases, la qualité de l’air est horaire et les loyers de référence sont annuels.',
+      'Les données sont lues à chaque déplacement de carte : OpenStreetMap reflète l’état courant de la base, la qualité de l’air est horaire et les loyers de référence sont annuels.',
   },
   {
     question: 'Qui édite Compass ?',

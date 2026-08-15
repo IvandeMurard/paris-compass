@@ -257,6 +257,35 @@ vocabulaire de `provenance.ts` que le serveur MCP consommera.
 > **Relecture du 12 août.** Le point 2 est le plus ancien défaut de justesse encore ouvert
 > **en production**. Il devait être « résolu proprement par la phase 2 » — mais la phase 2
 > est construite et **jamais déployée**, et le palliatif proposé ici (interroger un anneau
-> plus large que la fenêtre, n'afficher que la fenêtre) n'a jamais été fait. Attendre un
-> déploiement bloqué sur un mot de passe n'est pas une stratégie de correction. À trancher :
-> palliatif maintenant, ou report assumé et écrit.
+> plus large que la fenêtre, n'afficher que la fenêtre) n'a jamais été fait.
+
+### Le palliatif chiffré, le 15 août — et pourquoi il est écarté
+
+Le palliatif a été instruit avant d'être écrit, et **il coûte plus cher que le défaut**.
+
+Couvrir le rayon d'aménité impose d'élargir la boîte de 800 m de chaque côté. À la latitude
+de Paris, cela fait **+0,0144° en latitude** et **+0,0218° en longitude** (la longitude coûte
+plus cher, un degré n'y valant que ~73 km à 48,87°).
+
+Appliqué à la vue d'ouverture elle-même — 0,01 × 0,018, soit environ 1,1 × 1,3 km :
+
+| | Surface |
+| --- | --- |
+| Fenêtre affichée | 0,00018 deg² |
+| Boîte à interroger | **0,00097 deg²**, soit **5,4×** |
+| Plafond Overpass actuel | 0,0006 deg² |
+
+**La vue d'ouverture par défaut dépasserait donc le plafond d'un facteur 1,6.** Tenir le
+plafond sur la boîte *interrogée* ramènerait la fenêtre utilisable à environ 400 × 480 m —
+quelques pâtés de maisons. Le relever, c'est rouvrir le point 3 : des requêtes trop lourdes
+que les miroirs publics refusent, et un refus que l'utilisateur lit comme « aucun résultat ».
+
+**Ce qui fait pencher la balance** : la troncature n'est pas silencieuse. `coverageNote`
+(`src/core/scoring.ts:143`) pose déjà une réserve sur chaque chiffre dont le disque de 800 m
+sort de la boîte, et l'interface la rend en marqueur cliquable vers la méthodologie — « le
+compte est un plancher, pas un total ». Le défaut est donc **déclaré**, ce qui n'est pas
+l'être corrigé, mais n'est pas non plus mentir.
+
+**Décision : report assumé.** Échanger un chiffre déclaré comme plancher contre une carte
+utilisable sur trois rues serait un mauvais troc. Le vrai correctif reste le RPC point +
+rayon, qui interroge un disque et non un rectangle — et qui ne dépend que du déploiement.

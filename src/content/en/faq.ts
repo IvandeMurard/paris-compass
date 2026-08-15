@@ -33,7 +33,7 @@ export const FAQ_EN: FaqItem[] = [
   {
     question: 'Where does the data shown come from?',
     answer:
-      'All data comes from public sources: OpenStreetMap, Base Adresse Nationale, Sirene (INSEE), Ville de Paris open data, Copernicus/CAMS for air quality and Géorisques for hazards.',
+      'All data comes from public sources: OpenStreetMap, Base Adresse Nationale, Ville de Paris open data, Copernicus/CAMS for air quality and Géorisques for hazards.',
     details: [
       'It is fetched live from the browser, with no intermediate database, then cached for the duration of the session.',
       'The provider, use and licence of each dataset are listed on the Sources page.',
@@ -102,12 +102,12 @@ export const FAQ_EN: FaqItem[] = [
   {
     question: 'Can I reuse the data shown?',
     answer:
-      'Yes, subject to each source\'s licence: ODbL with attribution for OpenStreetMap and Ville de Paris open data, Etalab Open Licence 2.0 for the BAN, Sirene and Géorisques, CC BY 4.0 for air quality.',
+      'Yes, subject to each source\'s licence: ODbL with attribution for OpenStreetMap and Ville de Paris open data, Etalab Open Licence 2.0 for the BAN and Géorisques, CC BY 4.0 for air quality.',
   },
   {
     question: 'How often is the data updated?',
     answer:
-      'Data is read every time the map moves: OpenStreetMap and Sirene reflect the current state of the databases, air quality is hourly and reference rents are annual.',
+      'Data is read every time the map moves: OpenStreetMap reflects the current state of the database, air quality is hourly and reference rents are annual.',
   },
   {
     question: 'Who publishes Compass?',

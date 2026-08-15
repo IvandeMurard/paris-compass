@@ -17,6 +17,18 @@ interface Upcoming {
 
 const UPCOMING: Upcoming[] = [
   {
+    name: 'Sirene — répertoire des entreprises',
+    nameEn: 'Sirene — business register',
+    provider: 'INSEE / DINUM',
+    usage:
+      'Établissements actifs autour du local. Le répertoire est déjà chargé côté base ; aucun écran ne l’interroge encore, donc il n’est pas annoncé comme source active.',
+    usageEn:
+      'Active businesses around the space. The register is already loaded in the database; no screen queries it yet, so it is not announced as an active source.',
+    licence: 'Licence Ouverte (Etalab 2.0)',
+    licenceEn: 'Open Licence (Etalab 2.0)',
+    url: 'https://recherche-entreprises.api.gouv.fr/docs/',
+  },
+  {
     name: 'DVF — Demandes de valeurs foncières',
     nameEn: 'DVF — Demandes de valeurs foncières (property transaction records)',
     provider: 'Cerema / DGFiP',

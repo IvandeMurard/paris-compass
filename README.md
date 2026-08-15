@@ -182,7 +182,6 @@ Honest labels, in the sense that *built* means the code runs and the gate passes
 | --- | --- | --- | --- |
 | OpenStreetMap (Overpass) | OSM contributors | Vacant and occupied units, retail, schools, healthcare, parks, transit, roads | ODbL |
 | Base Adresse Nationale | Etalab / IGN | Geocoding | Licence Ouverte 2.0 |
-| Recherche d'entreprises (Sirene) | INSEE / DINUM | Active establishments, commercial dynamism | Licence Ouverte 2.0 |
 | Rent control dataset | Ville de Paris / OLAP | **Housing only** — a catchment-area signal, never presented as a commercial rent, never multiplied by a floor area, never a filter | ODbL |
 | CAMS Europe (Open-Meteo) | Copernicus | AQI, PM2.5, NO₂ | CC BY 4.0 |
 | Géorisques | BRGM / MTE | Natural and technological risks within 1 km | Licence Ouverte 2.0 |
@@ -273,7 +272,7 @@ That distinction matters more than it looks on a product built entirely from ope
 | | Requires |
 | --- | --- |
 | **ODbL** — OpenStreetMap, rent control dataset, BDCom 2023 | Attribution *and* share-alike. Any reuse must credit *© OpenStreetMap contributors* |
-| **Licence Ouverte 2.0** — Base Adresse Nationale, Sirene, Géorisques | Naming the source and its update date |
+| **Licence Ouverte 2.0** — Base Adresse Nationale, Géorisques, Sirene | Naming the source and its update date |
 | **CC BY 4.0** — CAMS Europe / Copernicus | Attribution |
 
 **BDCom 2017 and 2020 are not redistributable at all.** Their licence differs from the 2023 vintage, which is why the database carries a `publicly_redistributable` flag per vintage and withholds their content from an anonymous caller — content *and* absence alike, so that withholding leaks nothing either.

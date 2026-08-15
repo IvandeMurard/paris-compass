@@ -34,17 +34,11 @@ export const DATA_SOURCES: DataSource[] = [
     licenceEn: 'Open Licence (Etalab 2.0)',
     url: 'https://adresse.data.gouv.fr',
   },
-  {
-    name: 'Sirene — recherche d’entreprises',
-    nameEn: 'Sirene — business register',
-    provider: 'INSEE / DINUM',
-    providerEn: 'INSEE / DINUM',
-    usage: 'Établissements actifs autour du local, dynamisme commercial',
-    usageEn: 'Active businesses around the space, commercial vitality',
-    licence: 'Licence Ouverte (Etalab 2.0)',
-    licenceEn: 'Open Licence (Etalab 2.0)',
-    url: 'https://recherche-entreprises.api.gouv.fr/docs/',
-  },
+  // Sirene is deliberately absent from this list. The client for it exists
+  // (`services/opendata/sirene.ts`) and the register is loaded into the database by
+  // `scripts/ingest/sirene.ts`, but no component queries it, so the interface shows nothing
+  // that comes from INSEE. Listing it here claimed a provenance the product does not have —
+  // the one thing it cannot afford. It sits in the "upcoming" table until a screen reads it.
   {
     name: 'Encadrement des loyers',
     nameEn: 'Rent control reference (encadrement des loyers)',
