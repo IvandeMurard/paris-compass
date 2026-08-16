@@ -24,10 +24,15 @@ Windows + PowerShell. La politique d'exécution bloque `npm.ps1` : **toujours é
 
 ```powershell
 npm.cmd install
-npm.cmd run typecheck   # tsc --noEmit
+npm.cmd run typecheck   # tsc --build
 npm.cmd run test        # vitest
 npm.cmd run dev
+npm.cmd run build       # production
+npm.cmd run build:dev   # mode development — seul chemin qui charge lovable-tagger
 ```
+
+Après toute montée de `vite`, lancer **les deux** builds : `build` construit en mode production,
+où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lovable invisible.
 
 ## Règles qui coûtent cher si on les ignore
 
@@ -43,7 +48,20 @@ npm.cmd run dev
   côtés dans une même session. `git pull` avant de commencer, pousser avant de rouvrir Lovable.
   Ne pas toucher `.lovable/`.
 - **Ne pas lancer `npm audit fix --force`** : cela remonterait des versions majeures et casserait
-  le build.
+  le build. Et ne pas confondre ce que l'outil **propose** avec ce qui **corrige** : `audit fix
+  --force` vise toujours la dernière majeure publiée, jamais la plus petite version qui suffit.
+  Chercher celle-là — l'avis GitHub et les exports Socket la donnent — avant de conclure qu'une
+  montée est hors de portée. Quatre jours ont été perdus sur un « correctif = vite 8 » qui était
+  en réalité vite 6.4.3, trois majeures plus bas.
+- **Vérifier les avis avant d'ajouter une dépendance**, et ne pas s'en remettre à ce que le
+  modèle croit savoir : sa connaissance des vulnérabilités s'arrête à une date, les avis
+  paraissent en continu. Une vulnérabilité ne disqualifie pas une bibliothèque à elle seule —
+  juger d'abord si elle est **atteignable** dans ce produit, qui est un site statique sans
+  serveur joignable. Les cinq avis de vite et vitest ne visaient que le serveur de développement.
+- **Un correctif consigné porte sa source, comme un chiffre affiché.** Écrire « vite 8 » dans une
+  documentation en fait la vérité du projet pour toutes les sessions suivantes, qui n'ont aucun
+  moyen de la recouper. Écrire d'où vient le numéro rend l'erreur repérable. Même exigence que
+  `Measured<T>`, appliquée à la documentation.
 
 ## Style
 
