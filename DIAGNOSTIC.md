@@ -311,6 +311,10 @@ n'y est plus exporté — vestige du 12 août, quand le bruit a rejoint `AreaSco
 type, effacé par esbuild) et invisible en test (vitest ne type-check pas). Non corrigé ici,
 sans rapport avec la migration et hors périmètre de cette session — signalé séparément.
 
+> **Corrigé le 16 août** (§8). Il a fallu le faire en préalable à la montée de vite : tant que
+> `typecheck` échouait, il ne pouvait pas servir à distinguer une casse nouvelle d'une casse
+> déjà présente.
+
 **Vulnérabilités : 9 → 7 côté `npm audit`, 8 → 5 côté Dependabot.** Les deux outils ne comptent
 pas pareil — `npm audit` compte un chemin de dépendance par paquet affecté (`vite`, `esbuild`,
 `vitest`, `vite-node`, `@vitest/mocker`, `@vitejs/plugin-react-swc`, `lovable-tagger`),
@@ -344,6 +348,11 @@ lien malveillant, sur Windows) touche la machine du développeur, pas un serveur
 jamais tourner. Aucune de ces conditions n'est réunie en usage normal ; ce n'est donc pas non
 plus une urgence. Correctif = vite 8 pour les cinq, une majeure non tentée ici.
 
+> **Faux, corrigé le 16 août** (§8). « vite 8 » était la version que proposait
+> `npm audit fix --force`, c'est-à-dire la dernière majeure publiée — pas la plus petite qui
+> corrige. Les cinq avis sont en réalité couverts par **vite 6.4.3** et **vitest 3.2.7**, deux
+> majeures plus bas. Les cinq alertes sont fermées.
+
 **`bun.lockb` régénéré** via le conteneur `oven/bun:1.1.38`, procédure de `docs/REPRISE.md`.
 Les paquets nommés par les avis de sécurité portent exactement les mêmes versions dans les deux
 verrous — `vite` 5.4.21, `esbuild` 0.21.5 (la copie imbriquée sous `vite`, pas celle hissée
@@ -353,6 +362,33 @@ et `@vitest/mocker` 2.1.9, `nanoid` 3.3.18 — ainsi que `react-router`/`react-r
 mineure (résolution fraîche côté bun le 15 août, verrou npm non retouché depuis le 12) : sans
 conséquence, leur propre vulnérabilité déclarée est entièrement héritée de `vite`, identique
 dans les deux arbres.
+
+> **Divergence résorbée le 16 août** (§8) : `package.json` épingle désormais ces deux paquets,
+> les deux verrous portent les mêmes versions partout où un avis est en jeu.
+
+---
+
+## 8. Dépendances : vite 6 et vitest 3, les cinq dernières alertes fermées, le 16 août
+
+Le récit complet — ce qui a été analysé, fait, vérifié, et le seul point de vigilance restant —
+est dans `docs/REPRISE.md`, section « Vulnérabilités : 21 → 9 → 7 → 0 ». Ce qui relève du
+diagnostic de code, et seulement lui :
+
+**Le défaut de §7 corrigé.** L'import mort de `NoiseEstimate` supprimé de
+`src/services/opendata/scoring.ts:22`. Une ligne, aucun effet à l'exécution — le type était
+effacé au build de toute façon. Son intérêt est ailleurs : `npm.cmd run typecheck` repasse au
+vert, et redevient donc un garde-fou utilisable. Réparé en §7, il échouait depuis, ce qui le
+rendait inexploitable pour juger d'une migration.
+
+**Aucun autre code n'a bougé.** Ni `vite.config.ts`, ni `vitest.config.ts`, ni un fichier de
+`src/` : les deux configurations n'utilisent aucune interface supprimée par vite 6, et les 73
+tests passent sans retouche sous vitest 3.
+
+**Un angle mort de vérification, désormais couvert.** `npm.cmd run build` construit en mode
+production, où `lovable-tagger` n'est pas monté (`mode === 'development' && componentTagger()`
+dans `vite.config.ts`). Vérifier une montée de `vite` avec cette seule commande laisse le lien
+avec Lovable non testé. `npm.cmd run build:dev` est le chemin qui l'exerce ; il fait
+maintenant partie du contrôle.
 
 ---
 
