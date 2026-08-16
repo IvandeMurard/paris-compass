@@ -19,10 +19,12 @@ export interface ContextResult {
 }
 
 interface ScoringContextRow {
-  lat: number
-  lng: number
-  is_vacant: boolean
-  total_matched: number
+  lat: number | null
+  lng: number | null
+  is_vacant: boolean | null
+  total_matched: number | null
+  /** True on a single coordinate-less row when the caller may not receive this vintage. */
+  withheld: boolean
 }
 
 async function fetchPremises(
@@ -39,7 +41,26 @@ async function fetchPremises(
   })
   if (error) throw new Error(`compass_scoring_context_within: ${error.message}`)
   const rows = (data ?? []) as ScoringContextRow[]
-  return rows.map((r) => ({ lat: r.lat, lng: r.lng, status: r.is_vacant ? "vacant" : "occupied" }))
+
+  // A withheld vintage is not an empty neighbourhood. Throwing puts this in
+  // `failures` rather than in `loaded`, which is the whole point: an empty array
+  // on a layer declared loaded means "nothing here" to src/core, and the footfall
+  // proxy would come back as a measured zero — a licence restriction reported as
+  // an absence of shops. See 20260816000001_scoring_context_withholding.sql.
+  if (rows.some((r) => r.withheld)) {
+    throw new Error(
+      `BDCom ${vintageYear} is not publicly redistributable — its licence has not been ` +
+        `read, so this caller receives neither its contents nor its counts. Scores that ` +
+        `depend on the premises layer are unknown for this vintage, not zero. ` +
+        `Vintage 2023 is ODbL and can be scored; call list_sources for the licence of each.`,
+    )
+  }
+
+  return rows.map((r) => ({
+    lat: r.lat as number,
+    lng: r.lng as number,
+    status: r.is_vacant ? "vacant" : "occupied",
+  }))
 }
 
 export async function buildNeighbourhoodContext(

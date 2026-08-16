@@ -17,7 +17,14 @@ const inputShape = {
   lng: z.number().min(2.1).max(2.5),
   metric: z.enum(METRICS).describe("Which axis of score_location to explain in detail."),
   radius_m: z.number().positive().max(2000).default(AMENITY_RADIUS_M),
-  vintage_year: z.union([z.literal(2017), z.literal(2020), z.literal(2023)]).default(2023),
+  vintage_year: z
+    .union([z.literal(2017), z.literal(2020), z.literal(2023)])
+    .default(2023)
+    .describe(
+      "BDCom survey year for the premises layer. Only 2023 is ODbL: 2017 and 2020 carry an " +
+        "APUR licence that has not been read, so a public caller receives neither their contents " +
+        "nor their counts, and the scores drawing on premises come back unavailable rather than zero.",
+    ),
 }
 
 function explain(metric: Metric, measured: Measured<number>): string {

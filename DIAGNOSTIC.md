@@ -392,6 +392,76 @@ maintenant partie du contrôle.
 
 ---
 
+## 9. Un millésime retenu par licence rendu comme un quartier sans commerces — corrigé le 16 août
+
+**Le défaut.** `compass_scoring_context_within` rendait **zéro ligne, sans erreur ni marqueur**, à
+un appelant anonyme demandant un millésime non redistribuable. Or zéro ligne est exactement ce
+qu'elle rend pour un rayon réellement vide. Les deux cas étaient indistinguables.
+
+**Mesuré sur la base locale**, Châtelet, rayon 800 m, avant correction :
+
+| Rôle | 2017 | 2020 | 2023 |
+| --- | --- | --- | --- |
+| privilégié | 3 855 locaux | 3 825 | 3 059 |
+| **anonyme** | **0, sans erreur** | **0, sans erreur** | 3 059 |
+
+Il y a bien 3 855 commerces à cet endroit en 2017. Un appelant public en recevait l'équivalent
+d'un désert commercial.
+
+**Ce qui était correct, et qu'il ne faut pas défaire.** La licence *était* respectée : la
+politique RLS de `20260809000008` fait son travail, la fonction est `security invoker`, et aucune
+ligne 2017 ou 2020 n'a jamais fuité. Le défaut n'est pas une fuite — c'est l'inverse. La donnée
+était bien retenue, puis mal rapportée.
+
+**Pourquoi c'était grave en aval.** `NeighbourhoodContext.loaded` (`src/core/scoring.ts:57`)
+distingue « rien ici » de « on ne sait pas », et **seul l'appelant peut trancher**. Un résultat
+vide mais sans erreur faisait déclarer la couche `premises` comme chargée avec succès : le noyau
+calculait alors l'indicateur de passage comme un **zéro mesuré**. Un agent aurait annoncé
+« aucun commerce à proximité » sur la foi d'une licence non lue.
+
+C'est le défaut §3.e transposé : Overpass répondant `200` avec un tableau vide faisait affirmer
+une rue calme à partir d'une panne. Ici, un quartier mort à partir d'une restriction de licence.
+Et c'est le défaut que `20260809000011` avait déjà corrigé pour `compass_address_timeline` — la
+leçon avait été apprise sur une fonction et jamais reportée sur sa voisine.
+
+**Trouvé** en auditant ce que les descriptions d'outils MCP disent de la réserve de licence.
+Elles n'en disaient rien : le mot `withheld` n'apparaissait nulle part dans le serveur, alors que
+les trois outils `score_location`, `compare_locations` et `explain_score` proposent
+`vintage_year: 2017 | 2020 | 2023` dans leur schéma — ils *invitaient* l'agent à demander
+précisément les années qu'il ne recevrait pas.
+
+**Le correctif, en trois points.**
+
+- `20260816000001_scoring_context_withholding.sql` : la fonction rend désormais **une ligne**
+  portant `withheld = true` et aucune coordonnée, au lieu de zéro ligne. Zéro ligne reprend son
+  sens unique — le rayon est vraiment vide. Le test d'appelant privilégié est **recopié
+  littéralement** de `20260809000011` pour que les deux fonctions ne puissent pas diverger. RLS
+  reste ce qui *applique* la retenue ; la fonction se contente de l'*annoncer*.
+- `mcp-server/src/context.ts` : la retenue lève une erreur, ce qui la range dans `failures` au
+  lieu de `loaded`. Le noyau rend alors `unavailable` avec son motif, et les trois outils
+  remontent déjà `context_failures` à l'appelant.
+- Les trois schémas d'entrée décrivent maintenant la réserve : seul 2023 est ODbL, 2017 et 2020
+  reviennent indisponibles plutôt que nuls.
+
+**Vérifié** contre la base locale, avec le vrai noyau, appelant anonyme :
+
+| Millésime | Couche `premises` | `footfall` |
+| --- | --- | --- |
+| 2017 — avant | déclarée chargée | `0` (zéro mesuré) |
+| 2017 — après | non chargée, échec consigné | `null` + « inconnue, pas absente » |
+| 2023 — après | chargée | `65`, inchangé |
+
+Rayon de 1 m sur 2023 : toujours zéro ligne et aucun marqueur — le vrai vide reste un vrai vide.
+
+**Reste ouvert.** La migration n'est appliquée **que sur la base locale**, comme les autres : rien
+n'a jamais été poussé sur une instance distante (`docs/REPRISE.md`, « Le point bloquant, unique »).
+Et le test de fumée `mcp-server/src/smoke-test.ts` n'a pas pu jouer la chaîne complète par
+PostgREST : `mcp-server/.env` vise `dbefhvmyfmmhjeetdddu`, projet vide. La vérification ci-dessus
+passe par le pilote `pg` en rôle `anon`, ce qui exerce la fonction et RLS pour de vrai, mais pas
+la sérialisation PostgREST de la colonne `withheld`. À rejouer au premier chargement distant.
+
+---
+
 ## Ordre d'attaque suggéré
 
 1. Point 1 — c'est une donnée fausse qui pilote un filtre. Rien d'autre ne devrait passer avant.
