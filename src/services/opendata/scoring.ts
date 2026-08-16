@@ -19,7 +19,7 @@ import {
   type Road,
   type ScoringIndex,
 } from '@/core';
-import type { AreaScores, BBox, NoiseEstimate } from './types';
+import type { AreaScores, BBox } from './types';
 import type { OverpassSnapshot } from './overpass';
 
 const AMENITY_CATEGORIES: readonly AmenityCategory[] = [
