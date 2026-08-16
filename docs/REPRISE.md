@@ -1,4 +1,4 @@
-# Reprise — état au 12 août 2026, fin de session
+# Reprise — état au 16 août 2026, fin de session
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`
@@ -54,38 +54,95 @@ provisionnement par base que fait Supabase. Le schéma `auth` y est une **doublu
 19 migrations Compass sont donc éprouvées pour de vrai ; les trois qui touchent
 aux tables utilisateur ne le sont que sur cette doublure.
 
-### Vulnérabilités : 21 → 9 → 7, et pourquoi les sept restent
+### Vulnérabilités : 21 → 9 → 7 → **0**, le 16 août
 
-`npm.cmd audit fix` (jamais `--force`) le 12 août. `package.json` n'a pas bougé :
-aucune plage de version élargie, seul le verrou a changé. Typecheck, 43 tests et
-build de production vérifiés après coup.
+**État actuel : `npm.cmd audit` ne remonte plus rien.** Les cinq alertes qui
+traînaient depuis le 12 août sont fermées. C'est la fin de ce chantier — sauf le
+point de vigilance Lovable, plus bas.
 
-**`react-router-dom` passé en v7 le 15 août** (voir `DIAGNOSTIC.md` §7) : l'*open
-redirect* par antislash disparaît avec la version majeure. Il ne restait que celle-là
-à exiger un changement cassant pour se corriger ; les sept autres n'en sortiront pas
-plus aujourd'hui.
+**Ce qui a été analysé.** Deux exports Socket Security du 16 août
+(`cyclonedx-manifest.json`, inventaire des dépendances, et `socket.vex.json`,
+les alertes) plus un tableur `alerts.csv.xlsx` couvrant cinq dépôts. Le tableur
+portait une colonne absente des autres sources : **la version minimale qui
+corrige**. C'est elle qui a débloqué le dossier.
 
-Les sept restantes exigent toutes une **majeure**, et aucune n'est atteignable
-par un visiteur :
+**Douze alertes Socket visaient Compass, dont cinq seulement sont des
+vulnérabilités.** Ce sont ces cinq-là qui sont fermées. Les sept autres restent
+affichées et **c'est normal** — elles ne relèvent pas de la sécurité :
 
-| Paquet | Gravité | Pourquoi on ne bouge pas |
+| Combien | Nature | Ce que c'est |
 | --- | --- | --- |
-| `vitest` | critique | L'avis vise le **serveur d'interface** de Vitest. Le projet lance `vitest run`, jamais `--ui`. Correctif = vitest 4 |
-| `vite`, `esbuild` | haute / modérée | Serveur de **développement** uniquement. Le produit est un site statique sans backend joignable. Correctif = vite 8 |
+| 5 | vulnérabilités | `vite` ×3, `vitest`, `esbuild` — **fermées** |
+| 5 | « code obfusqué à 90 % » | `recharts` ×2, `date-fns` ×2, `@tanstack/query-core`. Détection automatique qui confond **code minifié** et code délibérément masqué. Faux positif sur des bibliothèques de cette notoriété — rien à faire |
+| 2 | paquet déprécié | `glob`, `recharts` — le mainteneur n'assure plus le suivi. Question d'entretien à terme, pas de sécurité |
 
-Les XSS hautes de React Router, elles, **sont corrigées** : c'était la seule
-famille qui atteignait réellement le navigateur, avec `nanoid`, passé en 3.3.18.
+Ne pas rouvrir le dossier en voyant sept alertes persister : le compteur qui fait
+foi pour la sécurité est `npm.cmd audit`, à zéro.
 
-**`bun.lockb` a été régénéré** le 12 août, puis à nouveau le 15 août après le
-passage de `react-router-dom` en v7 — même procédure, même conteneur jetable sans
-lockfile préexistant. Il porte les mêmes versions que `package-lock.json` sur les
-paquets que les avis nomment (détail dans `DIAGNOSTIC.md` §7) ; deux paquets sans
-rapport avec un avis (`@vitejs/plugin-react-swc`, `lovable-tagger`) divergent en
-version mineure, une résolution fraîche prenant plus récent qu'un verrou npm non
-retouché depuis le 12 — sans conséquence, leur vulnérabilité déclarée n'est
-qu'héritée de `vite`, identique des deux côtés. Les deux verrous restent alignés
-là où ça compte, et les correctifs partiront en production au prochain build
-Lovable.
+**La conclusion du 15 août était fausse, et voici pourquoi.** `DIAGNOSTIC.md` §7
+et cette page annonçaient « Correctif = vite 8 » et « Correctif = vitest 4 ».
+Ces numéros venaient de ce que proposait `npm audit fix --force`, qui va
+**toujours vers la dernière majeure publiée**, jamais vers la plus petite qui
+suffit. Les correctifs étaient en réalité disponibles bien plus bas : **vite
+6.4.3** et **vitest 3.2.6**. Trois majeures d'écart, et un chantier réputé
+intouchable qui tenait en une heure.
+
+> **Leçon à garder.** Ce que `npm audit fix --force` veut installer n'est pas la
+> version qui corrige : c'est la plus récente. Toujours chercher la version
+> minimale — Socket la donne, les avis GitHub aussi.
+
+**Ce qui a été fait**, en trois étapes séparées pour savoir laquelle casse quoi :
+
+| | Paquet | Avant | Après |
+| --- | --- | --- | --- |
+| Étape A | `@vitejs/plugin-react-swc` | 3.5.0 | **3.11.0** |
+| | `lovable-tagger` | 1.1.7 | **1.3.3** |
+| Étape B | `vitest` | 2.1.9 | **3.2.7** |
+| Étape C | `vite` | 5.4.21 | **6.4.3** |
+| (transitif) | `esbuild` | 0.21.5 | **0.25.12** |
+
+L'étape A ne corrige rien par elle-même : ces deux paquets **refusaient** vite 6
+tant qu'ils n'étaient pas montés. C'est le seul ordre qui fonctionne — bumper
+vite d'abord fait échouer `npm.cmd install` sur un conflit.
+
+**Aucun fichier de configuration n'a eu besoin de changer.** Ni `vite.config.ts`,
+ni `vitest.config.ts` : ils n'utilisent aucune des interfaces supprimées par
+vite 6. Aucun code applicatif non plus.
+
+**Ce qui a été vérifié**, dans cet ordre, après chaque étape :
+
+| Vérification | Résultat |
+| --- | --- |
+| `npm.cmd run typecheck` | passe |
+| `npm.cmd run test` | 73 tests sur 73 |
+| `npm.cmd run build` | passe — 1 865 modules |
+| `npm.cmd run build:dev` | passe — **seul chemin qui charge `lovable-tagger`** |
+| Serveur de dev + navigateur | page rendue, zéro erreur console, aucune requête en échec |
+| Carte Leaflet | conteneur monté, tuiles chargées, 96 marqueurs |
+
+Le `build:dev` n'est pas une redondance : `lovable-tagger` n'est monté que si
+`mode === 'development'`. Un `npm.cmd run build` seul ne l'exécute **jamais** et
+laisserait une panne Lovable invisible jusqu'au prochain build de leur côté.
+
+**Un défaut pré-existant a dû être corrigé d'abord.** `npm.cmd run typecheck`
+échouait déjà avant qu'on touche à quoi que ce soit, sur l'import mort de
+`NoiseEstimate` signalé par `DIAGNOSTIC.md` §7 le 15 août. Sans le corriger,
+le typecheck ne pouvait servir de garde-fou : impossible de distinguer une
+casse due à la montée d'une casse déjà là. Une ligne, aucun effet sur le
+comportement.
+
+**`bun.lockb` régénéré le 16 août**, même procédure (conteneur `oven/bun:1.1.38`,
+répertoire jetable, `package.json` seul). Les deux verrous portent désormais des
+versions **identiques sur tous** les paquets nommés par les avis — `vite` 6.4.3,
+`vitest` et `@vitest/mocker` 3.2.7, `vite-node` 3.2.4, `esbuild` 0.25.12,
+`nanoid` 3.3.18, `react-router-dom` 7.18.2. La divergence sur
+`@vitejs/plugin-react-swc` et `lovable-tagger` notée le 15 août **a disparu** :
+`package.json` les épingle maintenant explicitement. Seul `esbuild` réclamé par
+`tsx` diverge encore (0.28.1 npm / 0.28.2 bun) — cette copie-là n'est visée par
+aucun avis.
+
+**Ce qui reste à faire : rien de technique, un seul point de vigilance.** Voir
+§7 de « La suite, par ordre ».
 
 ### Bun ne tourne pas sur cette machine : passer par Docker
 
@@ -105,6 +162,12 @@ Linux ARM64, avec un répertoire jetable contenant **seulement `package.json`** 
 # le verrou present, bun conserverait les versions epinglees et ne corrigerait rien.
 docker run --rm -v "${tmp}:/app" -w /app oven/bun:1.1.38 bun install
 ```
+
+Rejouée le 16 août sans accroc — compter environ **deux minutes et demie**
+d'installation. Docker Desktop n'était pas lancé au démarrage de la session : le
+démon met ensuite une quinzaine de secondes à répondre, et les conteneurs
+Supabase remontent seuls, volumes intacts. Le verrou obtenu se recopie ensuite à
+la main dans le dépôt.
 
 Rester en **bun 1.1.x** : à partir de 1.2, bun migre `bun.lockb` vers `bun.lock`
 en texte, ce qui changerait le format que Lovable attend. Ne pas monter le dépôt
@@ -359,6 +422,40 @@ l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
    Ne pas confondre avec un score de confiance en pourcentage : le refus reste
    entier. C'est la *traçabilité* qui devient autonome, pas la certitude.
 
+7. **Vérifier le premier build Lovable après la montée du 16 août —
+   à partir du 1er septembre 2026.** Hors file d'attente : ce n'est pas un
+   chantier, c'est un contrôle à faire **une fois**, puis à rayer.
+
+   *Pourquoi cette date.* Lovable n'est pas disponible avant le 1er septembre.
+   Le code est poussé depuis le 16 août et attend là ; il n'y a rien à faire
+   dans l'intervalle, et rien qui se dégrade en attendant. Ce délai de deux
+   semaines est la raison d'être de ce point : sans lui, le contrôle serait
+   oublié d'ici là.
+
+   *Pourquoi ce point existe.* Sur les quatre paquets montés, trois ne servent
+   qu'ici (`vite`, `vitest`, `@vitejs/plugin-react-swc`) et sont vérifiés en
+   local. Le quatrième, **`lovable-tagger`, s'exécute chez Lovable** — c'est
+   l'outil qui relie leur éditeur visuel au code. Il est passé de 1.1.7 à 1.3.3,
+   parce que la 1.1.7 refusait vite 6. Le chemin qui le charge a été éprouvé en
+   local (`npm.cmd run build:dev`, au vert), mais l'environnement de Lovable
+   n'est pas le nôtre et personne ne peut l'éprouver d'ici.
+
+   *Ce qu'il faut regarder*, dans cet ordre :
+
+   - le build Lovable termine sans erreur ;
+   - l'aperçu s'affiche comme avant ;
+   - la sélection d'un composant dans leur éditeur visuel fonctionne toujours —
+     c'est précisément ce que fait `lovable-tagger`, donc le seul symptôme qui
+     signerait un problème lié à cette montée.
+
+   *Si ça casse.* Rien n'est perdu et rien n'est urgent : le correctif tient en
+   un `git revert` du commit de montée, qui ramène l'ensemble à vite 5. Les cinq
+   vulnérabilités reviendraient avec — toutes cantonnées au serveur de
+   développement, aucune atteignable par un visiteur du site. On aurait alors
+   le temps de chercher la bonne version de `lovable-tagger`.
+
+   *Une fois vérifié*, supprimer ce point 7 : il n'aura plus lieu d'être.
+
 ---
 
 ## Ce qu'il ne faut pas faire
@@ -373,3 +470,13 @@ catégories. Le code BDCom à 224 postes fait foi.
 
 Ne pas committer de sauvegarde de base : le dépôt est **public**. Le `.gitignore`
 couvre désormais `*.backup*`, `*.dump`, `db_cluster-*`.
+
+Ne pas conclure qu'une vulnérabilité « exige la dernière majeure » **parce que
+`npm audit` le dit**. L'outil propose toujours la version la plus récente, pas la
+plus petite qui corrige. Trois majeures ont été crues nécessaires pendant quatre
+jours pour cette raison (voir « Vulnérabilités » plus haut). Chercher la version
+minimale dans l'avis GitHub ou l'export Socket avant de renoncer à une montée.
+
+Ne pas vérifier une montée de `vite` avec `npm.cmd run build` seul. La commande
+construit en mode production, où `lovable-tagger` **n'est pas chargé** : une panne
+du lien avec Lovable passerait inaperçue. Lancer aussi `npm.cmd run build:dev`.
