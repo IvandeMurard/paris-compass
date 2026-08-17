@@ -160,3 +160,42 @@ where n.nspname = 'public'
   and p.proname like 'compass\_%'
   and not has_function_privilege('anon', p.oid, 'execute')
 limit 20;
+
+-- @invariant I12 :: un appelant anonyme reçoit le contenu ou une absence muette d'un millésime non redistribuable, via compass_scoring_context_within
+-- @as anon
+-- One function down from I9/I10. compass_address_timeline was fixed for this
+-- defect in 20260809000011; compass_scoring_context_within carried the same
+-- one until 20260816000001 — a withheld vintage answered with zero rows,
+-- indistinguishable from a genuinely empty radius. The two functions can
+-- drift apart again, and I9 does not vouch for this one.
+--
+-- `left join lateral ... on true` turns "the function returned nothing" into
+-- a row of nulls this query can see. Silence is exactly the defect being
+-- guarded against, and a plain call would let it hide instead of failing.
+--
+-- The runner only sets `request.jwt.claims`, never `set local role anon`:
+-- enough here, since the function reads its own privilege from the claim
+-- (20260816000001), not from the database role, the same design as
+-- compass_address_timeline. It does not exercise the RLS policy itself.
+select v.vintage_year, r.lat, r.lng, r.is_vacant, r.total_matched, r.withheld
+from (values (2017::smallint), (2020::smallint)) v(vintage_year)
+left join lateral public.compass_scoring_context_within(
+  48.8566::double precision, 2.3522::double precision, 800::double precision, v.vintage_year
+) r on true
+where r.lat is not null or r.lng is not null or r.is_vacant is not null
+   or r.total_matched is not null or r.withheld is distinct from true
+   or r.withheld is null
+limit 20;
+
+-- @invariant I13 :: une absence réelle se lit comme une retenue de licence, via compass_scoring_context_within
+-- @as anon
+-- The mirror of I12, and the one an over-eager fix could introduce by
+-- accident: a genuinely empty radius on a redistributable vintage must stay
+-- silent — zero rows, as before 20260816000001 — never the withheld marker.
+-- A 1-metre radius makes "empty" reliable regardless of how the data drifts:
+-- confirmed empty at this point (Chatelet) on 2026-08-17.
+select *
+from public.compass_scoring_context_within(
+  48.8566::double precision, 2.3522::double precision, 1::double precision, 2023::smallint
+)
+limit 20;

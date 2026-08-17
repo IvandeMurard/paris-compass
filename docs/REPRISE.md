@@ -570,20 +570,30 @@ l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
    } else { "URL non reconnue dans .env.local" }
    ```
 
-   **Ce que la porte d'évaluation ne couvre pas.** Aucun invariant ne vise
-   `compass_scoring_context_within` : I9 et I10 exercent la règle de licence à
-   travers `compass_address_timeline` seulement. La porte n'aurait donc pas
-   attrapé ce défaut, et n'attrapera pas sa réapparition. Un I12 est à écrire,
-   sur le modèle de I9 — un appelant anonyme demandant un millésime non
-   redistribuable doit recevoir une ligne `withheld`, jamais zéro ligne.
+   ~~**Ce que la porte d'évaluation ne couvrait pas.**~~ **Fait le 17 août** :
+   I12 et I13 ajoutées à `eval/invariants.sql`, exécutées par le vrai lanceur
+   contre le distant — **13/13**, verdict inchangé.
 
-   Deux précautions pour l'écrire. D'abord, le lanceur pose seulement
-   `request.jwt.claims` et ne fait pas `set local role anon` : cela suffit pour
-   la logique qui lit le claim — c'est le cas ici — mais **n'exerce pas le
-   filtrage RLS**, qui est contourné par le rôle propriétaire. Ensuite, le
-   contre-test compte autant que le test : un rayon sans aucun local doit
-   continuer à rendre **zéro ligne sans marqueur**, sinon on corrige un défaut
-   en en créant un autre.
+   - **I12** — un appelant anonyme reçoit le contenu ou une absence muette d'un
+     millésime non redistribuable. `left join lateral … on true` transforme
+     « la fonction n'a rien rendu » en une ligne de nulls que la requête peut
+     voir : le silence de l'ancien défaut devient visible plutôt que de se
+     cacher dans zéro ligne.
+   - **I13** — le contre-test : un rayon réellement vide sur un millésime
+     redistribuable doit rester silencieux, jamais un faux marqueur `withheld`.
+
+   **Les deux vérifiées contre un vrai sabotage, pas une supposition.**
+   L'ancienne fonction (avant `20260816000001`) recréée dans une transaction
+   jetable, jamais validée, contre le distant : I12 **plante** dessus —
+   `column r.withheld does not exist` — donc une régression de schéma ne
+   pourrait jamais passer inaperçue en silence. I13 reste au vert sous
+   l'ancienne fonction aussi : c'est attendu, elle protège contre une
+   sur-correction future, pas contre le défaut d'hier.
+
+   La précaution qui reste vraie : le lanceur pose `request.jwt.claims` mais ne
+   fait jamais `set local role anon`, donc I12/I13 exercent la logique de
+   la fonction (qui lit le claim), pas le filtrage RLS lui-même — consigné en
+   commentaire dans le fichier, pas juste ici.
 
 ---
 
