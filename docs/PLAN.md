@@ -774,10 +774,52 @@ valeurs en colonnes ; la **composition de fiabilité n'est pas historisée**, do
 n'est démontrable, seulement la dérive ; et la porte sait dire si la qualité a dérivé, jamais
 de combien elle a avancé.
 
+> **Fait le 15 août 2026, sur `dbefhvmyfmmhjeetdddu`.**
+>
+> Les trois manques, dans l'ordre où ils sont listés ci-dessus :
+>
+> 1. `compass_address_timeline` gagne une colonne `confidence_rule`
+>    (`20260815000001_confidence_rule.sql`) — un type enum de dix codes stables, un par
+>    branche des `CASE` qui produisaient déjà `confidence_reason`. Rien n'est redécidé :
+>    même branche, un code à côté de la phrase plutôt qu'à sa place. Le jeu doré vérifie
+>    désormais `rule` en égalité stricte sur les quatre cas qui testaient une sous-chaîne de
+>    prose française (`reason_contains`, conservé pour la lisibilité, mais plus seul juge).
+> 2. `eval/confidence_history.jsonl`, un point par (cible, jour), écrit par
+>    `scripts/eval/run.ts` après le bras B. Choix délibéré : un fichier suivi par git dans
+>    `eval/`, pas une table dans le schéma produit — c'est de la comptabilité d'éval, pas une
+>    donnée du domaine.
+> 3. La porte rapporte désormais le delta des quatre nombres contre le point précédent et la
+>    tendance établi+corroboré en points de pourcentage — « s'améliore » / « recule » /
+>    « stable » — en plus de l'écart contre la baseline gelée du 9 août. Les deux mécaniques
+>    restent distinctes : la baseline dit si on s'est écarté d'un instantané fixe, l'historique
+>    dit si on avance.
+>
+> Premier point posé le jour même, rien à comparer encore — la tendance apparaîtra à la
+> prochaine exécution.
+
 **6.9 — Rendre vérifiable l'invariant de `PERIMETRE.md` §8** : *aucun chiffre ne peut exister
 uniquement dans l'UI*. La règle est écrite, la porte d'évaluation existe, et rien ne relie les
 deux. `FAILURE_MODES.md` reconnaît d'ailleurs que le rendu n'est pas couvert — « une interface
 peut toujours montrer une colonne en en cachant une autre ».
+
+> **Moitié faite le 15 août 2026 — l'autre moitié attend `src/`, donc Lovable.**
+>
+> L'invariant a deux sens, et un seul est backend. Celui qui l'est : rien ne doit exister
+> *uniquement côté privilégié*, c'est-à-dire aucune fonction `compass_*` qui ne serait pas
+> exécutable par `anon`. **I11** (`eval/invariants.sql`) le vérifie désormais sur les dix
+> fonctions à chaque exécution. Il a trouvé, en le posant, exactement le genre de défaut qu'il
+> existe pour attraper : `compass_street_key` et `compass_bodacc_street_key` n'avaient **aucun
+> `GRANT EXECUTE` explicite** et ne fonctionnaient que par le défaut `PUBLIC` de Postgres —
+> jamais vérifié jusqu'ici, le même angle mort que l'incident RLS-sans-GRANT de
+> `20260809000009`, sous une autre forme. Corrigé dans
+> `20260815000002_grant_execute_completeness.sql`.
+>
+> L'autre sens — rien ne doit exister *uniquement dans un composant React*, la formulation
+> réellement écrite dans `PERIMETRE.md` §8 — ne se vérifie pas sans lire `src/`. Delibérément
+> pas fait maintenant : consigne du 15 août de laisser `src/` de côté jusqu'au 1ᵉʳ septembre.
+> Un audit en lecture seule (aucune édition, juste repérer tout calcul d'affichage qui
+> n'aurait pas d'équivalent `compass_*`) resterait possible sans rouvrir de chantier front —
+> à la demande, pas par défaut.
 
 ---
 
