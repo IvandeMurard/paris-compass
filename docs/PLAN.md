@@ -551,25 +551,29 @@ l'UI, ou au moins cesser de la déballer dans l'adaptateur.
 >   lignes, mais c'est elle qui décide du niveau `corrobore`, donc une source dont l'appelant
 >   dépend. La règle du fichier tient : on ne nomme que ce qu'un appel touche réellement.
 >
-> - **Défaut trouvé en chemin, non corrigé : `compass_premises_within` porte l'absence
->   silencieuse que `20260816000001` a réparée sur `compass_scoring_context_within`.**
->   `SECURITY INVOKER`, la politique RLS de `20260809000008` filtre `premise_observation`,
->   et la fonction rend zéro ligne sans marqueur — indiscernable d'un rayon réellement vide.
+> - ~~**Défaut trouvé en chemin : `compass_premises_within` porte l'absence silencieuse.**~~
+>   **Corrigé le 17 août** par `20260817000001`, sur le modèle de `20260816000001`, et couvert
+>   par I14 et I15. C'est l'écriture de `find_premises` qui l'a fait remonter : la fonction est
+>   `SECURITY INVOKER`, la politique RLS de `20260809000008` filtre `premise_observation`, et
+>   elle rendait zéro ligne sans marqueur — indiscernable d'un rayon réellement vide.
 >
->   **Mesuré le 17 août contre le distant**, en appelant anonyme réel via PostgREST et non en
->   simulation de claim, à Châtelet sur 800 m : 2017 → 0 ligne, 2020 → 0 ligne, 2023 → 3 059
->   locaux, 2023 sur un rayon d'un mètre → 0 ligne. Le millésime retenu et le vide réel rendent
->   la même chose au bit près. Le 3 059 recoupe le tableau de `REPRISE.md` « La suite » §8.
+>   **Mesuré des deux côtés du correctif**, en appelant anonyme réel via PostgREST et non en
+>   simulation de claim, à Châtelet sur 800 m :
 >
->   **Il y a donc trois fonctions qui portent la règle de licence, pas deux.** I9 et I10
->   couvrent `compass_address_timeline`, I12 et I13 couvrent `compass_scoring_context_within`
->   depuis le 17 août — `compass_premises_within` n'est ni corrigée ni couverte. Le correctif
->   est celui déjà écrit deux fois : émettre la rétention comme une ligne. Les invariants qui
->   vont avec se copient sur I12 et I13, **la paire et pas seulement le test** : le contre-test
->   d'un rayon réellement vide compte autant, sinon on remplace un défaut par son symétrique.
+>   | | 2017 | 2020 | 2023 | 2023 à 1 m |
+>   | --- | --- | --- | --- | --- |
+>   | avant | 0 ligne | 0 ligne | 3 059 | 0 ligne |
+>   | après | 1 ligne `withheld` | 1 ligne `withheld` | 3 059 | 0 ligne |
 >
->   `find_premises` ne peut pas y toucher — il est épinglé à 2023 — mais c'est un évitement,
->   pas une couverture, et la fiche locale de §2.7 est le prochain appelant prévu.
+>   La dernière colonne est la moitié qu'on saute : un vide réel se lit toujours comme un vide,
+>   donc le correctif n'a pas remplacé un défaut par son symétrique. Les chiffres privilégiés
+>   relevés au passage — 3 855 en 2017, 3 825 en 2020 — recoupent ceux de `20260816000001` et
+>   du tableau de `REPRISE.md` « La suite » §8.
+>
+>   **Les trois fonctions qui portent la règle de licence sont désormais couvertes** : I9/I10
+>   pour `compass_address_timeline`, I12/I13 pour `compass_scoring_context_within`, I14/I15
+>   pour celle-ci. L'épinglage de `find_premises` à 2023 n'était pas le correctif et ne devient
+>   pas inutile : il tient sur la règle de licence, pas sur ce défaut.
 
 **4.2 — `llms.txt`** à la racine du site.
 

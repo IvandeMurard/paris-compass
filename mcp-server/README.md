@@ -70,17 +70,19 @@ with `find_premises` as the lookup it needs. The front still has the same gap on
 (PLAN.md §2.7, "la fiche locale"): this server is now the only consumer of the timeline outside
 the evaluation gate.
 
-**`compass_premises_within` still has the silent-absence defect that `20260816000001` fixed for
-`compass_scoring_context_within`.** It is `SECURITY INVOKER`, the RLS policy of `20260809000008`
-restricts `premise_observation` to redistributable vintages, and the function returns zero rows
-with no marker — byte for byte what a genuinely empty radius returns.
+~~`compass_premises_within` still has the silent-absence defect.~~ **Fixed the same day**, in
+`20260817000001`, and covered by `I14`/`I15`. Writing `find_premises` is what surfaced it: the
+function is `SECURITY INVOKER`, the RLS policy of `20260809000008` restricts
+`premise_observation` to redistributable vintages, and it answered a withheld vintage with zero
+rows — byte for byte what a genuinely empty radius returns.
 
-Measured against the remote on 17 August as a real anonymous caller through PostgREST, at
-Châtelet over 800 m: 2017 → 0 rows, 2020 → 0 rows, 2023 → 3 059 premises, 2023 at a 1-metre
-radius → 0 rows. `find_premises` avoids it by never asking for another vintage; nothing stops a
-different caller, and the front's premise sheet (PLAN.md §2.7) is the next one planned.
+Measured as a real anonymous caller through PostgREST at Châtelet over 800 m, before and after:
 
-Three functions carry the licence rule, not two: `I9`/`I10` cover `compass_address_timeline`,
-`I12`/`I13` cover `compass_scoring_context_within` as of 17 August, and this one is neither
-fixed nor covered. The fix is the one already written twice — emit the withholding as a row —
-and the invariants copy from `I12`/`I13` as a **pair**, counter-test included.
+| | 2017 | 2020 | 2023 | 2023 @ 1 m |
+| --- | --- | --- | --- | --- |
+| before | 0 rows | 0 rows | 3 059 | 0 rows |
+| after | 1 row, `withheld` | 1 row, `withheld` | 3 059 | 0 rows |
+
+The last column is the half that gets skipped: a genuinely empty radius still reads as empty, so
+the fix did not swap one defect for its mirror. All three functions carrying the licence rule are
+now covered — `I9`/`I10`, `I12`/`I13`, `I14`/`I15`.

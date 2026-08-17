@@ -13,11 +13,10 @@
 // enumerated premises from those vintages would disclose precisely that existence. The timeline
 // still reports them — as withheld rows, which is the licensed way to say "something is here".
 //
-// One live defect this sidesteps without fixing: compass_premises_within is SECURITY INVOKER
-// and still has the silent-absence flaw that 20260816000001 fixed for
-// compass_scoring_context_within. Asked for 2017 as anon it returns zero rows, byte for byte
-// what a genuinely empty radius returns. Pinning 2023 means no call from here can reach it.
-// Recorded in the README rather than fixed inside a tool file.
+// Writing this tool is what surfaced the silent-absence defect in compass_premises_within —
+// zero rows for a withheld vintage, byte for byte what an empty radius returns. Fixed since,
+// in 20260817000001, on the model of 20260816000001, and covered by I14/I15. The 2023 pin was
+// never the fix and does not become unnecessary: it stands on the licence rule above.
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { z } from "zod"
@@ -43,6 +42,8 @@ interface PremiseRow {
   situation_label: string | null
   sign_name: string | null
   total_matched: number
+  /** True on a single column-less row when the caller may not receive this vintage. */
+  withheld: boolean
 }
 
 const inputShape = {
@@ -84,6 +85,18 @@ export function registerFindPremises(server: McpServer): void {
       })
       if (error) throw new Error(`compass_premises_within: ${error.message}`)
       const rows = (data ?? []) as PremiseRow[]
+
+      // Unreachable while VINTAGE_YEAR is pinned to the ODbL vintage, and kept anyway: since
+      // 20260817000001 the function answers a withheld vintage with a marker row instead of
+      // silence, so the day anyone turns the pin into a parameter, that row must become an
+      // error rather than a phantom premise made of nulls. Contract check, not a null path.
+      if (rows.some((r) => r.withheld)) {
+        throw new Error(
+          `BDCom ${VINTAGE_YEAR} came back withheld: its licence has not been read, so this ` +
+            `caller receives neither its contents nor its counts. Call list_sources for the ` +
+            `licence of each vintage.`,
+        )
+      }
 
       // total_matched is the count before the limit — the denominator, so the caller can say
       // "50 of 340" instead of implying it has seen everything (PLAN.md, "à voler" from Aino).

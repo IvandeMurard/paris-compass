@@ -595,6 +595,45 @@ l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
    la fonction (qui lit le claim), pas le filtrage RLS lui-même — consigné en
    commentaire dans le fichier, pas juste ici.
 
+9. **La troisième fonction — `compass_premises_within`.** ~~À corriger.~~ **Fait
+   le 17 août**, dans la foulée du point 8, par `20260817000001` et les
+   invariants I14 et I15. Porte d'évaluation à **15 invariants**, verdict
+   inchangé (avertissement, dix écarts de baseline, composition stable à
+   57,31 %).
+
+   *Pourquoi elle avait été manquée.* Le point 8 ne nommait que
+   `compass_scoring_context_within`, donc I12 a couvert ce qu'on lui demandait.
+   Le défaut de celle-ci est remonté le lendemain en écrivant l'outil MCP
+   `find_premises` — même cause exactement : `SECURITY INVOKER`, la politique RLS
+   de `20260809000008`, et zéro ligne rendue sans marqueur. **Il y avait trois
+   fonctions portant la règle de licence, pas deux.** C'est la leçon à garder
+   plus que le correctif : une famille de défauts se recense par requête sur le
+   catalogue, pas de mémoire.
+
+   *Mesuré en appelant anonyme réel via PostgREST* — plus fort que le lanceur,
+   qui pose le claim sans prendre le rôle — à Châtelet sur 800 m :
+
+   | | 2017 | 2020 | 2023 | 2023 à 1 m |
+   | --- | --- | --- | --- | --- |
+   | avant | 0 ligne | 0 ligne | 3 059 | 0 ligne |
+   | après | 1 ligne `withheld` | 1 ligne `withheld` | 3 059 | 0 ligne |
+
+   La dernière colonne compte autant : un vide réel se lit toujours comme un
+   vide. Les chiffres privilégiés relevés au passage — 3 855 en 2017, 3 825 en
+   2020 — recoupent `20260816000001` et le tableau du point 8.
+
+   *Éprouvée avant d'être posée.* La migration a d'abord tourné dans une
+   transaction jamais validée contre le distant, avec les deux invariants joués
+   dedans. Et le sabotage n'a rien demandé de simulé : la fonction défectueuse
+   était encore en ligne, donc I14 a été jouée contre elle telle quelle — elle
+   **plante** (`column r.withheld does not exist`), I15 reste au vert. Même
+   signature que I12/I13.
+
+   *Note de procédure, différente d'hier.* `supabase db push` est passé
+   directement cette fois, sans refus du classificateur. Le `--dry-run`
+   préalable — qui a confirmé une seule migration en attente — vaut d'être gardé
+   comme réflexe : c'est lui qui dirait qu'un fichier oublié partirait avec.
+
 ---
 
 ## Ce qu'il ne faut pas faire

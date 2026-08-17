@@ -199,3 +199,47 @@ from public.compass_scoring_context_within(
   48.8566::double precision, 2.3522::double precision, 1::double precision, 2023::smallint
 )
 limit 20;
+
+-- @invariant I14 :: un appelant anonyme reçoit le contenu ou une absence muette d'un millésime non redistribuable, via compass_premises_within
+-- @as anon
+-- The third function carrying the licence rule, and the last to be covered.
+-- I9/I10 vouch for compass_address_timeline, I12/I13 for
+-- compass_scoring_context_within; neither says anything about this one, which
+-- kept the silent-absence defect until 20260817000001. Measured before the fix,
+-- as a real anonymous caller through PostgREST at Chatelet over 800 m: 2017 and
+-- 2020 returned zero rows, 2023 returned 3 059 premises, and a 1-metre radius on
+-- 2023 returned zero rows — the withheld vintage and the empty radius were
+-- indistinguishable.
+--
+-- Same `left join lateral ... on true` as I12, for the same reason: it turns "the
+-- function returned nothing" into a row of nulls this query can see. Silence is
+-- the defect being guarded against, so a plain call would let it hide in the zero
+-- rows the runner reads as success.
+--
+-- Same caveat as I12 too: the runner sets `request.jwt.claims` and never
+-- `set local role anon`. Enough here — the function reads its privilege from the
+-- claim, not from the database role — but it does not exercise the RLS policy.
+select v.vintage_year, r.location_id, r.lat, r.lng, r.address, r.total_matched, r.withheld
+from (values (2017::smallint), (2020::smallint)) v(vintage_year)
+left join lateral public.compass_premises_within(
+  48.8566::double precision, 2.3522::double precision, 800::double precision,
+  v.vintage_year, 5::integer
+) r on true
+where r.location_id is not null or r.lat is not null or r.lng is not null
+   or r.address is not null or r.total_matched is not null
+   or r.withheld is distinct from true or r.withheld is null
+limit 20;
+
+-- @invariant I15 :: une absence réelle se lit comme une retenue de licence, via compass_premises_within
+-- @as anon
+-- The counter-test, and the half that gets skipped. Fixing I14 by stamping the
+-- marker too eagerly would replace one defect with its mirror: a genuinely empty
+-- radius on a redistributable vintage must stay silent, zero rows, never a
+-- withheld row. Same 1-metre radius at Chatelet as I13, confirmed empty on
+-- 2026-08-17.
+select *
+from public.compass_premises_within(
+  48.8566::double precision, 2.3522::double precision, 1::double precision,
+  2023::smallint, 5::integer
+)
+limit 20;
