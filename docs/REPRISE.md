@@ -16,16 +16,17 @@ direct le 17 août sur la base elle-même, pas déduit :
 
 | | Distant `dbefhvmyfmmhjeetdddu` |
 | --- | --- |
-| Migrations au ledger `supabase_migrations` | **23**, de `20250417000001` à `20260815000002` |
+| Migrations au ledger `supabase_migrations` | **24**, de `20250417000001` à `20260816000001` |
 | Tables / fonctions `compass_*` | **18 / 10** — mêmes chiffres que la base de référence |
 | Locaux (`premise_location`) | 85 418 |
 | Relevés (`premise_observation`) | 228 275 — les trois millésimes additionnés |
 | Tronçons de voie / quartiers | 25 094 / 80 |
 | Établissements SIRENE | 68 770 |
 
-**Une seule migration reste en attente** : `20260816000001_scoring_context_withholding.sql`,
-écrite le 16 août. Vérifié par `supabase db push --dry-run`, qui ne propose
-qu'elle. Voir le point 8 de « La suite, par ordre ».
+**Le dépôt et le distant portent le même schéma** depuis le 17 août :
+`20260816000001_scoring_context_withholding.sql`, la dernière en attente, y a
+été posée et vérifiée en comportement. Détail au point 8 de « La suite, par
+ordre ».
 
 **En local**, l'agrégat de référence reste en place et sert toujours : dix-neuf
 migrations, quatre sources chargées, porte d'évaluation au vert — rejouée et
@@ -508,29 +509,45 @@ l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
 
    *Une fois vérifié*, supprimer ce point 7 : il n'aura plus lieu d'être.
 
-8. **Poser `20260816000001_scoring_context_withholding.sql` sur le distant.**
-   La seule migration en attente — confirmé par `supabase db push --dry-run`,
-   qui ne propose qu'elle. Écrite et éprouvée sur la base locale le 16 août ;
-   sans elle, le distant rend encore un millésime retenu par licence comme un
-   quartier sans commerces (`DIAGNOSTIC.md` §9).
+8. ~~**Poser `20260816000001_scoring_context_withholding.sql` sur le distant.**~~
+   **Fait le 17 août.** Ledger à **24** migrations, `20260816000001` enregistrée.
+   Le distant et le dépôt portent désormais le même schéma.
+
+   Vérifié en comportement, pas seulement en signature — c'est ce test qui avait
+   révélé le défaut, rejoué sur le distant à Châtelet, rayon 800 m :
+
+   | Rôle | Millésime | Lignes | Marqueur `withheld` |
+   | --- | --- | --- | --- |
+   | privilégié | 2017 / 2020 / 2023 | 3 855 / 3 825 / 3 059 | non |
+   | **`anon`** | **2017 / 2020** | **1** | **oui**, coordonnées nulles |
+   | `anon` | 2023 | 3 059 | non |
+   | `anon` | 2023, rayon 1 m | **0** | non — un vrai vide reste un vrai vide |
+
+   La dernière ligne est celle qui compte autant que les autres : la rétention
+   s'annonce, et l'absence réelle continue de se lire comme une absence. Avant,
+   les deux rendaient zéro ligne.
+
+   **Note de procédure.** La commande a d'abord été refusée par le classificateur
+   du mode auto de Claude Code — une écriture de schéma sur une base distante
+   vivante. Ce n'était ni Supabase ni les identifiants. Lancée à la main depuis
+   PowerShell, elle passe. Deux pièges pour la prochaine fois : l'URL doit être
+   **percent-encodée** (le mot de passe contient un `&`, que `cmd.exe`
+   interpréterait, et la CLI l'exige), et il ne faut **pas** passer par
+   `--linked`, qui vise la connexion directe `db.<ref>.supabase.co`, AAAA seule
+   donc injoignable depuis ce poste.
 
    ```powershell
-   # L'URL doit etre percent-encodee : le mot de passe contient un &, que cmd.exe
-   # interpreterait, et la CLI l'exige de toute facon. Ne pas passer par --linked :
-   # la connexion directe db.<ref>.supabase.co est AAAA seule, injoignable d'ici.
-   npx.cmd supabase db push --db-url "<DATABASE_URL percent-encodee>" --dry-run
-   npx.cmd supabase db push --db-url "<DATABASE_URL percent-encodee>"
+   # Lit .env.local, encode l'URL, n'affiche jamais le secret. Ajouter --dry-run
+   # pour voir ce qui partirait sans rien appliquer.
+   $raw = (Get-Content .env.local | Where-Object { $_ -like 'DATABASE_URL=*' } | Select-Object -First 1) -replace '^DATABASE_URL=','' -replace '^"','' -replace '"$',''
+   if ($raw -match '^(postgresql://)([^:]+):(.*)@(.+)$') {
+     $enc = $Matches[1] + [uri]::EscapeDataString($Matches[2]) + ':' + [uri]::EscapeDataString($Matches[3]) + '@' + $Matches[4]
+     npx.cmd supabase db push --db-url $enc
+   } else { "URL non reconnue dans .env.local" }
    ```
 
-   **Bloqué le 17 août au dernier geste** : l'essai à blanc passe, l'application
-   réelle est refusée par le classificateur du mode auto de Claude Code — une
-   écriture de schéma sur une base distante vivante. Ce n'est pas un problème de
-   Supabase ni d'identifiants. À lancer à la main, ou après avoir ajouté une
-   règle de permission `Bash` pour cette commande.
-
-   *Une fois posée*, vérifier que la colonne `withheld` apparaît bien dans la
-   signature de `compass_scoring_context_within` côté distant, puis rayer ce
-   point 8.
+   Reste, mais c'est l'item 1 : la porte d'évaluation n'a toujours jamais tourné
+   contre le distant.
 
 ---
 
