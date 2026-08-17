@@ -1,6 +1,7 @@
 {
-  "measured_on": "2026-08-09",
+  "measured_on": "2026-08-17",
   "note": "Effectifs gelés au chargement complet. Un écart n'est pas forcément une faute — l'APUR et la DILA republient — mais il ne doit jamais passer inaperçu. Au-delà de 1 %, ce n'est plus une correction de source mais un changement de comportement du pipeline : voir eval/FAILURE_MODES.md, bras B.",
+  "note_regel": "Regeler est permis, mais jamais pour faire taire un avertissement — c'est la règle de REPRISE.md, et elle tient. Trois conditions, toutes remplies le 17 août 2026 : chaque écart est attribué à une cause nommée avant le gel (republication DILA et INSEE, aucun mouvement BDCom), aucun n'atteint le seuil bloquant, et le gel remplacé reste lisible dans previous_freezes autant que dans git. Un gel non daté, ou qui absorberait un écart inexpliqué, effacerait exactement le signal que ces nombres existent pour porter. Toute valeur est mesurée à la reprise du gel, jamais reportée depuis un pourcentage de dérive.",
   "counts": {
     "bdcom_releves_2017": {
       "value": 84031,
@@ -55,23 +56,23 @@
       "sql": "select count(*) n from public.premise_location where quartier_id is not null"
     },
     "bodacc_cessions_avec_prix": {
-      "value": 25496,
+      "value": 25531,
       "sql": "select count(*) n from public.bodacc_establishment where price_eur is not null"
     },
     "bodacc_etablissements_localises": {
-      "value": 107499,
+      "value": 107736,
       "sql": "select count(*) n from public.bodacc_establishment where geom is not null"
     },
     "confiance_etabli": {
-      "value": 27580,
+      "value": 27581,
       "sql": "with ech as (select id from public.premise_location order by id limit 10000) select count(*) n from ech l cross join lateral public.compass_address_timeline(l.id) t where t.confidence = 'etabli'"
     },
     "confiance_corrobore": {
-      "value": 3144,
+      "value": 3147,
       "sql": "with ech as (select id from public.premise_location order by id limit 10000) select count(*) n from ech l cross join lateral public.compass_address_timeline(l.id) t where t.confidence = 'corrobore'"
     },
     "confiance_probable": {
-      "value": 19517,
+      "value": 19689,
       "sql": "with ech as (select id from public.premise_location order by id limit 10000) select count(*) n from ech l cross join lateral public.compass_address_timeline(l.id) t where t.confidence = 'probable'"
     },
     "confiance_indetermine": {
@@ -79,26 +80,33 @@
       "sql": "with ech as (select id from public.premise_location order by id limit 10000) select count(*) n from ech l cross join lateral public.compass_address_timeline(l.id) t where t.confidence = 'indetermine'"
     },
     "sirene_etablissements": {
-      "value": 68672,
+      "value": 68770,
       "sql": "select count(*) n from public.sirene_establishment"
     },
     "bodacc_avis_confirmes_sur_place": {
-      "value": 82144,
+      "value": 82347,
       "sql": "select count(*) n from public.bodacc_establishment where operator_confirmed"
     },
     "bodacc_avis_infirmes": {
-      "value": 1882,
+      "value": 1884,
       "sql": "select count(*) n from public.bodacc_establishment where operator_confirmed = false"
     },
     "prix_median_local_identifiable": {
-      "value": 160368,
+      "value": 160868,
       "sql": "select round(percentile_cont(0.5) within group (order by e.price_eur))::text as n from public.bodacc_establishment e join public.bodacc_announcement a on a.id = e.announcement_id join public.premise_location l on l.street_key = e.street_key and l.num = e.house_number_int where e.price_eur is not null and e.geom is not null and a.family = 'vente' and (select count(*) from public.premise_location q where q.street_key = l.street_key and q.num = l.num) = 1"
     },
     "cessions_local_identifiable": {
-      "value": 5934,
+      "value": 5942,
       "sql": "select count(*) n from public.bodacc_establishment e join public.bodacc_announcement a on a.id = e.announcement_id join public.premise_location l on l.street_key = e.street_key and l.num = e.house_number_int where e.price_eur is not null and e.geom is not null and a.family = 'vente' and (select count(*) from public.premise_location q where q.street_key = l.street_key and q.num = l.num) = 1"
     }
   },
   "note_confiance": "La composition de fiabilité est la métrique de qualité du produit : « s'améliorer » veut dire déplacer ces quatre nombres vers etabli. Mesurée sur une cohorte FIXE de 10 000 locaux (les 10 000 plus petits identifiants), choisie pour être comparable d'une exécution à l'autre — pas pour être représentative. Son rôle est de détecter un déplacement, pas de décrire la base.",
-  "note_prix": "Les prix publies dans le README sortent de ces deux mesures. Ils sont groupes sur le code d'activite BDCom du local, jamais sur le champ texte libre de BODACC ou « Restauration rapide » et « Restauration rapide. » sont deux categories distinctes. Et ils sont restreints aux cessions dont le local est seul a son numero : ailleurs on ignore laquelle des vitrines a ete vendue, donc a quel metier rattacher le prix."
+  "note_prix": "Les prix publies dans le README sortent de ces deux mesures. Ils sont groupes sur le code d'activite BDCom du local, jamais sur le champ texte libre de BODACC ou « Restauration rapide » et « Restauration rapide. » sont deux categories distinctes. Et ils sont restreints aux cessions dont le local est seul a son numero : ailleurs on ignore laquelle des vitrines a ete vendue, donc a quel metier rattacher le prix.",
+  "target": "dbefhvmyfmmhjeetdddu via aws-1-eu-west-1.pooler.supabase.com",
+  "previous_freezes": [
+    {
+      "measured_on": "2026-08-09",
+      "reason": "Premier gel, au chargement complet. Remplace le 17 août 2026 : dix effectifs BODACC et SIRENE avaient dérivé de +0,14 % à +0,88 % par republication des sources, aucun sur BDCom. Écarts compris et attribués, jamais silencieux — le gel est daté pour que le remplacement reste lisible."
+    }
+  ]
 }

@@ -428,12 +428,29 @@ l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
    Les dix écarts portent tous sur BODACC et SIRENE (`+0,14 %` à `+0,88 %`), et
    pas un seul sur BDCom, dont les effectifs sont au chiffre près. C'est
    exactement ce que la note des baselines prévoit : la DILA et l'INSEE
-   republient, l'APUR non. Ce n'est donc pas une dérive du pipeline. **Ne pas
-   regeler les baselines pour faire taire ces avertissements** — leur rôle est
-   précisément de rendre visible une republication de source.
+   republient, l'APUR non. Ce n'est donc pas une dérive du pipeline.
 
-   Le plus large, `confiance_probable` à 0,88 %, approche le seuil : c'est celui
-   à surveiller au prochain chargement.
+   **Regelées le 17 août, verdict désormais SUCCÈS, code de sortie 0.** La règle
+   « ne pas regeler pour faire taire un avertissement » n'est pas levée, elle est
+   précisée — et la version précise vaut mieux que l'ancienne, parce que dix
+   avertissements permanents finissent par ne plus être lus, ce qui détruit le
+   signal aussi sûrement qu'un gel complaisant. Trois conditions, écrites dans
+   `eval/baselines/ingestion.json` sous `note_regel` :
+
+   - chaque écart est **attribué à une cause nommée avant** le gel — ici la
+     republication DILA et INSEE, confirmée par le fait qu'aucun effectif BDCom
+     n'a bougé d'un seul chiffre à la reprise ;
+   - aucun n'atteint le seuil bloquant de 1 % ;
+   - le gel remplacé reste lisible **dans le fichier** (`previous_freezes`, avec
+     sa date et sa raison) et pas seulement dans git.
+
+   Toute valeur est **remesurée** à la reprise, jamais reportée depuis un
+   pourcentage de dérive. Les dix valeurs déplacées sont exactement les dix qui
+   avertissaient — le gel n'a rien absorbé d'autre.
+
+   `confiance_probable`, le plus large à 0,88 %, était celui qui approchait le
+   seuil : il repart de 19 689 et non de 19 517, donc le prochain avertissement
+   sur cette ligne mesurera un vrai mouvement et non l'accumulation depuis août.
 
    > **Correction.** Une version de cette page écrite le matin du 17 août
    > affirmait que la porte n'avait jamais tourné contre le distant. C'était
@@ -666,18 +683,20 @@ l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
     Le front n'a toujours pas de consommateur de la chronologie (`PLAN.md` §2.7) :
     ce serveur est désormais le seul, en dehors de la porte.
 
-11. **Une branche non fusionnée, à trancher.**
-    `claude/stoic-varahamihira-24f96d`, sortie dans le worktree
-    `.claude/worktrees/loving-kirch-565334`, à `cb8b15f` — « Le serveur MCP, et
-    deux canaux de découverte pour un agent séparés à tort ». Elle n'apparaît pas
-    dans `git branch --merged main`, alors que ce chantier (§4.1 et §4.2) est sur
-    `main` depuis le 15 août. Donc soit elle est la branche d'origine arrivée par
-    un autre chemin et sans objet, soit elle porte encore quelque chose.
+11. ~~**Une branche non fusionnée, à trancher.**~~ **Tranché le 17 août : rien
+    n'était perdu.** `claude/stoic-varahamihira-24f96d` (`cb8b15f`) portait quatre
+    commits absents de `main` **par identifiant**, et les quatre sont
+    patch-équivalents à ce que `main` porte déjà : elle était la branche d'origine
+    du serveur MCP, arrivée par les PR #2 et #3 sous d'autres identifiants. La
+    branche et son worktree ont disparu avec la fermeture des sessions.
 
-    Non tranché faute d'y toucher : le worktree suggère une session ouverte. Mais
-    c'est mot pour mot le mode de défaillance documenté plus haut — *une
-    correction non mergée n'existe pour personne* — et une heure y est déjà passée
-    ce mois-ci. `git log --oneline main..cb8b15f` suffit à répondre.
+    **L'outil qui répond est `git cherry -v main <branche>`**, et non
+    `git branch --merged` ni `git log main..<branche>` : ces deux-là comparent des
+    identifiants, donc une branche rebasée ou reprise en PR paraît toujours
+    divergente. `git cherry` compare les **patchs** et marque `-` ce qui est déjà
+    présent. C'est la commande à sortir la prochaine fois qu'une branche a l'air
+    orpheline — trois des quatre commits ci-dessus auraient sinon justifié une
+    fusion inutile.
 
 ---
 
