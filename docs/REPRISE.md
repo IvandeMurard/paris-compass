@@ -385,6 +385,20 @@ réponde ; les conteneurs remontent seuls, volumes intacts.
 **Le terminal d'Ivan est PowerShell 5.1**, pas 7 : ni `&&`, ni `grep`, ni `ls -l`.
 Et `npm.ps1` est bloqué — toujours `npm.cmd` et `npx.cmd`.
 
+**`Select-Object -First N` en bout de tuyau fabrique un faux échec.** PowerShell
+ferme le tuyau dès qu'il a ses N lignes, le processus en amont reçoit un tube
+rompu, et le code de sortie remonte à 1 alors que rien n'a échoué. Vu le 17 août
+sur `src/smoke-test.ts`, qui rendait 0 sans filtre et 1 avec. **Ne jamais conclure
+d'un code de sortie relevé derrière un filtre tronquant** : relancer sans le
+filtre, ou rediriger vers `$null` et lire `$LASTEXITCODE`.
+
+**Pousser sur `main` contourne une règle de protection, en silence ou presque.**
+Le dépôt exige une pull request ; le compte d'Ivan a le droit de passer outre,
+donc `git push origin main` réussit et GitHub se contente d'une ligne —
+`Bypassed rule violations for refs/heads/main`. Facile à manquer dans la sortie.
+Les PR #2 et #3 montrent que le mode de travail voulu est la PR : le push direct
+est une exception à demander, pas un défaut.
+
 **Ne jamais passer `--omit=optional` à npm sur ce projet.** Rollup livre son
 binaire natif (`@rollup/rollup-win32-x64-msvc`) en dépendance *optionnelle* :
 l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
@@ -633,6 +647,37 @@ l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
    directement cette fois, sans refus du classificateur. Le `--dry-run`
    préalable — qui a confirmé une seule migration en attente — vaut d'être gardé
    comme réflexe : c'est lui qui dirait qu'un fichier oublié partirait avec.
+
+10. **`compass_address_timeline` est exposée aux agents.** Fait le 17 août, en
+    **deux** outils MCP et non un : `trace_premise` rend la chronologie,
+    `find_premises` rend les `location_id` sans lesquels elle est inappelable.
+    C'est ce découpage qui était la « forme à décider » que `PLAN.md` §4.1
+    attendait. Détail et raisons dans `mcp-server/README.md` ; les deux points
+    qui ne se déduisent pas du code :
+
+    - **`find_premises` est épinglé au millésime 2023, sans paramètre.** Règle de
+      licence, pas couverture : `20260809000011` retient de 2017 et 2020
+      l'existence même d'un relevé, et un annuaire qui énumérerait leurs locaux
+      divulguerait exactement cette existence.
+    - **`is_vacant` n'est pas rendu.** Structurellement faux sur tout 2023
+      (`retail_only`), il se lirait comme « ce local est occupé » — un artefact de
+      publication pris pour un fait.
+
+    Le front n'a toujours pas de consommateur de la chronologie (`PLAN.md` §2.7) :
+    ce serveur est désormais le seul, en dehors de la porte.
+
+11. **Une branche non fusionnée, à trancher.**
+    `claude/stoic-varahamihira-24f96d`, sortie dans le worktree
+    `.claude/worktrees/loving-kirch-565334`, à `cb8b15f` — « Le serveur MCP, et
+    deux canaux de découverte pour un agent séparés à tort ». Elle n'apparaît pas
+    dans `git branch --merged main`, alors que ce chantier (§4.1 et §4.2) est sur
+    `main` depuis le 15 août. Donc soit elle est la branche d'origine arrivée par
+    un autre chemin et sans objet, soit elle porte encore quelque chose.
+
+    Non tranché faute d'y toucher : le worktree suggère une session ouverte. Mais
+    c'est mot pour mot le mode de défaillance documenté plus haut — *une
+    correction non mergée n'existe pour personne* — et une heure y est déjà passée
+    ce mois-ci. `git log --oneline main..cb8b15f` suffit à répondre.
 
 ---
 

@@ -14,6 +14,24 @@ Le backlog ordonné est dans `docs/PLAN.md`, les décisions d'architecture dans 
 
 **Pas le courtier.** C'est le refus structurant. Le courtier qualifie des dizaines d'emplacements par mois pour des clients tiers ; il veut de l'export, du dossier, du portefeuille, de la comparaison en masse et une couverture nationale. Tout ce qu'il lui faut alourdit le produit du preneur, qui instruit *un* emplacement, en profondeur, une fois. Servir les deux, c'est ne servir ni l'un ni l'autre. Si le courtier a besoin de Compass, il utilisera la même chose que l'agent : l'API.
 
+### Le refus mis à l'épreuve : le cas d'une agence de pop-up
+
+Examiné le 17 août 2026 à partir de la communication publique de **My Pop Up Store**, agence parisienne qui revendique près de vingt ans d'activité et plus de 800 lieux sourcés. Le cas mérite d'être gardé parce qu'il teste le refus ci-dessus sans le contredire, et parce que la conclusion n'est pas celle d'`Appear Here` (voir `PLAN.md`, « Refusé — les places de marché »).
+
+**Ce qui reste refusé, et pour la raison déjà écrite.** Mettre en avant des lieux exclusifs, c'est détenir du stock. L'argument décisif n'est pas doctrinal mais interne au produit : superposer quelques centaines d'emplacements *prime* aux 85 418 locaux du corpus fabriquerait une **fausse absence** — « pas de lieu ici » se lirait « rien à saisir ici », alors que la vérité serait « ce catalogue ne couvre pas ce quartier ». C'est le défaut corrigé partout ailleurs dans le scoring, réintroduit par la porte d'un partenariat.
+
+**Un agent qui irait chercher photos et avis pour pré-qualifier est à écarter, pour deux raisons distinctes.** La première est la contrainte fondatrice : un avis de plateforme n'est ni re-dérivable ni sous licence ouverte, et une seule exception vide `Measured<T>` de son sens. La seconde n'était écrite nulle part et vaut d'être retenue : **un avis parle du commerce précédent, pas du local.** Un restaurant à 3,2 étoiles renseigne sur une gestion, pas sur un emplacement — et confondre les deux est l'erreur que le produit existe pour empêcher, la même que celle d'une suite d'activités lue comme un verdict.
+
+**Ce qui marche, et ne demande aucune concession, c'est le sens inverse.** L'agence apporte l'adresse, Compass rend le contexte : c'est mot pour mot la promesse du §6. Un courtier possède précisément ce que Compass n'aura jamais, et Compass calcule précisément ce qu'un courtier affirme sans pouvoir le sourcer — *« savoir quelle rue draine le bon trafic »* est, dans cette communication, une assertion d'expertise. Le produit ne remplace pas l'accompagnement humain : **il rend vérifiables les affirmations de l'humain.** Et le canal existe déjà, celui que ce paragraphe annonçait : le serveur MCP, avec le rôle `anon` et rien d'autre.
+
+**Trois réserves à ne pas perdre**, parce qu'elles bornent la valeur réelle :
+
+- **Ce que l'agence vend — le cachet, la lumière, la modularité — est exactement ce qu'aucune donnée ouverte ne porte.** Compass ne pré-qualifiera jamais l'écrin. Il pré-qualifie la rue. C'est une répartition du travail, pas un manque.
+- **Le cas d'usage pop-up ne consomme qu'une moitié du corpus.** La rotation triennale, la survie par activité et la projection (§5 bis C) sont bâties pour un bail 3/6/9 ; un pop-up de trois semaines ne s'intéresse pas à la pente d'un quartier en 2031. Mobiliscope, à l'inverse, y vaut *plus* que pour un bail long, puisque toute l'économie d'un pop-up est temporelle.
+- **Compass ne chiffrera jamais un loyer de pop-up.** Ce n'est pas un 3/6/9 mais une convention d'occupation précaire ou un bail dérogatoire, et il n'existe aucune donnée ouverte sur ces niveaux — le §5 est déjà catégorique sur les loyers commerciaux, et ce cas est plus fermé encore.
+
+Le rapport juste entre les deux métiers est celui déjà écrit en `PLAN.md` §5.7 : **le pop-up n'est pas un concurrent du produit, c'est l'instrument de dérisquage de la décision que Compass instruit.** Un client d'agence dont le pop-up marche est le preneur de demain — c'est-à-dire le persona du §1. L'agence est en amont, pas en face.
+
 ---
 
 ## 2. Les deux contraintes fondatrices
@@ -226,6 +244,22 @@ SIRENE + IGN + OSM est devenu une recette triviale à assembler. Le nombre de so
 **Compass ne vend ni la couverture ni la découpe : il vend l'interprétation.** Un chiffre brut ne dit rien à un preneur. « 12 % de vacance sur ce tronçon, contre 4 % il y a six ans » dit quelque chose. La valeur n'est pas dans le nombre de sources connectées, elle est dans la distance entre la donnée brute et une phrase sur laquelle on peut décider.
 
 C'est la thèse à défendre dans le case study, et elle s'énonce en une ligne : **l'agrégation n'est pas le produit, l'interprétation l'est.**
+
+### Ce qui protège l'interprétation — et ce qui ne la protège pas
+
+Question posée le 17 août 2026 : l'entraînement d'un ou plusieurs agents est-il le moat de Compass, avec l'apprentissage continu de l'usage ? La réponse est non, et se tromper là-dessus coûterait cher, parce que ça reviendrait à investir dans la seule couche que personne ne peut défendre.
+
+**Il n'y a pas d'entraînement dans Compass, et il ne devrait pas y en avoir.** Pas de *fine-tuning*, pas de corpus propriétaire de résultats étiquetés. « Un agent mieux prompté » n'est défendable par personne : iFeyz2 agrège déjà 96 sources structurées pour les LLM, et n'importe qui peut brancher un modèle sur les mêmes données ouvertes. Le modèle est la couche commodité. L'interprétation que vend Compass ne vit pas dans le prompt.
+
+Trois choses composent réellement, et toutes les trois sont déjà dans le dépôt :
+
+- **Le substrat de jointure.** L'identifiant BDCom stable entre millésimes (74 réattributions sur 85 344, *mesurées* au chargement) ; le périmètre commun qui transforme un effondrement apparent de 27 % en −3 % réels ; la licence portée **comme donnée** par millésime ; l'écart entre une adresse BODACC et un local BDCom quand 69 % des locaux partagent leur numéro. Rien de tout ça ne sort d'un prompt : c'est une année de pièges vérifiés, et refaire Compass suppose de refaire les mêmes erreurs.
+- **La porte d'évaluation.** Quinze invariants, vingt-quatre baselines, huit cas dorés, l'historique de composition. C'est le seul actif qui s'accumule vraiment, et c'est le bon type d'accumulation : il ne rend pas les réponses plus fines, il rend une régression impossible à livrer en silence. **Corpus de non-régression, pas jeu d'entraînement** — la confusion entre les deux est précisément ce qui ferait dériver le produit.
+- **Les refus.** Ils sont défendables parce qu'ils coûtent cher à tenir. Aino promet le *foot traffic* ; Compass explique pourquoi personne ne peut le donner honnêtement (§9, et `PLAN.md`, « Concurrence — Aino »).
+
+**Sur l'apprentissage de l'usage, une seule forme est admissible.** Un fait appris de l'usage n'a pas de source publique : il ne peut donc pas s'afficher, règle `Measured<T>`. L'usage peut légitimement décider **ce qu'on branche ensuite** et **ce qu'on met à l'écran** ; il ne doit jamais devenir un chiffre. C'est un signal de priorisation, pas une source de données — et si les demandes viennent d'un tiers professionnel, ses briefs sont son actif commercial, pas le nôtre.
+
+La version tenable de « un agent toujours plus fin » est celle déjà décidée en `PLAN.md` §6.8 : **c'est la traçabilité qui devient autonome, pas la certitude.**
 
 ---
 
