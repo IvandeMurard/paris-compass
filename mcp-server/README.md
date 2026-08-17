@@ -26,10 +26,22 @@ Speaks MCP over stdio. Point an MCP client at `npx tsx src/index.ts` from this d
 
 | Tool | Input | What it returns |
 | --- | --- | --- |
-| `list_sources` | — | Every dataset the other three tools draw from — licence, freshness, what it feeds |
+| `list_sources` | — | Every dataset the other tools draw from — licence, freshness, what it feeds |
 | `score_location` | `lat`, `lng`, `radius_m?`, `vintage_year?` | Five amenity scores, walkability, footfall, noise — each a `Measured<T>`: value, source, licence, date, method, caveat |
 | `compare_locations` | `a`, `b`, `radius_m?`, `vintage_year?` | Both full score sets, plus a per-axis numeric delta. No combined verdict — refused by design (PERIMETRE.md §4) |
 | `explain_score` | `lat`, `lng`, `metric`, `radius_m?`, `vintage_year?` | Full detail on one axis, as a sentence and as structured data |
+| `find_premises` | `lat`, `lng`, `radius_m?`, `limit?` | BDCom premises near a point with their `location_id`, plus `total_matched` as the denominator. Candidates, never one match |
+| `trace_premise` | `location_id` | `compass_address_timeline`: BDCom surveys and BODACC notices in order, each with its record, its evidence and its confidence level |
+
+`find_premises` and `trace_premise` are a pair — the timeline takes a `location_id`, and nothing
+else here hands one out. Two tools rather than one because up to 120 premises share a coordinate
+and 69 % share a street number: "the nearest premise" would pick one shopfront out of a stack and
+present it as the answer, so the candidates are returned and the caller chooses.
+
+`find_premises` is pinned to vintage 2023 and takes no `vintage_year`. 2023 is the only ODbL
+vintage; for 2017 and 2020, `20260809000011` withholds not just the contents but the *existence*
+of a record, and a lookup that listed their premises would disclose exactly that. Those years
+still appear in `trace_premise`, as `withheld` rows — the licensed way to say something is there.
 
 ## Verify
 
@@ -53,7 +65,22 @@ introduced here. Splitting provenance per field would mean changing that shared 
 signature, which affects the browser too — flagged for a separate change, not made silently
 as part of this server.
 
-No tool here exposes `compass_address_timeline` (BODACC-backed history, reliability levels) —
-PLAN.md §4.1 names four tools and none of them is that one. The front has the same gap on its
-side (PLAN.md §2.7, "la fiche locale"). Worth a fifth tool once that shape is worked out, not
-assumed here.
+~~No tool here exposes `compass_address_timeline`.~~ Exposed on 17 August as `trace_premise`,
+with `find_premises` as the lookup it needs. The front still has the same gap on its side
+(PLAN.md §2.7, "la fiche locale"): this server is now the only consumer of the timeline outside
+the evaluation gate.
+
+**`compass_premises_within` still has the silent-absence defect that `20260816000001` fixed for
+`compass_scoring_context_within`.** It is `SECURITY INVOKER`, the RLS policy of `20260809000008`
+restricts `premise_observation` to redistributable vintages, and the function returns zero rows
+with no marker — byte for byte what a genuinely empty radius returns.
+
+Measured against the remote on 17 August as a real anonymous caller through PostgREST, at
+Châtelet over 800 m: 2017 → 0 rows, 2020 → 0 rows, 2023 → 3 059 premises, 2023 at a 1-metre
+radius → 0 rows. `find_premises` avoids it by never asking for another vintage; nothing stops a
+different caller, and the front's premise sheet (PLAN.md §2.7) is the next one planned.
+
+Three functions carry the licence rule, not two: `I9`/`I10` cover `compass_address_timeline`,
+`I12`/`I13` cover `compass_scoring_context_within` as of 17 August, and this one is neither
+fixed nor covered. The fix is the one already written twice — emit the withholding as a row —
+and the invariants copy from `I12`/`I13` as a **pair**, counter-test included.

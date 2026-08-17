@@ -55,6 +55,26 @@ async function main() {
   })
   console.log(textOf(compare))
 
+  console.log("\n=== find_premises (Montorgueil, 80 m) ===")
+  const found = await client.callTool({
+    name: "find_premises",
+    arguments: { lat: MONTORGUEIL.lat, lng: MONTORGUEIL.lng, radius_m: 80, limit: 10 },
+  })
+  console.log(textOf(found))
+
+  // Chained rather than run against a hard-coded id: a location_id pinned in this file would
+  // rot the day BDCom is reloaded, and chaining also exercises the contract between the two
+  // tools, which is the part worth checking.
+  const firstId = (JSON.parse(textOf(found)) as { premises: { location_id: number }[] }).premises[0]
+    ?.location_id
+  if (firstId === undefined) {
+    console.log("\n=== trace_premise === skipped: find_premises returned no candidate")
+  } else {
+    console.log(`\n=== trace_premise (location_id ${firstId}) ===`)
+    const trace = await client.callTool({ name: "trace_premise", arguments: { location_id: firstId } })
+    console.log(textOf(trace))
+  }
+
   await client.close()
 }
 

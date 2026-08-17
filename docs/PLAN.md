@@ -533,9 +533,43 @@ l'UI, ou au moins cesser de la déballer dans l'adaptateur.
 >   chaque axe affiche « OpenStreetMap via Overpass » même quand les locaux viennent de BDCom.
 >   Hérité de l'adaptateur front existant, pas introduit ici ; corriger demande de changer la
 >   signature d'une fonction partagée avec le navigateur, donc une décision séparée.
-> - Aucun outil n'expose `compass_address_timeline` (BODACC, niveaux de fiabilité) : les
->   quatre outils nommés ici ne couvrent pas cette fonction. Même trou que §2.7 côté front —
->   un cinquième outil se justifierait une fois cette forme décidée, pas avant.
+> - ~~Aucun outil n'expose `compass_address_timeline`~~ **Fait le 17 août**, et en **deux**
+>   outils plutôt qu'un : `trace_premise` rend la chronologie, `find_premises` rend les
+>   `location_id` sans lesquels elle est inappelable. La forme qui restait à décider tenait
+>   dans ce découpage. Un seul outil prenant un point aurait dû choisir un local — or jusqu'à
+>   120 locaux partagent une coordonnée et 69 % un numéro de rue : « le plus proche » aurait
+>   désigné une vitrine dans une pile et l'aurait présentée comme *la* réponse. Les candidats
+>   sont donc rendus, et l'arbitrage revient à l'appelant, qui le voit.
+>
+>   `find_premises` est **épinglé au millésime 2023, sans paramètre**. Ce n'est pas un défaut
+>   de couverture : `20260809000011` retient de 2017 et 2020 non seulement le contenu mais
+>   **l'existence** d'un relevé, et un annuaire qui énumérerait leurs locaux divulguerait
+>   exactement cette existence. Les deux millésimes restent rendus par `trace_premise`, en
+>   lignes `withheld`.
+>
+>   `list_sources` gagne BODACC et SIRENE en conséquence — SIRENE n'est jamais rendue en
+>   lignes, mais c'est elle qui décide du niveau `corrobore`, donc une source dont l'appelant
+>   dépend. La règle du fichier tient : on ne nomme que ce qu'un appel touche réellement.
+>
+> - **Défaut trouvé en chemin, non corrigé : `compass_premises_within` porte l'absence
+>   silencieuse que `20260816000001` a réparée sur `compass_scoring_context_within`.**
+>   `SECURITY INVOKER`, la politique RLS de `20260809000008` filtre `premise_observation`,
+>   et la fonction rend zéro ligne sans marqueur — indiscernable d'un rayon réellement vide.
+>
+>   **Mesuré le 17 août contre le distant**, en appelant anonyme réel via PostgREST et non en
+>   simulation de claim, à Châtelet sur 800 m : 2017 → 0 ligne, 2020 → 0 ligne, 2023 → 3 059
+>   locaux, 2023 sur un rayon d'un mètre → 0 ligne. Le millésime retenu et le vide réel rendent
+>   la même chose au bit près. Le 3 059 recoupe le tableau de `REPRISE.md` « La suite » §8.
+>
+>   **Il y a donc trois fonctions qui portent la règle de licence, pas deux.** I9 et I10
+>   couvrent `compass_address_timeline`, I12 et I13 couvrent `compass_scoring_context_within`
+>   depuis le 17 août — `compass_premises_within` n'est ni corrigée ni couverte. Le correctif
+>   est celui déjà écrit deux fois : émettre la rétention comme une ligne. Les invariants qui
+>   vont avec se copient sur I12 et I13, **la paire et pas seulement le test** : le contre-test
+>   d'un rayon réellement vide compte autant, sinon on remplace un défaut par son symétrique.
+>
+>   `find_premises` ne peut pas y toucher — il est épinglé à 2023 — mais c'est un évitement,
+>   pas une couverture, et la fiche locale de §2.7 est le prochain appelant prévu.
 
 **4.2 — `llms.txt`** à la racine du site.
 
