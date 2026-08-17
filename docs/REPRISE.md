@@ -256,23 +256,56 @@ Tester une cible à la fois.
 
 ### Le nœud Supabase, à ne pas redécouvrir
 
-Trois références ont circulé. Deux sont mortes.
+**Mise à jour du 15 août 2026 : la cible a changé, à nouveau.** `dbefhvmyfmmhjeetdddu`
+est désormais le bon projet — la décision « viser Lovable Cloud » ci-dessous est
+**caduque**. `supabase/config.toml` et `.env.local` pointent maintenant sur
+`dbefhvmyfmmhjeetdddu`. Les 21 migrations y ont été appliquées via
+`supabase db push` : 18 tables, 10 fonctions `compass_*` — mêmes chiffres que la
+base de référence. **Ingestion rejouée le 15 août** (`bdcom.ts`, `geography.ts`,
+`bodacc.ts`, `sirene.ts`, dans cet ordre) : 85 418 locaux, 80 quartiers, 25 094
+tronçons, 163 684 avis BODACC, 68 770 établissements SIRENE. Chiffres alignés
+sur ceux documentés plus haut, à la dérive normale près (les sources BODACC et
+SIRENE se sont enrichies depuis).
+
+`sirene.ts` a échoué une première fois avec `ECONNRESET` — la connexion
+Postgres, ouverte dès le début du script, reste inactive pendant les ~5 minutes
+de lecture/jointure DuckDB du parquet INSEE avant la moindre écriture ; le
+pooler l'a coupée une fois. Rien n'avait été écrit à ce stade-là, la relance
+telle quelle a suffi. Si ça se reproduit systématiquement, il faudra ouvrir la
+connexion Postgres après la lecture DuckDB plutôt qu'avant.
+
+Trois références ont circulé au total.
 
 | Référence | Ce que c'est | Accès |
 | --- | --- | --- |
-| `nwnhhvogwrzstslxtxca` | Backend **Lovable Cloud**, provisionné dans l'organisation de Lovable. Porte l'auth, les comptes, les tables utilisateur. C'est ce que `config.toml` contient. | **aucun** — absent du compte Supabase d'Ivan |
-| `dbefhvmyfmmhjeetdddu` | Projet *paris-compass* créé à la main par Ivan. Actif, **totalement vide** — zéro table, zéro migration. | complet |
+| `dbefhvmyfmmhjeetdddu` | **Cible actuelle.** Projet *paris-compass* créé à la main par Ivan, région West EU (Ireland). Vide le 12 août ; schéma peuplé le 15 août, données pas encore chargées. | complet |
+| `nwnhhvogwrzstslxtxca` | **Ancienne cible** (backend Lovable Cloud). Ne plus utiliser — ni `config.toml` ni `.env.local` n'y pointent plus. | **aucun** — absent du compte Supabase d'Ivan |
 | `pulfdlztjbkgydmyrkfy` | Projet *ComparaCourse*, **sans rapport**. `config.toml` pointait dessus jusqu'au 9 août. | — |
 
-**Décision prise : viser Lovable Cloud.** Les données et l'authentification
-doivent vivre dans le même projet, parce que le front appellera les fonctions
-avec la clé anonyme et que la règle de licence dépend du rôle porté par le jeton.
+Ancienne décision (14→15 août, remplacée ci-dessus) : les données et
+l'authentification devaient vivre dans le même projet Lovable Cloud, parce que
+le front appelle les fonctions avec la clé anonyme et que la règle de licence
+dépend du rôle porté par le jeton. Ce raisonnement reste valable, seul le projet
+cible a changé.
 
-Donc : la chaîne visée est
-`postgres.nwnhhvogwrzstslxtxca@aws-0-eu-north-1.pooler.supabase.com:5432`, port
-**5432** et non 6543 — le pooler en mode transaction casse les tables
-temporaires dont les chargeurs se servent. Elle est déjà dans `.env.local` ;
-seul le mot de passe reste à y remplacer.
+**Piège de connexion, retrouvé à l'identique sur le nouveau projet :**
+`db.dbefhvmyfmmhjeetdddu.supabase.co` (connexion directe) n'a qu'un
+enregistrement AAAA — injoignable depuis ce poste sans IPv6. Passer par le
+pooler, propre à chaque projet (l'hôte `eu-north-1` de l'ancien projet ne
+s'applique pas ici) :
+`postgres.dbefhvmyfmmhjeetdddu@aws-1-eu-west-1.pooler.supabase.com:5432`, port
+**5432** (session pooler) et non 6543 (transaction pooler, casse les tables
+temporaires dont les chargeurs se servent). Chaîne à jour dans `.env.local`.
+
+**Nouveau piège, trouvé en peuplant `dbefhvmyfmmhjeetdddu` : `search_path` et
+`uuid_generate_v4()`.** `supabase db push` exécute chaque migration dans une
+session dont le `search_path` ne reprend pas la valeur par défaut du rôle —
+l'appel nu `uuid_generate_v4()` de `20250417000001_create_user_tables.sql`
+échouait avec « function does not exist » alors que `uuid-ossp` était bien
+installée dans le schéma `extensions`. Corrigé par
+`ALTER DATABASE postgres SET search_path TO "$user", public, extensions` sur le
+projet cible — une commande SQL, pas un changement de fichier versionné. À
+refaire sur tout nouveau projet avant `supabase db push`.
 
 ---
 
