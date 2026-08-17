@@ -395,13 +395,37 @@ l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
 
 ## La suite, par ordre
 
-1. ~~**L'hôte de connexion**, puis migrations et chargement sur Lovable Cloud.~~
-   **Fait le 15 août, sur `dbefhvmyfmmhjeetdddu` et non sur Lovable Cloud** — la
-   cible a changé, voir « Le nœud Supabase ». Reste de cet item : **la porte
-   d'évaluation n'a jamais été jouée contre l'instance distante.** Elle ne l'a
-   été que contre l'agrégat local. Le lanceur annonce sa cible depuis le 12 août,
-   donc un « PASS » distant serait lisible comme tel. À faire une fois la
-   migration du point 8 posée, pour que les deux bases portent le même schéma.
+1. ~~**L'hôte de connexion**, puis migrations et chargement sur Lovable Cloud,
+   puis la porte contre l'instance distante.~~ **Fait** — sur
+   `dbefhvmyfmmhjeetdddu` et non sur Lovable Cloud, la cible ayant changé (voir
+   « Le nœud Supabase »).
+
+   **La porte a tourné contre le distant le 17 août.** Verdict :
+   **AVERTISSEMENT**, code de sortie 3 — aucune défaillance, dix écarts tous
+   sous le seuil bloquant de 1 %.
+
+   | Phase | Résultat |
+   | --- | --- |
+   | A — invariants | **11 / 11**, y compris I9, I10 et I11 joués en anonyme |
+   | B — baselines (gelées le 9 août) | 13 au vert, **10 avertissements**, le plus large à 0,88 % |
+   | B bis — composition de fiabilité | **stable** : 57,31 % établi+corroboré, inchangé depuis le 15 août |
+   | C — jeu doré | **8 / 8** |
+
+   Les dix écarts portent tous sur BODACC et SIRENE (`+0,14 %` à `+0,88 %`), et
+   pas un seul sur BDCom, dont les effectifs sont au chiffre près. C'est
+   exactement ce que la note des baselines prévoit : la DILA et l'INSEE
+   republient, l'APUR non. Ce n'est donc pas une dérive du pipeline. **Ne pas
+   regeler les baselines pour faire taire ces avertissements** — leur rôle est
+   précisément de rendre visible une republication de source.
+
+   Le plus large, `confiance_probable` à 0,88 %, approche le seuil : c'est celui
+   à surveiller au prochain chargement.
+
+   > **Correction.** Une version de cette page écrite le matin du 17 août
+   > affirmait que la porte n'avait jamais tourné contre le distant. C'était
+   > faux, et vérifiable sur place : `eval/confidence_history.jsonl` portait déjà
+   > un point daté du 15 août dont la cible était `dbefhvmyfmmhjeetdddu`. Écrit
+   > sans regarder le fichier.
 2. **Message à l'APUR** — rédigé, à envoyer le lundi 10 août. Il décide si 2017 et
    2020 sortent publiquement, et si le service `bdcom20032020` (sept couches de
    2003 à 2020, vacants compris) est utilisable — ce qui porterait l'historique de
@@ -546,8 +570,20 @@ l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
    } else { "URL non reconnue dans .env.local" }
    ```
 
-   Reste, mais c'est l'item 1 : la porte d'évaluation n'a toujours jamais tourné
-   contre le distant.
+   **Ce que la porte d'évaluation ne couvre pas.** Aucun invariant ne vise
+   `compass_scoring_context_within` : I9 et I10 exercent la règle de licence à
+   travers `compass_address_timeline` seulement. La porte n'aurait donc pas
+   attrapé ce défaut, et n'attrapera pas sa réapparition. Un I12 est à écrire,
+   sur le modèle de I9 — un appelant anonyme demandant un millésime non
+   redistribuable doit recevoir une ligne `withheld`, jamais zéro ligne.
+
+   Deux précautions pour l'écrire. D'abord, le lanceur pose seulement
+   `request.jwt.claims` et ne fait pas `set local role anon` : cela suffit pour
+   la logique qui lit le claim — c'est le cas ici — mais **n'exerce pas le
+   filtrage RLS**, qui est contourné par le rôle propriétaire. Ensuite, le
+   contre-test compte autant que le test : un rayon sans aucun local doit
+   continuer à rendre **zéro ligne sans marqueur**, sinon on corrige un défaut
+   en en créant un autre.
 
 ---
 
