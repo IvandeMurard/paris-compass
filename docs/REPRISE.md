@@ -1,4 +1,4 @@
-# Reprise — état au 16 août 2026, fin de session
+# Reprise — état au 17 août 2026, fin de session
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`
@@ -7,14 +7,32 @@ qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.m
 
 ---
 
-## Ce qui existe et fonctionne — en local uniquement
+## Ce qui existe et fonctionne — en local **et sur le distant**
 
-**Dix-neuf** migrations appliquées sur une base locale, quatre sources chargées,
-la porte d'évaluation au vert — rejouée et confirmée le **12 août**.
+**Le distant est chargé depuis le 15 août.** C'est le changement le plus important
+de cette page, et il annule le « point bloquant » que les versions antérieures
+décrivaient : `dbefhvmyfmmhjeetdddu` porte le schéma **et** les données. Mesuré en
+direct le 17 août sur la base elle-même, pas déduit :
 
-Dix-neuf, pas vingt-et-une : `supabase/migrations/` contient 21 fichiers, mais les
-deux derniers (`20260809131158`, `20260809131210`, générés par Lovable) ne sont
-pas appliqués en local.
+| | Distant `dbefhvmyfmmhjeetdddu` |
+| --- | --- |
+| Migrations au ledger `supabase_migrations` | **23**, de `20250417000001` à `20260815000002` |
+| Tables / fonctions `compass_*` | **18 / 10** — mêmes chiffres que la base de référence |
+| Locaux (`premise_location`) | 85 418 |
+| Relevés (`premise_observation`) | 228 275 — les trois millésimes additionnés |
+| Tronçons de voie / quartiers | 25 094 / 80 |
+| Établissements SIRENE | 68 770 |
+
+**Une seule migration reste en attente** : `20260816000001_scoring_context_withholding.sql`,
+écrite le 16 août. Vérifié par `supabase db push --dry-run`, qui ne propose
+qu'elle. Voir le point 8 de « La suite, par ordre ».
+
+**En local**, l'agrégat de référence reste en place et sert toujours : dix-neuf
+migrations, quatre sources chargées, porte d'évaluation au vert — rejouée et
+confirmée le **12 août**. Dix-neuf, pas vingt-et-une : `supabase/migrations/`
+contenait alors 21 fichiers, mais les deux derniers (`20260809131158`,
+`20260809131210`, générés par Lovable) ne sont pas appliqués en local. Le
+répertoire en compte **24** depuis les fusions du 17 août.
 
 ### La répétition générale, et les deux défauts qu'elle a trouvés
 
@@ -217,42 +235,39 @@ rayon**, jamais une bbox.
 
 ---
 
-## Le point bloquant, unique
+## Le point bloquant — **levé le 15 août**
 
-**Rien n'a jamais été poussé ni chargé sur une instance distante.**
+**Il n'y a plus de point bloquant.** La connexion au distant fonctionne, le
+schéma y est appliqué et les données chargées. Vérifié le 17 août en ouvrant la
+connexion : `connectionTarget()` annonce
+`dbefhvmyfmmhjeetdddu via aws-1-eu-west-1.pooler.supabase.com`, et la base
+répond. Les volumes sont dans le tableau en tête de page.
 
-`.env.local` existe, et **tout y est juste sauf le mot de passe**.
-`connectionTarget()` dans `scripts/ingest/lib/db.ts` affiche la cible sans jamais
-montrer le secret : **s'en servir avant tout chargement**.
+`connectionTarget()`, dans `scripts/ingest/lib/db.ts`, affiche la cible sans
+jamais montrer le secret : **s'en servir avant tout chargement**. Cette règle
+reste entière — c'est elle qui a permis de constater le 17 août que `.env.local`
+ne visait plus du tout le projet que cette page décrivait.
 
-La région est `eu-north-1` (Stockholm), donnée par Lovable et **vérifiée** le
-12 août. L'hôte du fichier a été corrigé en conséquence.
+> **Pourquoi cette page a menti pendant deux jours.** La correction existait
+> depuis le 15 août, mais elle vivait dans la PR #2, restée ouverte. La branche
+> du serveur MCP a été forkée d'un `main` antérieur, donc elle a hérité d'un
+> `REPRISE.md` figé sur la décision Lovable Cloud et sur un mot de passe
+> introuvable. Une session du 17 août a passé une heure à rouvrir un dossier
+> déjà clos. Ce n'était pas une documentation périmée par négligence, mais
+> **fausse par branche** — un mode de défaillance à connaître : ce que dit
+> `main` fait foi, une correction non mergée n'existe pour personne.
 
-| Cible | Réponse |
-| --- | --- |
-| `aws-0-eu-west-3.pooler.supabase.com:5432` (hôte d'origine) | `XX000 tenant/user postgres.nwnhhvogwrzstslxtxca not found` |
-| `aws-1-eu-west-3.pooler.supabase.com:5432` | même refus |
-| `db.nwnhhvogwrzstslxtxca.supabase.co:5432` (direct) | enregistrement **AAAA seul**, machine sans IPv6 → `ENOTFOUND` |
-| `https://nwnhhvogwrzstslxtxca.supabase.co/rest/v1/` | 401 avec `sb-project-ref` renvoyé — **le projet est vivant** |
-| **`aws-0-eu-north-1.pooler.supabase.com:5432`** | **`28P01 password authentication failed`** |
+L'historique des essais de connexion vers l'ancienne cible Lovable Cloud
+(`nwnhhvogwrzstslxtxca`, région `eu-north-1`, `28P01` sur le pooler) n'a plus
+d'objet et a été retiré. Ce qu'il faut en garder tient en une ligne, et vaut
+pour tout nouveau projet : **le pooler est propre à chaque projet, et la
+connexion directe `db.<ref>.supabase.co` n'a qu'un enregistrement AAAA, donc
+injoignable depuis ce poste sans IPv6.** Détail dans « Le nœud Supabase »
+ci-dessous.
 
-Ce dernier changement d'erreur est le résultat utile : passer de `XX000` à
-`28P01` prouve que **le tenant est trouvé**. Hôte, port, rôle et chemin IPv4
-sont donc validés. Le pooler eu-north-1 répond en IPv4 : ni option payante, ni
-`db.<ref>.supabase.co`, ni IPv6 nécessaires.
-
-**Il ne reste qu'une inconnue : le mot de passe.** Celui du fichier vient d'un
-autre projet et n'a jamais été bon — il n'avait simplement jamais pu être
-testé, le refus de tenant arrivant avant l'authentification.
-
-Lovable ne peut pas *lire* le mot de passe : sur Lovable Cloud ni l'agent ni
-l'interface n'y ont accès. Mais il peut le **réinitialiser** — c'est une action
-de propriétaire, et Lovable est propriétaire du projet. Ne pas redemander « le
-mot de passe » (question sans réponse possible), demander **une rotation**.
-
-Le balayage de plusieurs régions à la suite avec le mot de passe **est bloqué par
+Le balayage de plusieurs cibles à la suite avec un mot de passe **est bloqué par
 la politique d'exécution** — cela ressemble à un essai de connexions en série.
-Tester une cible à la fois.
+Tester une cible à la fois. Cette règle-là reste valable.
 
 ### Le nœud Supabase, à ne pas redécouvrir
 
@@ -379,9 +394,13 @@ l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
 
 ## La suite, par ordre
 
-1. **L'hôte de connexion** (voir le tableau plus haut), puis migrations et
-   chargement sur Lovable Cloud, puis la porte contre l'instance distante. Une
-   vingtaine de minutes une fois la chaîne en main.
+1. ~~**L'hôte de connexion**, puis migrations et chargement sur Lovable Cloud.~~
+   **Fait le 15 août, sur `dbefhvmyfmmhjeetdddu` et non sur Lovable Cloud** — la
+   cible a changé, voir « Le nœud Supabase ». Reste de cet item : **la porte
+   d'évaluation n'a jamais été jouée contre l'instance distante.** Elle ne l'a
+   été que contre l'agrégat local. Le lanceur annonce sa cible depuis le 12 août,
+   donc un « PASS » distant serait lisible comme tel. À faire une fois la
+   migration du point 8 posée, pour que les deux bases portent le même schéma.
 2. **Message à l'APUR** — rédigé, à envoyer le lundi 10 août. Il décide si 2017 et
    2020 sortent publiquement, et si le service `bdcom20032020` (sept couches de
    2003 à 2020, vacants compris) est utilisable — ce qui porterait l'historique de
@@ -488,6 +507,30 @@ l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
    le temps de chercher la bonne version de `lovable-tagger`.
 
    *Une fois vérifié*, supprimer ce point 7 : il n'aura plus lieu d'être.
+
+8. **Poser `20260816000001_scoring_context_withholding.sql` sur le distant.**
+   La seule migration en attente — confirmé par `supabase db push --dry-run`,
+   qui ne propose qu'elle. Écrite et éprouvée sur la base locale le 16 août ;
+   sans elle, le distant rend encore un millésime retenu par licence comme un
+   quartier sans commerces (`DIAGNOSTIC.md` §9).
+
+   ```powershell
+   # L'URL doit etre percent-encodee : le mot de passe contient un &, que cmd.exe
+   # interpreterait, et la CLI l'exige de toute facon. Ne pas passer par --linked :
+   # la connexion directe db.<ref>.supabase.co est AAAA seule, injoignable d'ici.
+   npx.cmd supabase db push --db-url "<DATABASE_URL percent-encodee>" --dry-run
+   npx.cmd supabase db push --db-url "<DATABASE_URL percent-encodee>"
+   ```
+
+   **Bloqué le 17 août au dernier geste** : l'essai à blanc passe, l'application
+   réelle est refusée par le classificateur du mode auto de Claude Code — une
+   écriture de schéma sur une base distante vivante. Ce n'est pas un problème de
+   Supabase ni d'identifiants. À lancer à la main, ou après avoir ajouté une
+   règle de permission `Bash` pour cette commande.
+
+   *Une fois posée*, vérifier que la colonne `withheld` apparaît bien dans la
+   signature de `compass_scoring_context_within` côté distant, puis rayer ce
+   point 8.
 
 ---
 
