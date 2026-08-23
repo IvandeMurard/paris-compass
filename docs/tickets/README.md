@@ -6,22 +6,28 @@ horizon / priorité / dépendances / sources.
 
 Doc parente : [`../PLAN-ACTION-VACANCE.md`](../PLAN-ACTION-VACANCE.md).
 
-## Ouvrir les issues
+## Les issues sont ouvertes
 
-Les 43 liens GitHub préremplis vivent dans la section « Tickets GitHub » de
-[`../PLAN-ACTION-VACANCE.md`](../PLAN-ACTION-VACANCE.md), avec les labels à créer une fois.
-Le pack d'origine en portait une seconde copie (`00-INDEX.md`) : elle n'a pas été reprise,
-deux listes d'URL finissant toujours par diverger.
+Les 43 issues existent depuis le 23 aout 2026 — epics #41 a #48, tickets #6 a #40. La
+correspondance complete est dans la section « Tickets GitHub » de
+[`../PLAN-ACTION-VACANCE.md`](../PLAN-ACTION-VACANCE.md). Les liens *creer une issue*
+preremplis que portait le pack ont ete retires : les rouvrir creerait des doublons.
 
-Ouvrir les épics d'abord, les tickets ensuite — les épics cochent leurs tickets.
+Chaque epic coche ses tickets par leur numero, donc fermer un ticket avance la vague toute
+seule. Un corps modifie ici ne se propage pas a l'issue, ni l'inverse : les deux doivent
+bouger ensemble, ou aucun des deux.
 
 Pour une action qui n'est pas au backlog, le gabarit
 [`.github/ISSUE_TEMPLATE/plan-action.yml`](../../.github/ISSUE_TEMPLATE/plan-action.yml)
-impose les mêmes cinq blocs.
+impose les memes cinq blocs.
 
-## Avant d'ouvrir un ticket
+## Avant de travailler un ticket
 
 Ces corps ont été rédigés sans accès en lecture au dépôt. Deux ont déjà été corrigés à
 l'intégration — `w0-deploy` et `w5-entity`, détail dans la section « Écarts corrigés à
-l'intégration » du document parent. Vérifier l'état réel dans `docs/REPRISE.md` avant de
-recopier un chiffre d'ici dans une issue : un chiffre affiché porte sa source, un ticket aussi.
+l'intégration » du document parent. Les autres n'ont pas été relus ligne à ligne.
+
+Donc : relire `docs/REPRISE.md` avant de faire confiance à un chiffre lu ici, et le
+remesurer plutôt que le recopier. Un chiffre affiché porte sa source ; un ticket aussi, et
+un ticket périmé coûte plus cher qu'un ticket absent — il oriente le travail au lieu de le
+laisser chercher.

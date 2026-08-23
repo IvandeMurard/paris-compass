@@ -1,9 +1,68 @@
-# Reprise — état au 17 août 2026, fin de session
+# Reprise — état au 23 août 2026, fin de session
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`
-(backlog, décisions produit), `docs/BDCOM.md` (pièges de la source) et
-`eval/FAILURE_MODES.md` (le contrat d'évaluation).
+(backlog, décisions produit), `docs/PLAN-ACTION-VACANCE.md` (doctrine et backlog
+priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
+contrat d'évaluation).
+
+---
+
+## Le 23 août : rien du produit n'a bougé, le plan de travail oui
+
+**Aucune ligne de `src/`, de `mcp-server/`, de `supabase/` ni de `eval/` n'a
+changé.** La session du 23 août n'a touché que la documentation et GitHub. Tout
+ce qui suit sur cette page à propos du code, du distant et de la porte reste vrai
+tel qu'écrit le 17 août.
+
+Ce qui est nouveau :
+
+- **`docs/PLAN-ACTION-VACANCE.md`** — doctrine non négociable, backlog priorisé
+  P0/P1/P2 en huit vagues, catalogue de trente sources avec leurs pièges, et ce
+  que l'IA a le droit de faire. Il **complète** `docs/PLAN.md`, qui garde
+  l'exécution technique des phases 0 à 6.
+- **43 issues ouvertes** — huit épics `#41`–`#48`, trente-cinq tickets `#6`–`#40`,
+  treize labels. Chaque épic coche ses tickets par leur numéro. Les corps vivent
+  aussi dans `docs/tickets/`.
+- **Les pourcentages de fiabilité ont été rattrapés.** Le README, cette page et
+  `docs/PLAN.md` portaient encore la composition du gel du 9 août. Détail plus
+  bas, à « La composition de fiabilité est la métrique de qualité ».
+
+**État vérifié le 23 août** : `tsc --build` sans erreur, **73 tests au vert sur
+six fichiers**. C'est le point de départ propre de la prochaine session.
+
+### Par où reprendre
+
+`w0-deploy` (**#7**) est le plus petit et le mieux cerné : le distant porte
+schéma et données depuis le 15 août, il ne reste qu'à poser
+`20260817000001_premises_within_withholding.sql` — le ledger distant est à 24
+migrations, `supabase/migrations/` en compte 25 — puis à rejouer la porte **en
+anonyme**, ce que son critère d'acceptation exige et que personne n'a fait.
+
+Trois avertissements pour la suite, qui ne se déduisent pas des tickets :
+
+- **`w0-fiche` (#8) est du travail d'interface, donc le terrain de Lovable.** La
+  règle de `CLAUDE.md` s'applique en plein : `git pull` avant, pousser après, et
+  ne pas éditer les mêmes fichiers des deux côtés dans la même session.
+- **`w0-provenance` (#10) a le rayon d'action le plus large du lot.** Changer la
+  signature de `scoreLocation` déplace le front *et* le MCP, et les formules
+  publiées sur `src/pages/Methodology.tsx` doivent suivre — c'est une règle de
+  `CLAUDE.md`, pas une politesse. À ne pas entrelacer avec autre chose.
+- **`w0-cron` (#6) touche aux privilèges.** Le ticket le dit lui-même : job à
+  privilèges élevés, jamais la clé anon.
+
+### Ce que le plan d'action ne garantit pas
+
+Il a été rédigé par un agent sans accès en lecture au dépôt. Quatre de ses
+chiffres étaient faux à l'entrée et ont été corrigés — la liste et la source de
+chaque recoupement sont en tête du document, section « Écarts corrigés à
+l'intégration ». **Les autres n'ont pas été relus ligne à ligne.** Remesurer
+avant de recopier un chiffre lu dans un ticket.
+
+Ses horizons — Q3 2026, Q4 2026, 2027 — sont à lire comme un ordre de passage et
+non comme des dates : dix tickets au Q3 et vingt et un au Q4 ne tiennent pas dans
+un calendrier réel. `docs/PLAN.md` refusait les échéances par choix, et ce choix
+tient.
 
 ---
 
