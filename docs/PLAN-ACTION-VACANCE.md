@@ -60,7 +60,7 @@ répétaient les chiffres périmés. L'index `00-INDEX.md` du pack n'a pas été
 
 Recoupé section par section contre `docs/PLAN.md` après l'ouverture des issues.
 
-**Une vingtaine des 35 tickets redisent une section de `PLAN.md`** : `w0-plu` §2.4,
+**Une vingtaine des 37 tickets redisent une section de `PLAN.md`** : `w0-plu` §2.4,
 `w0-fiche` §2.7, `w0-provenance` §4.1 (ligne 539), `w6-dossier` §2.6, `w2-mobiliscope` §3.1,
 `w2-idfm` §3.2, `w6-liberations` §3.5, `w6-mcp` §4.1 et §4.2, `w1-chantiers` §5.1,
 `w1-survie` §5.2 et §6.2, `w1-ppri` §5.3, `w7-etude-chantiers` §5.5, `w1-dia` §5.6,
@@ -71,20 +71,22 @@ chantier**, sinon les deux backlogs divergent.
 
 **Trois choses manquent, et l'une est importante.**
 
-- **`PLAN.md` §5.9 — `bdcom20032020`.** Sept couches APUR de 2003 à 2020, **vacants inclus**.
-  `PLAN.md` le qualifie de « vraisemblablement le levier le plus élevé de tout le corpus ».
-  Aucun ticket, aucune ligne au catalogue des sources. C'est en tension avec la thèse d'en
-  dessous : ce document ouvre sur trois ans d'aveuglement et met `w3-mapillary` en P0 pour
-  combler 2023–2026 par de la vision, pendant qu'une source publique portant les vacants
-  jusqu'en 2003 attend. Mapillary garde son intérêt pour *aujourd'hui* ; l'ordre de bataille
-  est à revoir.
-- **La phase 6 de `PLAN.md` entière** — §6.1 matrices de transition, §6.3 agrégation par rue,
-  §6.4 prix par activité, §6.5 ventes contre liquidations, §6.7 colonnes chargées que rien
-  ne lit, §6.9 invariant vérifiable. Six items, aucun ticket. Or cette phase s'intitule « la
-  capacité d'analyse **déjà dans le schéma** » : de la valeur à zéro source nouvelle. Ce
-  document est un plan de **sources** ; il est aveugle sur ce qui se calcule avec l'existant.
+- **`PLAN.md` §5.9 — `bdcom20032020`.** ~~Aucun ticket.~~ **Comblé le 23 août** par
+  `w1-historique`, en P0. Sept couches APUR de 2003 à 2020, vacants inclus, que `PLAN.md`
+  qualifie de « vraisemblablement le levier le plus élevé de tout le corpus ». Il est en
+  vague 1 et non 0 parce qu'il est suspendu à une réponse de l'APUR : le service ne porte
+  aucune licence explicite. **L'ordre de bataille reste à revoir** : ce document met
+  `w3-mapillary` en P0 pour combler 2023–2026 par de la vision, alors que `w1-historique`
+  ouvre dix-sept ans avec les vacants par une API déjà maîtrisée.
+- **La phase 6 de `PLAN.md`** — ~~six items, aucun ticket.~~ **Quatre comblés le 23 août** par
+  `w6-analyse` : §6.1 matrices de transition, §6.3 agrégation par voie, §6.4 prix par activité,
+  §6.5 ventes contre liquidations. **Deux restent sans ticket, délibérément** : §6.7 (colonnes
+  chargées que rien ne lit — `is_bio`, `situation`, les bandes de surface, et surtout
+  `bodacc_judgment.judged_on`) est un audit et non une fonction ; §6.9 (rendre vérifiable
+  l'invariant « aucun chiffre ne peut exister uniquement dans l'UI ») est à moitié fait —
+  `I11` couvre le versant backend — et l'autre moitié touche `src/`, donc Lovable.
 - **L'idée de pente** (`PLAN.md` §5.8) — la gentrification est une tendance, pas un état.
-  `w2-filosofi` est un instantané et ne la porte pas. Toujours sans maison.
+  `w2-filosofi` est un instantané et ne la porte pas. **Toujours sans ticket.**
 
 **Une contradiction assumée.** `PLAN.md` §5.4 écrit des sources d'appoint « à vérifier avant
 engagement, aucune n'a été confirmée » ; `w1-terrasses` est ici en P0 avec un critère
@@ -223,6 +225,7 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 | `w1-chantiers` | 1 | Q3 2026 | Chantiers de voirie (fait d'exposition) | La fiche d'un local à 40 m d'un polygone perturbant affiche le chantier ; un voisin hors polygone, non. |
 | `w1-survie` | 1 | Q3 2026 | Courbes de survie SIRENE × BDCom | Un café aux Halles et un café au Mail affichent deux survies, chacune avec n et millésimes, rapportées au métier pas à Paris entier. |
 | `w1-terrasses` | 1 | Q3 2026 | Terrasses et étalages autorisés | La fiche restauration affiche oui/non/inconnu terrasse, avec le type (permanente, estivale) et la source. |
+| `w1-historique` | 1 | Q3 2026 | bdcom20032020 : porter l'historique de six à vingt ans | Soit les couches 2003–2020 ingérées avec leur licence portée par millésime, soit une note publique dans `docs/BDCOM.md` fermant la piste. |
 | `w3-mapillary` | 3 | Q4 2026 | Mapillary : rideau, pancarte, vitrine — observation datée | Gate : précision/rappel sur 50 façades annotées. Affichage uniquement au-dessus du seuil, avec la photo et la date. |
 
 ### P1
@@ -243,6 +246,7 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 | `w6-liberations` | 6 | Q4 2026 | Vue par défaut « ce qui se libère » | L'ouverture de l'app sans requête montre des signaux de libération, chacun avec source et date, et une légende de couverture. |
 | `w6-modes` | 6 | Q4 2026 | Trois modes métier | Le basculement de mode réordonne les axes et les alertes, sans inventer de chiffre. |
 | `w6-dossier` | 6 | Q4 2026 | Dossier exportable d'une adresse | Depuis une fiche, télécharger un fichier dont chaque figure est re-dérivable. |
+| `w6-analyse` | 6 | Q4 2026 | Les analyses déjà permises par le schéma | Quatre fonctions `compass_*` couvertes par la porte : transition d'activité, voie entière, prix par code d'activité, ventes contre liquidations. |
 | `w6-mcp` | 6 | Q4 2026 | Publier le MCP + llms.txt | Un agent externe peut score_location / trace_premise / compare_locations / list_sources sur le dépôt documenté. |
 | `w7-foncier` | 7 | 2027 | Fichiers fonciers / MAJIC — partenariat public | Soit un flux fichiers fonciers sous convention, soit EmpCom clairement étiqueté trop grossier, sans sur-promesse. |
 | `w7-etude-chantiers` | 7 | 2027 | Étude rétrospective chantiers × BDCom | Note méthodologique dans le dépôt, avec effet ou absence d'effet, et règle d'affichage qui en découle. |
@@ -323,6 +327,14 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 - **Comment.** Aucune source nouvelle. Jointure au niveau défendable : un SIRET n'est pas un local. Non rattachable = probable. Taux par métier × tronçon, effectif nommé, période nommée.
 - **Doctrine.** « 72 % des cafés tiennent six ans » est une observation. « Votre café a 72 % de chances » est un prévisionnel — interdit.
 - **Fait quand.** Un café aux Halles et un café au Mail affichent deux survies, chacune avec n et millésimes, rapportées au métier pas à Paris entier.
+
+#### w1-historique — bdcom20032020 : porter l'historique de six à vingt ans
+
+- Priorité **P0** · vague 1 · Q3 2026
+- **Pourquoi.** Sept couches APUR de 2003 à 2020, **vacants inclus**. `PLAN.md` §5.9 : « vraisemblablement le levier le plus élevé de tout le corpus ». Précède `w3-mapillary` dans l'ordre de valeur — celui-ci comble 2023–2026 par de la vision, celui-là ouvre dix-sept ans par une API déjà maîtrisée.
+- **Comment.** La licence d'abord : le service porte « Ne pas supprimer », alimente une application interne de l'APUR et n'a **aucune licence explicite**. Vérifier le courrier à `data@apur.org` du 10 août. Si accordé, ingestion par l'API REST paginée, licence portée comme donnée par millésime. Sinon, écrire la note et s'arrêter.
+- **Doctrine.** Une licence absente n'est pas une licence permissive. Même règle que `w1-dia`.
+- **Fait quand.** Soit les couches sont ingérées et un local des Halles montre une chronologie qui commence avant 2017, soit `docs/BDCOM.md` porte la note de clôture avec la date de la demande et la teneur de la réponse.
 
 #### w1-terrasses — Terrasses et étalages autorisés
 
@@ -531,6 +543,15 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 - **Doctrine.** Un dossier, une adresse. Pas de bouton « tout exporter ».
 - **Fait quand.** Depuis une fiche, télécharger un fichier dont chaque figure est re-dérivable.
 
+#### w6-analyse — Les analyses déjà permises par le schéma
+
+- Priorité **P1** · vague 6 · Q4 2026
+- Dépend de : `w0-deploy`
+- **Pourquoi.** `PLAN.md` phase 6 : le modèle répond à des questions que rien ne pose. Aucune source nouvelle, seulement une fonction pour chacune. Ce document, qui est un plan de sources, les avait toutes omises.
+- **Comment.** Quatre fonctions `compass_*` exécutables par `anon` : §6.1 matrices de transition (`lag()` sur `(location_id, vintage_year)`), §6.3 agrégation par `voie_id`, §6.4 prix médian groupé sur le code d'activité BDCom et jamais sur le texte BODACC, §6.5 ventes contre liquidations. Hors périmètre : §6.7, qui est un audit de colonnes dormantes, et §6.9, à moitié fait et bloqué sur Lovable.
+- **Doctrine.** Aucune source nouvelle, donc aucune licence nouvelle. Une durée médiane avant revente n'est pas un taux de rotation.
+- **Fait quand.** Les quatre fonctions existent, la porte les couvre, et une adresse des Halles rend les quatre lectures avec leur effectif.
+
 #### w6-mcp — Publier le MCP + llms.txt
 
 - Priorité **P1** · vague 6 · Q4 2026
@@ -698,7 +719,7 @@ Q4 2026  →  meublés + ABF/SPR + PPRI zonage + vue « ce qui se libère »
 
 ## Tickets GitHub
 
-**Les 43 issues sont ouvertes** sur [IvandeMurard/paris-compass](https://github.com/IvandeMurard/paris-compass/issues) le 23 aout 2026, et les 13 labels crees. Le corps de chaque issue vit aussi dans [`tickets/`](./tickets/) : les deux doivent bouger ensemble, ou aucun des deux.
+**Les 45 issues sont ouvertes** sur [IvandeMurard/paris-compass](https://github.com/IvandeMurard/paris-compass/issues) le 23 aout 2026 — 8 epics et 37 tickets — et les 13 labels crees. Le corps de chaque issue vit aussi dans [`tickets/`](./tickets/) : les deux doivent bouger ensemble, ou aucun des deux.
 
 > Les versions anterieures de cette page portaient 43 liens *creer une issue* preremplis. Ils ont ete retires : les issues existent, les rouvrir en creerait des doublons.
 
@@ -726,6 +747,7 @@ Q4 2026  →  meublés + ABF/SPR + PPRI zonage + vue « ce qui se libère »
 | #10 | `w0-provenance` | P0 | Provenance par champ, pas un Origin unique OSM |
 | #11 | `w1-chantiers` | P0 | Chantiers de voirie (fait d'exposition) |
 | #12 | `w1-dia` | P1 | Droit de préemption / DIA — vérifier l'open data |
+| #49 | `w1-historique` | P0 | bdcom20032020 : porter l'historique de six à vingt ans |
 | #13 | `w1-ppri` | P1 | PPRI en zonage, pas en booléen |
 | #14 | `w1-survie` | P0 | Courbes de survie SIRENE × BDCom |
 | #15 | `w1-terrasses` | P0 | Terrasses et étalages autorisés |
@@ -746,6 +768,7 @@ Q4 2026  →  meublés + ABF/SPR + PPRI zonage + vue « ce qui se libère »
 | #30 | `w5-entretien` | P1 | Agent d'entretien du preneur (8 questions → checklist) |
 | #31 | `w5-explain-metier` | P2 | explain_score métier-aware |
 | #32 | `w5-parse` | P2 | Extracteur BODACC / INPI (tuyauterie) |
+| #50 | `w6-analyse` | P1 | Les analyses déjà permises par le schéma |
 | #33 | `w6-dossier` | P1 | Dossier exportable d'une adresse |
 | #34 | `w6-liberations` | P1 | Vue par défaut « ce qui se libère » |
 | #35 | `w6-mcp` | P1 | Publier le MCP + llms.txt |

@@ -1,6 +1,6 @@
 # Tickets — plan d'action vacance
 
-Un fichier par issue : **8 épics** (`vague-*.md`) et **35 tickets** (`w*-*.md`). Chaque corps
+Un fichier par issue : **8 épics** (`vague-*.md`) et **37 tickets** (`w*-*.md`). Chaque corps
 tient en cinq blocs — Pourquoi, Comment, Doctrine, Fait quand, plus l'en-tête ID / vague /
 horizon / priorité / dépendances / sources.
 
@@ -8,7 +8,8 @@ Doc parente : [`../PLAN-ACTION-VACANCE.md`](../PLAN-ACTION-VACANCE.md).
 
 ## Les issues sont ouvertes
 
-Les 43 issues existent depuis le 23 aout 2026 — epics #41 a #48, tickets #6 a #40. La
+Les 45 issues existent depuis le 23 aout 2026 — epics #41 a #48, tickets #6 a #40, plus
+#49 (`w1-historique`) et #50 (`w6-analyse`), ouverts apres recoupement avec `PLAN.md`. La
 correspondance complete est dans la section « Tickets GitHub » de
 [`../PLAN-ACTION-VACANCE.md`](../PLAN-ACTION-VACANCE.md). Les liens *creer une issue*
 preremplis que portait le pack ont ete retires : les rouvrir creerait des doublons.

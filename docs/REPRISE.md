@@ -21,9 +21,10 @@ Ce qui est nouveau :
   P0/P1/P2 en huit vagues, catalogue de trente sources avec leurs pièges, et ce
   que l'IA a le droit de faire. Il **complète** `docs/PLAN.md`, qui garde
   l'exécution technique des phases 0 à 6.
-- **43 issues ouvertes** — huit épics `#41`–`#48`, trente-cinq tickets `#6`–`#40`,
-  treize labels. Chaque épic coche ses tickets par leur numéro. Les corps vivent
-  aussi dans `docs/tickets/`.
+- **45 issues ouvertes** — huit épics `#41`–`#48`, trente-cinq tickets `#6`–`#40`,
+  puis `#49` (`w1-historique`) et `#50` (`w6-analyse`) ouverts après recoupement
+  avec `docs/PLAN.md`. Treize labels. Chaque épic coche ses tickets par leur
+  numéro. Les corps vivent aussi dans `docs/tickets/`.
 - **Les pourcentages de fiabilité ont été rattrapés.** Le README, cette page et
   `docs/PLAN.md` portaient encore la composition du gel du 9 août. Détail plus
   bas, à « La composition de fiabilité est la métrique de qualité ».
@@ -60,11 +61,20 @@ l'intégration ». **Les autres n'ont pas été relus ligne à ligne.** Remesure
 avant de recopier un chiffre lu dans un ticket.
 
 Il **recoupe largement `docs/PLAN.md`** — une vingtaine de ses tickets redisent une
-section existante — et il **laisse trois trous**, dont §5.9 (`bdcom20032020`, sept
-couches APUR de 2003 à 2020, vacants inclus) que `PLAN.md` tient pour le levier le
-plus élevé du corpus. Le relevé complet est dans le plan d'action, section « Ce que
-ce document ne couvre pas ». À lire avant de choisir le prochain ticket : l'ordre de
-bataille du plan d'action n'est pas forcément le bon.
+section existante — et il laissait trois trous. Deux sont comblés depuis le 23 août :
+`w1-historique` (#49) pour §5.9 `bdcom20032020`, `w6-analyse` (#50) pour quatre des
+six items de la phase 6. Restent sans ticket, **délibérément** : §6.7 (audit de
+colonnes dormantes), §6.9 (moitié backend faite par `I11`, moitié `src/` donc
+Lovable), et l'idée de pente de §5.8. Le relevé complet est dans le plan d'action,
+section « Ce que ce document ne couvre pas ».
+
+**L'ordre de bataille reste discutable, et c'est le point à trancher avant
+d'exécuter.** Le plan d'action met `w3-mapillary` en P0 pour combler 2023–2026 par
+de la vision par ordinateur, avec un jeu doré de cinquante façades à annoter, alors
+que `w1-historique` ouvrirait dix-sept ans **avec les vacants** par une API que le
+projet sait déjà interroger. Ce dernier est suspendu à une réponse de l'APUR — le
+service ne porte aucune licence explicite — donc la première action n'est pas
+technique : c'est de savoir si le courrier du 10 août est parti.
 
 Ses horizons — Q3 2026, Q4 2026, 2027 — sont à lire comme un ordre de passage et
 non comme des dates : dix tickets au Q3 et vingt et un au Q4 ne tiennent pas dans
