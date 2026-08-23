@@ -56,6 +56,40 @@ Les mêmes corrections ont été portées dans `docs/tickets/` — `w0-deploy.md
 répétaient les chiffres périmés. L'index `00-INDEX.md` du pack n'a pas été repris : il dupliquait
 à l'identique les 43 liens de la section « Tickets GitHub » ci-dessous.
 
+## Ce que ce document ne couvre pas — relevé le 23 août
+
+Recoupé section par section contre `docs/PLAN.md` après l'ouverture des issues.
+
+**Une vingtaine des 35 tickets redisent une section de `PLAN.md`** : `w0-plu` §2.4,
+`w0-fiche` §2.7, `w0-provenance` §4.1 (ligne 539), `w6-dossier` §2.6, `w2-mobiliscope` §3.1,
+`w2-idfm` §3.2, `w6-liberations` §3.5, `w6-mcp` §4.1 et §4.2, `w1-chantiers` §5.1,
+`w1-survie` §5.2 et §6.2, `w1-ppri` §5.3, `w7-etude-chantiers` §5.5, `w1-dia` §5.6,
+`w5-entity` §6.6, `w5-confiance-agent` §6.8, et `w1-terrasses` / `w2-filosofi` /
+`w2-bpe-marches-velo` §5.4. Ils sont mieux formulés ici — chaque ticket porte un critère
+d'acceptation, ce que `PLAN.md` n'a pas — mais **les deux doivent être traités comme un seul
+chantier**, sinon les deux backlogs divergent.
+
+**Trois choses manquent, et l'une est importante.**
+
+- **`PLAN.md` §5.9 — `bdcom20032020`.** Sept couches APUR de 2003 à 2020, **vacants inclus**.
+  `PLAN.md` le qualifie de « vraisemblablement le levier le plus élevé de tout le corpus ».
+  Aucun ticket, aucune ligne au catalogue des sources. C'est en tension avec la thèse d'en
+  dessous : ce document ouvre sur trois ans d'aveuglement et met `w3-mapillary` en P0 pour
+  combler 2023–2026 par de la vision, pendant qu'une source publique portant les vacants
+  jusqu'en 2003 attend. Mapillary garde son intérêt pour *aujourd'hui* ; l'ordre de bataille
+  est à revoir.
+- **La phase 6 de `PLAN.md` entière** — §6.1 matrices de transition, §6.3 agrégation par rue,
+  §6.4 prix par activité, §6.5 ventes contre liquidations, §6.7 colonnes chargées que rien
+  ne lit, §6.9 invariant vérifiable. Six items, aucun ticket. Or cette phase s'intitule « la
+  capacité d'analyse **déjà dans le schéma** » : de la valeur à zéro source nouvelle. Ce
+  document est un plan de **sources** ; il est aveugle sur ce qui se calcule avec l'existant.
+- **L'idée de pente** (`PLAN.md` §5.8) — la gentrification est une tendance, pas un état.
+  `w2-filosofi` est un instantané et ne la porte pas. Toujours sans maison.
+
+**Une contradiction assumée.** `PLAN.md` §5.4 écrit des sources d'appoint « à vérifier avant
+engagement, aucune n'a été confirmée » ; `w1-terrasses` est ici en P0 avec un critère
+définitif. La vérification reste un préalable non écrit du ticket.
+
 ## Thèse
 
 Compass ne remplit pas les vitrines. Il dit laquelle vaut le coup, laquelle est un cimetière, laquelle se libère avant l'annonce, et pour quel métier — au tronçon, avec la source sous chaque chiffre. Le risque n'est pas trop peu de sources : c'est trois ans d'aveuglement sur la vacance, une fiche locale encore absente du front, et un pipeline qui ne se recharge pas tout seul.

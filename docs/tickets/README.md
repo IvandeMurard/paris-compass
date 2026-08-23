@@ -21,6 +21,11 @@ Pour une action qui n'est pas au backlog, le gabarit
 [`.github/ISSUE_TEMPLATE/plan-action.yml`](../../.github/ISSUE_TEMPLATE/plan-action.yml)
 impose les memes cinq blocs.
 
+## Lancer une session
+
+Le gabarit d'amorce, les trois tickets qui demandent des consignes en plus, et le choix du
+modele : [`AMORCE.md`](./AMORCE.md).
+
 ## Avant de travailler un ticket
 
 Ces corps ont été rédigés sans accès en lecture au dépôt. Deux ont déjà été corrigés à

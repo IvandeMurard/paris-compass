@@ -59,6 +59,13 @@ chaque recoupement sont en tête du document, section « Écarts corrigés à
 l'intégration ». **Les autres n'ont pas été relus ligne à ligne.** Remesurer
 avant de recopier un chiffre lu dans un ticket.
 
+Il **recoupe largement `docs/PLAN.md`** — une vingtaine de ses tickets redisent une
+section existante — et il **laisse trois trous**, dont §5.9 (`bdcom20032020`, sept
+couches APUR de 2003 à 2020, vacants inclus) que `PLAN.md` tient pour le levier le
+plus élevé du corpus. Le relevé complet est dans le plan d'action, section « Ce que
+ce document ne couvre pas ». À lire avant de choisir le prochain ticket : l'ordre de
+bataille du plan d'action n'est pas forcément le bon.
+
 Ses horizons — Q3 2026, Q4 2026, 2027 — sont à lire comme un ordre de passage et
 non comme des dates : dix tickets au Q3 et vingt et un au Q4 ne tiennent pas dans
 un calendrier réel. `docs/PLAN.md` refusait les échéances par choix, et ce choix
