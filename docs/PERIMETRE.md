@@ -170,6 +170,9 @@ Compass interroge déjà l'API recherche-entreprises. Elle porte les dates de ce
 **4. Droit de préemption commercial parisien — piste à vérifier.**
 Depuis le 7 août 2024, toute cession de fonds ou de bail dans les 5e, 6e et une partie du 7e doit être déclarée à la Ville, sous peine de nullité. Ces déclarations existent donc administrativement. Reste à vérifier si elles sont publiées en open data — le périmètre est étroit, mais si elles le sont, c'est le signal le plus précoce qui existe.
 
+**5. Registre national d'immatriculation des copropriétés (RNIC, ANAH) — piste à vérifier.**
+Repérée le 23 août 2026 en creusant un fil Reddit sur un outil de prospection prédictive résidentielle (Arpentiq). Le registre porte des indicateurs de difficulté financière du syndicat (impayés, procédure), consultables par adresse sur registre-coproprietes.gouv.fr. Un immeuble en difficulté pousse souvent ses copropriétaires à vendre avant que la situation empire — signal sur l'immeuble entier, donc sur le local commercial qu'il abrite. Reste à vérifier si un export en masse existe : sans lui, seule une recherche unitaire par adresse est possible, ce qui ne s'industrialise pas.
+
 **Ce que ça change pour le produit :**
 
 > Compass ne liste pas ce qui est à louer. Il montre ce qui se libère — le local dont l'exploitant vient de cesser, celui dont le fonds part en liquidation, celui que le dernier recensement a trouvé vide. Vous arrivez avant l'annonce, ou vous arrivez avec le contexte quand l'annonce arrive.
@@ -185,6 +188,8 @@ Toutes les sources ci-dessus décrivent l'état actuel. Un bail commercial engag
 - **Observatoire des quartiers de gare du Grand Paris Express (APUR).** Périmètres de 800 m autour de 69 futures gares, avec les statistiques INSEE associées. Une gare qui ouvre redistribue les flux d'un quartier entier. Pour Paris intra-muros l'effet est marginal, mais c'est le levier majeur dès que le périmètre s'étend à l'Île-de-France — et il justifie à lui seul l'ordre d'extension géographique.
 - **Chantiers et travaux de voirie.** Horizon court, publication fragmentée, mais un chantier de douze mois devant une vitrine change l'économie de la première année de bail.
 - **Séries historiques INSEE par IRIS.** Le revenu médian d'aujourd'hui dit peu ; sa pente sur quinze ans dit beaucoup. La gentrification et le déclin sont des tendances, pas des états.
+
+**Le cas d'un employeur qui change un quartier, testé le 23 août 2026 sur un cas réel.** Mistral AI installe son siège (~20 000 m², jusqu'à 1 000 salariés) dans le 18e début 2026. Sitadel n'aurait vu que le permis sur l'immeuble, déposé par le propriétaire — jamais le nom du futur locataire, qui n'est pas une donnée de permis. Le bon triplet, déjà dans le périmètre de Compass, est ailleurs : la densité d'établissements à code NAF tech créés par quartier (SIRENE), les immatriculations d'établissements secondaires qui portent parfois une raison sociale (BODACC), et le prix des murs commerciaux qui monte en anticipation (DVF). Aucun des trois ne nommerait Mistral — un nom d'entreprise glané dans la presse n'est pas re-dérivable, donc ne s'affiche pas — mais les trois ensemble diraient « ce tronçon change de nature » avant que ce soit visible autrement. C'est la version tenable de l'anticipation : la pente, jamais l'événement.
 
 C'est ce bloc qui donne son sens à la formule « replacer le local dans son environnement » : l'environnement d'un bail 3/6/9 est autant temporel que spatial. Un outil qui décrit le présent aide à visiter ; un outil qui décrit la pente aide à signer.
 
@@ -234,16 +239,19 @@ Le même noyau de calcul, exposé deux fois. C'est le pont explicite entre Compa
 
 ## 9. La position vis-à-vis des projets voisins
 
-Deux builders, la même semaine, sur les mêmes registres publics français.
+Trois builders, sur les mêmes registres publics français, à quelques semaines d'écart.
 
 - **iFeyz2** agrège 96 sources à l'échelle nationale, structurées pour les LLM. Il vend la **couverture**.
 - **Towncenter** utilise trois sources (SIRENE, IGN, OSM) et refuse quatre familles de fonctionnalités. Il vend la **découpe**.
+- **Arpentiq** croise DPE, DVF et cadastre pour scorer de 0 à 100 la probabilité qu'un logement se vende, côté agent immobilier plutôt que preneur. Il vend la **prédiction**.
 
 SIRENE + IGN + OSM est devenu une recette triviale à assembler. Le nombre de sources n'est plus un signal — ni en avoir plus, ni en avoir moins.
 
-**Compass ne vend ni la couverture ni la découpe : il vend l'interprétation.** Un chiffre brut ne dit rien à un preneur. « 12 % de vacance sur ce tronçon, contre 4 % il y a six ans » dit quelque chose. La valeur n'est pas dans le nombre de sources connectées, elle est dans la distance entre la donnée brute et une phrase sur laquelle on peut décider.
+**Compass ne vend ni la couverture, ni la découpe, ni la prédiction : il vend l'interprétation.** Un chiffre brut ne dit rien à un preneur. « 12 % de vacance sur ce tronçon, contre 4 % il y a six ans » dit quelque chose. La valeur n'est pas dans le nombre de sources connectées, elle est dans la distance entre la donnée brute et une phrase sur laquelle on peut décider.
 
 C'est la thèse à défendre dans le case study, et elle s'énonce en une ligne : **l'agrégation n'est pas le produit, l'interprétation l'est.**
+
+**Une confirmation externe, datée du 23 août 2026.** Sur le fil Reddit où Arpentiq se présentait, un commentateur a résumé l'outil ainsi : *« Ce n'est pas un signal pour savoir quels biens vont passer en vente, c'est plus pour savoir sur lesquels concentrer son énergie. La base d'un CRM quoi. »* C'est exactement la confusion que le refus du score unique (§4) anticipe : un chiffre agrégé se lit comme une priorité de portefeuille plutôt que comme un fait vérifiable, parce qu'il ne porte pas sa propre décomposition. Le fondateur a dû corriger en argumentant après coup. Compass évite la correction en évitant le score.
 
 ### Ce qui protège l'interprétation — et ce qui ne la protège pas
 
