@@ -553,11 +553,19 @@ l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
    vacants compris) est utilisable, ce qui porterait l'historique de six à vingt
    ans.
 
+   **Parti le 10 août 2026. Treize jours sans réponse au 23 août : relance à
+   faire.**
+
    **C'est la seule dépendance externe du projet, et elle bloque trois choses à la
    fois** : `w1-historique` (#49) en entier, l'exposition publique de 2017 et 2020,
-   et la vacance 2023. Aucune ne s'ouvre par le code. La date d'envoi exacte n'est
-   pas consignée ici : si le courrier est bien parti le 10 août, une relance se
-   justifie.
+   et la vacance 2023. Aucune ne s'ouvre par le code.
+
+   > **Le texte du courrier n'est pas au dépôt.** `docs/BDCOM.md` §6 dit qu'il faut
+   > écrire à `data@apur.org` et pourquoi, mais ce qui a effectivement été demandé
+   > n'existe nulle part ici. Quand la réponse arrivera, personne ne pourra vérifier
+   > qu'elle couvre les trois questions — ni, en cas de réponse partielle, laquelle
+   > est restée sans réponse. À consigner, avec sa date, au même titre qu'un chiffre
+   > affiché porte sa source.
 3. ~~**Corriger `?? 0`** dans `src/services/opendata/scoring.ts`.~~ **Fait le
    9 août.** L'absence remonte maintenant jusqu'à l'interface : `AreaScores` et
    `NoiseEstimate` sont nullables, la carte affiche « n/d » et un point gris
