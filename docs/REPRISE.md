@@ -73,8 +73,9 @@ d'exécuter.** Le plan d'action met `w3-mapillary` en P0 pour combler 2023–202
 de la vision par ordinateur, avec un jeu doré de cinquante façades à annoter, alors
 que `w1-historique` ouvrirait dix-sept ans **avec les vacants** par une API que le
 projet sait déjà interroger. Ce dernier est suspendu à une réponse de l'APUR — le
-service ne porte aucune licence explicite — donc la première action n'est pas
-technique : c'est de savoir si le courrier du 10 août est parti.
+service ne porte aucune licence explicite. **Le courrier est parti, la réponse est
+attendue** (point 2 de « La suite, par ordre »), donc `#49` est bloqué sur un tiers
+et ne doit pas être pris en session. Reprendre par `w0-deploy` (#7).
 
 Ses horizons — Q3 2026, Q4 2026, 2027 — sont à lire comme un ordre de passage et
 non comme des dates : dix tickets au Q3 et vingt et un au Q4 ne tiennent pas dans
@@ -544,10 +545,19 @@ l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
    > faux, et vérifiable sur place : `eval/confidence_history.jsonl` portait déjà
    > un point daté du 15 août dont la cible était `dbefhvmyfmmhjeetdddu`. Écrit
    > sans regarder le fichier.
-2. **Message à l'APUR** — rédigé, à envoyer le lundi 10 août. Il décide si 2017 et
-   2020 sortent publiquement, et si le service `bdcom20032020` (sept couches de
-   2003 à 2020, vacants compris) est utilisable — ce qui porterait l'historique de
-   six à vingt ans.
+2. **Message à l'APUR** — ~~rédigé, à envoyer le lundi 10 août.~~ **Envoyé.
+   Réponse en attente au 23 août 2026.** Il décide de trois choses : si 2017 et
+   2020 sortent publiquement — la ligne `bdcom_vintage.publicly_redistributable`
+   bascule à ce moment-là ; si une couche 2023 complète, vacants inclus, est
+   diffusable ; et si le service `bdcom20032020` (sept couches de 2003 à 2020,
+   vacants compris) est utilisable, ce qui porterait l'historique de six à vingt
+   ans.
+
+   **C'est la seule dépendance externe du projet, et elle bloque trois choses à la
+   fois** : `w1-historique` (#49) en entier, l'exposition publique de 2017 et 2020,
+   et la vacance 2023. Aucune ne s'ouvre par le code. La date d'envoi exacte n'est
+   pas consignée ici : si le courrier est bien parti le 10 août, une relance se
+   justifie.
 3. ~~**Corriger `?? 0`** dans `src/services/opendata/scoring.ts`.~~ **Fait le
    9 août.** L'absence remonte maintenant jusqu'à l'interface : `AreaScores` et
    `NoiseEstimate` sont nullables, la carte affiche « n/d » et un point gris

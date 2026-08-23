@@ -21,9 +21,11 @@ et alimente l'application interne de l'APUR. Techniquement joignable n'est pas j
 réutilisable : contrairement aux couches d'`opendata.apur.org`, celle-ci **ne porte aucune
 licence explicite**.
 
-1. Vérifier si le courrier à `data@apur.org`, rédigé et daté du 10 août 2026 (`docs/REPRISE.md`,
-   « La suite, par ordre » n° 2), est parti et a reçu réponse. Il demande aussi si une couche
-   2023 complète, vacants inclus, est diffusable.
+1. ~~Vérifier si le courrier à `data@apur.org` est parti.~~ **Envoyé ; réponse en attente au
+   23 août 2026.** Ce ticket est donc **bloqué sur un tiers** : ne pas l'ouvrir en session tant
+   que la réponse n'est pas arrivée — relancer, pas coder. Le courrier demande aussi si une
+   couche 2023 complète, vacants inclus, est diffusable, et si 2017 et 2020 peuvent sortir
+   publiquement.
 2. Si la réutilisation est accordée : ingestion par l'**API REST paginée**, `outSR=4326`, comme
    les millésimes déjà chargés — voir `docs/BDCOM.md` §8 et les scripts existants. La licence
    se porte **comme donnée**, par millésime, ainsi que le fait déjà le corpus pour l'écart entre
