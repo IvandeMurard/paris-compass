@@ -332,10 +332,21 @@ refaire sur tout nouveau projet avant `supabase db push`.
 confiance serait le chiffre invérifiable que le produit refuse. La règle est dans
 `docs/PLAN.md` §2.5.
 
-**La composition de fiabilité est la métrique de qualité.** 51,6 % établi,
-5,9 % corroboré, 36,5 % probable, 6,0 % indéterminé. S'améliorer veut dire
+**La composition de fiabilité est la métrique de qualité.** 51,4 % établi,
+5,9 % corroboré, 36,7 % probable, 6,0 % indéterminé — mesurés sur les baselines
+regelées le 17 août, `eval/baselines/ingestion.json`. S'améliorer veut dire
 déplacer ces quatre nombres vers la gauche ; chaque source branchée se juge à ça.
-Le résidu de 36,5 % est **structurel** : BODACC nomme une adresse, BDCom un
+
+> **Corrigé le 23 août.** Cette page, le README et `docs/PLAN.md` portaient encore
+> 51,6 / 5,9 / 36,5 / 6,0 — la composition du gel du 9 août, restée en place quand
+> les baselines ont été regelées le 17. Le déplacement de `probable` vers la droite
+> n'est **pas une dégradation de la qualité** : il vient de la republication DILA,
+> dont les avis BODACC entrent en `probable` faute de nommer le local, et aucun
+> effectif BDCom n'a bougé d'un chiffre. L'agrégat suivi en porte le confirme —
+> 57,31 % établi+corroboré, inchangé depuis le 15 août, valeur qui ne se déduit
+> que des nouveaux nombres.
+
+Le résidu de 36,7 % est **structurel** : BODACC nomme une adresse, BDCom un
 local, et 69 % des locaux partagent leur numéro. Aucune donnée publique ne dira
 laquelle des huit vitrines a été vendue.
 

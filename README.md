@@ -91,11 +91,11 @@ Today's composition across the corpus — this is the quality metric, and improv
 
 | established | corroborated | probable | undetermined |
 | --- | --- | --- | --- |
-| **51.6%** | 5.9% | 36.5% | 6.0% |
+| **51.4%** | 5.9% | 36.7% | 6.0% |
 
-That 36.5% is structural, not laziness: BODACC names an *address*, BDCom names a *unit*, and 69% of units share their street number. No public data will say which of eight shopfronts was sold.
+That 36.7% is structural, not laziness: BODACC names an *address*, BDCom names a *unit*, and 69% of units share their street number. No public data will say which of eight shopfronts was sold.
 
-A gate runs the whole corpus against **10 invariants, 24 frozen baselines and 8 hand-verified chronologies** before anything ships.
+A gate runs the whole corpus against **15 invariants, 24 frozen baselines and 8 hand-verified chronologies** before anything ships.
 
 ---
 

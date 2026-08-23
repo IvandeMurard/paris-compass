@@ -13,6 +13,7 @@ Volontairement **non importés** ici : ce fichier est chargé à chaque session,
 | `docs/REPRISE.md` | **À lire en premier en début de session.** Où en est le travail, ce qui bloque, et les pièges qui ont déjà coûté du temps. Notamment : quel projet Supabase viser, et pourquoi il y en a eu trois. |
 | `docs/CONTEXTE.md` | Périmètre, persona, refus assumés, décisions d'architecture, état d'avancement. Avant toute modification du périmètre, des sources de données ou du noyau. |
 | `docs/PLAN.md` | Backlog ordonné : ce qui est fait, les phases 2 à 4 en détail, les sources à brancher et pourquoi. Avant de commencer un chantier. |
+| `docs/PLAN-ACTION-VACANCE.md` | Doctrine non négociable, backlog priorisé P0/P1/P2 en 8 vagues, catalogue des sources avec leurs pièges, ce que l'IA a le droit de faire. Complète `PLAN.md` sans le remplacer : celui-ci dit *quoi faire ensuite et dans quel ordre*, l'autre porte l'exécution technique. |
 | `docs/PERIMETRE.md` | Le raisonnement long : les questions auxquelles Compass peut répondre, celles qui sont partielles, celles qui sont bloquées, et les contournements. Avant d'ajouter une source ou de discuter du positionnement. |
 | `docs/BDCOM.md` | Pièges vérifiés de la source BDCom : coordonnées empilées, identifiant de local stable entre millésimes mais réattribué dans moins de 0,1 % des cas, périmètres et licences qui diffèrent selon le millésime. **Obligatoire avant toute migration touchant BDCom.** |
 | `DIAGNOSTIC.md` | Défauts identifiés dans le code, dont certains encore ouverts. Avant de corriger un bug. |

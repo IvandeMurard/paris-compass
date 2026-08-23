@@ -1,5 +1,12 @@
 # Compass — plan de travail
 
+> **Plan d'action vacance (août 2026).** Doctrine, backlog priorisé et tickets :
+> [`PLAN-ACTION-VACANCE.md`](./PLAN-ACTION-VACANCE.md).
+> Ce fichier reste le backlog d'exécution technique (phases 0–6 déjà faites ou en cours).
+> L'autre dit *quoi faire ensuite*, *dans quel ordre*, et *ce que la doctrine interdit*.
+> Il porte des horizons (Q3 2026, Q4 2026, 2027) que ce fichier-ci s'est toujours refusé —
+> les lire comme un ordre de passage, pas comme un engagement de date.
+
 Backlog ordonné par dépendance, sans échéance. Lovable reste dans la boucle pour l'UI et le
 déploiement. Contexte et décisions produit dans `docs/CONTEXTE.md`.
 
@@ -464,7 +471,7 @@ se libérer, souvent des mois avant qu'une annonce paraisse.
 > **Et la mesure a corrigé ma prédiction.** J'annonçais l'ambiguïté du siège
 > social comme le premier levier de qualité. Elle l'était, mais plus petite que
 > prévu : une fois résolue, **plus une seule ligne ne reste `probable` pour cette
-> raison**, et le résidu — 36,5 % — vient entièrement d'ailleurs. BODACC nomme une
+> raison**, et le résidu — 36,7 % — vient entièrement d'ailleurs. BODACC nomme une
 > adresse, BDCom un local, et **69 % des locaux partagent leur numéro**. Aucune
 > corroboration ne peut désigner la vitrine, et aucune donnée publique ne le dira.
 >
@@ -793,7 +800,7 @@ sur le code d'activité BDCom, **jamais** sur le champ texte libre de BODACC.
 jamais posé. C'est la lecture qui distingue une rue qui se renouvelle d'une rue qui meurt.
 
 **6.6 — Resserrer les candidats par activité.** Le levier nommé en §3.3 contre le résidu
-structurel de 36,5 % `probable` : quand trois locaux partagent une adresse et qu'un seul est
+structurel de 36,7 % `probable` : quand trois locaux partagent une adresse et qu'un seul est
 un restaurant, un avis visant un restaurant se rattache mieux. **Cela ne rendra jamais un
 fait `etabli`** — la source ne nomme toujours pas le local — mais peut faire passer de
 `probable` à `corrobore`.

@@ -1,0 +1,46 @@
+name: Ticket plan d'action
+description: Action du backlog vacance (docs/PLAN-ACTION-VACANCE.md)
+title: "[P?] id — titre"
+labels: ["plan-action"]
+body:
+  - type: markdown
+    attributes:
+      value: Relit docs/PLAN-ACTION-VACANCE.md, docs/PLAN.md et docs/PERIMETRE.md.
+  - type: input
+    id: ticket_id
+    attributes:
+      label: ID
+      placeholder: w0-deploy
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priorité
+      options: [P0, P1, P2]
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Pourquoi
+    validations:
+      required: true
+  - type: textarea
+    id: how
+    attributes:
+      label: Comment
+    validations:
+      required: true
+  - type: textarea
+    id: doctrine
+    attributes:
+      label: Doctrine
+    validations:
+      required: true
+  - type: textarea
+    id: done_when
+    attributes:
+      label: Fait quand
+    validations:
+      required: true
