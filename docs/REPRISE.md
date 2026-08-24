@@ -74,6 +74,8 @@ jour où la licence tombe.
 
 ### Le défaut trouvé en chemin : une conclusion tirée par-dessus une retenue
 
+[**#54**](https://github.com/IvandeMurard/paris-compass/issues/54), ouverte le 24 août.
+
 Sur un millésime `retail_only`, `compass_address_timeline` justifie une absence par « une
 absence signifie « plus un commerce », pas « vacant » ». **« Plus un commerce » suppose que le
 local en était un avant — et c'est précisément ce que la même réponse retient** pour un
@@ -364,16 +366,17 @@ section du 24 août, session 2, en tête de page. Il débloquait `w0-fiche` (#8)
 qui sans lui aurait affiché « non observé, non vacant » sur un local qui était
 vacant.
 
-~~`w0-fiche` (**#8**)~~ **est fait depuis le 24 août, session 4** — voir la section en tête de
-page. **L'issue #8 est encore ouverte au moment où ces lignes sont écrites** : la fermeture et
-la régénération du tableau d'ordre restent à faire. Deux choses en sont sorties qui n'y
-étaient pas : le rattachement OpenStreetMap ↔ BDCom, qui n'a pas de clé et se pose donc au
-lecteur, et `DIAGNOSTIC.md` §15, **ouvert**, qui demande une décision avant correctif.
+~~`w0-fiche` (**#8**)~~ **est clos depuis le 24 août, session 4, issue fermée** — voir la
+section en tête de page. Deux choses en sont sorties qui n'étaient pas au ticket : le
+rattachement OpenStreetMap ↔ BDCom, qui n'a pas de clé et se pose donc au lecteur, et
+[**#54**](https://github.com/IvandeMurard/paris-compass/issues/54) / `DIAGNOSTIC.md` §15,
+**ouverte**, qui demande une décision avant correctif.
 
 **État GitHub remesuré le 24 août par `gh`, à la clôture de la session 4 : 45 ouvertes,
-3 fermées** — `#7`, `#10`, `#51`. Il valait 44/3 à la clôture de la session 3 ; `#53`
-(`w0-mcp-verif`) a été ouverte entre-temps. Un état GitHub est une mesure : la remesurer, pas
-la recopier.
+4 fermées** — `#7`, `#8`, `#10`, `#51`. Il valait 44/3 à la clôture de la session 3 ; `#53`
+(`w0-mcp-verif`) et `#54` ont été ouvertes entre-temps, `#8` fermée. Un état GitHub est une
+mesure : la remesurer, pas la recopier. Le suivant dans l'ordre est `w0-mcp-verif` (#53)
+selon `docs/SESSIONS.md`, régénéré derrière la fermeture.
 
 ~~`w0-provenance` (**#10**)~~ **est clos depuis le 24 août, session 3, issue fermée** :
 provenance par couche, démontrée contre le distant par `explain_score` — voir la
@@ -381,8 +384,11 @@ section en tête de page. Le défaut Overpass trouvé en chemin a son issue,
 [#52](https://github.com/IvandeMurard/paris-compass/issues/52), ouverte pour la
 seule trace : le correctif est posé. **État GitHub remesuré à la clôture de la
 session 3 : 44 ouvertes, 3 fermées** — `#7`, `#51` et `#10` — plus `#52` ouverte.
-L'épic `#41` coche désormais `#7`, `#10` et `#51`. Le suivant dans l'ordre est
-`w0-fiche` (#8) selon `docs/SESSIONS.md`.
+~~L'épic `#41` coche désormais `#7`, `#10` et `#51`.~~ **Faux, remesuré le 24 août à la
+clôture de la session 4 : l'épic ne cochait aucun des trois.** La réparation d'encodage du
+même jour les avait décochés sans que personne le voie — voir le piège plus bas. Recoché et
+vérifié sur les octets bruts. ~~Le suivant dans l'ordre est `w0-fiche` (#8).~~ **`#8` est clos
+depuis la session 4** ; le suivant est `w0-mcp-verif` (#53).
 
 ~~**GitHub n'a pas été touché le 24 août.**~~ **Périmé trois fois dans la journée,
 et c'était le piège de cette page.** Remesuré par `gh` à la clôture de la
@@ -972,6 +978,20 @@ cette chaîne en UTF-8 la ré-encode une seconde fois.
 accents intacts. C'est la **capture** de la sortie qui casse. Une vérification
 qui ne teste que l'aller conclut à tort que tout va bien : c'est exactement
 l'erreur qui a été commise.
+
+**La corruption a fait une seconde victime, invisible pendant vingt-quatre heures : les
+cases à cocher.** Réparer le corps de #41 l'a réécrit depuis une copie **périmée**, où `#7`,
+`#10` et `#51` n'étaient pas encore cochés — et `docs/REPRISE.md` affirmait pourtant, dans la
+même journée, que l'épic les cochait. Constaté le 24 août à la clôture de la session 4, sur
+les octets bruts (`gh api … --jq .body`), en fermant `#8` : `#8` s'est coché tout seul —
+GitHub suit les listes de tâches qui référencent une issue — et les trois autres, fermés
+depuis plus longtemps, sont apparus **décochés**.
+
+**La règle générale : réparer un contenu depuis une copie efface tout état qui ne vivait que
+dans l'original.** L'encodage se voit, l'état ne se voit pas. Une réparation qui ne recoupe
+que ce qu'elle voulait corriger conclut à tort qu'elle est finie — c'est le même mode de
+défaillance que « le sens aller est sain, le sens retour non », un cran plus haut. **Avant de
+réécrire un corps d'issue, relever ce qu'il porte et qui n'est écrit nulle part ailleurs.**
 
 **Non reproduit**, et c'est à savoir avant de croire à un correctif : dans un
 `powershell.exe -NoProfile -File` non interactif sur cette même machine,

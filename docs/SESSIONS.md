@@ -93,7 +93,7 @@ hors de la file, pour qu'aucun ticket ne disparaisse en silence.
 | ~~1~~ | ~~`w0-deploy`~~ | [#7](https://github.com/IvandeMurard/paris-compass/issues/7) | **fait** | P0 | Opus 5 |
 | ~~2~~ | ~~`w0-history`~~ | [#51](https://github.com/IvandeMurard/paris-compass/issues/51) | **fait** | P0 | Opus 5 |
 | ~~3~~ | ~~`w0-provenance`~~ | [#10](https://github.com/IvandeMurard/paris-compass/issues/10) | **fait** | P0 | Opus 5 |
-| 4 | `w0-fiche` | [#8](https://github.com/IvandeMurard/paris-compass/issues/8) | ouvert | P0 | Opus 5 |
+| ~~4~~ | ~~`w0-fiche`~~ | [#8](https://github.com/IvandeMurard/paris-compass/issues/8) | **fait** | P0 | Opus 5 |
 | 5 | `w0-mcp-verif` | [#53](https://github.com/IvandeMurard/paris-compass/issues/53) | ouvert | P0 | Opus 5 |
 | 6 | `w0-cron` | [#6](https://github.com/IvandeMurard/paris-compass/issues/6) | ouvert | P0 | Opus 5 |
 | 7 | `w0-plu` | [#9](https://github.com/IvandeMurard/paris-compass/issues/9) | ouvert | P0 | Sonnet 5 |
@@ -196,13 +196,15 @@ le correctif de `#51`, la fiche afficherait « non observé, non vacant » sur u
 
 > **Faite le 24 août.** Le critère est démontré dans le navigateur sur 3 rue du Jour, quartier
 > Halles — 2017 retenu, 2020 retenu, 2023 « Prêt-à-porter Homme / AGNES B », plus quatre
-> annonces BODACC. `.rpc(` passe de 0 à 2 occurrences dans `src/`. **L'issue #8 n'était pas
-> encore fermée à la fin de la session** : la fermer, puis relancer `npm.cmd run sessions`.
+> annonces BODACC. `.rpc(` passe de 0 à 2 occurrences dans `src/`. **Issue #8 fermée**, épic
+> #41 recoché — il ne cochait aucun des quatre tickets clos, voir le piège correspondant dans
+> `docs/REPRISE.md` — et tableau ci-dessus régénéré.
 >
 > **Deux choses en sont sorties.** Le rattachement OpenStreetMap ↔ BDCom n'a **pas de clé** :
 > mesuré, un rayon de 25 m contient une médiane de 5 locaux candidats et le plus proche est
 > souvent le mauvais commerce — la fiche les liste et laisse le lecteur trancher. Et
-> `DIAGNOSTIC.md` **§15**, ouvert : `compass_address_timeline` conclut « plus un commerce » à
+> [**#54**](https://github.com/IvandeMurard/paris-compass/issues/54) / `DIAGNOSTIC.md` **§15**,
+> ouverte : `compass_address_timeline` conclut « plus un commerce » à
 > partir de millésimes qu'elle retient dans la même réponse. **Correctif SQL, et il demande une
 > décision** — la même phrase est dans `PLAN.md`, corriger l'un sans l'autre ferait diverger
 > la doctrine et la base.

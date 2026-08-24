@@ -297,7 +297,7 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 - **Doctrine.** L'historique justifie le taux de rotation rapporté à la rue ; il ne le remplace pas.
 - **Fait quand.** Un local des Halles affiche 2017 → 2020 → 2023 (ou withheld) + événements BODACC, sans coalesce sur le libellé. — **Démontré le 24 août** dans le navigateur, clé publiable seule : **3 rue du Jour, quartier Halles**, identifiant BDCom 1250 — 2017 retenu, 2020 retenu, 2023 « Prêt-à-porter Homme / AGNES B », plus quatre annonces BODACC de 2015 à 2018, et aucune reprise de libellé sur les lignes retenues. Détail, mesures de rattachement et limites dans `docs/tickets/w0-fiche.md`.
 - **Ce ticket redisait `docs/PLAN.md` §2.7**, comme la section « Ce que ce document ne couvre pas » l'annonçait. Les deux sont clos ensemble et se citent l'un l'autre.
-- **Un défaut trouvé en chemin, hors périmètre :** sur un millésime `retail_only`, `compass_address_timeline` conclut « plus un commerce » à partir de millésimes qu'elle retient dans la même réponse. `DIAGNOSTIC.md` §15 — correctif SQL, à trancher.
+- **Un défaut trouvé en chemin, hors périmètre :** sur un millésime `retail_only`, `compass_address_timeline` conclut « plus un commerce » à partir de millésimes qu'elle retient dans la même réponse. `DIAGNOSTIC.md` §15, issue [#54](https://github.com/IvandeMurard/paris-compass/issues/54) — correctif SQL, à trancher.
 
 #### w0-cron — Ingestion planifiée + date de fraîcheur par source
 

@@ -786,9 +786,10 @@ temps, pas le 406 : le diagnostic était perdu à chaque fois que les trois miro
 
 ## 15. Une conclusion affirmée à partir de millésimes retenus — `compass_address_timeline`, le 24 août
 
-**Ouvert.** Trouvé en branchant la fiche locale (`w0-fiche`), et **hors du périmètre de ce
-ticket** : le correctif est dans le SQL, la fiche est de l'interface. Consigné ici plutôt que
-corrigé à la volée.
+**Ouvert**, issue [#54](https://github.com/IvandeMurard/paris-compass/issues/54), le 24 août.
+Trouvé en branchant la fiche locale (`w0-fiche`, #8), et **hors du périmètre de ce ticket** :
+le correctif est dans le SQL, la fiche est de l'interface. Consigné ici plutôt que corrigé à
+la volée.
 
 Sur un millésime au périmètre `retail_only` — c'est le cas de 2023 — une ligne
 `observed = false` porte cette justification, écrite dans `20260809000011` :

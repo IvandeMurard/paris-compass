@@ -22,6 +22,11 @@ Voir [`docs/PLAN-ACTION-VACANCE.md`](../PLAN-ACTION-VACANCE.md). Relit `docs/PLA
 
 ## Fait le 24 août 2026 — le critère est démontré en direct
 
+**Issue [#8](https://github.com/IvandeMurard/paris-compass/issues/8) fermée le 24 août**, avec
+le tableau ci-dessous en commentaire, et le tableau d'ordre de `docs/SESSIONS.md` régénéré
+derrière. Un défaut trouvé en chemin, hors périmètre, a son issue :
+[**#54**](https://github.com/IvandeMurard/paris-compass/issues/54) — `DIAGNOSTIC.md` §15.
+
 **Ce ticket redit `docs/PLAN.md` §2.7**, « La fiche locale : le consommateur qui manque »,
 qui porte le même manque depuis le 12 août. `docs/PLAN-ACTION-VACANCE.md` l'avait déjà
 relevé dans « Ce que ce document ne couvre pas ». Les deux sont clos ensemble et se citent
