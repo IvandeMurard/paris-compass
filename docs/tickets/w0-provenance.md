@@ -73,3 +73,48 @@ donc la nouvelle attribution sans être touchés.
 
 **Base de départ mesurée le 24 août** : `tsc --build` sans erreur, **73 tests au
 vert sur six fichiers**.
+
+---
+
+## Fait — mesuré le 24 août 2026 contre le distant `dbefhvmyfmmhjeetdddu`
+
+**Le critère du ticket, joué tel qu'il est écrit.** `explain_score`, appelé par un vrai client
+MCP sur Montorgueil (48,8657 / 2,3459), rayon 800 m, à travers les vrais miroirs Overpass et la
+vraie base :
+
+| Millésime | Métrique | Valeur | `source` | `licence` | `asOf` |
+| --- | --- | --- | --- | --- | --- |
+| 2023 | `footfall` | 97 | **`APUR BDCom 2023 + OpenStreetMap via Overpass`** | `ODbL-1.0` | **`2023-06`** |
+| 2023 | `groceries` | 100 | `OpenStreetMap via Overpass` | `ODbL-1.0` | `2026-08-24` |
+| 2023 | `noise` | 51 | `OpenStreetMap via Overpass` | `ODbL-1.0` | `2026-08-24` |
+| 2017 | `footfall` | `null` | **`APUR BDCom 2017`** | `Custom APUR licence (unread) — … Do not redistribute before checking.` | **`2017`** |
+| 2017 | `groceries` | 100 | `OpenStreetMap via Overpass` | `ODbL-1.0` | `2026-08-24` |
+
+Avant ce ticket, **les cinq lignes** disaient `OpenStreetMap via Overpass`, `ODbL`, et la date du
+jour.
+
+Trois choses que le tableau montre et que le ticket ne demandait pas :
+
+- **`asOf = 2023-06` sur le flux piéton**, pas la date de la requête. Le relevé de terrain est de
+  juin 2023 ; l'annoncer frais du jour était une erreur de trois ans.
+- **Le millésime retenu nomme désormais sa source et sa raison.** Un `footfall` nul sur 2017
+  porte `APUR BDCom 2017` et la licence non lue : l'appelant apprend *quel* jeu se tait et
+  *pourquoi*, au lieu d'un « indisponible » sans adresse.
+- **`list_sources` et `explain_score` s'accordent au caractère près** — `OpenStreetMap via
+  Overpass | ODbL-1.0` des deux côtés, `APUR BDCom 2023 | ODbL-1.0 | 2023-06` des deux côtés.
+  `list_sources` lit sa ligne OSM dans `OSM_ORIGIN` au lieu de la retaper.
+
+**Métadonnées de millésime mesurées** le 24 août par PostgREST, appelant anonyme, sur
+`compass_vintages` : 2023 → `ODbL-1.0`, `as_of = 2023-06`, `retail_only` ; 2017 et 2020 →
+`custom`, `as_of` = leur année, `all_premises`. Le code ne contient aucune de ces valeurs.
+
+**Portes au vert après changement** : `tsc --build` sans erreur sur les deux paquets,
+**79 tests sur six fichiers** (73 avant, six ajoutés sur l'attribution par couche et la
+composition d'origines).
+
+### Un défaut trouvé en chemin, hors périmètre du ticket
+
+Le critère n'était pas démontrable : le serveur MCP n'atteignait **jamais** son miroir Overpass
+principal, qui répond 406 à une requête sans `User-Agent`. Corrigé, parce que sans cela ce
+ticket ne pouvait pas être prouvé — et consigné à part dans `DIAGNOSTIC.md` §14, avec la ligne
+qui l'avait rendu invisible (la boucle sur les miroirs ne gardait que la dernière erreur).

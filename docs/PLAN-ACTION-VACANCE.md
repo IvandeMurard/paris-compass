@@ -51,9 +51,11 @@ vaut pour la documentation comme pour l'écran : **un correctif consigné porte 
 
 Deux diagnostics du document ont en revanche été **vérifiés exacts** :
 
-- `w0-provenance` — `scoreLocation(point, index, origin)` prend bien un `Origin` unique pour
-  toutes les métriques (`src/core/scoring.ts`), et `OSM_ORIGIN` est le seul constructeur exporté
-  de `src/core/provenance.ts`. La provenance par champ est bien à écrire.
+- `w0-provenance` — `scoreLocation(point, index, origin)` prenait bien un `Origin` unique pour
+  toutes les métriques (`src/core/scoring.ts`), et `OSM_ORIGIN` était le seul constructeur exporté
+  de `src/core/provenance.ts`. La provenance par champ était bien à écrire. **Fait le 24 août.**
+  Le ticket **redisait `docs/PLAN.md` §4.1**, qui portait le même manque depuis le 15 août : les
+  deux sont traités comme un seul chantier et clos ensemble, plutôt que laissés diverger.
 - `w0-fiche` — aucune occurrence de `timeline` ni de `trace_premise` dans `src/`. Le MCP expose
   `compass_address_timeline` depuis le 17 août, le navigateur non.
 
@@ -318,6 +320,7 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 - **Comment.** Changer la signature de scoreLocation pour un Origin par métrique. Front et MCP bougent ensemble — c'est le cœur partagé.
 - **Doctrine.** Chaque figure porte source, licence, millésime, méthode, réserve.
 - **Fait quand.** explain_score sur un local BDCom cite APUR, pas OSM, pour l'activité ; OSM reste sur les aménités.
+- **Fait le 24 août**, mesuré contre le distant : `footfall` rend `APUR BDCom 2023 + OpenStreetMap via Overpass`, `asOf = 2023-06` ; `groceries` et `noise` restent sur OpenStreetMap. Tableau complet dans `docs/tickets/w0-provenance.md`. Même chantier que `docs/PLAN.md` §4.1.
 
 #### w1-chantiers — Chantiers de voirie (fait d'exposition)
 

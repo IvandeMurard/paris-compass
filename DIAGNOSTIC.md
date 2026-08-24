@@ -730,6 +730,46 @@ le fait d'en porter la mauvaise. Un type ne vérifie que ce qu'on lui donne à v
 
 ---
 
+## 14. Le serveur MCP n'a jamais atteint son miroir Overpass principal — le 24 août
+
+**Corrigé le 24 août.** Trouvé en voulant démontrer le critère de `w0-provenance`, pas en le
+cherchant : le flux piéton restait `null` alors que la couche BDCom arrivait sans problème.
+
+**La cause.** `overpass-api.de` répond **406 Not Acceptable** à une requête POST qui ne porte
+pas d'en-tête `User-Agent`, et le `fetch` de Node n'en envoie aucun. Mesuré le 24 août, même
+requête, même point, à la seconde près :
+
+| En-têtes | Réponse |
+| --- | --- |
+| `Content-Type` seul | **406** |
+| `Content-Type` + `User-Agent: paris-compass-mcp/0.1` | **200** |
+| `Content-Type` + `Accept: application/json` | **406** |
+
+Donc `mcp-server/src/overpass.ts` échouait **systématiquement** sur son premier miroir et
+tournait depuis toujours sur les deux suivants — plus lents, et tous deux en panne ce jour-là.
+`src/services/opendata/overpass.ts` n'a jamais eu le problème : le navigateur pose son propre
+`User-Agent`. C'est un défaut que seul le chemin agent pouvait porter.
+
+**Pourquoi il est resté invisible.** La boucle sur les miroirs ne gardait que `lastError`. Un
+406 permanent sur le premier miroir disparaissait donc derrière le 500 passager du troisième,
+et le message remonté à l'appelant accusait un miroir en bonne santé la veille. Les trois
+erreurs sont désormais rendues, endpoint par endpoint. C'est cette ligne-là qui a coûté le
+temps, pas le 406 : le diagnostic était perdu à chaque fois que les trois miroirs échouaient.
+
+**Deux leçons qui ne sont pas sur HTTP.**
+
+- **Un client qui essaie N serveurs doit rendre N erreurs.** Réduire à la dernière transforme
+  une panne permanente en panne intermittente aux yeux de celui qui lit.
+- **Le chemin agent n'hérite pas des politesses du navigateur.** Tout ce que le navigateur pose
+  gratuitement — `User-Agent`, cookies, `Origin` — est absent côté serveur, et un service
+  public a le droit de s'en formaliser. `mcp-server/` est un consommateur *séparé* de
+  `src/core`, ce qui est un choix d'architecture assumé ; ce défaut en est la contrepartie.
+
+**Vérifié après correctif**, contre le distant `dbefhvmyfmmhjeetdddu` et les vrais miroirs :
+`explain_score` rend `groceries = 100`, `noise = 51` et `footfall = 97` à Montorgueil sur 800 m.
+
+---
+
 ## Ordre d'attaque suggéré
 
 1. Point 1 — c'est une donnée fausse qui pilote un filtre. Rien d'autre ne devrait passer avant.

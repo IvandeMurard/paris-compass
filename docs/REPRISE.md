@@ -1,10 +1,83 @@
-# Reprise — état au 24 août 2026, fin de session 2
+# Reprise — état au 24 août 2026, fin de session 3
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`
 (backlog, décisions produit), `docs/PLAN-ACTION-VACANCE.md` (doctrine et backlog
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
+
+---
+
+## Le 24 août, session 3 : `w0-provenance` est fait, et il redisait `PLAN.md` §4.1
+
+**Fait et démontré contre le distant.** `scoreLocation` prend désormais un `Origin`
+**par couche** au lieu d'un seul pour les huit champs. `explain_score` sur Montorgueil,
+rayon 800 m, à travers les vrais miroirs et la vraie base :
+
+| Millésime | Métrique | Valeur | `source` | `asOf` |
+| --- | --- | --- | --- | --- |
+| 2023 | `footfall` | 97 | **`APUR BDCom 2023 + OpenStreetMap via Overpass`** | **`2023-06`** |
+| 2023 | `groceries` | 100 | `OpenStreetMap via Overpass` | `2026-08-24` |
+| 2023 | `noise` | 51 | `OpenStreetMap via Overpass` | `2026-08-24` |
+| 2017 | `footfall` | `null` | **`APUR BDCom 2017`**, licence APUR non lue | **`2017`** |
+
+Les cinq lignes disaient auparavant `OpenStreetMap via Overpass`, `ODbL`, et la date du jour.
+Tableau complet et métadonnées de millésime dans `docs/tickets/w0-provenance.md` ; défaut dans
+`DIAGNOSTIC.md` §13.
+
+**Le ticket redisait `docs/PLAN.md` §4.1**, qui portait le même manque depuis le 15 août sous le
+titre « deux manques restants ». Les deux sont clos ensemble et se citent l'un l'autre, plutôt
+que laissés diverger — c'est exactement le recoupement que « Ce que le plan d'action ne garantit
+pas » annonce plus bas pour une vingtaine de tickets.
+
+**Trois choses que le ticket ne demandait pas et qui sont tombées avec :**
+
+- **La date. `asOf` valait `new Date()`** sur un relevé de terrain de juin 2023 : trois ans
+  d'écart annoncés comme frais du jour. La licence et la date du millésime se lisent maintenant
+  dans `compass_vintages`, jamais dans une constante du code.
+- **`OSM_ORIGIN` passe de `ODbL` à `ODbL-1.0`**, l'orthographe de `bdcom_vintage.licence`. Sans
+  cela le flux piéton aurait annoncé `ODbL-1.0 + ODbL` : deux obligations là où il n'y en a
+  qu'une. Aucun rendu du front n'affiche ce champ, seul le MCP le voit.
+- **Un millésime retenu nomme désormais sa source.** `footfall` nul sur 2017 porte
+  `APUR BDCom 2017` et sa licence non lue : l'appelant apprend *quel* jeu se tait et *pourquoi*.
+
+**Portes au vert** : `tsc --build` sur les deux paquets, **79 tests sur six fichiers** (73 avant).
+
+### Le défaut trouvé en chemin : le MCP n'atteignait jamais son miroir Overpass principal
+
+**`overpass-api.de` répond 406 à une requête sans `User-Agent`, et le `fetch` de Node n'en envoie
+aucun.** Le serveur tournait donc depuis toujours sur ses deux miroirs de secours, tous deux en
+panne ce jour-là — ce qui a rendu le critère indémontrable jusqu'à ce que la cause soit trouvée.
+Le navigateur n'a jamais eu le problème : il pose son propre `User-Agent`. Corrigé, et consigné
+dans `DIAGNOSTIC.md` §14.
+
+**Ce qui l'a rendu invisible mérite plus d'attention que le 406 lui-même** : la boucle sur les
+trois miroirs ne gardait que `lastError`. Un 406 **permanent** sur le premier disparaissait
+derrière le 500 **passager** du troisième, et l'appelant lisait une panne intermittente là où il
+y avait une panne définitive. Règle générale : **un client qui essaie N serveurs doit rendre les
+N erreurs.**
+
+### `tsx` ne démarre pas sur cette machine — contourner par esbuild
+
+**Une stratégie de contrôle d'application Windows bloque `esbuild.exe` 0.28.2**, celui de
+`mcp-server/node_modules`. `npx tsx` échoue donc en `spawn UNKNOWN` (errno `-4094`), un message
+qui ne dit rien de la cause. L'esbuild **0.25.12** de la racine, lui, s'exécute — c'est un
+blocage par binaire, pas par produit. Vérifié le 24 août avec `Start-Process`, qui est le seul
+appel à rendre le vrai message : « Une stratégie de contrôle d'application a bloqué ce fichier ».
+
+Contournement, depuis la racine du dépôt :
+
+```powershell
+.\node_modules\.bin\esbuild.cmd mcp-server/src/index.ts --bundle --platform=node `
+  --format=esm --packages=external --outfile=mcp-server/.build/server.mjs
+node mcp-server/.build/server.mjs   # depuis mcp-server/, pour que ../.env soit trouvé
+```
+
+`mcp-server/.build/` est ignoré par git. `mcp-server/src/provenance-check.ts` est le script de
+vérification écrit pour ce ticket : il rejoue `explain_score` sur trois métriques et deux
+millésimes et imprime source, licence et date. Il spawne le serveur par `npx tsx`, donc **il
+faut bundler les deux fichiers** et remplacer cette commande par `process.execPath` sur le
+bundle. Même remarque pour `src/smoke-test.ts`.
 
 ---
 
@@ -198,8 +271,13 @@ démontré.
 migration posée, ledger à 26, les deux portes au vert contre le distant — voir la
 section du 24 août, session 2, en tête de page. Il débloquait `w0-fiche` (#8),
 qui sans lui aurait affiché « non observé, non vacant » sur un local qui était
-vacant. Le suivant dans l'ordre est `w0-provenance` (#10) ou `w0-fiche` (#8)
-selon `docs/SESSIONS.md`.
+vacant.
+
+~~`w0-provenance` (**#10**)~~ **est clos depuis le 24 août, session 3** : provenance
+par couche, démontrée contre le distant par `explain_score` — voir la section en
+tête de page. **L'issue reste à fermer sur GitHub**, ainsi qu'à ouvrir celle du
+défaut Overpass 406 si l'on veut le suivre ; le correctif, lui, est déjà posé.
+Le suivant dans l'ordre est `w0-fiche` (#8) selon `docs/SESSIONS.md`.
 
 ~~**GitHub n'a pas été touché le 24 août.**~~ **Périmé trois fois dans la journée,
 et c'était le piège de cette page.** Remesuré par `gh` à la clôture de la
@@ -222,10 +300,11 @@ Trois avertissements pour la suite, qui ne se déduisent pas des tickets :
 - **`w0-fiche` (#8) est du travail d'interface, donc le terrain de Lovable.** La
   règle de `CLAUDE.md` s'applique en plein : `git pull` avant, pousser après, et
   ne pas éditer les mêmes fichiers des deux côtés dans la même session.
-- **`w0-provenance` (#10) a le rayon d'action le plus large du lot.** Changer la
-  signature de `scoreLocation` déplace le front *et* le MCP, et les formules
-  publiées sur `src/pages/Methodology.tsx` doivent suivre — c'est une règle de
-  `CLAUDE.md`, pas une politesse. À ne pas entrelacer avec autre chose.
+- ~~**`w0-provenance` (#10) a le rayon d'action le plus large du lot.**~~ **Fait le
+  24 août.** L'avertissement s'est vérifié : le changement a touché `src/core/`,
+  les deux appelants de production, `mcp-server/src/context.ts` et
+  `src/pages/Methodology.tsx`, plus un défaut Overpass trouvé en chemin. Il n'a
+  effectivement été entrelacé avec rien.
 - **`w0-cron` (#6) touche aux privilèges.** Le ticket le dit lui-même : job à
   privilèges élevés, jamais la clé anon.
 
@@ -252,8 +331,8 @@ que `w1-historique` ouvrirait dix-sept ans **avec les vacants** par une API que 
 projet sait déjà interroger. Ce dernier est suspendu à une réponse de l'APUR — le
 service ne porte aucune licence explicite. **Le courrier est parti, la réponse est
 attendue** (point 2 de « La suite, par ordre »), donc `#49` est bloqué sur un tiers
-et ne doit pas être pris en session. `w0-deploy` (#7) étant clos, reprendre par
-`w0-provenance` (#10) ou `w0-fiche` (#8) selon `docs/SESSIONS.md`.
+et ne doit pas être pris en session. `w0-deploy` (#7) et `w0-provenance` (#10)
+étant clos, reprendre par `w0-fiche` (#8) selon `docs/SESSIONS.md`.
 
 Ses horizons — Q3 2026, Q4 2026, 2027 — sont à lire comme un ordre de passage et
 non comme des dates : dix tickets au Q3 et vingt et un au Q4 ne tiennent pas dans
@@ -772,6 +851,14 @@ donc `git push origin main` réussit et GitHub se contente d'une ligne —
 `Bypassed rule violations for refs/heads/main`. Facile à manquer dans la sortie.
 Les PR #2 et #3 montrent que le mode de travail voulu est la PR : le push direct
 est une exception à demander, pas un défaut.
+
+**Le chemin agent n'hérite d'aucune des politesses du navigateur.** `User-Agent`,
+cookies, `Origin` : tout ce que le navigateur pose gratuitement est absent d'un
+`fetch` Node, et un service public a le droit de s'en formaliser. Overpass rend
+**406** sans `User-Agent`, ce qui a rendu le miroir principal du serveur MCP
+inatteignable sans que rien ne le signale. À vérifier pour toute source que
+`mcp-server/` interroge et que le front interroge aussi : la même requête n'est
+pas la même requête des deux côtés.
 
 **Ne jamais passer `--omit=optional` à npm sur ce projet.** Rollup livre son
 binaire natif (`@rollup/rollup-win32-x64-msvc`) en dépendance *optionnelle* :

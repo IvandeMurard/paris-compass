@@ -536,10 +536,17 @@ l'UI, ou au moins cesser de la déballer dans l'adaptateur.
 > (`DIAGNOSTIC.md` §3a), pas un défaut du serveur.
 >
 > **Deux manques restants, délibérément non comblés maintenant :**
-> - `scoreLocation` (`src/core/scoring.ts`) prend une seule `Origin` pour tout le résultat —
->   chaque axe affiche « OpenStreetMap via Overpass » même quand les locaux viennent de BDCom.
->   Hérité de l'adaptateur front existant, pas introduit ici ; corriger demande de changer la
->   signature d'une fonction partagée avec le navigateur, donc une décision séparée.
+> - ~~`scoreLocation` (`src/core/scoring.ts`) prend une seule `Origin` pour tout le résultat —
+>   chaque axe affiche « OpenStreetMap via Overpass » même quand les locaux viennent de BDCom.~~
+>   **Fait le 24 août** par `w0-provenance` (#10), qui est le même chantier que ce paragraphe :
+>   le ticket redisait ce manque sans le savoir, et les deux backlogs sont recousus ici. Le
+>   troisième paramètre est désormais un `Origin` **par couche** (`LayerOrigins`), la licence et
+>   la date du millésime BDCom se lisent dans `compass_vintages`, et le flux piéton — qui mélange
+>   65 % de locaux et 35 % de transports — nomme ses deux sources, cumule les licences et porte
+>   la plus ancienne des deux dates. Mesuré contre le distant : `explain_score` rend
+>   `APUR BDCom 2023 + OpenStreetMap via Overpass`, `asOf = 2023-06`, là où il annonçait
+>   OpenStreetMap et la date du jour. Détail et tableau dans `docs/tickets/w0-provenance.md`,
+>   défaut dans `DIAGNOSTIC.md` §13.
 > - ~~Aucun outil n'expose `compass_address_timeline`~~ **Fait le 17 août**, et en **deux**
 >   outils plutôt qu'un : `trace_premise` rend la chronologie, `find_premises` rend les
 >   `location_id` sans lesquels elle est inappelable. La forme qui restait à décider tenait
