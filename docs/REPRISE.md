@@ -58,16 +58,21 @@ nom `premise_history_withholding`. Le dépôt et le distant portent de nouveau l
 même schéma. `SECURITY INVOKER` est bien conservé en base, et les treize colonnes
 de sortie sont dans l'ordre du fichier.
 
-**Reste à faire, hors dépôt** : fermer l'issue
-[#51](https://github.com/IvandeMurard/paris-compass/issues/51), dont le critère
-est maintenant démontré.
+**L'issue [#51](https://github.com/IvandeMurard/paris-compass/issues/51) est
+fermée**, le 24 août à 15h48 UTC, et le tableau d'ordre de `docs/SESSIONS.md` a
+été régénéré derrière. Le ticket est clos de bout en bout : code, distant, porte,
+documentation, suivi.
 
 **Sur GitHub, deux chiffres de cette page étaient périmés** — remesurés le
 24 août par `gh` : l'issue [#7](https://github.com/IvandeMurard/paris-compass/issues/7)
 `w0-deploy` est **fermée**, pas ouverte, et l'issue
 [#51](https://github.com/IvandeMurard/paris-compass/issues/51) `w0-history`
-**existe** et est ouverte. Le dépôt porte **45 issues ouvertes et 1 fermée**.
-`#51` reste à fermer quand la migration sera posée.
+**existait** déjà, là où cette page la disait absente de GitHub.
+
+**État remesuré à la clôture de la session : 44 ouvertes, 2 fermées.** Il valait
+45/1 quelques heures plus tôt, dans la même journée, et 43/0 la veille. Trois
+valeurs justes à leur date en trente-six heures — c'est la raison d'être de
+`npm.cmd run sessions`, qui dérive le tableau d'ordre au lieu de le recopier.
 
 ---
 
@@ -128,28 +133,28 @@ six fichiers**. C'est le point de départ propre de la prochaine session.
 la migration était déjà posée, la porte anonyme a été jouée, le critère est
 démontré.
 
-`w0-history` (**#51**) **est clos depuis le 24 août** : migration posée, ledger à
-26, les deux portes au vert contre le distant — voir la section du 24 août,
-session 2, en tête de page. **L'issue reste à fermer à la main.** Il débloquait
-`w0-fiche` (#8), qui sans lui aurait affiché « non observé, non vacant » sur un
-local qui était vacant. Le suivant dans l'ordre est `w0-provenance` (#10) ou
-`w0-fiche` (#8) selon `docs/SESSIONS.md`.
+~~`w0-history` (**#51**)~~ **est clos depuis le 24 août, issue fermée** :
+migration posée, ledger à 26, les deux portes au vert contre le distant — voir la
+section du 24 août, session 2, en tête de page. Il débloquait `w0-fiche` (#8),
+qui sans lui aurait affiché « non observé, non vacant » sur un local qui était
+vacant. Le suivant dans l'ordre est `w0-provenance` (#10) ou `w0-fiche` (#8)
+selon `docs/SESSIONS.md`.
 
-~~**GitHub n'a pas été touché le 24 août.**~~ **Périmé, et c'était le piège de
-cette page.** Remesuré par `gh` le 24 août en fin de session 2 : `#7` est
-**fermée**, `#51` `w0-history` **existe** et est ouverte, 45 ouvertes et 1 fermée
-en tout. Le paragraphe ci-dessous était vrai à l'heure où il a été écrit et faux
-quelques heures plus tard, sans que rien ne l'annonce — même mode de défaillance
-que le ledger à 24. **Un état GitHub est une mesure : la remesurer, pas la
-recopier.**
+~~**GitHub n'a pas été touché le 24 août.**~~ **Périmé trois fois dans la journée,
+et c'était le piège de cette page.** Remesuré par `gh` à la clôture de la
+session 2 : **44 ouvertes, 2 fermées**, `#7` et `#51` toutes deux fermées. Le
+paragraphe d'origine était vrai à l'heure où il a été écrit et faux quelques
+heures plus tard, sans que rien ne l'annonce — même mode de défaillance que le
+ledger à 24. **Un état GitHub est une mesure : la remesurer, pas la recopier**,
+et c'est pourquoi le tableau d'ordre de `docs/SESSIONS.md` se dérive par
+`npm.cmd run sessions` au lieu de se taper.
 
-**Le ticket ouvert par ce que la session 1 a trouvé est
+**Le ticket ouvert par ce que la session 1 a trouvé était
 [#51](https://github.com/IvandeMurard/paris-compass/issues/51)** :
 `compass_premise_history` annonçait `observed = false` et `is_vacant = false` là
 où le local était relevé et vacant. C'est le défaut de `DIAGNOSTIC.md` §9 pour la
 quatrième fois, et sous sa forme la plus dure — une affirmation fausse, pas un
-silence. **Corrigé dans le dépôt par la session 2**, reste à poser sur le distant
-et à fermer.
+silence. **Corrigé, posé et fermé le même jour par la session 2.**
 
 Trois avertissements pour la suite, qui ne se déduisent pas des tickets :
 

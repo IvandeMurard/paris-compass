@@ -91,7 +91,7 @@ hors de la file, pour qu'aucun ticket ne disparaisse en silence.
 | # | Ticket | Issue | État | Prio | Modèle |
 | --- | --- | --- | --- | --- | --- |
 | ~~1~~ | ~~`w0-deploy`~~ | [#7](https://github.com/IvandeMurard/paris-compass/issues/7) | **fait** | P0 | Opus 5 |
-| 2 | `w0-history` | [#51](https://github.com/IvandeMurard/paris-compass/issues/51) | ouvert | P0 | Opus 5 |
+| ~~2~~ | ~~`w0-history`~~ | [#51](https://github.com/IvandeMurard/paris-compass/issues/51) | **fait** | P0 | Opus 5 |
 | 3 | `w0-provenance` | [#10](https://github.com/IvandeMurard/paris-compass/issues/10) | ouvert | P0 | Opus 5 |
 | 4 | `w0-fiche` | [#8](https://github.com/IvandeMurard/paris-compass/issues/8) | ouvert | P0 | Opus 5 |
 | 5 | `w0-cron` | [#6](https://github.com/IvandeMurard/paris-compass/issues/6) | ouvert | P0 | Opus 5 |
@@ -150,7 +150,7 @@ relevé vacant. Il bloque `w0-fiche` (#8), premier appelant prévu de cette fonc
 > est posée sur le distant — ledger remesuré à 26 — et les deux portes sont au vert :
 > 17/17 invariants, 9 contrôles anonymes. `I16`/`I17` ont été éprouvés contre deux
 > sabotages, la sonde du bras D contre la fonction défectueuse encore en ligne.
-> **Reste l'issue #51 à fermer**, seule chose qui manque.
+> **Issue #51 fermée le 24 août.** Rien ne reste.
 >
 > Elle a aussi trouvé un cinquième défaut, sans licence celui-là :
 > `coalesce(a.is_vacant, false)` affirmait « pas vacant » de 24 573 locaux jamais relevés en

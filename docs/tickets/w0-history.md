@@ -123,7 +123,7 @@ contre le distant ; `npm.cmd run eval:anon` rend 9 contrôles au vert, dont les 
 sondes `premise_history`. Composition de fiabilité inchangée à **57,31 %**
 établi+corroboré, dérive nulle : le correctif ne déplace aucun chiffre publié.
 
-**Reste l'issue [#51](https://github.com/IvandeMurard/paris-compass/issues/51) à
-fermer**, hors dépôt.
+**Issue [#51](https://github.com/IvandeMurard/paris-compass/issues/51) fermée** le
+24 août à 15h48 UTC. Rien ne reste.
 
 Voir `DIAGNOSTIC.md` §10 et §9, et [`docs/PLAN-ACTION-VACANCE.md`](../PLAN-ACTION-VACANCE.md).
