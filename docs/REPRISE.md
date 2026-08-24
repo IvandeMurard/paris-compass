@@ -34,6 +34,9 @@ six fichiers**. C'est le point de départ propre de la prochaine session.
 
 ### Par où reprendre
 
+**L'ordre complet des sessions, avec le prompt et le modèle de chacune, est dans
+`docs/SESSIONS.md`.** Ce qui suit en donne la tête.
+
 `w0-deploy` (**#7**) est le plus petit et le mieux cerné : le distant porte
 schéma et données depuis le 15 août, il ne reste qu'à poser
 `20260817000001_premises_within_withholding.sql` — le ledger distant est à 24
@@ -553,8 +556,7 @@ l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
    vacants compris) est utilisable, ce qui porterait l'historique de six à vingt
    ans.
 
-   **Parti le 10 août 2026. Treize jours sans réponse au 23 août : relance à
-   faire.**
+   **Parti le 10 août 2026, sans réponse. Relance envoyée le 24 août 2026.**
 
    **C'est la seule dépendance externe du projet, et elle bloque trois choses à la
    fois** : `w1-historique` (#49) en entier, l'exposition publique de 2017 et 2020,

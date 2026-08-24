@@ -24,8 +24,8 @@ impose les memes cinq blocs.
 
 ## Lancer une session
 
-Le gabarit d'amorce, les trois tickets qui demandent des consignes en plus, et le choix du
-modele : [`AMORCE.md`](./AMORCE.md).
+L'ordre des sessions, le prompt commun, les consignes propres a chaque ticket et le choix du
+modele : [`../SESSIONS.md`](../SESSIONS.md).
 
 ## Avant de travailler un ticket
 

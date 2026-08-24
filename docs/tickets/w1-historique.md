@@ -22,7 +22,7 @@ réutilisable : contrairement aux couches d'`opendata.apur.org`, celle-ci **ne p
 licence explicite**.
 
 1. ~~Vérifier si le courrier à `data@apur.org` est parti.~~ **Parti le 10 août 2026, sans
-   réponse au 23 — relance à faire.** Ce ticket est **bloqué sur un tiers** : ne pas l'ouvrir
+   réponse ; relance envoyée le 24 août.** Ce ticket est **bloqué sur un tiers** : ne pas l'ouvrir
    en session tant que la réponse n'est pas arrivée. Le courrier porte aussi les deux autres
    questions de licence : couche 2023 complète avec les vacants, et sortie publique de 2017
    et 2020. Son texte n'est pas au dépôt — à consigner quand la réponse arrivera, pour qu'on

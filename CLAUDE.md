@@ -10,6 +10,7 @@ Volontairement **non importés** ici : ce fichier est chargé à chaque session,
 
 | Fichier | Quand le lire |
 | --- | --- |
+| `docs/SESSIONS.md` | **Avant de lancer une session de développement.** L'ordre des tickets, le prompt commun, les consignes propres à chacun, et quel modèle pour quelle classe de travail. |
 | `docs/REPRISE.md` | **À lire en premier en début de session.** Où en est le travail, ce qui bloque, et les pièges qui ont déjà coûté du temps. Notamment : quel projet Supabase viser, et pourquoi il y en a eu trois. |
 | `docs/CONTEXTE.md` | Périmètre, persona, refus assumés, décisions d'architecture, état d'avancement. Avant toute modification du périmètre, des sources de données ou du noyau. |
 | `docs/PLAN.md` | Backlog ordonné : ce qui est fait, les phases 2 à 4 en détail, les sources à brancher et pourquoi. Avant de commencer un chantier. |
