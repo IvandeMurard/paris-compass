@@ -54,6 +54,12 @@ ligne fait échouer la porte.
 | **I9** | Un appelant **anonyme** voit quoi que ce soit d'un millésime non redistribuable — contenu, absence, ou simple existence | La licence de 2017 et 2020 n'est pas lue. Trois migrations ont été nécessaires : retenir le contenu laissait fuiter l'absence, ce qui révélait l'existence |
 | **I10** | Un millésime redistribuable revient retenu par erreur | Le miroir de I9. **Sur-restreindre est aussi une faute** : retenir de l'ODbL prive sans raison et masque un défaut de logique |
 
+> **Cinq invariants ont été ajoutés depuis** : I11 (une fonction `compass_*` non
+> exécutable par `anon`), I12/I13 pour `compass_scoring_context_within` et
+> I14/I15 pour `compass_premises_within` — chaque paire vérifiant qu'une retenue
+> s'annonce *et* qu'un vide réel reste muet. Le tableau ci-dessus s'arrête à I10 ;
+> `invariants.sql` fait foi.
+>
 > **I9 et I10 tournent en rôle `anon`** (marqueur `-- @as anon`). C'est la leçon la plus
 > chère du 9 août : *le chemin privilégié réussit toujours*. Les trois défauts d'exposition
 > n'ont été trouvés qu'en jouant le chemin anonyme, jamais en testant en propriétaire — dans
@@ -142,3 +148,18 @@ que la source dit vrai.
 interface peut encore afficher une colonne en en masquant une autre — c'est ce
 que la règle d'affichage de `docs/PLAN.md` §2.5 couvre, et elle se vérifie en
 revue, pas en CI.
+
+~~**RLS et le transport.**~~ **Couvert depuis le 24 août par le bras D**
+(`scripts/eval/anon-http.ts`). Les bras A à C tournent sur une connexion
+privilégiée : l'usurpation du bras A pose `request.jwt.claims` sans jamais
+`set local role anon`, donc elle éprouvait la logique des fonctions et non la
+politique RLS ni la sérialisation PostgREST. Le bras D appelle le projet hébergé
+en HTTP avec la seule clé publiable. Il reste hors du `npm.cmd run eval` par
+nécessité — il n'a rien à interroger sur une base locale sans PostgREST.
+
+**Les fonctions que personne n'a auditées.** Le bras D vérifie les fonctions
+qu'on lui nomme. La première fois qu'il a été joué, il a trouvé que
+`compass_premise_history` n'annonçait aucune retenue et rendait `observed = false`
+sur un local relevé (`DIAGNOSTIC.md` §10). Rien dans la porte ne dit *quelles*
+fonctions portent la règle de licence : cette liste est tenue à la main, et une
+fonction ajoutée sans y être inscrite ne sera pas couverte.

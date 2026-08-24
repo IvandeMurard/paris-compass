@@ -453,12 +453,56 @@ précisément les années qu'il ne recevrait pas.
 
 Rayon de 1 m sur 2023 : toujours zéro ligne et aucun marqueur — le vrai vide reste un vrai vide.
 
-**Reste ouvert.** La migration n'est appliquée **que sur la base locale**, comme les autres : rien
-n'a jamais été poussé sur une instance distante (`docs/REPRISE.md`, « Le point bloquant, unique »).
-Et le test de fumée `mcp-server/src/smoke-test.ts` n'a pas pu jouer la chaîne complète par
-PostgREST : `mcp-server/.env` vise `dbefhvmyfmmhjeetdddu`, projet vide. La vérification ci-dessus
-passe par le pilote `pg` en rôle `anon`, ce qui exerce la fonction et RLS pour de vrai, mais pas
-la sérialisation PostgREST de la colonne `withheld`. À rejouer au premier chargement distant.
+~~**Reste ouvert.**~~ **Clos le 24 août.** La migration est posée sur `dbefhvmyfmmhjeetdddu`
+et la sérialisation PostgREST de `withheld` a été jouée par une vraie clé publiable, sans aucun
+identifiant de base — ce que la vérification d'origine, passée par le pilote `pg`, ne couvrait
+pas. Mesures dans `docs/REPRISE.md`, « La porte anonyme », et rejouables par
+`npm.cmd run eval:anon`.
+
+---
+
+## 10. Une retenue de licence rendue comme un fait — `compass_premise_history`, le 24 août
+
+**Le même défaut que le point 9, une quatrième fois, et sous sa forme la plus dure.** Les points
+9 et son correctif frère de `20260817000001` ont couvert `compass_scoring_context_within` et
+`compass_premises_within` ; `compass_address_timeline` l'était depuis `20260809000011`. La
+quatrième fonction qui traverse `premise_observation`, **`compass_premise_history`, n'a jamais été
+regardée** — elle est `security invoker`, ne lit pas `request.jwt.claims`, et **ne porte aucune
+colonne `withheld`**.
+
+Elle ne rend pas zéro ligne comme les trois autres : elle rend une ligne par millésime, et
+remplit les colonnes manquantes par des valeurs par défaut. La retenue ne devient donc pas un
+silence ambigu — elle devient **une affirmation fausse**.
+
+**Mesuré le 24 août sur le distant**, local 54652, `60 QU ORFEVRES`, millésime 2017 :
+
+| Chemin | `observed` | `is_vacant` | `activity_label` |
+| --- | --- | --- | --- |
+| privilégié | `true` | **`true`** | `Locaux Vacants` |
+| **anonyme** | **`false`** | **`false`** | `null` |
+
+Ce local **était vacant en 2017**. Un visiteur sans clé s'entend répondre qu'il n'a pas été
+relevé cette année-là, *et* qu'il n'était pas vacant. Deux faits fabriqués à partir d'une licence
+que personne n'a lue — et fabriqués précisément sur la vacance, qui est le sujet de
+`docs/PLAN-ACTION-VACANCE.md`.
+
+**Pourquoi c'est pire que le point 9.** Zéro ligne est un silence : l'appelant peut au moins
+choisir de ne rien conclure. `observed = false` et `is_vacant = false` sont des réponses
+positives, indiscernables d'un relevé réel. Aucun appelant, humain ou agent, ne peut s'en méfier.
+
+**Ce qui limite la portée, sans l'annuler.** Aucun appelant expédié ne s'en sert : ni `src/` ni
+`mcp-server/` n'appellent `compass_premise_history` (vérifié le 24 août). Mais elle est
+`grant execute ... to anon` et répond en HTTP dès aujourd'hui, et la fiche de local de
+`PLAN.md` §2.7 — le prochain appelant prévu — est exactement ce qui l'appellera.
+
+**Trouvé** en rejouant la porte en anonyme pour `w0-deploy` : la sonde balayait les quatre
+fonctions de licence, pas seulement celle du ticket.
+
+**Pas corrigé ici.** Le correctif change le type de retour, donc il se pose comme migration et
+touche tout appelant futur ; il sort du périmètre de `w0-deploy`, dont le critère portait sur
+`compass_premises_within`. À ouvrir en ticket propre. Le patron est écrit trois fois et n'a plus
+rien à inventer : recopier le test d'appelant de `20260817000001`, ajouter `withheld`, et rendre
+`observed` et `is_vacant` **nuls** plutôt que faux quand la retenue s'applique.
 
 ---
 

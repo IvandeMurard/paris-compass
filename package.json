@@ -13,6 +13,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "eval": "tsx scripts/eval/run.ts",
+    "eval:anon": "tsx scripts/eval/anon-http.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview"

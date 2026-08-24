@@ -1,10 +1,33 @@
-# Reprise — état au 23 août 2026, fin de session
+# Reprise — état au 24 août 2026, fin de session
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`
 (backlog, décisions produit), `docs/PLAN-ACTION-VACANCE.md` (doctrine et backlog
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
+
+---
+
+## Le 24 août : `w0-deploy` est clos, et son chiffre d'entrée était faux
+
+**`w0-deploy` (#7) est fait.** Ce qu'il demandait de poser était déjà posé ; ce
+qu'il fallait vraiment faire, personne ne l'avait fait. Les deux moitiés sont
+détaillées ci-dessous et dans `docs/tickets/w0-deploy.md`.
+
+**Le ledger distant est à 25 migrations, pas 24.** Cette page l'annonçait à 24 et
+le ticket la recopiait. Le chiffre était vrai le 17 août, mesuré *avant* la
+poussée de `20260817000001_premises_within_withholding.sql`, et jamais remesuré.
+Remesuré le 24 août : 25 lignes, `20260817000001` enregistrée sous le nom
+`premises_within_withholding`, et le corps de `compass_premises_within` en base
+est **identique caractère pour caractère** au fichier versionné.
+
+> C'est exactement le mode de défaillance que cette page décrit ailleurs sous
+> « fausse par branche », dans sa variante temporelle : un chiffre juste à sa
+> date, cité par un document qui n'a pas de date. Remesurer avant de recopier.
+
+**La porte anonyme a été jouée pour la première fois** — voir la section du même
+nom plus bas. Elle a trouvé un quatrième défaut de licence, sur
+`compass_premise_history`, qui n'est **pas corrigé** : `DIAGNOSTIC.md` §10.
 
 ---
 
@@ -37,11 +60,15 @@ six fichiers**. C'est le point de départ propre de la prochaine session.
 **L'ordre complet des sessions, avec le prompt et le modèle de chacune, est dans
 `docs/SESSIONS.md`.** Ce qui suit en donne la tête.
 
-`w0-deploy` (**#7**) est le plus petit et le mieux cerné : le distant porte
-schéma et données depuis le 15 août, il ne reste qu'à poser
-`20260817000001_premises_within_withholding.sql` — le ledger distant est à 24
-migrations, `supabase/migrations/` en compte 25 — puis à rejouer la porte **en
-anonyme**, ce que son critère d'acceptation exige et que personne n'a fait.
+~~`w0-deploy` (**#7**)~~ **est clos depuis le 24 août** : la migration était
+déjà posée, la porte anonyme a été jouée, le critère est démontré. Le suivant
+dans l'ordre est `w0-fiche` (#8).
+
+**Un ticket est ouvert par ce qu'il a trouvé** et n'existe pas encore sur
+GitHub : `compass_premise_history` annonce `observed = false` et
+`is_vacant = false` là où le local était relevé et vacant. C'est le défaut de
+`DIAGNOSTIC.md` §9 pour la quatrième fois, et sous sa forme la plus dure — une
+affirmation fausse, pas un silence. Détail en `DIAGNOSTIC.md` §10.
 
 Trois avertissements pour la suite, qui ne se déduisent pas des tickets :
 
@@ -78,7 +105,8 @@ que `w1-historique` ouvrirait dix-sept ans **avec les vacants** par une API que 
 projet sait déjà interroger. Ce dernier est suspendu à une réponse de l'APUR — le
 service ne porte aucune licence explicite. **Le courrier est parti, la réponse est
 attendue** (point 2 de « La suite, par ordre »), donc `#49` est bloqué sur un tiers
-et ne doit pas être pris en session. Reprendre par `w0-deploy` (#7).
+et ne doit pas être pris en session. `w0-deploy` (#7) étant clos, reprendre par
+`w0-provenance` (#10) ou `w0-fiche` (#8) selon `docs/SESSIONS.md`.
 
 Ses horizons — Q3 2026, Q4 2026, 2027 — sont à lire comme un ordre de passage et
 non comme des dates : dix tickets au Q3 et vingt et un au Q4 ne tiennent pas dans
@@ -96,17 +124,17 @@ direct le 17 août sur la base elle-même, pas déduit :
 
 | | Distant `dbefhvmyfmmhjeetdddu` |
 | --- | --- |
-| Migrations au ledger `supabase_migrations` | **24**, de `20250417000001` à `20260816000001` |
+| Migrations au ledger `supabase_migrations` | **25**, de `20250417000001` à `20260817000001` — remesuré le 24 août |
 | Tables / fonctions `compass_*` | **18 / 10** — mêmes chiffres que la base de référence |
 | Locaux (`premise_location`) | 85 418 |
 | Relevés (`premise_observation`) | 228 275 — les trois millésimes additionnés |
 | Tronçons de voie / quartiers | 25 094 / 80 |
 | Établissements SIRENE | 68 770 |
 
-**Le dépôt et le distant portent le même schéma** depuis le 17 août :
-`20260816000001_scoring_context_withholding.sql`, la dernière en attente, y a
-été posée et vérifiée en comportement. Détail au point 8 de « La suite, par
-ordre ».
+**Le dépôt et le distant portent le même schéma** : les 25 fichiers de
+`supabase/migrations/` sont au ledger, `20260817000001` comprise. Vérifié le
+24 août, corps de fonction comparé au fichier et non seulement la signature.
+Détail au point 8 de « La suite, par ordre ».
 
 **En local**, l'agrégat de référence reste en place et sert toujours : dix-neuf
 migrations, quatre sources chargées, porte d'évaluation au vert — rejouée et
@@ -443,6 +471,54 @@ bascule quand l'APUR répond.
 
 ---
 
+## La porte anonyme — jouée pour la première fois le 24 août
+
+**Ce qu'elle ajoute, et pourquoi elle manquait.** Le bras A de la porte fait dire
+`anon` à une connexion privilégiée en posant `request.jwt.claims`, et n'émet
+jamais `set local role anon`. Il éprouve donc le test que les fonctions font sur
+le *claim* — ni la politique RLS en dessous, ni la sérialisation PostgREST de la
+colonne `withheld`. Les deux étaient supposées depuis le 16 août. Aucune ne
+l'était encore.
+
+Le bras D ne détient **aucun identifiant de base** : la clé publiable et l'URL du
+projet, exactement ce que le navigateur embarque.
+
+```powershell
+npm.cmd run eval:anon      # scripts/eval/anon-http.ts — quelques secondes
+```
+
+**Mesuré le 24 août** contre `dbefhvmyfmmhjeetdddu`, Châtelet (48.8566, 2.3522),
+`compass_premises_within` :
+
+| Millésime | HTTP | Lignes | `withheld` |
+| --- | --- | --- | --- |
+| 2017 | 200 | **1** | **`true`**, toutes les autres colonnes nulles |
+| 2020 | 200 | **1** | **`true`**, toutes les autres colonnes nulles |
+| 2023, 800 m | 200 | 5 (limite) | `false`, `total_matched = 3059` |
+| 2023, rayon 1 m | 200 | **0** | — un vrai vide reste un vrai vide |
+
+`compass_scoring_context_within` répond pareil sur 2017 et 2020.
+
+**Et RLS, enfin exercé pour de vrai.** La clé anon lisant `premise_observation`
+en direct voit **60 845 relevés sur 228 275** — exactement le décompte du
+millésime 2023. Les deux millésimes non redistribuables ne sortent pas de la
+base ; la retenue n'est pas qu'une politesse de la fonction. C'est un décompte
+et non un échantillon, précisément parce qu'un échantillon passerait au vert
+alors qu'une seule ligne 2017 fuirait.
+
+**Le bras a été éprouvé contre un vrai négatif**, comme I12/I13 en leur temps :
+ses assertions ont été pointées sur `compass_premise_history`, dont on sait
+maintenant qu'elle n'annonce rien — elles échouent. Il n'est donc pas vide.
+
+**Ce qu'il a trouvé.** `compass_premise_history` porte le défaut de licence sous
+sa forme la plus dure : elle rend `observed = false` et `is_vacant = false` là où
+le local était relevé **et vacant**. Local 54652, `60 QU ORFEVRES`, 2017 —
+privilégié `observed = true, is_vacant = true, « Locaux Vacants »` ; anonyme
+`observed = false, is_vacant = false, null`. **Non corrigé**, hors périmètre de
+`w0-deploy` : `DIAGNOSTIC.md` §10.
+
+---
+
 ## Pièges qui ont coûté du temps aujourd'hui
 
 **Une politique RLS n'est pas un `GRANT`.** Toutes les migrations ont d'abord été
@@ -707,6 +783,13 @@ l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
      npx.cmd supabase db push --db-url $enc
    } else { "URL non reconnue dans .env.local" }
    ```
+
+   **Suite du 24 août.** `20260817000001_premises_within_withholding.sql`, qui
+   applique la même correction à `compass_premises_within`, est elle aussi posée :
+   ledger à **25**, corps en base identique au fichier versionné. Elle l'était
+   déjà avant cette session — ce point, et le ticket qui le recopiait, disaient
+   24. I14 et I15 la couvrent, et la porte anonyme (section « La porte anonyme »)
+   la démontre par HTTP.
 
    ~~**Ce que la porte d'évaluation ne couvrait pas.**~~ **Fait le 17 août** :
    I12 et I13 ajoutées à `eval/invariants.sql`, exécutées par le vrai lanceur

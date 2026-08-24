@@ -59,7 +59,7 @@ loyers : `CLAUDE.md` est chargé à chaque session.
 
 | # | Session | Issue | Modèle | Ouvre la voie à |
 | --- | --- | --- | --- | --- |
-| 1 | `w0-deploy` | [#7](https://github.com/IvandeMurard/paris-compass/issues/7) | Opus 5 | #8, #6, #9 |
+| ~~1~~ | ~~`w0-deploy`~~ **fait le 24 août** | [#7](https://github.com/IvandeMurard/paris-compass/issues/7) | Opus 5 | #8, #6, #9 |
 | 2 | `w0-provenance` | [#10](https://github.com/IvandeMurard/paris-compass/issues/10) | Opus 5 | — |
 | 3 | `w0-fiche` | [#8](https://github.com/IvandeMurard/paris-compass/issues/8) | Opus 5 | toute la vague 1 |
 | 4 | `w0-cron` | [#6](https://github.com/IvandeMurard/paris-compass/issues/6) | Opus 5 | — |
@@ -75,10 +75,19 @@ contrôle de complétude.
 
 ---
 
-## Session 1 — `w0-deploy` (#7) · Opus 5
+## Session 1 — `w0-deploy` (#7) · Opus 5 — **faite le 24 août**
 
 Le plus petit et le mieux cerné, et il débloque trois autres. Le corpus est déjà sur le
 distant depuis le 15 août : ce qui reste est le **retrait à l'anonyme**.
+
+> **Ce que la session a trouvé, et qui vaut pour les suivantes.** La consigne ci-dessous
+> disait « le ledger distant est à 24 migrations ». **Il était à 25** : la migration
+> demandée était déjà posée. Le chiffre venait de `docs/REPRISE.md`, juste au 17 août et
+> jamais remesuré. Seule la seconde moitié — rejouer la porte en anonyme — restait à faire.
+> Résultat en `docs/tickets/w0-deploy.md`, rejouable par `npm.cmd run eval:anon`.
+>
+> Elle a aussi trouvé un défaut non corrigé, sur `compass_premise_history` :
+> `DIAGNOSTIC.md` §10. Il touche `w0-fiche` (#8), qui affiche l'historique d'un local.
 
 À ajouter au prompt commun :
 

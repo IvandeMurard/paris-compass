@@ -271,9 +271,9 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 
 - Priorité **P0** · vague 0 · Q3 2026
 - **Pourquoi.** Le chargement du distant **est fait depuis le 15 août** : `dbefhvmyfmmhjeetdddu` porte le schéma et les données, 85 418 locaux et 228 275 relevés mesurés sur place le 17 août, porte d'évaluation au vert (`docs/REPRISE.md`, « Ce qui existe et fonctionne »). Ce qui reste ouvert n'est pas le chargement mais le **retrait à l'anonyme** : que 2017 et 2020 sortent en `withheld` et non en zéro pour un visiteur sans clé.
-- **Comment.** Poser `20260817000001_premises_within_withholding.sql` sur le distant — le ledger distant est à 24 migrations, `supabase/migrations/` en compte 25 — puis rejouer la porte en anonyme. Le reste (PostGIS, BDCom ×3, BODACC, SIRENE, géographie) est déjà en place.
+- **Comment.** ~~Poser `20260817000001_premises_within_withholding.sql` sur le distant — le ledger distant est à 24 migrations, `supabase/migrations/` en compte 25~~ — **faux, remesuré le 24 août : le ledger est à 25 et la migration était déjà posée** — puis rejouer la porte en anonyme. Le reste (PostGIS, BDCom ×3, BODACC, SIRENE, géographie) est déjà en place.
 - **Doctrine.** Rien n'est annoncé comme live s'il n'est pas interrogeable par un visiteur anonyme.
-- **Fait quand.** Un appel anon PostgREST sur un point intra-muros renvoie des locaux 2023, et withheld (pas zéro) pour 2017/2020.
+- **Fait quand.** Un appel anon PostgREST sur un point intra-muros renvoie des locaux 2023, et withheld (pas zéro) pour 2017/2020. — **Démontré le 24 août**, Châtelet : 2017 et 2020 rendent une ligne `withheld = true` sans contenu, 2023 rend 3 059 locaux, un rayon d'un mètre rend zéro ligne. Détail et négatif de contrôle dans `docs/tickets/w0-deploy.md`. Rejouable : `npm.cmd run eval:anon`.
 
 #### w0-fiche — Fiche locale + timeline dans l'interface
 

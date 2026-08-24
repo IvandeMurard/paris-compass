@@ -19,13 +19,27 @@ une adaptation qui n'est pas cosmétique et qui est expliquée dans `FAILURE_MOD
 > ou `eval/` ne passe sans que les invariants, les baselines et le jeu doré
 > soient au vert.
 
-## Les trois bras
+## Les quatre bras
 
 | Fichier | Ce qu'il vérifie | Tolérance |
 | --- | --- | --- |
-| `invariants.sql` | **Dix** requêtes qui doivent renvoyer zéro ligne, sur **100 % de la base** | Zéro |
+| `invariants.sql` | **Quinze** requêtes qui doivent renvoyer zéro ligne, sur **100 % de la base** | Zéro |
 | `baselines/ingestion.json` | **Vingt-quatre** effectifs gelés au chargement | Signalé, bloquant au-delà de 1 % |
 | `golden.jsonl` | **Huit** chronologies vérifiées à la main | Zéro |
+| `../scripts/eval/anon-http.ts` | La règle de licence **par HTTP, sans identifiants de base** | Zéro |
+
+Le quatrième bras se lance à part, et contre un projet hébergé uniquement :
+
+```powershell
+npm.cmd run eval:anon
+```
+
+Il existe parce que les trois autres tournent tous sur une connexion privilégiée.
+Le bras A fait dire `anon` à cette connexion en posant `request.jwt.claims`, mais
+n'émet jamais `set local role anon` : il éprouve le test que les fonctions font
+sur le *claim*, ni la politique RLS en dessous, ni la sérialisation PostgREST de
+la colonne `withheld`. Le bras D ne détient que la clé publiable et l'URL du
+projet — ce que le navigateur embarque, et rien de plus.
 
 Codes de sortie, repris d'Aetherix : `0` PASS · `1` FAIL · `2` ERROR · `3` WARN.
 Comptez environ une minute — deux invariants balaient les 85 418 locaux.
