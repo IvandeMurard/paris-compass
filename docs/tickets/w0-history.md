@@ -73,12 +73,12 @@ licence n'y est pour rien. Corriger la retenue sans corriger l'absence aurait
 inscrit l'incohérence dans le schéma, à deux lignes d'écart. `DIAGNOSTIC.md` §11.
 Élargissement assumé, hors de la lettre de ce ticket.
 
-**Ce qui n'est pas fait : `supabase db push`.** Refusé par le classificateur du
-mode auto — écriture de schéma sur une base distante vivante, même refus qu'au
-17 août. Le `--dry-run` est passé et n'annonce que cette migration. Tant qu'elle
-n'est pas posée, `npm.cmd run eval` et `npm.cmd run eval:anon` **échouent contre
-le distant**, et c'est le comportement attendu — ce sont les vrais négatifs. La
-commande et la suite sont au point 8 de `docs/REPRISE.md`.
+**Posée sur le distant le 24 août.** `supabase db push` a d'abord été refusé par
+le classificateur du mode auto — écriture de schéma sur une base vivante, même
+refus qu'au 17 août — puis lancé à la main depuis PowerShell, où il passe. Ledger
+remesuré à **26**, `20260824000001` enregistrée sous `premise_history_withholding`,
+corps en base identique au fichier versionné aux fins de ligne près, `SECURITY
+INVOKER` conservé, treize colonnes dans l'ordre du fichier.
 
 **Éprouvé, pas supposé.** La migration a tourné dans une transaction jamais
 validée contre le distant, I16 et I17 joués dedans, les deux au vert. Le couple a
@@ -108,11 +108,22 @@ Un appel anonyme sur le local 54652, millésime 2017, ne rend plus `observed = f
 `is_vacant = false`, mais une retenue nommée. Le couple d'invariants est dans
 `eval/invariants.sql`, la sonde dans `npm.cmd run eval:anon`, et les deux passent.
 
-**État au 24 août : trois quarts démontré.** La retenue nommée est vérifiée en
-comportement contre le distant (`withheld = true`, `observed` nul, `is_vacant`
-nul), mais dans une transaction annulée. Le couple d'invariants et la sonde sont
-posés et éprouvés contre sabotage. **Ce qui manque est la poussée de la migration**
-— sans elle les deux portes échouent contre le distant, à dessein. Ne pas fermer
-`#51` avant `supabase db push` et une relance des deux portes au vert.
+**Démontré le 24 août**, par un appel PostgREST avec la seule clé publiable et
+aucun identifiant de base, local 54652 :
+
+| Millésime | `withheld` | `observed` | `is_vacant` | `activity_label` |
+| --- | --- | --- | --- | --- |
+| 2017 — avant | *(colonne absente)* | `false` | `false` | `null` |
+| 2017 — après | `true` | **`null`** | **`null`** | `null` |
+| 2020 — après | `true` | `null` | `null` | `null` |
+| 2023 — après | `false` | `true` | `false` | `Antiquités` |
+
+`npm.cmd run eval` rend **17/17** invariants, 24 baselines et 8 cas dorés au vert
+contre le distant ; `npm.cmd run eval:anon` rend 9 contrôles au vert, dont les deux
+sondes `premise_history`. Composition de fiabilité inchangée à **57,31 %**
+établi+corroboré, dérive nulle : le correctif ne déplace aucun chiffre publié.
+
+**Reste l'issue [#51](https://github.com/IvandeMurard/paris-compass/issues/51) à
+fermer**, hors dépôt.
 
 Voir `DIAGNOSTIC.md` §10 et §9, et [`docs/PLAN-ACTION-VACANCE.md`](../PLAN-ACTION-VACANCE.md).

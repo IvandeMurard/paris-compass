@@ -8,21 +8,36 @@ contrat d'évaluation).
 
 ---
 
-## Le 24 août, session 2 : `w0-history` est écrit et éprouvé, **pas encore posé**
+## Le 24 août, session 2 : `w0-history` est fait, et posé sur le distant
 
-**Le quatrième défaut de licence est corrigé dans le dépôt**, par
+**Le quatrième défaut de licence est corrigé**, par
 `supabase/migrations/20260824000001_premise_history_withholding.sql` — et par la
 même occasion un cinquième, qui n'avait rien à voir avec une licence. Détail en
 `DIAGNOSTIC.md` §10 et §11.
 
-**Ce qui est démontré, et contre quoi.** La migration a tourné dans une
-transaction jamais validée contre le distant, avec `I16` et `I17` joués dedans :
-les deux au vert. Le couple a ensuite été **éprouvé contre deux sabotages**,
-chacun dans une transaction annulée — une version qui pose `withheld` mais garde
-les valeurs par défaut (I16 échoue, I17 reste vert), une version qui retient tous
-les millésimes (I17 échoue, I16 reste vert). La sonde du bras D, jouée contre la
-fonction défectueuse encore en ligne, échoue elle aussi. Aucun des trois n'est
-vide.
+**Le critère est démontré en direct**, par un appel PostgREST avec la seule clé
+publiable, aucun identifiant de base, local 54652 `60 QU ORFEVRES` :
+
+| Millésime | `withheld` | `observed` | `is_vacant` | `activity_label` |
+| --- | --- | --- | --- | --- |
+| 2017 — **avant** | *(colonne absente)* | `false` | `false` | `null` |
+| 2017 — après | `true` | **`null`** | **`null`** | `null` |
+| 2020 — après | `true` | `null` | `null` | `null` |
+| 2023 — après | `false` | `true` | `false` | `Antiquités` |
+
+**Les deux portes sont au vert contre le distant** : `npm.cmd run eval` rend
+**17/17** invariants, 24 baselines et les 8 cas dorés ; `npm.cmd run eval:anon`
+rend 9 contrôles, dont les deux nouvelles sondes `premise_history`. Composition de
+fiabilité inchangée à **57,31 %** établi+corroboré, dérive nulle sur les quatre
+niveaux — le correctif ne touche aucun chiffre publié.
+
+**Ce qui est éprouvé, et contre quoi.** La migration a d'abord tourné dans une
+transaction jamais validée contre le distant, avec `I16` et `I17` joués dedans.
+Le couple a ensuite été **éprouvé contre deux sabotages**, chacun dans une
+transaction annulée — une version qui pose `withheld` mais garde les valeurs par
+défaut (I16 échoue, I17 reste vert), une version qui retient tous les millésimes
+(I17 échoue, I16 reste vert). La sonde du bras D, jouée contre la fonction
+défectueuse encore en ligne, échouait elle aussi. Aucun des trois n'est vide.
 
 > **Ce que le bras A n'aurait jamais pu trouver, et pourquoi le bras D existe.**
 > L'ancienne `compass_premise_history` ne lisait **pas du tout** le claim. Faire
@@ -31,24 +46,21 @@ vide.
 > publiable, avec RLS derrière, montrait la ligne fabriquée. Les trois autres
 > fonctions lisent le claim, donc ce piège ne se déduit pas d'elles.
 
-**Ce qui n'est pas fait : `supabase db push`.** La commande a été **refusée par
-le classificateur du mode auto** de Claude Code — une écriture de schéma sur une
-base distante vivante, exactement le refus déjà rencontré le 17 août et consigné
-au point 8 de « La suite, par ordre ». Le `--dry-run` est passé et annonce **une
-seule** migration en attente, `20260824000001`. Tant qu'elle n'est pas posée :
+**`supabase db push` a d'abord été refusé par le classificateur du mode auto** de
+Claude Code — une écriture de schéma sur une base distante vivante, exactement le
+refus déjà rencontré le 17 août. **Lancé à la main depuis PowerShell, il passe**,
+comme la fois précédente : c'est un réflexe à garder, pas un blocage. La commande
+et ses deux pièges (URL percent-encodée, pas de `--linked`) sont au point 8 de
+« La suite, par ordre ».
 
-- **le ledger distant reste à 25**, mesuré le 24 août — ne pas écrire 26 avant de
-  l'avoir remesuré ;
-- **le dépôt et le distant ne portent plus le même schéma**, pour la première
-  fois depuis le 17 août ;
-- **`npm.cmd run eval` et `npm.cmd run eval:anon` échouent contre le distant**, et
-  c'est le comportement attendu : I16 plante sur `column h.withheld does not
-  exist`, la sonde échoue sur `withheld = undefined`. Ce ne sont pas des
-  régressions, ce sont les vrais négatifs qui prouvent que la porte mord.
+**Ledger remesuré après la poussée : 26**, `20260824000001` enregistrée sous le
+nom `premise_history_withholding`. Le dépôt et le distant portent de nouveau le
+même schéma. `SECURITY INVOKER` est bien conservé en base, et les treize colonnes
+de sortie sont dans l'ordre du fichier.
 
-La commande est au point 8, avec ses deux pièges (URL percent-encodée, pas de
-`--linked`). À relancer à la main depuis PowerShell, puis rejouer les deux
-portes : c'est **la seule chose qui manque** au critère de `w0-history`.
+**Reste à faire, hors dépôt** : fermer l'issue
+[#51](https://github.com/IvandeMurard/paris-compass/issues/51), dont le critère
+est maintenant démontré.
 
 **Sur GitHub, deux chiffres de cette page étaient périmés** — remesurés le
 24 août par `gh` : l'issue [#7](https://github.com/IvandeMurard/paris-compass/issues/7)
@@ -78,8 +90,8 @@ est **identique caractère pour caractère** au fichier versionné.
 
 **La porte anonyme a été jouée pour la première fois** — voir la section du même
 nom plus bas. Elle a trouvé un quatrième défaut de licence, sur
-`compass_premise_history` : `DIAGNOSTIC.md` §10. **Corrigé dans le dépôt le même
-jour par la session 2**, ci-dessus ; reste à poser sur le distant.
+`compass_premise_history` : `DIAGNOSTIC.md` §10. **Corrigé et posé le même jour
+par la session 2**, ci-dessus.
 
 ---
 
@@ -116,12 +128,12 @@ six fichiers**. C'est le point de départ propre de la prochaine session.
 la migration était déjà posée, la porte anonyme a été jouée, le critère est
 démontré.
 
-`w0-history` (**#51**) est **écrit, éprouvé, et suspendu à un
-`supabase db push`** — voir la section du 24 août, session 2, en tête de page.
-Rien d'autre ne devrait passer avant : `w0-fiche` (#8) est son premier appelant
-prévu et afficherait « non observé, non vacant » sur un local qui était vacant.
-Le suivant dans l'ordre est ensuite `w0-provenance` (#10) ou `w0-fiche` (#8)
-selon `docs/SESSIONS.md`.
+`w0-history` (**#51**) **est clos depuis le 24 août** : migration posée, ledger à
+26, les deux portes au vert contre le distant — voir la section du 24 août,
+session 2, en tête de page. **L'issue reste à fermer à la main.** Il débloquait
+`w0-fiche` (#8), qui sans lui aurait affiché « non observé, non vacant » sur un
+local qui était vacant. Le suivant dans l'ordre est `w0-provenance` (#10) ou
+`w0-fiche` (#8) selon `docs/SESSIONS.md`.
 
 ~~**GitHub n'a pas été touché le 24 août.**~~ **Périmé, et c'était le piège de
 cette page.** Remesuré par `gh` le 24 août en fin de session 2 : `#7` est
@@ -193,19 +205,17 @@ direct le 17 août sur la base elle-même, pas déduit :
 
 | | Distant `dbefhvmyfmmhjeetdddu` |
 | --- | --- |
-| Migrations au ledger `supabase_migrations` | **25**, de `20250417000001` à `20260817000001` — remesuré le 24 août. `supabase/migrations/` en compte **26** depuis la session 2 : `20260824000001` est écrite et **non poussée**. |
+| Migrations au ledger `supabase_migrations` | **26**, de `20250417000001` à `20260824000001` — remesuré le 24 août **après** la poussée de la session 2. Il était à 25 quelques heures plus tôt, dans la même journée. |
 | Tables / fonctions `compass_*` | **18 / 10** — mêmes chiffres que la base de référence |
 | Locaux (`premise_location`) | 85 418 |
 | Relevés (`premise_observation`) | 228 275 — les trois millésimes additionnés |
 | Tronçons de voie / quartiers | 25 094 / 80 |
 | Établissements SIRENE | 68 770 |
 
-~~**Le dépôt et le distant portent le même schéma**~~ — vrai jusqu'à la session 2
-du 24 août, qui a ajouté `20260824000001` sans pouvoir la pousser. Les **25**
-premiers fichiers de `supabase/migrations/` sont au ledger, `20260817000001`
-comprise ; vérifié le 24 août, corps de fonction comparé au fichier et non
-seulement la signature. Le **26e** ne l'est pas. Détail au point 8 de « La suite,
-par ordre ».
+**Le dépôt et le distant portent le même schéma** : les **26** fichiers de
+`supabase/migrations/` sont au ledger, `20260824000001` comprise. Vérifié le
+24 août après la poussée, corps de fonction comparé au fichier et non seulement la
+signature. Détail au point 8 de « La suite, par ordre ».
 
 **En local**, l'agrégat de référence reste en place et sert toujours : dix-neuf
 migrations, quatre sources chargées, porte d'évaluation au vert — rejouée et
@@ -598,8 +608,8 @@ npm.cmd run eval:anon      # scripts/eval/anon-http.ts — quelques secondes
 session 2 sur deux locaux : 54652, relevé vacant en 2017, et 5, présent en 2017
 et 2020 et **absent** du millésime 2023 `retail_only` — le contre-test, puisqu'un
 correctif trop zélé détruirait l'absence que cette fonction existe pour rapporter.
-La sonde **échoue tant que `20260824000001` n'est pas posée**, et c'est ce qui la
-rend crédible.
+Les deux passent depuis `20260824000001` ; elles **échouaient** contre la fonction
+défectueuse encore en ligne, et c'est ce qui les rend crédibles.
 
 **Et RLS, enfin exercé pour de vrai.** La clé anon lisant `premise_observation`
 en direct voit **60 845 relevés sur 228 275** — exactement le décompte du
@@ -622,6 +632,16 @@ privilégié `observed = true, is_vacant = true, « Locaux Vacants »` ; anonyme
 ---
 
 ## Pièges qui ont coûté du temps aujourd'hui
+
+**Comparer un corps de fonction en base à son fichier exige de normaliser les
+fins de ligne.** `core.autocrlf=true` donne un arbre de travail en CRLF, et
+`supabase db push` envoie les octets tels quels : le corps stocké porte alors un
+`\r` en fin de chaque ligne. `prosrc = <fichier>` répond **faux** sur une
+migration parfaitement posée. Mesuré le 24 août sur les dix fonctions `compass_*`
+du distant — **six portent des CR, quatre non**, selon la machine qui les a
+poussées. Sans conséquence pour Postgres, qui traite `\r` comme une espace ; mais
+une session qui compare naïvement conclura que le distant a divergé du dépôt.
+Comparer après `replace(/\r/g, "")`.
 
 **Une politique RLS n'est pas un `GRANT`.** Toutes les migrations ont d'abord été
 écrites sans droit de lecture : les fonctions échouaient pour un visiteur avant
@@ -912,19 +932,15 @@ l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
    24. I14 et I15 la couvrent, et la porte anonyme (section « La porte anonyme »)
    la démontre par HTTP.
 
-   **Reste en attente, session 2 du 24 août :
-   `20260824000001_premise_history_withholding.sql`.** Écrite, répétée dans une
-   transaction annulée contre le distant, invariants et sonde éprouvés contre
-   sabotage — et **non poussée** : la commande ci-dessus a été refusée par le
-   classificateur du mode auto, comme le 17 août. Le `--dry-run` est passé et
-   n'annonce qu'elle. À relancer telle quelle depuis PowerShell, puis :
+   **Session 2 du 24 août : `20260824000001_premise_history_withholding.sql` est
+   posée.** Ledger remesuré à **26**, enregistrée sous `premise_history_withholding`,
+   corps en base identique au fichier versionné (aux fins de ligne près, voir le
+   piège plus bas), `SECURITY INVOKER` conservé. Les deux portes rejouées derrière :
+   17/17 invariants et 9 contrôles anonymes, au vert.
 
-   ```powershell
-   npm.cmd run eval        # I16 et I17 doivent passer — elles plantent avant la poussée
-   npm.cmd run eval:anon   # les deux sondes premise_history doivent passer
-   ```
-
-   Et **remesurer le ledger** avant d'écrire 26 quelque part.
+   **Le classificateur a de nouveau refusé la commande, et la relancer à la main
+   depuis PowerShell a suffi** — deuxième fois sur trois poussées. Ce n'est pas un
+   blocage, c'est une étape : préparer la ligne, la donner, la faire lancer.
 
    ~~**Ce que la porte d'évaluation ne couvrait pas.**~~ **Fait le 17 août** :
    I12 et I13 ajoutées à `eval/invariants.sql`, exécutées par le vrai lanceur

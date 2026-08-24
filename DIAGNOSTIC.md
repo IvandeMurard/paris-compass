@@ -518,8 +518,9 @@ null` vaut nul, la branche du CASE ne se déclenchait pas, et la retombée compa
 ne lit que `premise_observation`, donc RLS suffit à *appliquer* la règle et la fonction n'a qu'à
 l'*annoncer*. Même partage qu'en `20260817000001`.
 
-**Vérifié en comportement**, d'abord dans une transaction jamais validée contre le distant, local
-54652, `60 QU ORFEVRES` :
+**Vérifié en comportement** — d'abord dans une transaction jamais validée contre le distant, puis
+**en direct après la poussée**, par un appel PostgREST avec la seule clé publiable et aucun
+identifiant de base. Local 54652, `60 QU ORFEVRES` :
 
 | Chemin | Millésime | `withheld` | `observed` | `is_vacant` | `activity_label` |
 | --- | --- | --- | --- | --- | --- |
@@ -540,8 +541,14 @@ version qui retient tous les millésimes (I17 **échoue**, 2 lignes ; I16 reste 
 deux n'est vide, et aucun ne couvre le défaut de l'autre.
 
 **Et une sonde dans `npm.cmd run eval:anon`**, quatrième bras de la porte, sur les deux locaux
-54652 et 5. Jouée contre la fonction défectueuse encore en ligne, elle **échoue** — même signature
-que I14 en son temps.
+54652 et 5. Jouée contre la fonction défectueuse encore en ligne, elle **échouait** — même
+signature que I14 en son temps.
+
+**Posé sur le distant le 24 août**, ledger remesuré à **26**. Les deux portes rejouées derrière :
+`npm.cmd run eval` rend 17/17 invariants, 24 baselines et 8 cas dorés ; `npm.cmd run eval:anon`
+rend 9 contrôles. La composition de fiabilité ne bouge pas — **57,31 %** établi+corroboré, dérive
+nulle sur les quatre niveaux — ce qui était attendu : la fonction n'a aucun appelant et ne nourrit
+aucun chiffre publié.
 
 > **Ce que le bras A n'aurait jamais pu trouver.** L'ancienne fonction ne lisait pas du tout le
 > claim : faire dire `anon` à une connexion privilégiée lui rendait **tout le contenu**, et rien

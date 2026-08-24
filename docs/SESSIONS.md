@@ -146,17 +146,19 @@ licence, et le plus dur : `compass_premise_history` ne rend pas un silence mais 
 **affirmation fausse** — `observed = false` et `is_vacant = false` sur un local qui était
 relevé vacant. Il bloque `w0-fiche` (#8), premier appelant prévu de cette fonction.
 
-> **Jouée le 24 août, et il en reste un quart.** La migration
-> `20260824000001_premise_history_withholding.sql`, les invariants `I16`/`I17` et la sonde
-> du bras D sont écrits et éprouvés — les invariants contre deux sabotages, la sonde contre
-> la fonction défectueuse encore en ligne. **`supabase db push` a été refusé par le
-> classificateur du mode auto**, donc la migration n'est pas sur le distant et les deux
-> portes échouent contre lui, à dessein. Une session de reprise n'a que la poussée et la
-> relance des portes à faire ; tout le reste est au dépôt. `docs/REPRISE.md` point 8.
+> **Jouée et close le 24 août.** La migration `20260824000001_premise_history_withholding.sql`
+> est posée sur le distant — ledger remesuré à 26 — et les deux portes sont au vert :
+> 17/17 invariants, 9 contrôles anonymes. `I16`/`I17` ont été éprouvés contre deux
+> sabotages, la sonde du bras D contre la fonction défectueuse encore en ligne.
+> **Reste l'issue #51 à fermer**, seule chose qui manque.
 >
 > Elle a aussi trouvé un cinquième défaut, sans licence celui-là :
 > `coalesce(a.is_vacant, false)` affirmait « pas vacant » de 24 573 locaux jamais relevés en
 > 2023, sur le chemin privilégié. Corrigé dans la même migration. `DIAGNOSTIC.md` §11.
+>
+> **`supabase db push` refusé par le classificateur du mode auto, deuxième fois sur trois
+> poussées.** Relancé à la main depuis PowerShell, il passe. À prévoir dans toute session
+> qui pose une migration : préparer la ligne, la donner, la faire lancer.
 
 ```
 Le patron est ecrit trois fois dans supabase/migrations/ et n'a pas a etre
