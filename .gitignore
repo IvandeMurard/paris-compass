@@ -36,6 +36,11 @@ db_cluster-*
 supabase/.branches/
 supabase/.temp/
 
+# Sortie du contournement esbuild du serveur MCP : `tsx` ne demarre pas sur cette
+# machine (esbuild 0.28.2 bloque par une strategie de controle d'application), donc
+# les verifications manuelles passent par un bundle jetable. Voir docs/REPRISE.md.
+mcp-server/.build/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

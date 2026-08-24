@@ -12,6 +12,7 @@ import {
   noiseLabel,
   scoreLabel as coreScoreLabel,
   scoreLocation,
+  uniformOrigins,
   OSM_ORIGIN,
   type Amenity,
   type AmenityCategory,
@@ -65,7 +66,17 @@ export function buildScoringIndex(snapshot: OverpassSnapshot, bounds?: BBox): Sc
   return buildIndex({ amenities, premises, roads, bounds, loaded: snapshot.loaded });
 }
 
-const originForNow = () => OSM_ORIGIN(new Date().toISOString().slice(0, 10));
+/**
+ * Every layer of the browser's context comes out of one Overpass snapshot — amenities,
+ * roads *and* premises, the latter from OSM's `shop=vacant` tagging rather than BDCom.
+ * So the three per-layer origins are legitimately identical here, and `uniformOrigins`
+ * says that deliberately instead of leaving it assumed.
+ *
+ * This is exactly what stops being true when the front starts reading `compass_*`
+ * (PLAN.md §2.7): the premises origin becomes APUR's, and the type will not let it be
+ * forgotten. On the agent side that day has already come — see `mcp-server/src/context.ts`.
+ */
+const originsForNow = () => uniformOrigins(OSM_ORIGIN(new Date().toISOString().slice(0, 10)));
 
 /**
  * Scores for one point, provenance included.
@@ -83,7 +94,7 @@ export function computeScores(
   point: { lat: number; lng: number },
   index: ScoringIndex,
 ): AreaScores {
-  return scoreLocation(point, index, originForNow());
+  return scoreLocation(point, index, originsForNow());
 }
 
 export const scoreLabel = coreScoreLabel;

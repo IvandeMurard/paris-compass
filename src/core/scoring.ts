@@ -11,6 +11,7 @@
 
 import { GridIndex, boundsCoverRadius, clamp, distanceM, type BBox, type Point } from './geo';
 import {
+  combineOrigins,
   unavailable,
   withValue,
   type Measured,
@@ -39,6 +40,33 @@ export interface PremisePoint extends Point {
 
 /** The three families of data a context carries, each loaded independently by the caller. */
 export type Layer = 'amenities' | 'roads' | 'premises';
+
+/**
+ * Where each layer came from — one `Origin` per layer, not one for the whole result.
+ *
+ * The single-`Origin` signature this replaces was a lie waiting to happen, and it had
+ * already happened: the MCP server loads amenities and roads from Overpass but premises
+ * from APUR's BDCom survey, and stamped "OpenStreetMap via Overpass, ODbL" on all three.
+ * A licence is not a decoration — mislabelling APUR data as ODbL misinforms whoever
+ * redistributes it.
+ *
+ * Required for every layer, including layers the caller did not load: a figure that is
+ * missing still has to say which source it is missing *from*, otherwise `missingReason`
+ * is the only thing a caller has and it names no dataset.
+ */
+export type LayerOrigins = Readonly<Record<Layer, Origin>>;
+
+/**
+ * Every layer from the same place — the honest shape when it is genuinely true.
+ *
+ * True of the browser today: amenities, roads and premises all come out of one Overpass
+ * snapshot (`src/services/opendata/scoring.ts`). It stops being true the day the front
+ * reads `compass_*` (PLAN.md 2.7), and on that day the type will force the choice
+ * instead of letting the old assumption ride.
+ */
+export function uniformOrigins(source: Origin): LayerOrigins {
+  return { amenities: source, roads: source, premises: source };
+}
 
 /** Everything the core needs to score a location. Assembled by the caller, never fetched here. */
 export interface NeighbourhoodContext {
@@ -169,10 +197,16 @@ export function noiseExposure(point: Point, roads: readonly Road[]): number {
   return clamp(Math.round(exposure * 5));
 }
 
+/**
+ * Every metric is attributed to the layer or layers it actually reads — never to a single
+ * `Origin` covering the whole result. The mapping is fixed and short: the five amenity
+ * families and walkability read `amenities`, noise reads `roads`, and footfall reads both
+ * `premises` and `amenities`, so it names both.
+ */
 export function scoreLocation(
   point: Point,
   index: ScoringIndex,
-  origin: Origin,
+  origins: LayerOrigins,
 ): AreaScores {
   const amenityNote = coverageNote(point, AMENITY_RADIUS_M, index.bounds);
   const hasAmenities = index.loaded.has('amenities');
@@ -184,13 +218,13 @@ export function scoreLocation(
 
   for (const category of Object.keys(SATURATION) as AmenityCategory[]) {
     if (!hasAmenities) {
-      byCategory[category] = unavailable(origin, MISSING.amenities);
+      byCategory[category] = unavailable(origins.amenities, MISSING.amenities);
       continue;
     }
     const count = countAmenities(point, category, index);
     const score = saturating(count, SATURATION[category]);
     rawByCategory[category] = score;
-    byCategory[category] = withValue(score, origin, 'derived', amenityNote);
+    byCategory[category] = withValue(score, origins.amenities, 'derived', amenityNote);
   }
 
   // Every composite below is guarded by the layers it reads. A composite computed from a
@@ -203,25 +237,27 @@ export function scoreLocation(
             0,
           ),
         ),
-        origin,
+        origins.amenities,
         'derived',
         amenityNote,
       )
-    : unavailable<number>(origin, MISSING.amenities);
+    : unavailable<number>(origins.amenities, MISSING.amenities);
 
-  // Footfall mixes two layers, so it survives only if both are there.
+  // Footfall mixes two layers, so it survives only if both are there — and when it does,
+  // it is attributed to both. Naming only the premises source would hide that 35 % of the
+  // figure is transport access counted from OpenStreetMap.
   let footfall: Measured<number>;
   if (!hasPremises) {
-    footfall = unavailable<number>(origin, MISSING.premises);
+    footfall = unavailable<number>(origins.premises, MISSING.premises);
   } else if (!hasAmenities) {
-    footfall = unavailable<number>(origin, MISSING.amenities);
+    footfall = unavailable<number>(origins.amenities, MISSING.amenities);
   } else {
     const occupiedNearby = index.premises
       .within(point, FOOTFALL_RADIUS_M)
       .filter((p) => p.status === 'occupied').length;
     footfall = withValue(
       clamp(Math.round(saturating(occupiedNearby, 90) * 0.65 + rawByCategory.transit * 0.35)),
-      origin,
+      combineOrigins(origins.premises, origins.amenities),
       'estimated',
       'No open pedestrian count exists for Île-de-France. This is a proxy from active-business density and transport access: it compares two locations against each other, it does not predict footfall.',
     );
@@ -234,11 +270,11 @@ export function scoreLocation(
     noise: hasRoads
       ? withValue(
           noiseExposure(point, index.roads),
-          origin,
+          origins.roads,
           'estimated',
           'Modelled from the proximity and class of major roads only. Buildings, traffic volume and time of day are not taken into account.',
         )
-      : unavailable<number>(origin, MISSING.roads),
+      : unavailable<number>(origins.roads, MISSING.roads),
   };
 }
 

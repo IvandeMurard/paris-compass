@@ -13,6 +13,7 @@
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 
+import { OSM_ORIGIN } from "../../../src/core"
 import { supabase } from "../supabase"
 
 interface VintageRow {
@@ -43,8 +44,11 @@ export function registerListSources(server: McpServer): void {
 
       const sources = [
         {
-          name: "OpenStreetMap via Overpass",
-          licence: "ODbL",
+          // Taken from the constructor the scores themselves are stamped with, not restated:
+          // an agent that calls explain_score and list_sources must not read two spellings of
+          // one licence. Same discipline as the BODACC line below.
+          name: OSM_ORIGIN("").source,
+          licence: OSM_ORIGIN("").licence,
           usage: "Amenities (schools, healthcare, groceries, parks, transit) and major roads, within a radius of any scored point.",
           note: "Volunteer-contributed. Coverage and freshness vary by street.",
         },

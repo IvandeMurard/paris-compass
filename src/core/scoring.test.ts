@@ -9,7 +9,9 @@ import {
   mPerDegLng,
   noiseExposure,
   saturating,
+  combineOrigins,
   scoreLocation,
+  uniformOrigins,
   type Amenity,
   type NeighbourhoodContext,
   type Origin,
@@ -17,6 +19,8 @@ import {
 } from './index';
 
 const ORIGIN: Origin = { source: 'test', licence: 'ODbL', asOf: '2026-08' };
+/** One source behind all three layers — the shape these arithmetic tests care about. */
+const ORIGINS = uniformOrigins(ORIGIN);
 
 /** Montorgueil, the opening view of the app. */
 const MONTORGUEIL: Point = { lat: 48.8655, lng: 2.3475 };
@@ -152,7 +156,7 @@ describe('noiseExposure', () => {
 
 describe('scoreLocation', () => {
   it('returns zeros, not nulls, when nothing is around', () => {
-    const scores = scoreLocation(MONTORGUEIL, buildIndex(context()), ORIGIN);
+    const scores = scoreLocation(MONTORGUEIL, buildIndex(context()), ORIGINS);
     expect(scores.walkability.value).toBe(0);
     expect(scores.groceries.value).toBe(0);
   });
@@ -164,7 +168,7 @@ describe('scoreLocation', () => {
     const scores = scoreLocation(
       MONTORGUEIL,
       buildIndex(context({ loaded: [] })),
-      ORIGIN,
+      ORIGINS,
     );
 
     for (const measured of Object.values(scores)) {
@@ -179,7 +183,7 @@ describe('scoreLocation', () => {
     const scores = scoreLocation(
       MONTORGUEIL,
       buildIndex(context({ loaded: ['amenities', 'premises'] })),
-      ORIGIN,
+      ORIGINS,
     );
 
     expect(scores.noise.value).toBeNull();
@@ -193,7 +197,7 @@ describe('scoreLocation', () => {
     const noPremises = scoreLocation(
       MONTORGUEIL,
       buildIndex(context({ loaded: ['amenities', 'roads'] })),
-      ORIGIN,
+      ORIGINS,
     );
     expect(noPremises.footfall.value).toBeNull();
     // Walkability does not read the premises layer, so it still stands.
@@ -202,7 +206,7 @@ describe('scoreLocation', () => {
     const noAmenities = scoreLocation(
       MONTORGUEIL,
       buildIndex(context({ loaded: ['premises', 'roads'] })),
-      ORIGIN,
+      ORIGINS,
     );
     expect(noAmenities.footfall.value).toBeNull();
     expect(noAmenities.walkability.value).toBeNull();
@@ -214,7 +218,7 @@ describe('scoreLocation', () => {
       ...offset(MONTORGUEIL, i % 20, Math.floor(i / 20)),
       category: 'groceries' as const,
     }));
-    const scores = scoreLocation(MONTORGUEIL, buildIndex(context({ amenities })), ORIGIN);
+    const scores = scoreLocation(MONTORGUEIL, buildIndex(context({ amenities })), ORIGINS);
     for (const measured of Object.values(scores)) {
       expect(measured.value).toBeGreaterThanOrEqual(0);
       expect(measured.value).toBeLessThanOrEqual(100);
@@ -222,14 +226,14 @@ describe('scoreLocation', () => {
   });
 
   it('always labels footfall and noise as estimates', () => {
-    const scores = scoreLocation(MONTORGUEIL, buildIndex(context()), ORIGIN);
+    const scores = scoreLocation(MONTORGUEIL, buildIndex(context()), ORIGINS);
     expect(scores.footfall.method).toBe('estimated');
     expect(scores.noise.method).toBe('estimated');
     expect(scores.footfall.note).toBeTruthy();
   });
 
   it('carries its origin on every figure', () => {
-    const scores = scoreLocation(MONTORGUEIL, buildIndex(context()), ORIGIN);
+    const scores = scoreLocation(MONTORGUEIL, buildIndex(context()), ORIGINS);
     for (const measured of Object.values(scores)) {
       expect(measured.source).toBe('test');
       expect(measured.licence).toBe('ODbL');
@@ -249,7 +253,7 @@ describe('scoreLocation', () => {
     const scores = scoreLocation(
       MONTORGUEIL,
       buildIndex(context({ bounds: tight })),
-      ORIGIN,
+      ORIGINS,
     );
     expect(scores.walkability.note).toContain('floor, not a total');
   });
@@ -261,7 +265,7 @@ describe('scoreLocation', () => {
       west: MONTORGUEIL.lng - 0.05,
       east: MONTORGUEIL.lng + 0.05,
     };
-    const scores = scoreLocation(MONTORGUEIL, buildIndex(context({ bounds: wide })), ORIGIN);
+    const scores = scoreLocation(MONTORGUEIL, buildIndex(context({ bounds: wide })), ORIGINS);
     expect(scores.walkability.note).toBeUndefined();
   });
 
@@ -278,8 +282,70 @@ describe('scoreLocation', () => {
       }),
     );
     const bare = buildIndex(context());
-    const a = scoreLocation(MONTORGUEIL, served, ORIGIN).walkability.value ?? 0;
-    const b = scoreLocation(MONTORGUEIL, bare, ORIGIN).walkability.value ?? 0;
+    const a = scoreLocation(MONTORGUEIL, served, ORIGINS).walkability.value ?? 0;
+    const b = scoreLocation(MONTORGUEIL, bare, ORIGINS).walkability.value ?? 0;
     expect(a).toBeGreaterThan(b);
+  });
+});
+
+/**
+ * The defect `w0-provenance` closes: one `Origin` for the whole result meant the MCP
+ * server, which loads premises from APUR and amenities from OpenStreetMap, stamped
+ * "OpenStreetMap via Overpass, ODbL" on APUR's figures. Two sources, one label, and the
+ * wrong licence on the half that has a stricter one.
+ */
+describe('scoreLocation attributes each metric to the layer it reads', () => {
+  const OSM: Origin = { source: 'OpenStreetMap via Overpass', licence: 'ODbL', asOf: '2026-08-24' };
+  const APUR: Origin = { source: 'APUR BDCom 2023', licence: 'ODbL', asOf: '2023-06' };
+  const MIXED = { amenities: OSM, roads: OSM, premises: APUR };
+
+  it('names OpenStreetMap on the amenity axes, never the premises source', () => {
+    const scores = scoreLocation(MONTORGUEIL, buildIndex(context()), MIXED);
+    for (const key of ['walkability', 'schools', 'healthcare', 'groceries', 'parks', 'transit'] as const) {
+      expect(scores[key].source).toBe(OSM.source);
+    }
+    expect(scores.noise.source).toBe(OSM.source);
+  });
+
+  // The footfall proxy is 65 % premise density and 35 % transport access. Attributing it to
+  // either source alone would hide a third of where it comes from, so it names both.
+  it('names both sources on the footfall proxy, which mixes two layers', () => {
+    const scores = scoreLocation(MONTORGUEIL, buildIndex(context()), MIXED);
+    expect(scores.footfall.source).toContain('APUR BDCom 2023');
+    expect(scores.footfall.source).toContain('OpenStreetMap via Overpass');
+  });
+
+  // A missing figure still has to say which dataset is silent: "unavailable" alone does not
+  // tell a caller whether to retry Overpass or to ask APUR for a licence.
+  it('keeps the right source on a layer that never loaded', () => {
+    const scores = scoreLocation(
+      MONTORGUEIL,
+      buildIndex(context({ loaded: ['amenities', 'roads'] })),
+      MIXED,
+    );
+    expect(scores.footfall.value).toBeNull();
+    expect(scores.footfall.source).toBe(APUR.source);
+    expect(scores.noise.source).toBe(OSM.source);
+  });
+});
+
+describe('combineOrigins', () => {
+  const OSM: Origin = { source: 'OpenStreetMap via Overpass', licence: 'ODbL', asOf: '2026-08-24' };
+
+  it('collapses identical origins rather than repeating them', () => {
+    expect(combineOrigins(OSM, OSM)).toEqual(OSM);
+  });
+
+  // Dropping one licence of a composite would tell a redistributor they are bound by less
+  // than they are. Both are named, and only exact duplicates disappear.
+  it('keeps every distinct licence', () => {
+    const apur: Origin = { source: 'APUR BDCom 2017', licence: 'Custom APUR licence (unread)', asOf: '2017' };
+    expect(combineOrigins(apur, OSM).licence).toBe('Custom APUR licence (unread) + ODbL');
+  });
+
+  it('carries the oldest date, not the newest', () => {
+    const apur: Origin = { source: 'APUR BDCom 2023', licence: 'ODbL', asOf: '2023-06' };
+    expect(combineOrigins(OSM, apur).asOf).toBe('2023-06');
+    expect(combineOrigins(apur, OSM).asOf).toBe('2023-06');
   });
 });

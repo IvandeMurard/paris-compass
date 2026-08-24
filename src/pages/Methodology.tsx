@@ -50,6 +50,9 @@ const COPY = {
     detectTitle: 'Détection des locaux',
     detectBody:
       'Les locaux proviennent d’OpenStreetMap : un local est considéré comme vacant lorsqu’il porte un attribut de local vide ou de commerce désaffecté, et comme occupé lorsqu’une activité y est renseignée. La couverture dépend donc des contributions de la communauté : un local fermé récemment et non signalé n’apparaîtra pas.',
+    provenanceTitle: 'D’où vient chaque chiffre',
+    provenanceBody:
+      'Chaque score porte la source de la couche de données qu’il lit réellement, et non une source unique valable pour toute la fiche. Les cinq familles d’équipements, la marchabilité et le bruit viennent d’OpenStreetMap. Le flux piéton estimé, lui, mélange deux couches : la densité de commerces actifs et l’accès aux transports. Il nomme donc les deux sources, cumule leurs licences — un chiffre composé oblige à respecter les deux — et porte la plus ancienne de leurs deux dates, parce qu’un chiffre composé n’est jamais plus frais que son ingrédient le plus ancien. Dans le navigateur, les trois couches proviennent aujourd’hui du même instantané OpenStreetMap, donc la mention est unique. Ce n’est pas le cas de l’interface destinée aux agents, qui lit les locaux dans la BDCom de l’APUR et les équipements dans OpenStreetMap : le flux piéton y cite les deux.',
     missingTitle: 'Quand une source manque',
     missingBody:
       'Un score n’est calculé que si la couche de données dont il dépend a réellement été chargée. Si elle manque, Compass n’affiche pas 0 : il affiche « n/d » et indique pourquoi. La distinction compte surtout pour le bruit, où un 0 se lirait « très faible » — soit une rue calme affirmée à partir d’une donnée absente. Un quartier réellement dépourvu d’équipements, lui, reçoit bien un 0 : c’est un comptage, pas une lacune.',
@@ -99,6 +102,9 @@ const COPY = {
     detectTitle: 'Detecting spaces',
     detectBody:
       'Spaces come from OpenStreetMap: a space is considered vacant when it carries a vacant-shop or disused-shop attribute, and occupied when an activity is recorded. Coverage therefore depends on community contributions: a recently closed space that hasn’t been reported won’t appear.',
+    provenanceTitle: 'Where each figure comes from',
+    provenanceBody:
+      'Every score carries the source of the data layer it actually reads, not one source stamped on the whole card. The five amenity families, walkability and noise come from OpenStreetMap. Estimated foot traffic mixes two layers instead — active-shop density and transport access — so it names both sources, carries both licences (a composite figure binds you to both), and takes the older of the two dates, because a composite is never fresher than its oldest ingredient. In the browser all three layers currently come from the same OpenStreetMap snapshot, so a single mention is accurate. That is not true of the agent-facing interface, which reads premises from APUR’s BDCom survey and amenities from OpenStreetMap: there, foot traffic cites both.',
     missingTitle: 'When a source is missing',
     missingBody:
       'A score is only computed if the data layer it depends on actually loaded. When that layer is missing, Compass does not show 0: it shows "n/a" and says why. The distinction matters most for noise, where a 0 would read as "very low" — a quiet street asserted from absent data. A neighbourhood genuinely without amenities does get a 0: that is a count, not a gap.',
@@ -198,6 +204,11 @@ const Methodology = () => {
         <section>
           <h2 className="text-xl font-semibold">{c.detectTitle}</h2>
           <p className="mt-3 text-muted-foreground">{c.detectBody}</p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold">{c.provenanceTitle}</h2>
+          <p className="mt-3 text-muted-foreground">{c.provenanceBody}</p>
         </section>
 
         <section>
