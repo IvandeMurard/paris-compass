@@ -233,6 +233,7 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 | `w1-chantiers` | 1 | Q3 2026 | Chantiers de voirie (fait d'exposition) | La fiche d'un local à 40 m d'un polygone perturbant affiche le chantier ; un voisin hors polygone, non. |
 | `w1-survie` | 1 | Q3 2026 | Courbes de survie SIRENE × BDCom | Un café aux Halles et un café au Mail affichent deux survies, chacune avec n et millésimes, rapportées au métier pas à Paris entier. |
 | `w1-terrasses` | 1 | Q3 2026 | Terrasses et étalages autorisés | La fiche restauration affiche oui/non/inconnu terrasse, avec le type (permanente, estivale) et la source. |
+| `w0-history` | 0 | Q3 2026 | `compass_premise_history` : une retenue de licence rendue comme un fait | Un appel anonyme sur le local 54652 en 2017 ne rend plus `observed = false` avec `is_vacant = false`, le couple d'invariants est posé, et `eval:anon` le couvre. |
 | `w1-historique` | 1 | Q3 2026 | bdcom20032020 : porter l'historique de six à vingt ans | Soit les couches 2003–2020 ingérées avec leur licence portée par millésime, soit une note publique dans `docs/BDCOM.md` fermant la piste. |
 | `w3-mapillary` | 3 | Q4 2026 | Mapillary : rideau, pancarte, vitrine — observation datée | Gate : précision/rappel sur 50 façades annotées. Affichage uniquement au-dessus du seuil, avec la photo et la date. |
 
@@ -727,7 +728,7 @@ Q4 2026  →  meublés + ABF/SPR + PPRI zonage + vue « ce qui se libère »
 
 ## Tickets GitHub
 
-**Les 45 issues sont ouvertes** sur [IvandeMurard/paris-compass](https://github.com/IvandeMurard/paris-compass/issues) le 23 aout 2026 — 8 epics et 37 tickets — et les 13 labels crees. Le corps de chaque issue vit aussi dans [`tickets/`](./tickets/) : les deux doivent bouger ensemble, ou aucun des deux.
+**Les 43 issues sont ouvertes** sur [IvandeMurard/paris-compass](https://github.com/IvandeMurard/paris-compass/issues) le 23 aout 2026, et les 13 labels crees. Le corps de chaque issue vit aussi dans [`tickets/`](./tickets/) : les deux doivent bouger ensemble, ou aucun des deux.
 
 > Les versions anterieures de cette page portaient 43 liens *creer une issue* preremplis. Ils ont ete retires : les issues existent, les rouvrir en creerait des doublons.
 
@@ -749,8 +750,9 @@ Q4 2026  →  meublés + ABF/SPR + PPRI zonage + vue « ce qui se libère »
 | Issue | ID | Prio | Action |
 | --- | --- | --- | --- |
 | #6 | `w0-cron` | P0 | Ingestion planifiée + date de fraîcheur par source |
-| #7 | `w0-deploy` | P0 | Déployer le corpus sur la base hébergée |
+| #7 | `w0-deploy` | P0 | Déployer le corpus sur la base hébergée — **fait le 24 août** |
 | #8 | `w0-fiche` | P0 | Fiche locale + timeline dans l'interface |
+| #51 | `w0-history` | P0 | `compass_premise_history` : une retenue de licence rendue comme un fait |
 | #9 | `w0-plu` | P0 | Ingérer le PLU plub_protcom |
 | #10 | `w0-provenance` | P0 | Provenance par champ, pas un Origin unique OSM |
 | #11 | `w1-chantiers` | P0 | Chantiers de voirie (fait d'exposition) |

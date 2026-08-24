@@ -48,6 +48,12 @@ Trois choses avant d'écrire quoi que ce soit :
 Termine par : ce qui est démontré, ce qui ne l'est pas, et ce que tu as laissé
 de côté. Si le ticket devient faux en cours de route, arrête-toi et dis-le
 plutôt que de livrer contre un critère périmé.
+
+Et écris-le dans le dépôt, pas seulement ici. Ce qui n'existe qu'au chat meurt
+avec la session : un défaut trouvé va dans DIAGNOSTIC.md, un chiffre remesuré
+dans le fichier qui le portait, un piège dans docs/REPRISE.md. Ne me résume que
+ce que tu ne peux pas faire toi-même — l'état GitHub (fermer l'issue, en ouvrir
+une), et ce qui demande une décision.
 ```
 
 Inutile d'y rappeler `npm.cmd`, la pureté de `src/core/`, `Measured<T>` ou l'encadrement des
@@ -59,14 +65,15 @@ loyers : `CLAUDE.md` est chargé à chaque session.
 
 | # | Session | Issue | Modèle | Ouvre la voie à |
 | --- | --- | --- | --- | --- |
-| ~~1~~ | ~~`w0-deploy`~~ **fait le 24 août** | [#7](https://github.com/IvandeMurard/paris-compass/issues/7) | Opus 5 | #8, #6, #9 |
-| 2 | `w0-provenance` | [#10](https://github.com/IvandeMurard/paris-compass/issues/10) | Opus 5 | — |
-| 3 | `w0-fiche` | [#8](https://github.com/IvandeMurard/paris-compass/issues/8) | Opus 5 | toute la vague 1 |
-| 4 | `w0-cron` | [#6](https://github.com/IvandeMurard/paris-compass/issues/6) | Opus 5 | — |
-| 5 | `w0-plu` | [#9](https://github.com/IvandeMurard/paris-compass/issues/9) | Sonnet 5 | — |
-| 6 | `w1-chantiers` | [#11](https://github.com/IvandeMurard/paris-compass/issues/11) | Sonnet 5 | — |
-| 7 | `w1-terrasses` | [#15](https://github.com/IvandeMurard/paris-compass/issues/15) | Sonnet 5 | — |
-| 8 | `w1-survie` | [#14](https://github.com/IvandeMurard/paris-compass/issues/14) | Opus 5 | #34 |
+| ~~1~~ | ~~`w0-deploy`~~ — **fait, #7 fermée le 24 août** | [#7](https://github.com/IvandeMurard/paris-compass/issues/7) | Opus 5 | #8, #6, #9 |
+| **2** | `w0-history` — **nouveau, bloque #8** | [#51](https://github.com/IvandeMurard/paris-compass/issues/51) | Opus 5 | #8 |
+| 3 | `w0-provenance` | [#10](https://github.com/IvandeMurard/paris-compass/issues/10) | Opus 5 | — |
+| 4 | `w0-fiche` | [#8](https://github.com/IvandeMurard/paris-compass/issues/8) | Opus 5 | toute la vague 1 |
+| 5 | `w0-cron` | [#6](https://github.com/IvandeMurard/paris-compass/issues/6) | Opus 5 | — |
+| 6 | `w0-plu` | [#9](https://github.com/IvandeMurard/paris-compass/issues/9) | Sonnet 5 | — |
+| 7 | `w1-chantiers` | [#11](https://github.com/IvandeMurard/paris-compass/issues/11) | Sonnet 5 | — |
+| 8 | `w1-terrasses` | [#15](https://github.com/IvandeMurard/paris-compass/issues/15) | Sonnet 5 | — |
+| 9 | `w1-survie` | [#14](https://github.com/IvandeMurard/paris-compass/issues/14) | Opus 5 | #34 |
 
 **La règle de modèle en une phrase.** Opus 5 dès que le « Comment » du ticket contient un
 arbitrage ou traverse plusieurs couches ; Sonnet 5 quand c'est une ingestion de source qui
@@ -102,7 +109,28 @@ appelant sans cle. Montre-moi la reponse anonyme reelle, pas le code qui devrait
 la produire.
 ```
 
-## Session 2 — `w0-provenance` (#10) · Opus 5
+## Session 2 — `w0-history` (#51) · Opus 5
+
+**Ouvert le 24 août, trouvé par la porte anonyme de la session 1.** Quatrième défaut de
+licence, et le plus dur : `compass_premise_history` ne rend pas un silence mais une
+**affirmation fausse** — `observed = false` et `is_vacant = false` sur un local qui était
+relevé vacant. Il bloque `w0-fiche` (#8), premier appelant prévu de cette fonction.
+
+```
+Le patron est ecrit trois fois dans supabase/migrations/ et n'a pas a etre
+invente : lire request.jwt.claims, exposer une colonne withheld, distinguer la
+retenue de licence de l'absence reelle. I12/I13 et I14/I15 donnent le couple de
+tests a recopier — l'un contre la fuite, l'autre contre la retenue excessive.
+
+Le correctif change le type de retour, donc il se pose en migration et engage
+tout appelant futur.
+
+Une session de correction a ete lancee en worktree le 24 aout, branche
+claude/clever-torvalds-1cc16f, absente du distant au moment d'ecrire. Verifie si
+elle a atterri AVANT de commencer, ne suppose ni fait ni a faire.
+```
+
+## Session 3 — `w0-provenance` (#10) · Opus 5
 
 **Le rayon d'action le plus large du lot, et à traiter seul.** À faire tôt dans la fenêtre,
 pendant que rien d'autre n'est en vol.
@@ -115,9 +143,11 @@ Etablis la liste complete des appelants de scoreLocation AVANT de toucher a la
 signature. Ne commence rien d'autre dans cette session.
 ```
 
-## Session 3 — `w0-fiche` (#8) · Opus 5
+## Session 4 — `w0-fiche` (#8) · Opus 5
 
-Travail d'interface, donc à placer dans la fenêtre libre. Dépend de la session 1.
+Travail d'interface, donc à placer dans la fenêtre libre. **Dépend de la session 2** : sans
+le correctif de `#51`, la fiche afficherait « non observé, non vacant » sur un local qui
+était vacant.
 
 ```
 C'est du travail d'interface. Lovable est indisponible jusqu'au 1er septembre,
@@ -128,9 +158,9 @@ Piege du ticket : observed=false doit se lire "non observe", jamais "vacant" ni
 "plus un commerce", et pas de coalesce sur le libelle.
 ```
 
-## Session 4 — `w0-cron` (#6) · Opus 5
+## Session 5 — `w0-cron` (#6) · Opus 5
 
-Dépend de la session 1. Touche aux privilèges.
+Touche aux privilèges.
 
 ```
 Ce job ne doit jamais porter la cle anon. Dis-moi ou tu comptes stocker le secret
@@ -141,9 +171,9 @@ rare. Afficher une date de fraicheur sans rafraichissement reel serait le loyer
 fabrique sous une autre forme.
 ```
 
-## Session 5 — `w0-plu` (#9) · Sonnet 5
+## Session 6 — `w0-plu` (#9) · Sonnet 5
 
-Ingestion droite. Dépend de la session 1.
+Ingestion droite.
 
 ```
 Ingestion classique : jeu plub_protcom d'opendata.paris.fr, version votee le
@@ -153,7 +183,7 @@ L'affichage est informatif, sans valeur reglementaire, et renvoie au Portail des
 Regles d'Urbanisme.
 ```
 
-## Sessions 6 et 7 — `w1-chantiers` (#11), `w1-terrasses` (#15) · Sonnet 5
+## Sessions 7 et 8 — `w1-chantiers` (#11), `w1-terrasses` (#15) · Sonnet 5
 
 Deux ingestions indépendantes, même patron. Réserve commune à rappeler :
 
@@ -163,7 +193,7 @@ d'affaires pour les chantiers ; jamais un CA terrasse deduit d'une autorisation.
 Une autorisation n'est pas une terrasse installee aujourd'hui.
 ```
 
-## Session 8 — `w1-survie` (#14) · Opus 5
+## Session 9 — `w1-survie` (#14) · Opus 5
 
 **Le ticket sous-estime sa propre difficulté.** Il écrit « aucune source nouvelle » comme un
 avantage ; c'est l'inverse.

@@ -1,6 +1,6 @@
 # Tickets — plan d'action vacance
 
-Un fichier par issue : **8 épics** (`vague-*.md`) et **37 tickets** (`w*-*.md`). Chaque corps
+Un fichier par issue : **8 épics** (`vague-*.md`) et **38 tickets** (`w*-*.md`). Chaque corps
 tient en cinq blocs — Pourquoi, Comment, Doctrine, Fait quand, plus l'en-tête ID / vague /
 horizon / priorité / dépendances / sources.
 
