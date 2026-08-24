@@ -188,11 +188,28 @@ Etablis la liste complete des appelants de scoreLocation AVANT de toucher a la
 signature. Ne commence rien d'autre dans cette session.
 ```
 
-## Session 4 — `w0-fiche` (#8) · Opus 5
+## Session 4 — `w0-fiche` (#8) · Opus 5 — **faite le 24 août**
 
 Travail d'interface, donc à placer dans la fenêtre libre. **Dépend de la session 2** : sans
 le correctif de `#51`, la fiche afficherait « non observé, non vacant » sur un local qui
 était vacant.
+
+> **Faite le 24 août.** Le critère est démontré dans le navigateur sur 3 rue du Jour, quartier
+> Halles — 2017 retenu, 2020 retenu, 2023 « Prêt-à-porter Homme / AGNES B », plus quatre
+> annonces BODACC. `.rpc(` passe de 0 à 2 occurrences dans `src/`. **L'issue #8 n'était pas
+> encore fermée à la fin de la session** : la fermer, puis relancer `npm.cmd run sessions`.
+>
+> **Deux choses en sont sorties.** Le rattachement OpenStreetMap ↔ BDCom n'a **pas de clé** :
+> mesuré, un rayon de 25 m contient une médiane de 5 locaux candidats et le plus proche est
+> souvent le mauvais commerce — la fiche les liste et laisse le lecteur trancher. Et
+> `DIAGNOSTIC.md` **§15**, ouvert : `compass_address_timeline` conclut « plus un commerce » à
+> partir de millésimes qu'elle retient dans la même réponse. **Correctif SQL, et il demande une
+> décision** — la même phrase est dans `PLAN.md`, corriger l'un sans l'autre ferait diverger
+> la doctrine et la base.
+>
+> Reste ouvert et volontairement laissé de côté : le panneau ne s'ouvre que depuis la vue
+> liste, les popups Leaflet étant des chaînes HTML brutes ; et les quatre chantiers que
+> `PLAN.md` §2.7 met « à faire dans la foulée ».
 
 ```
 C'est du travail d'interface. Lovable est indisponible jusqu'au 1er septembre,
@@ -211,7 +228,8 @@ son miroir Overpass principal — sans que rien ne le dise ([#52](https://github
 Trouvé parce que quelqu'un regardait, pas parce qu'un contrôle a échoué.
 
 **Mesuré le 24 août : rien ne couvre `mcp-server/`.** Ni le `typecheck` de la racine, qui ne
-le référence pas ; ni les 73 tests ; ni les deux bras de la porte. `smoke-test.ts` et
+le référence pas ; ni les tests de `src/` (73 le 23 août, **96 après la session 4**) ; ni les
+deux bras de la porte. `smoke-test.ts` et
 `provenance-check.ts` existent mais ne sont câblés à aucun script.
 
 ```

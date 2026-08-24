@@ -365,10 +365,19 @@ deux sorties : **c'est le même contenu que renverra le serveur MCP** (4.1) à u
 Google Sheets en direct demanderait une connexion de compte pour peu de gain : un fichier
 téléchargé se colle dans Sheets en deux secondes.
 
-### 2.7 — La fiche locale : le consommateur qui manque
+### 2.7 — La fiche locale : le consommateur qui manque — **branchée le 24 août**
+
+> **Fait le 24 août 2026**, par le ticket `w0-fiche` (#8), qui redisait cette section : la
+> fiche consomme `compass_address_timeline` et `compass_premises_within` depuis le navigateur.
+> Le critère est démontré en direct sur **3 rue du Jour, quartier Halles** — 2017 retenu,
+> 2020 retenu, 2023 « Prêt-à-porter Homme / AGNES B », plus quatre annonces BODACC de 2015 à
+> 2018. Tableau complet, mesures de rattachement et limites dans
+> [`docs/tickets/w0-fiche.md`](tickets/w0-fiche.md). **Les quatre chantiers « à faire dans la
+> foulée » listés plus bas restent ouverts** : ils n'étaient pas dans le critère.
 
 **Constat du 12 août, et c'est le plus structurant du projet.** Le front et la base sont deux
-produits agrafés sans pont : `compass_*` et `.rpc(` ont **zéro occurrence dans `src/`**.
+produits agrafés sans pont : `compass_*` et `.rpc(` avaient **zéro occurrence dans `src/`**
+— remesuré le 24 août avant le chantier, toujours exact, et corrigé le jour même.
 Supabase n'y sert qu'à l'authentification et aux quatre tables utilisateur ; toutes les
 données affichées viennent d'appels directs à Overpass, opendata.paris.fr, Open-Meteo, BAN et
 Géorisques.
@@ -382,7 +391,17 @@ La fiche locale est la page qui consomme `compass_address_timeline` : une chrono
 adresse, chaque ligne portant son fait, sa pièce, son niveau et sa raison. §2.5 la décrit
 comme ayant « trois consommateurs » sans jamais lui donner d'entrée de backlog.
 
-**Débloquée par le déploiement, comme tout ce qui touche la base.** À faire dans la foulée :
+**Ce que le branchement a appris, et que cette section n'avait pas prévu.** OpenStreetMap et
+la BDCom **ne partagent aucun identifiant**, donc rattacher une carte à un local relevé est
+une déduction spatiale — et une déduction faible. Mesuré le 24 août sur 658 locaux autour des
+Halles : le local BDCom le plus proche est à 5 m pour la moitié d'entre eux mais à 58 m au
+neuvième décile, et un rayon de 25 m contient une **médiane de 5 candidats**, jusqu'à 125 dans
+une galerie. Choisir le plus proche aurait attribué l'histoire d'un local à un autre — la
+seconde erreur de §2.5, refaite. **La fiche liste donc les candidats et laisse le lecteur
+trancher**, et la mesure est publiée sur la page Méthodologie.
+
+**Débloquée par le déploiement, comme tout ce qui touche la base.** À faire dans la foulée —
+**aucun des quatre n'est fait au 24 août** :
 
 - **Le dénominateur par couche** (le vol assumé à Aino) : afficher « 12 commerces alimentaires
   dans 800 m » et pas seulement « 64/100 ». Un décompte est refaisable par le lecteur, un

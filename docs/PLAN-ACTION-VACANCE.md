@@ -58,6 +58,8 @@ Deux diagnostics du document ont en revanche été **vérifiés exacts** :
   deux sont traités comme un seul chantier et clos ensemble, plutôt que laissés diverger.
 - `w0-fiche` — aucune occurrence de `timeline` ni de `trace_premise` dans `src/`. Le MCP expose
   `compass_address_timeline` depuis le 17 août, le navigateur non.
+  **Remesuré le 24 août avant le chantier : toujours exact, et plus large que ça — `.rpc(` et
+  `compass_` avaient zéro occurrence dans `src/`. Corrigé le jour même.**
 
 Les autres chiffres du corpus sont conformes aux baselines : 85 418 locaux, 228 275 relevés,
 vacance 2017 à 9,3 %, 2020 à 10,5 %, médiane des fonds à 160 868 €.
@@ -228,7 +230,7 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 | ID | Vague | Horizon | Action | Fait quand |
 | --- | --- | --- | --- | --- |
 | `w0-deploy` | 0 | Q3 2026 | Déployer le corpus sur la base hébergée | Un appel anon PostgREST sur un point intra-muros renvoie des locaux 2023, et withheld (pas zéro) pour 2017/2020. |
-| `w0-fiche` | 0 | Q3 2026 | Fiche locale + timeline dans l'interface | Un local des Halles affiche 2017 → 2020 → 2023 (ou withheld) + événements BODACC, sans coalesce sur le libellé. |
+| `w0-fiche` | 0 | Q3 2026 | Fiche locale + timeline dans l'interface | Un local des Halles affiche 2017 → 2020 → 2023 (ou withheld) + événements BODACC, sans coalesce sur le libellé. — **fait le 24/08** : démontré sur 3 rue du Jour (quartier Halles, BDCom 1250) dans le navigateur avec la seule clé publiable ; `.rpc(` passe de 0 à 2 occurrences dans `src/` ; 96 tests, les deux builds au vert. Redisait `PLAN.md` §2.7, clos avec. Détail dans `docs/tickets/w0-fiche.md`. |
 | `w0-cron` | 0 | Q3 2026 | Ingestion planifiée + date de fraîcheur par source | compass_* expose ingested_at pour BDCom, géographie, BODACC et SIRENE. Un cron a tourné au moins une fois sans intervention manuelle. |
 | `w0-plu` | 0 | Q3 2026 | Ingérer le PLU plub_protcom | Deux adresses de la même rue, l'une sur linéaire protégé, l'autre non, reçoivent deux verdicts distincts. |
 | `w0-provenance` | 0 | Q3 2026 | Provenance par champ, pas un Origin unique OSM | explain_score sur un local BDCom cite APUR, pas OSM, pour l'activité ; OSM reste sur les aménités. |
@@ -293,7 +295,9 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 - **Pourquoi.** Le MCP a trace_premise ; le navigateur non. L'historique du local est le produit, pas un accessoire.
 - **Comment.** Brancher compass_address_timeline sur la fiche. Chaque ligne : source, date, niveau, justification. observed=false → « non observé », jamais vacant ni « plus un commerce ».
 - **Doctrine.** L'historique justifie le taux de rotation rapporté à la rue ; il ne le remplace pas.
-- **Fait quand.** Un local des Halles affiche 2017 → 2020 → 2023 (ou withheld) + événements BODACC, sans coalesce sur le libellé.
+- **Fait quand.** Un local des Halles affiche 2017 → 2020 → 2023 (ou withheld) + événements BODACC, sans coalesce sur le libellé. — **Démontré le 24 août** dans le navigateur, clé publiable seule : **3 rue du Jour, quartier Halles**, identifiant BDCom 1250 — 2017 retenu, 2020 retenu, 2023 « Prêt-à-porter Homme / AGNES B », plus quatre annonces BODACC de 2015 à 2018, et aucune reprise de libellé sur les lignes retenues. Détail, mesures de rattachement et limites dans `docs/tickets/w0-fiche.md`.
+- **Ce ticket redisait `docs/PLAN.md` §2.7**, comme la section « Ce que ce document ne couvre pas » l'annonçait. Les deux sont clos ensemble et se citent l'un l'autre.
+- **Un défaut trouvé en chemin, hors périmètre :** sur un millésime `retail_only`, `compass_address_timeline` conclut « plus un commerce » à partir de millésimes qu'elle retient dans la même réponse. `DIAGNOSTIC.md` §15 — correctif SQL, à trancher.
 
 #### w0-cron — Ingestion planifiée + date de fraîcheur par source
 

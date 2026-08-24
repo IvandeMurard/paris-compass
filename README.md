@@ -163,8 +163,9 @@ Honest labels, in the sense that *built* means the code runs and the gate passes
 | --- | --- |
 | Map, neighbourhood scoring, environment panel | **Live** |
 | Provenance surfaced on every figure | **Built** — merged, ships on the next deploy |
-| BDCom ×3 · BODACC · Sirene · geography — 21 migrations | **Built** — 85 418 units, 228 275 census records, gate green |
-| Deployed to the hosted database | **Next** |
+| BDCom ×3 · BODACC · Sirene · geography | **Built** — 85 418 units, 228 275 census records, gate green. 27 migration files in the repository, counted 24 August 2026 |
+| Deployed to the hosted database | **Live since 15 August 2026** — the browser reads it anonymously with the publishable key, verified 24 August |
+| Premise history in the browser — BDCom ×3 and BODACC on one timeline | **Built** — 24 August 2026, demonstrated against the hosted database in a dev browser; ships on the next deploy. [`docs/tickets/w0-fiche.md`](docs/tickets/w0-fiche.md) |
 | Exportable one-address file | Design |
 | MCP server for agents | **Built** — runs locally (`mcp-server/`), not published to npm or listed on an MCP registry yet |
 | Agent self-assessment of its own confidence | Research |

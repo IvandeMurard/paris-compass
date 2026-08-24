@@ -175,6 +175,15 @@ base spatiale de la phase 2 et sortir ce calcul du navigateur. Le refactor du no
   une requête doit trouver le même local quelle que soit la langue de l'interface.
 - **`fetchRentReferences` avale ses erreurs** (`catch` → `return []`), donc une panne de source est
   indistinguable d'une absence de donnée. Le même motif que le point 3c, en plus discret.
+- **« 1e arrondissement ».** `PropertyCard.tsx` compose `{arrondissement}{'e arrondissement'}`,
+  ce qui rend « 1e » pour le premier au lieu de « 1er ». Relevé le 24 août en branchant la
+  fiche locale, qui a dû se donner sa propre fonction (`arrondissementLabel`) pour ne pas
+  ajouter une troisième orthographe. À unifier dans `src/i18n/`.
+- **Les pièces de la chronologie restent en français sur la page anglaise.** `evidence` et
+  `confidence_reason` viennent de la base, qui n'écrit qu'en français, et la fiche les relaie
+  **verbatim** — les traduire à la volée serait réécrire la pièce, ce que `PLAN.md` §2.5
+  interdit. Le vrai correctif est côté base : une clé de message par ligne, rendue dans la
+  langue du lecteur, plutôt qu'une phrase toute faite. Chantier, pas bug.
 
 ---
 
@@ -192,7 +201,12 @@ base spatiale de la phase 2 et sortir ce calcul du navigateur. Le refactor du no
   lever le plafond maintenant que la surface interrogée est bornée, soit l'afficher.
   *Ironie relevée le 12 août :* `compass_premises_within` renvoie déjà `total_matched`
   **précisément pour corriger ce défaut** — le commentaire de la migration le dit — mais
-  aucun code du front n'appelle cette fonction.
+  aucun code du front n'appelait cette fonction.
+  **Mis à jour le 24 août :** le front l'appelle désormais, dans
+  `src/services/compass/premiseHistory.ts`, et **affiche** son `total_matched` quand la liste
+  de candidats est tronquée. Mais c'est le compte du rayon de rattachement (25 m), pas celui
+  de la vue : la troncature à 120 de `properties.ts` reste silencieuse, et elle porte sur une
+  couche OpenStreetMap qui n'a pas de `total_matched`.
 - ~~**Étiquettes en dur dans le popup de carte.**~~ **Corrigé le 15 août.** `useMapLayers`
   lit `useLocale`, et `locale` entre dans les dépendances de l'effet — le HTML des popups
   étant construit une fois, changer de langue doit reconstruire les couches, sinon les
@@ -767,6 +781,53 @@ temps, pas le 406 : le diagnostic était perdu à chaque fois que les trois miro
 
 **Vérifié après correctif**, contre le distant `dbefhvmyfmmhjeetdddu` et les vrais miroirs :
 `explain_score` rend `groceries = 100`, `noise = 51` et `footfall = 97` à Montorgueil sur 800 m.
+
+---
+
+## 15. Une conclusion affirmée à partir de millésimes retenus — `compass_address_timeline`, le 24 août
+
+**Ouvert.** Trouvé en branchant la fiche locale (`w0-fiche`), et **hors du périmètre de ce
+ticket** : le correctif est dans le SQL, la fiche est de l'interface. Consigné ici plutôt que
+corrigé à la volée.
+
+Sur un millésime au périmètre `retail_only` — c'est le cas de 2023 — une ligne
+`observed = false` porte cette justification, écrite dans `20260809000011` :
+
+> Millésime restreint aux commerces : une absence signifie « plus un commerce », pas « vacant ».
+
+**La phrase est juste pour un appelant privilégié, et trop forte pour un appelant anonyme.**
+« Plus un commerce » suppose que le local en était un **avant**. Or c'est exactement ce que la
+même réponse retient : pour un appelant anonyme, 2017 et 2020 reviennent `withheld = true`,
+`observed = null`, « ni le contenu ni l'existence ». La ligne affirme donc une transition à
+partir de deux millésimes dont elle vient de dire qu'elle ne dirait rien.
+
+C'est la famille des points 9 à 12, dans une variante nouvelle : non plus une **retenue rendue
+comme un fait**, mais une **conclusion tirée par-dessus une retenue**. Le mécanisme de
+divulgation est correct ; c'est la prose qui va plus loin que ce qu'elle laisse voir.
+
+**Mesuré le 24 août**, distant `dbefhvmyfmmhjeetdddu`, clé publiable seule, local 54653 :
+
+| Millésime | `observed` | `withheld` | `evidence` |
+| --- | --- | --- | --- |
+| 2017 | `null` | `true` | « ni son contenu ni son existence » |
+| 2020 | `null` | `true` | « ni son contenu ni son existence » |
+| 2023 | `false` | `false` | « une absence signifie « plus un commerce » » |
+
+**Ce que fait la fiche en attendant.** `src/i18n/timelineText.ts` rend `observed = false` par
+**« Non observé »** et rien d'autre — c'est le piège que `w0-fiche` nommait, et il est tenu et
+testé. `evidence` reste affiché **tel quel**, sous l'étiquette « Justification de la source » :
+c'est la pièce, et la réécrire serait le geste qui a produit les deux erreurs de `PLAN.md`
+§2.5. L'interface ne conclut donc pas ; elle montre que la source conclut.
+
+**Ce qu'il faudrait trancher**, et qui demande une décision plutôt qu'un correctif mécanique :
+la phrase doit-elle dépendre du privilège de l'appelant, comme les autres colonnes de cette
+fonction, ou faut-il la réduire à ce qu'un lecteur peut recouper dans les deux cas ? Le second
+choix est le plus simple et le plus proche de la règle uniforme retenue en `20260809000011`.
+
+> **Elle est aussi dans `PLAN.md`**, §« Changement d'activité n'est pas changement de
+> propriétaire » : « Une disparition en 2023 signifie « ce n'est plus un commerce », jamais
+> « c'est vacant » ». Écrite le 9 août, avant que la retenue de licence n'existe. Corriger le
+> SQL sans corriger `PLAN.md` laisserait la doctrine contredire la base.
 
 ---
 

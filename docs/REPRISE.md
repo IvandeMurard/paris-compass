@@ -1,10 +1,101 @@
-# Reprise — état au 24 août 2026, fin de session 3
+# Reprise — état au 24 août 2026, fin de session 4
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`
 (backlog, décisions produit), `docs/PLAN-ACTION-VACANCE.md` (doctrine et backlog
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
+
+---
+
+## Le 24 août, session 4 : `w0-fiche` est fait, et le navigateur parle enfin à la base
+
+**Fait et démontré dans le navigateur**, `npm.cmd run dev`, clé publiable seule, donc appelant
+**anonyme** — le seul que le front sache être. Local **3 rue du Jour**, quartier **Halles**,
+identifiant BDCom **1250**, ouvert depuis la carte OpenStreetMap « Local vacant (ancien
+sewing) », 9-11 rue du Jour :
+
+| Date | Ce que la fiche affiche | Niveau |
+| --- | --- | --- |
+| 16 sept. 2015 | Dépôt de l'état des créances · LITTLE FASHION GALLERY | Corroboré |
+| 3 mars 2016 | Jugement de clôture pour insuffisance d'actif · LITTLE FASHION GALLERY | Corroboré |
+| **2017** | **Millésime retenu** | Indéterminé |
+| 23 juin 2017 | Autre jugement prononçant · EXCELLENCE & COMPAGNIE | Corroboré |
+| 8 avril 2018 | Jugement de clôture pour insuffisance d'actif · EXCELLENCE & COMPAGNIE | Corroboré |
+| **2020** | **Millésime retenu** | Indéterminé |
+| **2023** | **Prêt-à-porter Homme** · AGNES B | Établi |
+
+**`.rpc(` passe de 0 à 2 occurrences dans `src/`.** C'est le constat de `PLAN.md` §2.7 —
+« dix fonctions `compass_*`, la machinerie de confiance à quatre niveaux et les 85 418 locaux
+n'ont aucun consommateur » — qui tombe après douze jours. Remesuré avant le chantier : le
+chiffre du ticket était juste. Portes au vert : `tsc --build`, **96 tests** sur sept fichiers,
+`build` **et** `build:dev`.
+
+**Le ticket redisait `docs/PLAN.md` §2.7.** Les deux sont clos ensemble et se citent l'un
+l'autre — troisième ticket de suite dans ce cas, après `w0-history` et `w0-provenance`.
+
+### Le piège de ce ticket : le plus proche n'est pas le bon
+
+**OpenStreetMap et la BDCom ne partagent aucun identifiant.** Rien de public ne les relie, donc
+rattacher une carte à un local relevé est une déduction **spatiale**. Mesuré le 24 août sur
+658 locaux OpenStreetMap autour des Halles :
+
+| | p10 | p25 | **p50** | p75 | p90 | max |
+| --- | --- | --- | --- | --- | --- | --- |
+| Distance au local BDCom le plus proche | 1 m | 2 m | **5 m** | 24 m | 58 m | 101 m |
+
+| Rayon | Aucun candidat | Exactement un | Médiane | Max |
+| --- | --- | --- | --- | --- |
+| 10 m | 35 % | 17 % | 1 | 13 |
+| **25 m** | **24 %** | **3 %** | **5** | **125** |
+| 40 m | 18 % | 1 % | 13 | 136 |
+
+**Et le plus proche est souvent le mauvais commerce** : « Les Trésors Pets » dans
+OpenStreetMap a **« BA&SH » à 0 m** dans BDCom ; « Carhartt Work in Progress » a « STUDIO
+PIERRE CARDIN ». Sur les 275 locaux qui portent une adresse, **154 seulement** partagent
+numéro et voie avec leur plus proche voisin BDCom.
+
+**Auto-sélectionner aurait donc rattaché l'histoire d'un local à un autre** — mot pour mot la
+seconde des deux erreurs fondatrices de `PLAN.md` §2.5, refaite à un nouvel endroit et cette
+fois dans le code plutôt que dans une phrase. La fiche liste les candidats dans 25 m avec
+adresse, activité, enseigne et distance, et laisse le lecteur trancher. **La règle générale :
+quand deux jeux de données n'ont pas de clé commune, le rattachement est une question posée au
+lecteur, pas une réponse calculée pour lui.**
+
+### `observed = false` est écrit et testé, mais pas encore atteignable
+
+Le piège nommé par le ticket est tenu : `observed = false` rend **« Non observé »**, jamais
+« vacant » ni « plus un commerce », vérifié par test sur la ligne exacte du distant (local
+54653). **Mais aucun appelant anonyme ne peut atteindre cette ligne aujourd'hui** : la liste de
+candidats vient de `compass_premises_within` épinglé sur 2023, donc tout local listé y est
+observé ; et 2017 comme 2020 reviennent `withheld`. La branche s'allumera le jour où la licence
+APUR sera lue. C'est du travail prêt d'avance, et c'est le bon moment pour l'écrire — pas le
+jour où la licence tombe.
+
+### Le défaut trouvé en chemin : une conclusion tirée par-dessus une retenue
+
+Sur un millésime `retail_only`, `compass_address_timeline` justifie une absence par « une
+absence signifie « plus un commerce », pas « vacant » ». **« Plus un commerce » suppose que le
+local en était un avant — et c'est précisément ce que la même réponse retient** pour un
+appelant anonyme. La fonction conclut à partir de deux millésimes dont elle vient de dire
+qu'elle ne dirait rien.
+
+Famille des points 9 à 12, variante nouvelle : non plus une retenue rendue comme un fait, mais
+une **conclusion posée par-dessus une retenue**. `DIAGNOSTIC.md` §15, **ouvert** : le correctif
+est dans le SQL, le ticket était de l'interface, et la phrase existe aussi dans `PLAN.md` —
+corriger l'un sans l'autre laisserait la doctrine contredire la base. **À trancher, pas à
+corriger mécaniquement.**
+
+### Trois choses à savoir pour la prochaine session d'interface
+
+- **Le panneau ne s'ouvre que depuis la vue liste.** Les popups Leaflet sont des chaînes HTML
+  brutes (`useMapLayers.ts`), donc y poser un bouton demande un pont d'événements dans une
+  couche qui porte déjà un défaut ouvert. Laissé de côté volontairement.
+- **Les pièces restent en français sur la page anglaise.** `evidence` et `confidence_reason`
+  viennent de la base, qui n'écrit qu'en français, et la fiche les relaie verbatim : les
+  traduire serait réécrire la pièce. Le correctif est côté base.
+- **La page Méthodologie a gagné une section**, parce que la règle des trois états et les
+  quatre niveaux atteignent maintenant l'écran. `CLAUDE.md` : une règle affichée est publiée.
 
 ---
 
@@ -255,7 +346,7 @@ Ce qui est nouveau :
   `docs/PLAN.md` portaient encore la composition du gel du 9 août. Détail plus
   bas, à « La composition de fiabilité est la métrique de qualité ».
 
-**État vérifié le 23 août** : `tsc --build` sans erreur, **73 tests au vert sur
+**État vérifié le 23 août** *(remesuré le 24 août : **96 tests sur sept fichiers**)* : `tsc --build` sans erreur, **73 tests au vert sur
 six fichiers**. C'est le point de départ propre de la prochaine session.
 
 ### Par où reprendre
@@ -272,6 +363,17 @@ migration posée, ledger à 26, les deux portes au vert contre le distant — vo
 section du 24 août, session 2, en tête de page. Il débloquait `w0-fiche` (#8),
 qui sans lui aurait affiché « non observé, non vacant » sur un local qui était
 vacant.
+
+~~`w0-fiche` (**#8**)~~ **est fait depuis le 24 août, session 4** — voir la section en tête de
+page. **L'issue #8 est encore ouverte au moment où ces lignes sont écrites** : la fermeture et
+la régénération du tableau d'ordre restent à faire. Deux choses en sont sorties qui n'y
+étaient pas : le rattachement OpenStreetMap ↔ BDCom, qui n'a pas de clé et se pose donc au
+lecteur, et `DIAGNOSTIC.md` §15, **ouvert**, qui demande une décision avant correctif.
+
+**État GitHub remesuré le 24 août par `gh`, à la clôture de la session 4 : 45 ouvertes,
+3 fermées** — `#7`, `#10`, `#51`. Il valait 44/3 à la clôture de la session 3 ; `#53`
+(`w0-mcp-verif`) a été ouverte entre-temps. Un état GitHub est une mesure : la remesurer, pas
+la recopier.
 
 ~~`w0-provenance` (**#10**)~~ **est clos depuis le 24 août, session 3, issue fermée** :
 provenance par couche, démontrée contre le distant par `explain_score` — voir la
@@ -300,9 +402,10 @@ silence. **Corrigé, posé et fermé le même jour par la session 2.**
 
 Trois avertissements pour la suite, qui ne se déduisent pas des tickets :
 
-- **`w0-fiche` (#8) est du travail d'interface, donc le terrain de Lovable.** La
-  règle de `CLAUDE.md` s'applique en plein : `git pull` avant, pousser après, et
-  ne pas éditer les mêmes fichiers des deux côtés dans la même session.
+- ~~**`w0-fiche` (#8) est du travail d'interface, donc le terrain de Lovable.**~~ **Fait le
+  24 août.** Lovable était indisponible, donc pas de synchronisation croisée à craindre ce
+  jour-là — mais l'avertissement vaut pour la suite : tout doit être poussé avant le
+  1er septembre, date à laquelle Lovable reprend la main sur l'arbre qu'il trouvera.
 - ~~**`w0-provenance` (#10) a le rayon d'action le plus large du lot.**~~ **Fait le
   24 août.** L'avertissement s'est vérifié : le changement a touché `src/core/`,
   les deux appelants de production, `mcp-server/src/context.ts` et
@@ -494,7 +597,7 @@ vite 6. Aucun code applicatif non plus.
 | Vérification | Résultat |
 | --- | --- |
 | `npm.cmd run typecheck` | passe |
-| `npm.cmd run test` | 73 tests sur 73 |
+| `npm.cmd run test` | 73 tests sur 73 *(chiffre du 23 août — **96 sur 96 au 24 août**, fin de session 4)* |
 | `npm.cmd run build` | passe — 1 865 modules |
 | `npm.cmd run build:dev` | passe — **seul chemin qui charge `lovable-tagger`** |
 | Serveur de dev + navigateur | page rendue, zéro erreur console, aucune requête en échec |
