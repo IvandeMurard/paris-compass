@@ -30,6 +30,7 @@ npm.cmd run typecheck   # tsc --build
 npm.cmd run test        # vitest
 npm.cmd run dev
 npm.cmd run build       # production
+npm.cmd run sessions    # regenere le tableau d'ordre de docs/SESSIONS.md depuis GitHub
 npm.cmd run build:dev   # mode development — seul chemin qui charge lovable-tagger
 ```
 

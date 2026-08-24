@@ -54,26 +54,56 @@ avec la session : un défaut trouvé va dans DIAGNOSTIC.md, un chiffre remesuré
 dans le fichier qui le portait, un piège dans docs/REPRISE.md. Ne me résume que
 ce que tu ne peux pas faire toi-même — l'état GitHub (fermer l'issue, en ouvrir
 une), et ce qui demande une décision.
+
+Avant de pousser, lance npm.cmd run sessions et commite ce qu'il change. Si tu
+as touché à l'ordre, au modèle ou aux consignes d'une session, c'est dans
+scripts/sessions.ts pour les deux premiers, dans docs/SESSIONS.md hors du bloc
+généré pour la troisième.
 ```
 
 Inutile d'y rappeler `npm.cmd`, la pureté de `src/core/`, `Measured<T>` ou l'encadrement des
 loyers : `CLAUDE.md` est chargé à chaque session.
 
+### Comment ce fichier reste juste
+
+`CLAUDE.md` porte la règle : **une documentation n'est pas une mesure.** Un tableau d'ordre
+tapé à la main vieillit dès qu'une session ferme une issue — c'est arrivé deux fois le
+24 août. Le fichier est donc coupé en deux.
+
+| Partie | Origine | Qui la change |
+| --- | --- | --- |
+| Le bloc entre `BEGIN sessions` et `END sessions` | **dérivé** de `docs/tickets/` et de l'état GitHub | `npm.cmd run sessions`, jamais la main |
+| L'ordre et le choix de modèle | décisions humaines | les constantes `ORDER` et `MODEL` de `scripts/sessions.ts` |
+| Les consignes par session, plus bas | jugement sur un ticket | à la main, hors du bloc généré |
+
+Le générateur **refuse de réécrire** s'il ne peut pas joindre GitHub : mieux vaut une table
+datée qu'une table devinée. Il signale aussi les tickets sans issue et compte ce qui reste
+hors de la file, pour qu'aucun ticket ne disparaisse en silence.
+
 ---
 
 ## L'ordre
 
-| # | Session | Issue | Modèle | Ouvre la voie à |
-| --- | --- | --- | --- | --- |
-| ~~1~~ | ~~`w0-deploy`~~ — **fait, #7 fermée le 24 août** | [#7](https://github.com/IvandeMurard/paris-compass/issues/7) | Opus 5 | #8, #6, #9 |
-| **2** | `w0-history` — **nouveau, bloque #8** | [#51](https://github.com/IvandeMurard/paris-compass/issues/51) | Opus 5 | #8 |
-| 3 | `w0-provenance` | [#10](https://github.com/IvandeMurard/paris-compass/issues/10) | Opus 5 | — |
-| 4 | `w0-fiche` | [#8](https://github.com/IvandeMurard/paris-compass/issues/8) | Opus 5 | toute la vague 1 |
-| 5 | `w0-cron` | [#6](https://github.com/IvandeMurard/paris-compass/issues/6) | Opus 5 | — |
-| 6 | `w0-plu` | [#9](https://github.com/IvandeMurard/paris-compass/issues/9) | Sonnet 5 | — |
-| 7 | `w1-chantiers` | [#11](https://github.com/IvandeMurard/paris-compass/issues/11) | Sonnet 5 | — |
-| 8 | `w1-terrasses` | [#15](https://github.com/IvandeMurard/paris-compass/issues/15) | Sonnet 5 | — |
-| 9 | `w1-survie` | [#14](https://github.com/IvandeMurard/paris-compass/issues/14) | Opus 5 | #34 |
+<!-- BEGIN sessions -- généré par `npm.cmd run sessions`, ne pas éditer à la main -->
+
+*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 24/08/2026.*
+
+| # | Ticket | Issue | État | Prio | Modèle |
+| --- | --- | --- | --- | --- | --- |
+| ~~1~~ | ~~`w0-deploy`~~ | [#7](https://github.com/IvandeMurard/paris-compass/issues/7) | **fait** | P0 | Opus 5 |
+| 2 | `w0-history` | [#51](https://github.com/IvandeMurard/paris-compass/issues/51) | ouvert | P0 | Opus 5 |
+| 3 | `w0-provenance` | [#10](https://github.com/IvandeMurard/paris-compass/issues/10) | ouvert | P0 | Opus 5 |
+| 4 | `w0-fiche` | [#8](https://github.com/IvandeMurard/paris-compass/issues/8) | ouvert | P0 | Opus 5 |
+| 5 | `w0-cron` | [#6](https://github.com/IvandeMurard/paris-compass/issues/6) | ouvert | P0 | Opus 5 |
+| 6 | `w0-plu` | [#9](https://github.com/IvandeMurard/paris-compass/issues/9) | ouvert | P0 | Sonnet 5 |
+| 7 | `w1-chantiers` | [#11](https://github.com/IvandeMurard/paris-compass/issues/11) | ouvert | P0 | Sonnet 5 |
+| 8 | `w1-terrasses` | [#15](https://github.com/IvandeMurard/paris-compass/issues/15) | ouvert | P0 | Sonnet 5 |
+| 9 | `w1-survie` | [#14](https://github.com/IvandeMurard/paris-compass/issues/14) | ouvert | P0 | Opus 5 |
+
+**Hors de cette file : 29 tickets ouverts**, à prendre après la vague 0 — 
+le détail par vague est dans [`PLAN-ACTION-VACANCE.md`](./PLAN-ACTION-VACANCE.md).
+
+<!-- END sessions -->
 
 **La règle de modèle en une phrase.** Opus 5 dès que le « Comment » du ticket contient un
 arbitrage ou traverse plusieurs couches ; Sonnet 5 quand c'est une ingestion de source qui

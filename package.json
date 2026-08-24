@@ -16,7 +16,8 @@
     "eval:anon": "tsx scripts/eval/anon-http.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sessions": "tsx scripts/sessions.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
