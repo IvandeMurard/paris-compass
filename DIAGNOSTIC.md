@@ -601,6 +601,71 @@ ailleurs. Situation différente, hors périmètre, non modifiée.
 
 ---
 
+## 12. La même retenue, annoncée comme une absence à l'appelant connecté — le 24 août
+
+**Le correctif du point 10 n'a tenu que six heures, et il a raté la moitié du problème.**
+`20260824000001` a rendu le chemin **anonyme** honnête et laissé le chemin **authentifié**
+affirmer — avec, cette fois, un marqueur qui vouche activement pour le mensonge.
+
+**La cause est un désaccord entre deux règles qui ne se regardaient pas.**
+
+| | Qui est restreint |
+| --- | --- |
+| La politique RLS de `20260809000008` | `to anon, authenticated` |
+| Le test d'appelant de `20260809000010` | tout ce qui n'est pas `anon` est **privilégié** |
+
+Une fonction `SECURITY INVOKER` hérite des deux. Pour un appelant `authenticated`, le test de
+claim conclut « privilégié » et pose donc `withheld = false` — *rien ne vous est caché* — pendant
+que RLS retire silencieusement les lignes 2017 en dessous. La jointure ne trouve rien et
+`observed` revient **`false`**.
+
+**Mesuré le 24 août sur le distant**, contre `20260824000001` telle que déployée, local 54652,
+avec `set local role authenticated` pour que RLS s'applique vraiment :
+
+| Millésime | `withheld` | `observed` | `is_vacant` | Vérité |
+| --- | --- | --- | --- | --- |
+| 2017 | `false` | **`false`** | `null` | relevé, et **vacant** |
+| 2020 | `false` | **`false`** | `null` | relevé, galerie d'art |
+| 2023 | `false` | `true` | `false` | correct |
+
+`withheld = false` est désormais une **dénégation explicite** : le point 10 a remplacé un silence
+ambigu par une affirmation contresignée. Pour l'appelant anonyme le correctif tenait ; pour
+l'appelant connecté il a empiré la lisibilité du défaut.
+
+**Et la règle était écrite depuis le 9 août, dans le fichier d'à côté.** `20260809000008` décrit
+ce défaut avant qu'il n'arrive, à propos de la fonction sœur :
+
+> `compass_address_timeline` est `SECURITY INVOKER`, donc elle obéit à RLS. Avec la politique
+> ci-dessus, un relevé 2017 ne joindrait tout simplement pas — et la fonction émettrait
+> `observed = false`, c'est-à-dire « ce local n'a pas été relevé cette année-là ». C'est faux.
+> [...] Donc la fonction devient `SECURITY DEFINER` : elle voit toutes les lignes et décide de ce
+> qu'elle divulgue.
+
+Ce paragraphe décrit `compass_premise_history` mot pour mot. Il était dans une migration que rien
+n'obligeait à lire, et `20260824000001` a argumenté l'inverse dans son propre en-tête.
+
+**Corrigé par `20260824000002_premise_history_definer.sql`** : la fonction passe `SECURITY
+DEFINER`, voit toutes les lignes, et la divulgation redevient une décision qu'elle prend au lieu
+d'un effet de bord de ce que la jointure a bien voulu rendre. Le correctif d'`is_vacant` du
+point 11 est conservé — le brouillon dont vient ce raisonnement, lui, ne l'avait pas.
+
+**La règle devient mécanique, `I18`** : une fonction `compass_*` qui porte une colonne `observed`
+**doit** être `SECURITY DEFINER`. C'est un invariant **structurel** et non comportemental, et
+délibérément : le lanceur pose `request.jwt.claims` sur une connexion privilégiée et n'émet jamais
+`set local role`, donc **RLS ne s'applique jamais pendant qu'il tourne**. Ce défaut est invisible à
+tout test de comportement que la porte sait exprimer. Mesuré : deux fonctions portent `observed`,
+la requête rendait **une** ligne avant `20260824000002` et zéro après.
+
+Les deux fonctions `_within` restent `INVOKER` légitimement : elles n'ont pas de colonne
+`observed`, donc RLS leur coûte des **lignes** et non la vérité.
+
+**Trouvé** en lisant un brouillon non commité laissé dans le worktree de la session qui avait
+découvert le point 10 — elle était arrivée à `SECURITY DEFINER` par ce même chemin, et n'a jamais
+atterri. La leçon n'est pas sur SQL : **une session qui se termine sans pousser emporte son
+raisonnement avec elle**, et le suivant refait le trajet ou, ici, prend le mauvais embranchement.
+
+---
+
 ## Ordre d'attaque suggéré
 
 1. Point 1 — c'est une donnée fausse qui pilote un filtre. Rien d'autre ne devrait passer avant.

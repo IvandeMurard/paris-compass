@@ -124,6 +124,14 @@ sondes `premise_history`. Composition de fiabilité inchangée à **57,31 %**
 établi+corroboré, dérive nulle : le correctif ne déplace aucun chiffre publié.
 
 **Issue [#51](https://github.com/IvandeMurard/paris-compass/issues/51) fermée** le
-24 août à 15h48 UTC. Rien ne reste.
+24 août à 15h48 UTC, sur le critère anonyme, qui est bien démontré.
+
+> **Mais le correctif a raté l'appelant connecté**, et c'est un défaut distinct,
+> sans issue au 24 août. `20260824000001` était `SECURITY INVOKER` : pour un
+> appelant `authenticated`, le test de claim pose `withheld = false` pendant que
+> RLS retire les lignes 2017 dessous, et `observed` revient `false` sur un local
+> relevé et vacant. Corrigé par `20260824000002_premise_history_definer.sql`,
+> **écrite et non poussée**. `DIAGNOSTIC.md` §12, et l'invariant `I18` qui rend
+> la règle mécanique.
 
 Voir `DIAGNOSTIC.md` §10 et §9, et [`docs/PLAN-ACTION-VACANCE.md`](../PLAN-ACTION-VACANCE.md).

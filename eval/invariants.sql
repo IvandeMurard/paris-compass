@@ -328,3 +328,42 @@ where h.vintage_year = 2023
        or (s.expect_observed and (h.is_vacant is null or h.activity_code is null))
        or (not s.expect_observed and h.is_vacant is not null))
 limit 20;
+
+-- @invariant I18 :: une fonction compass_* qui porte une colonne observed obeit a RLS
+-- A structural invariant, not a behavioural one, and deliberately so: the runner
+-- impersonates a role by setting request.jwt.claims on a privileged connection
+-- and never issues `set local role`, so RLS never applies while it runs. The
+-- defect this guards against is invisible to every behavioural test the gate can
+-- express — it only appears when RLS is really in force AND the caller test
+-- disagrees with the RLS policy about who is privileged. Which they do:
+--
+--   the RLS policy of 20260809000008   restricts `to anon, authenticated`
+--   the caller test of 20260809000010  treats anything <> 'anon' as privileged
+--
+-- So for an `authenticated` caller, an INVOKER function is told by the claim that
+-- nothing must be withheld, while RLS removes the rows underneath. A function
+-- whose failure mode is missing ROWS degrades to silence — bad, but the caller
+-- can decline to conclude. A function carrying an `observed` column degrades to
+-- `observed = false`, which is a statement about the world: "this premise was not
+-- surveyed that year", said of a premise that was.
+--
+-- 20260809000008 wrote the rule when it moved compass_address_timeline to
+-- SECURITY DEFINER, and it is quoted in 20260824000002. It was a paragraph in a
+-- migration nobody had to read, so 20260824000001 broke it six hours after
+-- being told about it in the file next door. Now it is a check.
+--
+-- The two `_within` functions stay INVOKER legitimately: they have no `observed`
+-- column, so RLS costs them rows and not truth.
+--
+-- Measured 2026-08-24: two compass_* functions carry `observed` —
+-- compass_address_timeline (definer, correct since 20260809000008) and
+-- compass_premise_history (invoker until 20260824000002). This query returned
+-- exactly one row before that migration, and returns none after.
+select p.proname, p.prosecdef, p.proargnames
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.proname like 'compass\_%'
+  and 'observed' = any(p.proargnames)
+  and not p.prosecdef
+limit 20;

@@ -8,7 +8,51 @@ contrat d'évaluation).
 
 ---
 
-## Le 24 août, session 2 : `w0-history` est fait, et posé sur le distant
+## Le 24 août : le correctif de `w0-history` a raté l'appelant connecté
+
+**`20260824000002_premise_history_definer.sql` est écrite, éprouvée, et NON
+posée.** À pousser avant toute autre chose : `docs/REPRISE.md` point 8 pour la
+commande. C'est le dernier état connu du distant qui compte, pas la section
+suivante, qui décrit une victoire de six heures.
+
+**Ce qui s'est passé.** `20260824000001` a rendu le chemin **anonyme** honnête et
+laissé le chemin **authentifié** affirmer. La politique RLS de `20260809000008`
+restreint `to anon, authenticated` ; le test d'appelant de `20260809000010` juge
+privilégié tout ce qui n'est pas `anon`. Une fonction `SECURITY INVOKER` hérite
+des deux : pour un utilisateur connecté, le claim pose `withheld = false` —
+*rien ne vous est caché* — pendant que RLS retire les lignes 2017 dessous, et
+`observed` revient `false`. Mesuré sur le distant, local 54652, 2017 :
+`withheld = false, observed = false` sur un local relevé **et vacant**.
+
+**C'est pire que le silence qu'il remplaçait** : le marqueur contresigne
+maintenant le mensonge. `DIAGNOSTIC.md` §12.
+
+**La règle était écrite depuis le 9 août**, dans `20260809000008`, à propos de la
+fonction sœur — « donc la fonction devient `SECURITY DEFINER` : elle voit toutes
+les lignes et décide de ce qu'elle divulgue ». Le paragraphe décrit
+`compass_premise_history` mot pour mot. Il vivait dans une migration que rien
+n'obligeait à lire, et `20260824000001` a argumenté l'inverse dans son en-tête.
+**`I18` en fait une vérification** : une fonction `compass_*` portant une colonne
+`observed` doit être `SECURITY DEFINER`. Structurel et non comportemental, parce
+que le lanceur n'émet jamais `set local role` — RLS ne s'applique **jamais**
+pendant qu'il tourne, donc ce défaut est invisible à tout test de comportement
+que la porte sait exprimer.
+
+> **Trouvé dans un worktree, pas dans le code.** La session du 24 août qui a
+> *découvert* le défaut du point 10 y avait laissé un brouillon **non commité**
+> de la migration, qui était arrivé à `SECURITY DEFINER` par ce chemin exact. Il
+> n'a jamais atterri. **Une session qui se termine sans pousser emporte son
+> raisonnement avec elle**, et la suivante refait le trajet — ou prend le mauvais
+> embranchement, ce qui est arrivé ici. Le worktree a été supprimé après reprise
+> du raisonnement dans `20260824000002`.
+
+**Sur le suivi.** `#51` reste **fermée à juste titre** : son critère portait sur
+l'appel **anonyme**, et il est démontré. Le trou de l'appelant connecté est un
+défaut **distinct**, à ouvrir en issue propre — il n'a pas d'issue au 24 août.
+
+---
+
+## Le 24 août, session 2 : `w0-history` est posé sur le distant
 
 **Le quatrième défaut de licence est corrigé**, par
 `supabase/migrations/20260824000001_premise_history_withholding.sql` — et par la
@@ -210,17 +254,18 @@ direct le 17 août sur la base elle-même, pas déduit :
 
 | | Distant `dbefhvmyfmmhjeetdddu` |
 | --- | --- |
-| Migrations au ledger `supabase_migrations` | **26**, de `20250417000001` à `20260824000001` — remesuré le 24 août **après** la poussée de la session 2. Il était à 25 quelques heures plus tôt, dans la même journée. |
+| Migrations au ledger `supabase_migrations` | **26**, de `20250417000001` à `20260824000001` — remesuré le 24 août après la poussée de la session 2. Il était à 25 quelques heures plus tôt. `supabase/migrations/` en compte **27** : `20260824000002` est écrite et **non poussée**. |
 | Tables / fonctions `compass_*` | **18 / 10** — mêmes chiffres que la base de référence |
 | Locaux (`premise_location`) | 85 418 |
 | Relevés (`premise_observation`) | 228 275 — les trois millésimes additionnés |
 | Tronçons de voie / quartiers | 25 094 / 80 |
 | Établissements SIRENE | 68 770 |
 
-**Le dépôt et le distant portent le même schéma** : les **26** fichiers de
-`supabase/migrations/` sont au ledger, `20260824000001` comprise. Vérifié le
-24 août après la poussée, corps de fonction comparé au fichier et non seulement la
-signature. Détail au point 8 de « La suite, par ordre ».
+**Le dépôt et le distant portaient le même schéma** jusqu'à `20260824000001`
+comprise — les 26 fichiers sont au ledger, vérifié le 24 août après la poussée,
+corps de fonction comparé au fichier et non seulement la signature. **Le 27e,
+`20260824000002`, n'est pas posé** : voir la section en tête de page. Détail au
+point 8 de « La suite, par ordre ».
 
 **En local**, l'agrégat de référence reste en place et sert toujours : dix-neuf
 migrations, quatre sources chargées, porte d'évaluation au vert — rejouée et
@@ -946,6 +991,16 @@ l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
    **Le classificateur a de nouveau refusé la commande, et la relancer à la main
    depuis PowerShell a suffi** — deuxième fois sur trois poussées. Ce n'est pas un
    blocage, c'est une étape : préparer la ligne, la donner, la faire lancer.
+
+   **En attente : `20260824000002_premise_history_definer.sql`**, qui corrige le
+   trou de l'appelant connecté laissé par la précédente (`DIAGNOSTIC.md` §12).
+   Écrite, répétée dans une transaction annulée contre le distant : `I18` échoue
+   avant et passe après, `I16` et `I17` restent au vert, et l'appelant
+   `authenticated` passe de `observed = false` à `observed = true, is_vacant =
+   true, Locaux Vacants` sur le local 54652 en 2017. Vérifié aussi que sous
+   `SECURITY DEFINER` — où RLS ne protège plus rien — l'appelant anonyme reste
+   retenu : `withheld = true`, tout nul. Même commande, puis rejouer les deux
+   portes.
 
    ~~**Ce que la porte d'évaluation ne couvrait pas.**~~ **Fait le 17 août** :
    I12 et I13 ajoutées à `eval/invariants.sql`, exécutées par le vrai lanceur
