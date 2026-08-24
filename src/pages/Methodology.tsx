@@ -47,6 +47,34 @@ const COPY = {
     rentTitle: 'Loyer résidentiel du quartier',
     rentBody:
       'Le chiffre affiché est le loyer de référence en €/m²/mois publié par la Ville de Paris dans le cadre de l’encadrement des loyers. Il ne concerne que le logement et exclut explicitement les locaux commerciaux et professionnels : aucune base publique ne publie les loyers commerciaux. Compass ne l’utilise donc que pour une chose — situer le niveau de vie résidentiel du quartier, c’est-à-dire un signal de zone de chalandise. Il n’est jamais multiplié par une surface, ne produit aucune estimation de loyer commercial et ne filtre aucun résultat. La grille préfectorale découpe chaque quartier en 32 cases (4 époques de construction × 4 tailles de logement × meublé ou non) : Compass en fait la moyenne plutôt que d’en épingler une seule, et affiche le millésime de l’arrêté à côté du chiffre. Le millésime publié en open data accuse un décalage sur celui en vigueur.',
+    historyTitle: 'L’historique d’un local, et son rattachement',
+    historyBody:
+      'La chronologie affichée dans le panneau « Historique » n’est pas rédigée : elle est produite par une seule fonction de la base, qui assemble les relevés de terrain de l’APUR (BDCom, millésimes 2017, 2020 et 2023) et les annonces légales du BODACC. Chaque ligne porte le fait, la pièce qui le justifie, un niveau de fiabilité et la règle qui a produit ce niveau. Compass affiche ces lignes telles quelles et n’en résume aucune : les deux erreurs qui ont conduit à cette règle ont été commises dans la phrase, jamais dans la base.',
+    historyReadingTitle: 'Trois états à ne pas confondre',
+    historyReading: [
+      'Observé — le local a été relevé cette année-là, et l’activité relevée est affichée.',
+      'Non observé — le local n’a pas été relevé cette année-là. Ce n’est ni « vacant », ni « ce n’est plus un commerce » : ce sont des conclusions, et la ligne ne les porte pas.',
+      'Millésime retenu — la licence de ce millésime n’a pas été lue, donc ni son contenu ni l’existence d’un relevé ne sont divulgués. Une retenue n’est pas une absence.',
+    ],
+    historyNoLabel:
+      'Quand une ligne n’a pas d’activité renseignée, elle le dit. Aucune valeur n’est reprise d’une autre colonne, d’une autre année ni d’OpenStreetMap pour combler le trou : un libellé placé sous une date qui ne le porte pas est exactement l’erreur que cette règle sert à ne plus commettre.',
+    confidenceTitle: 'Les quatre niveaux de fiabilité',
+    confidenceIntro:
+      'Le niveau n’est jamais saisi : il est dérivé de colonnes existantes. Pas de pourcentage de confiance — un tel chiffre serait invérifiable, donc refusé.',
+    confidence: [
+      ['Établi', 'La source nomme directement ce local, et la pièce est jointe.'],
+      ['Corroboré', 'Deux sources publiques indépendantes placent l’entreprise ici ; aucune ne nomme le local.'],
+      ['Probable', 'Le fait est documenté, mais son rattachement à ce local est déduit.'],
+      ['Indéterminé', 'La source est muette, et le dit.'],
+    ],
+    matchTitle: 'Pourquoi Compass ne choisit pas le local à votre place',
+    matchBody:
+      'Les locaux affichés sur la carte viennent d’OpenStreetMap ; les relevés viennent de la BDCom de l’APUR. Les deux jeux ne partagent aucun identifiant, et rien de public ne les relie : le rattachement ne peut être que spatial, donc déduit. Mesuré le 24 août 2026 sur 658 locaux OpenStreetMap autour des Halles, le local BDCom le plus proche est à 5 m pour la moitié d’entre eux, 24 m au troisième quartile et 58 m au neuvième décile ; dans un rayon de 25 m il y a une médiane de 5 candidats, et jusqu’à 125 dans une galerie marchande. Choisir le plus proche attribuerait régulièrement l’histoire d’un local à un autre — le panneau liste donc les candidats avec leur adresse et leur enseigne, et vous laisse trancher.',
+    matchGapBody:
+      'Le millésime 2023 ne couvre que les commerces et services commerciaux : un local vacant ou non commercial n’y figure pas, et le panneau peut donc n’avoir aucun candidat à proposer. Cette absence ne dit pas qu’il n’y a rien à cette adresse.',
+    surveyStepTitle: 'Le pas de trois ans',
+    surveyStepBody:
+      'BDCom est un recensement triennal. Un local devenu boulangerie, puis vacant, puis kebab entre deux enquêtes s’affiche « boulangerie → kebab » : un local peut paraître stable en ayant tourné trois fois. Et une suite d’activités ne dit jamais pourquoi quelqu’un est parti — vente réussie, dépôt de bilan, départ en retraite et immeuble repris s’affichent à l’identique.',
     detectTitle: 'Détection des locaux',
     detectBody:
       'Les locaux proviennent d’OpenStreetMap : un local est considéré comme vacant lorsqu’il porte un attribut de local vide ou de commerce désaffecté, et comme occupé lorsqu’une activité y est renseignée. La couverture dépend donc des contributions de la communauté : un local fermé récemment et non signalé n’apparaîtra pas.',
@@ -99,6 +127,34 @@ const COPY = {
     rentTitle: 'Neighbourhood residential rent',
     rentBody:
       'The figure shown is the reference rent in €/m²/month published by the City of Paris as part of rent control. It covers housing only and explicitly excludes commercial and professional premises: no public database publishes commercial rents. Compass therefore uses it for one thing — placing the residential standard of living of the neighbourhood, i.e. a catchment-area signal. It is never multiplied by a floor area, produces no commercial rent estimate, and filters no results. The prefectural grid splits each quartier into 32 cells (4 construction periods × 4 dwelling sizes × furnished or not): Compass averages all of them rather than pinning one, and displays the vintage of the decree next to the figure. The vintage published as open data lags the one in force.',
+    historyTitle: 'A premise’s history, and how it is linked',
+    historyBody:
+      'The chronology shown in the "History" panel is not written: it is produced by a single database function that assembles APUR’s field surveys (BDCom, 2017, 2020 and 2023 vintages) and BODACC legal notices. Every line carries the fact, the record that justifies it, a confidence level and the rule that produced that level. Compass shows those lines as they come and summarises none of them: the two errors that led to this rule were made in the sentence, never in the database.',
+    historyReadingTitle: 'Three states not to be confused',
+    historyReading: [
+      'Surveyed — the premise was recorded that year, and the activity recorded is shown.',
+      'Not surveyed — the premise was not recorded that year. This is neither "vacant" nor "no longer a shop": those are conclusions, and the line does not carry them.',
+      'Withheld vintage — this vintage’s licence has not been read, so neither its content nor whether a record exists is disclosed. Withholding is not absence.',
+    ],
+    historyNoLabel:
+      'When a line has no activity recorded, it says so. No value is borrowed from another column, another year or OpenStreetMap to fill the gap: a label placed under a date that does not carry it is exactly the error this rule exists to stop repeating.',
+    confidenceTitle: 'The four confidence levels',
+    confidenceIntro:
+      'The level is never typed in: it is derived from existing columns. No confidence percentage — such a figure would be unverifiable, and is therefore refused.',
+    confidence: [
+      ['Established', 'The source names this premise directly, and the record is attached.'],
+      ['Corroborated', 'Two independent public sources place the business here; neither names the premise.'],
+      ['Probable', 'The fact is documented, but tying it to this premise is inferred.'],
+      ['Undetermined', 'The source is silent, and says so.'],
+    ],
+    matchTitle: 'Why Compass does not pick the premise for you',
+    matchBody:
+      'The premises on the map come from OpenStreetMap; the surveys come from APUR’s BDCom. The two datasets share no identifier and nothing public joins them: the link can only be spatial, and is therefore inferred. Measured on 24 August 2026 across 658 OpenStreetMap premises around Les Halles, the nearest BDCom premise sits at 5 m for half of them, 24 m at the third quartile and 58 m at the ninth decile; within 25 m there is a median of 5 candidates, and up to 125 in a shopping arcade. Picking the nearest would regularly attach one premise’s history to another — so the panel lists the candidates with their address and trading name, and leaves the call to you.',
+    matchGapBody:
+      'The 2023 vintage covers retail and commercial services only: a vacant or non-commercial unit is not in it, so the panel may have no candidate to offer. That absence does not say there is nothing at the address.',
+    surveyStepTitle: 'The three-year step',
+    surveyStepBody:
+      'BDCom is a triennial census. A unit that became a bakery, then vacant, then a kebab shop between two surveys shows as "bakery → kebab": a premise can look stable having turned over three times. And a sequence of activities never says why anyone left — a successful sale, a bankruptcy, a retirement and a repossessed building all render identically.',
     detectTitle: 'Detecting spaces',
     detectBody:
       'Spaces come from OpenStreetMap: a space is considered vacant when it carries a vacant-shop or disused-shop attribute, and occupied when an activity is recorded. Coverage therefore depends on community contributions: a recently closed space that hasn’t been reported won’t appear.',
@@ -204,6 +260,40 @@ const Methodology = () => {
         <section>
           <h2 className="text-xl font-semibold">{c.detectTitle}</h2>
           <p className="mt-3 text-muted-foreground">{c.detectBody}</p>
+        </section>
+
+        {/* Published here because the interface now renders it. `CLAUDE.md`: a rule that
+            reaches the screen is published on this page, like the scoring formulas. The
+            wording of the three states is the one `src/i18n/timelineText.ts` produces. */}
+        <section>
+          <h2 className="text-xl font-semibold">{c.historyTitle}</h2>
+          <p className="mt-3 text-muted-foreground">{c.historyBody}</p>
+
+          <h3 className="mt-4 font-semibold">{c.historyReadingTitle}</h3>
+          <ul className="mt-2 list-disc pl-5 space-y-1 text-muted-foreground">
+            {c.historyReading.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+          <p className="mt-3 text-muted-foreground">{c.historyNoLabel}</p>
+
+          <h3 className="mt-4 font-semibold">{c.confidenceTitle}</h3>
+          <p className="mt-2 text-muted-foreground">{c.confidenceIntro}</p>
+          <dl className="mt-2 space-y-1 text-muted-foreground">
+            {c.confidence.map(([level, meaning]) => (
+              <div key={level}>
+                <dt className="inline font-medium text-foreground">{level} — </dt>
+                <dd className="inline">{meaning}</dd>
+              </div>
+            ))}
+          </dl>
+
+          <h3 className="mt-4 font-semibold">{c.matchTitle}</h3>
+          <p className="mt-2 text-muted-foreground">{c.matchBody}</p>
+          <p className="mt-3 text-muted-foreground">{c.matchGapBody}</p>
+
+          <h3 className="mt-4 font-semibold">{c.surveyStepTitle}</h3>
+          <p className="mt-2 text-muted-foreground">{c.surveyStepBody}</p>
         </section>
 
         <section>

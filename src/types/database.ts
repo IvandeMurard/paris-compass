@@ -160,11 +160,83 @@ export type Database = {
     Views: {
       [_ in never]: never;
     };
+    /**
+     * The `compass_*` RPCs the browser actually calls.
+     *
+     * Only the ones that have a consumer are declared. A signature written here that
+     * nothing calls would be an unverified claim about the remote schema — the same
+     * failure `Measured<T>` exists to prevent, one level up. The argument names are the
+     * SQL parameter names: PostgREST matches on them, so a typo is a runtime 404, not a
+     * type error.
+     */
     Functions: {
-      [_ in never]: never;
+      compass_address_timeline: {
+        Args: { p_location_id: number };
+        Returns: {
+          occurred_on: string;
+          granularity: string;
+          source: string;
+          source_ref: string | null;
+          source_url: string | null;
+          source_licence: string | null;
+          kind: string;
+          /**
+           * Three values, three different statements, and flattening any two of them
+           * together is the defect this whole sheet exists to avoid:
+           * `true` surveyed, `false` NOT surveyed that year, `null` withheld.
+           */
+          observed: boolean | null;
+          withheld: boolean;
+          activity_code: string | null;
+          label: string | null;
+          detail: string | null;
+          amount_eur: number | null;
+          evidence: string | null;
+          confidence: Database['public']['Enums']['compass_confidence'];
+          confidence_rule: string | null;
+          confidence_reason: string | null;
+        }[];
+      };
+      compass_premises_within: {
+        Args: {
+          p_lat: number;
+          p_lng: number;
+          p_radius_m?: number;
+          p_vintage_year?: number;
+          p_limit?: number;
+        };
+        Returns: {
+          location_id: number | null;
+          ordre: number | null;
+          lat: number | null;
+          lng: number | null;
+          distance_m: number | null;
+          address: string | null;
+          arrondissement: number | null;
+          quartier_name: string | null;
+          street_segment_id: number | null;
+          activity_code: string | null;
+          activity_label: string | null;
+          activity_niv18: number | null;
+          activity_group: string | null;
+          is_vacant: boolean | null;
+          size_band: number | null;
+          size_label: string | null;
+          situation_label: string | null;
+          sign_name: string | null;
+          /** Count before `p_limit`, so the interface can say "22 of 125". */
+          total_matched: number | null;
+          /**
+           * A single row with `withheld = true` and every other column null is a
+           * vintage the caller may not receive. Zero rows means the radius is
+           * genuinely empty. Never conflate the two.
+           */
+          withheld: boolean;
+        }[];
+      };
     };
     Enums: {
-      [_ in never]: never;
+      compass_confidence: 'etabli' | 'corrobore' | 'probable' | 'indetermine';
     };
     CompositeTypes: {
       [_ in never]: never;

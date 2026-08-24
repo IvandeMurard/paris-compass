@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Home, Ruler, MapPin, Users, Wind, Volume2, Footprints, ExternalLink } from 'lucide-react';
+import { Home, Ruler, MapPin, Users, Wind, Volume2, Footprints, ExternalLink, History } from 'lucide-react';
 import type { Premise } from '@/services/opendata/types';
 import { noiseLabel, scoreLabel } from '@/services/opendata/scoring';
 import { MeasuredOrigin, MeasuredScore } from '@/components/MeasuredFigure';
+import PremiseHistorySheet from '@/components/PremiseHistorySheet';
 import { premiseAddressLabel, premiseTitle } from '@/i18n/premiseName';
 import { useLocale } from '@/i18n/locale';
 import { translateLabel } from '@/i18n/labels';
@@ -19,6 +20,7 @@ const COPY = {
     noResidential: 'Quartier non renseigné',
     noSize: 'Surface non renseignée', walkability: 'Marchabilité', footfall: 'Flux', air: 'Air',
     noise: 'Bruit', sources: 'Sources : OpenStreetMap, Ville de Paris, Copernicus', detail: 'Détail', na: 'n/d',
+    history: 'Historique',
   },
   en: {
     available: 'Available', occupied: 'Occupied', arr: 'th arrondissement',
@@ -28,6 +30,7 @@ const COPY = {
     noResidential: 'Neighbourhood not available',
     noSize: 'Size not specified', walkability: 'Walkability', footfall: 'Footfall', air: 'Air',
     noise: 'Noise', sources: 'Sources: OpenStreetMap, Ville de Paris, Copernicus', detail: 'Details', na: 'n/a',
+    history: 'History',
   },
 } as const;
 
@@ -60,6 +63,9 @@ const PropertyCard = ({ premise, airLabel }: PropertyCardProps) => {
 
   const { locale } = useLocale();
   const c = COPY[locale];
+  // Opened on demand, and only then does the panel query the database: a list holds up to
+  // 120 cards, and resolving each one on render would be 120 round trips nobody asked for.
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   // Labels are derived here rather than in the score component: turning a number into a
   // word is a presentation choice, whereas showing the caveat is not optional.
@@ -150,16 +156,31 @@ const PropertyCard = ({ premise, airLabel }: PropertyCardProps) => {
         </div>
       </CardContent>
 
-      <CardFooter className="flex justify-between border-t bg-muted/30 px-4 py-3">
+      <CardFooter className="flex flex-wrap items-center justify-between gap-2 border-t bg-muted/30 px-4 py-3">
         <span className="text-[11px] text-muted-foreground">
           {c.sources}
         </span>
-        <Button variant="ghost" size="sm" asChild>
-          <a href={osmUrl} target="_blank" rel="noreferrer">
-            {c.detail} <ExternalLink size={14} className="ml-1" />
-          </a>
-        </Button>
+        <span className="flex items-center gap-1">
+          {/* The card above is OpenStreetMap; the panel behind this button is APUR's survey
+              and BODACC. Two different datasets, so two different buttons — folding the
+              history into "Détail" would suggest one source answered both. */}
+          <Button variant="ghost" size="sm" onClick={() => setHistoryOpen(true)}>
+            <History size={14} className="mr-1" /> {c.history}
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <a href={osmUrl} target="_blank" rel="noreferrer">
+              {c.detail} <ExternalLink size={14} className="ml-1" />
+            </a>
+          </Button>
+        </span>
       </CardFooter>
+
+      <PremiseHistorySheet
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        point={{ lat: premise.lat, lng: premise.lng }}
+        originLabel={premiseTitle(premise.naming, premise.status, locale)}
+      />
     </Card>
   );
 };
