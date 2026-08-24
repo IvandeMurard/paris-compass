@@ -243,3 +243,88 @@ from public.compass_premises_within(
   2023::smallint, 5::integer
 )
 limit 20;
+
+-- @invariant I16 :: un appelant anonyme reçoit une affirmation là où un millésime est retenu, via compass_premise_history
+-- @as anon
+-- The fourth function carrying the licence rule, and the only one whose defect
+-- was not a silence. I9/I10 vouch for compass_address_timeline, I12/I13 for
+-- compass_scoring_context_within, I14/I15 for compass_premises_within; none of
+-- them says anything about this one, which returns one row per vintage whether
+-- an observation was found or not. RLS removing the row does not remove the row
+-- from the answer — it leaves the defaults behind.
+--
+-- Measured on the remote before 20260824000001, premise 54652 `60 QU ORFEVRES`,
+-- vintage 2017: privileged `observed = true, is_vacant = true, Locaux Vacants`,
+-- anonymous `observed = false, is_vacant = false, null`. The premise was vacant.
+-- Two fabricated facts, on the column the product is about.
+--
+-- Unlike I12/I14 there is nothing to turn into a visible row here: the function
+-- always answers, so a plain call is enough and `left join lateral ... on true`
+-- would add nothing.
+--
+-- The runner impersonates `anon` by setting request.jwt.claims on a privileged
+-- connection and never issues `set local role anon`, so RLS is NOT applied while
+-- this runs. That is the point: what it checks is that the function nulls its own
+-- content columns rather than relying on RLS to have emptied the join. Arm D
+-- (scripts/eval/anon-http.ts) plays the same premise through PostgREST with a
+-- publishable key and no database credentials, where RLS does apply.
+--
+-- 54652 is named explicitly so the sample can never become empty; the sweep
+-- behind it covers the premises where the defect actually showed — those with an
+-- observation in a vintage we may not redistribute.
+with sample as (
+  select l.id from public.premise_location l where l.id = 54652
+  union
+  (select o.location_id
+     from public.premise_observation o
+     join public.bdcom_vintage v on v.id = o.vintage_id
+    where not v.publicly_redistributable
+    order by o.location_id
+    limit 200)
+)
+select s.id as location_id, h.vintage_year, h.withheld, h.observed, h.is_vacant,
+       h.activity_code, h.activity_label, h.changed_from_previous
+from sample s
+cross join lateral public.compass_premise_history(s.id) h
+join public.bdcom_vintage v on v.year = h.vintage_year
+where not v.publicly_redistributable
+  and (h.withheld is distinct from true
+       or h.observed is not null
+       or h.is_vacant is not null
+       or h.activity_code is not null
+       or h.activity_label is not null
+       or h.activity_group is not null
+       or h.size_label is not null
+       or h.sign_name is not null
+       or h.match_method is not null
+       or h.changed_from_previous is not null)
+limit 20;
+
+-- @invariant I17 :: une absence réelle se lit comme une retenue de licence, via compass_premise_history
+-- @as anon
+-- The mirror, and the half an over-eager fix breaks. This function exists to
+-- report absences — `observed = false` on a redistributable vintage is a finding,
+-- not a gap, and 20260808000005 says so in its own header. Stamping the withheld
+-- marker or nulling `observed` across the board would trade one fabricated fact
+-- for the destruction of the function's purpose.
+--
+-- Two premises, both measured on the remote 2026-08-24:
+--   54652  observed in 2023 — `Antiquités`, so content must come through
+--       5  present in 2017 and 2020, absent from the 2023 retail-only vintage,
+--          so `observed` must stay false and `is_vacant` must be null — absence
+--          is not a measurement of vacancy either. 24 573 premises are in that
+--          case; before 20260824000001 every one of them was told it was not
+--          vacant in 2023, on the privileged path as well as the anonymous one.
+with sample(id, expect_observed) as (
+  values (54652::bigint, true), (5::bigint, false)
+)
+select s.id as location_id, s.expect_observed, h.vintage_year, h.withheld,
+       h.observed, h.is_vacant, h.activity_code
+from sample s
+cross join lateral public.compass_premise_history(s.id) h
+where h.vintage_year = 2023
+  and (h.withheld is distinct from false
+       or h.observed is distinct from s.expect_observed
+       or (s.expect_observed and (h.is_vacant is null or h.activity_code is null))
+       or (not s.expect_observed and h.is_vacant is not null))
+limit 20;

@@ -461,7 +461,7 @@ pas. Mesures dans `docs/REPRISE.md`, « La porte anonyme », et rejouables par
 
 ---
 
-## 10. Une retenue de licence rendue comme un fait — `compass_premise_history`, le 24 août
+## 10. Une retenue de licence rendue comme un fait — `compass_premise_history`, corrigé le 24 août
 
 **Le même défaut que le point 9, une quatrième fois, et sous sa forme la plus dure.** Les points
 9 et son correctif frère de `20260817000001` ont couvert `compass_scoring_context_within` et
@@ -498,11 +498,99 @@ positives, indiscernables d'un relevé réel. Aucun appelant, humain ou agent, n
 **Trouvé** en rejouant la porte en anonyme pour `w0-deploy` : la sonde balayait les quatre
 fonctions de licence, pas seulement celle du ticket.
 
-**Pas corrigé ici.** Le correctif change le type de retour, donc il se pose comme migration et
-touche tout appelant futur ; il sort du périmètre de `w0-deploy`, dont le critère portait sur
-`compass_premises_within`. À ouvrir en ticket propre. Le patron est écrit trois fois et n'a plus
-rien à inventer : recopier le test d'appelant de `20260817000001`, ajouter `withheld`, et rendre
-`observed` et `is_vacant` **nuls** plutôt que faux quand la retenue s'applique.
+~~**Pas corrigé ici.**~~ **Corrigé le 24 août par `20260824000001_premise_history_withholding.sql`**,
+ticket `w0-history` (#51). Le correctif change le type de retour, donc il s'est posé comme
+migration et engage tout appelant futur — raison pour laquelle il sortait du périmètre de
+`w0-deploy`.
+
+**Ce qui change.** Une colonne `withheld`, placée contre `observed` comme dans
+`compass_address_timeline` — la fonction sœur la plus proche, une ligne par millésime pour un
+local. `observed` devient **nul** et non faux quand le millésime est retenu ; toutes les colonnes
+de contenu sont **nullées explicitement**, et non laissées vides par la jointure. Ce dernier point
+n'est pas de la ceinture-et-bretelles : le bras A de la porte fait dire `anon` à une connexion
+**privilégiée**, où RLS ne s'applique pas — sans ce nullage, I16 lirait du vrai contenu 2017 sur
+une ligne marquée retenue. `changed_from_previous` se garde désormais d'un `observed` nul : `not
+null` vaut nul, la branche du CASE ne se déclenchait pas, et la retombée comparait deux nuls avec
+`IS DISTINCT FROM` — ce qui vaut **faux**, soit « rien n'a changé ici » affirmé depuis une licence.
+
+`SECURITY INVOKER` est **conservé**, délibérément. `compass_address_timeline` a dû passer
+`DEFINER` parce qu'elle joint des avis BODACC lisibles à des relevés qui ne le sont pas ; celle-ci
+ne lit que `premise_observation`, donc RLS suffit à *appliquer* la règle et la fonction n'a qu'à
+l'*annoncer*. Même partage qu'en `20260817000001`.
+
+**Vérifié en comportement**, d'abord dans une transaction jamais validée contre le distant, local
+54652, `60 QU ORFEVRES` :
+
+| Chemin | Millésime | `withheld` | `observed` | `is_vacant` | `activity_label` |
+| --- | --- | --- | --- | --- | --- |
+| anonyme — avant | 2017 | *(colonne absente)* | `false` | `false` | `null` |
+| anonyme — après | 2017 | `true` | **`null`** | **`null`** | `null` |
+| anonyme — après | 2020 | `true` | `null` | `null` | `null` |
+| anonyme — après | 2023 | `false` | `true` | `false` | `Antiquités` |
+| privilégié — après | 2017 | `false` | `true` | `true` | `Locaux Vacants` |
+
+La dernière ligne compte autant que les autres : le chemin privilégié est inchangé, et le local
+est toujours vu vacant en 2017.
+
+**Le couple d'invariants**, `I16` et `I17` de `eval/invariants.sql`, sur le patron de `I12`/`I13`
+et `I14`/`I15` — l'un contre l'affirmation fabriquée, l'autre contre la retenue excessive.
+**Éprouvés contre deux sabotages**, chacun dans une transaction annulée : une version qui pose le
+marqueur mais garde les valeurs par défaut (I16 **échoue**, 20 lignes ; I17 reste au vert), et une
+version qui retient tous les millésimes (I17 **échoue**, 2 lignes ; I16 reste au vert). Aucun des
+deux n'est vide, et aucun ne couvre le défaut de l'autre.
+
+**Et une sonde dans `npm.cmd run eval:anon`**, quatrième bras de la porte, sur les deux locaux
+54652 et 5. Jouée contre la fonction défectueuse encore en ligne, elle **échoue** — même signature
+que I14 en son temps.
+
+> **Ce que le bras A n'aurait jamais pu trouver.** L'ancienne fonction ne lisait pas du tout le
+> claim : faire dire `anon` à une connexion privilégiée lui rendait **tout le contenu**, et rien
+> n'avait l'air anormal. Seule une vraie clé publiable, avec RLS derrière, montrait la ligne
+> fabriquée. C'est l'argument le plus net pour l'existence du bras D — et il ne se déduit pas du
+> code des trois autres fonctions, qui, elles, lisent le claim.
+
+---
+
+## 11. Une absence rendue comme une occupation — `is_vacant`, le 24 août
+
+**Trouvé en corrigeant le point 10, et c'est le même défaut sans la licence.** Là où le point 10
+fabrique un fait à partir d'une retenue, celui-ci en fabrique un à partir d'une **absence** — et il
+est visible sur le **chemin privilégié**, donc il n'a jamais eu besoin d'un visiteur anonyme pour
+se produire.
+
+`compass_premise_history` calculait `coalesce(a.is_vacant, false)`. Quand le local ne figure pas
+dans un millésime, la jointure ne rend rien, `a.is_vacant` est nul, et le `coalesce` répond
+**`false`** : « ce local n'était pas vacant cette année-là », affirmé d'un local qui n'a pas été
+relevé du tout.
+
+**Mesuré le 24 août sur le distant** : **24 573 locaux** sur 85 418 sont absents du millésime 2023,
+qui est `retail_only`. Chacun s'entendait dire qu'il n'était pas vacant en 2023. Exemple, local 5 :
+
+| Millésime | `observed` | `is_vacant` — avant | `is_vacant` — après |
+| --- | --- | --- | --- |
+| 2017 | `true` | `false` | `false` |
+| 2020 | `true` | `false` | `false` |
+| 2023 | **`false`** | **`false`** | **`null`** |
+
+**Pourquoi c'est la même faute.** Le point 9 le dit déjà pour une couche entière : « rien ici » et
+« on ne sait pas » sont deux réponses différentes, et seul l'appelant peut trancher. Ici la
+confusion porte sur la colonne dont `docs/PLAN-ACTION-VACANCE.md` fait le sujet du produit. Un
+local sorti du périmètre commerce en 2023 n'est pas *non vacant* : il n'est pas relevé.
+
+**Corrigé dans la même migration**, `20260824000001` : `is_vacant` est nul dès que le local n'est
+pas observé, retenue ou pas. Le faire d'un côté et pas de l'autre aurait inscrit l'incohérence dans
+le schéma — nul pour une licence non lue, faux pour une absence, à deux lignes d'écart, et un
+lecteur futur l'aurait prise pour une doctrine.
+
+**Portée élargie assumée.** Le ticket `w0-history` ne demandait que la retenue de licence. La
+correction touche la même colonne, dans la même fonction réécrite, et n'a aucun appelant à casser
+(ni `src/` ni `mcp-server/` n'appellent cette fonction — revérifié le 24 août). `I17` couvre les
+deux moitiés, et la sonde du bras D aussi.
+
+**Ce qui n'est pas traité ici.** `compass_premises_within` porte le même `coalesce(a.is_vacant,
+false)`, mais dans une jointure **interne** sur `premise_observation` : le relevé existe toujours,
+et le nul ne peut venir que d'un code d'activité absent de la nomenclature — que `I5` interdit par
+ailleurs. Situation différente, hors périmètre, non modifiée.
 
 ---
 

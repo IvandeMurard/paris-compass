@@ -13,6 +13,11 @@
 // "a visitor without a key gets withheld, not zero" is demonstrated rather than
 // argued.
 //
+// It covers the four functions that traverse premise_observation:
+// compass_premises_within, compass_scoring_context_within (both since
+// 2026-08-24) and compass_premise_history (since 20260824000001, which this arm
+// is what found). compass_address_timeline is covered by I9/I10.
+//
 // Exit codes follow the runner's convention: 0 PASS, 1 FAIL, 2 ERROR.
 
 import { existsSync } from "fs"
@@ -41,6 +46,15 @@ interface Row {
   total_matched?: number | null
   lat?: number | null
   location_id?: number | null
+}
+
+interface HistoryRow {
+  vintage_year: number
+  withheld: boolean | null
+  observed: boolean | null
+  is_vacant: boolean | null
+  activity_label: string | null
+  [column: string]: unknown
 }
 
 async function rpc(fn: string, body: Record<string, unknown>): Promise<Row[]> {
@@ -75,6 +89,61 @@ async function expectContent(fn: string, body: Record<string, unknown>, label: s
   if (rows.length === 0) return fail(label, "zéro ligne — le millésime ODbL ne sort pas")
   if (rows[0].withheld !== false) return fail(label, `withheld = ${JSON.stringify(rows[0].withheld)}, attendu false`)
   pass(label, `${rows.length} ligne(s), withheld = false, total_matched = ${rows[0].total_matched ?? "—"}`)
+}
+
+/**
+ * Vintage-level metadata a withheld row keeps, as compass_address_timeline keeps
+ * its source and licence: the year exists and its licence is public knowledge.
+ * Everything else on that row must be null.
+ */
+const VINTAGE_COLUMNS = new Set(["vintage_year", "vintage_scope", "as_of", "withheld"])
+
+/**
+ * The fourth function carrying the licence rule, and the only one whose defect
+ * was not a silence. It returns one row per vintage whether an observation was
+ * found or not, so RLS removing the row does not remove the row from the ANSWER:
+ * it left the defaults behind — `observed = false`, `is_vacant = false` — on a
+ * premise that was surveyed and vacant. Measured on 54652 before 20260824000001.
+ *
+ * Arm A could never have caught this one. The old function did not read the claim
+ * at all, so impersonating `anon` on a privileged connection returned the full
+ * content and nothing looked wrong. Only a real key, with RLS behind it, showed
+ * the fabricated row — which is the whole argument for this arm existing.
+ */
+async function expectHistory(locationId: number, label: string, observedIn2023: boolean) {
+  const rows = (await rpc("compass_premise_history", { p_location_id: locationId })) as unknown as HistoryRow[]
+  if (rows.length !== 3) return fail(label, `${rows.length} ligne(s), attendu 3 — une par millésime`)
+
+  for (const year of [2017, 2020]) {
+    const row = rows.find((r) => r.vintage_year === year)
+    if (!row) return fail(label, `millésime ${year} absent de la réponse`)
+    if (row.withheld !== true) return fail(label, `${year} : withheld = ${JSON.stringify(row.withheld)}`)
+    if (row.observed !== null)
+      return fail(label, `${year} : observed = ${JSON.stringify(row.observed)} — une retenue rendue comme un relevé`)
+    if (row.is_vacant !== null)
+      return fail(label, `${year} : is_vacant = ${JSON.stringify(row.is_vacant)} — une vacance fabriquée depuis une licence`)
+    const leaked = Object.entries(row).filter(([k, v]) => !VINTAGE_COLUMNS.has(k) && v !== null)
+    if (leaked.length > 0) return fail(label, `${year} : contenu sur une ligne retenue : ${JSON.stringify(leaked)}`)
+  }
+
+  // The counter-test lives inside the same call: the ODbL vintage must come
+  // through, and an absence from it must stay readable as an absence.
+  const odbl = rows.find((r) => r.vintage_year === 2023)
+  if (!odbl) return fail(label, "millésime 2023 absent de la réponse")
+  if (odbl.withheld !== false) return fail(label, `2023 : withheld = ${JSON.stringify(odbl.withheld)}, attendu false`)
+  if (odbl.observed !== observedIn2023)
+    return fail(label, `2023 : observed = ${JSON.stringify(odbl.observed)}, attendu ${observedIn2023}`)
+  if (observedIn2023 && odbl.activity_label === null)
+    return fail(label, "2023 : relevé mais sans libellé — retenue excessive")
+  if (!observedIn2023 && odbl.is_vacant !== null)
+    return fail(label, `2023 : non relevé mais is_vacant = ${JSON.stringify(odbl.is_vacant)} — une absence lue comme une occupation`)
+
+  pass(
+    label,
+    observedIn2023
+      ? `2017/2020 retenus sans rien affirmer, 2023 rendu (${odbl.activity_label})`
+      : "2017/2020 retenus sans rien affirmer, 2023 non relevé et is_vacant nul",
+  )
 }
 
 /** The counter-test: a genuinely empty radius must stay silent, never marked. */
@@ -115,6 +184,14 @@ async function main(): Promise<void> {
     { p_lat: LAT, p_lng: LNG, p_radius_m: 1, p_vintage_year: 2023, p_limit: 5 },
     "premises_within 2023, rayon 1 m",
   )
+
+  // 54652 — `60 QU ORFEVRES`, surveyed vacant in 2017, the premise this arm was
+  // pointed at when it found the defect. 5 — present in 2017 and 2020, absent
+  // from the 2023 retail-only vintage: the counter-test, since a fix that stamps
+  // the marker too eagerly would destroy the absence this function exists to
+  // report. Both measured on the remote 2026-08-24.
+  await expectHistory(54652, "premise_history 54652", true)
+  await expectHistory(5, "premise_history 5, absent de 2023", false)
 
   // RLS itself, which arm A cannot reach: the anon role reading the table
   // directly must see the ODbL vintage and nothing else. A count, not a sample —
