@@ -63,7 +63,16 @@ où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lova
 - **Un correctif consigné porte sa source, comme un chiffre affiché.** Écrire « vite 8 » dans une
   documentation en fait la vérité du projet pour toutes les sessions suivantes, qui n'ont aucun
   moyen de la recouper. Écrire d'où vient le numéro rend l'erreur repérable. Même exigence que
-  `Measured<T>`, appliquée à la documentation.
+  `Measured<T>`, appliquée à la documentation. Deux clauses, ajoutées le 24 août parce que la
+  règle seule n'a pas suffi :
+  - **Une documentation n'est pas une mesure.** Citer la base, le ledger, le fichier — jamais la
+    page qui en parle. Le tableau « Écarts corrigés » de `docs/PLAN-ACTION-VACANCE.md` *citait*
+    sa source, `docs/REPRISE.md`, et se trompait quand même : il recoupait une page contre une
+    autre page. Une source qui est elle-même de la prose ne recoupe rien.
+  - **Un chiffre mesuré porte sa date.** « Le ledger distant est à 24 migrations » était vrai le
+    17 août, mesuré avant une poussée, et faux le 24 sans que rien ne l'annonce. Sans sa date, un
+    chiffre juste devient faux en silence — et c'est un ticket entier qui part sur une prémisse
+    périmée. **Remesurer avant de recopier.**
 
 ## Style
 
