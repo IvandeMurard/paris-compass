@@ -64,6 +64,11 @@ six fichiers**. C'est le point de départ propre de la prochaine session.
 déjà posée, la porte anonyme a été jouée, le critère est démontré. Le suivant
 dans l'ordre est `w0-fiche` (#8).
 
+**GitHub n'a pas été touché le 24 août.** L'issue [#7](https://github.com/IvandeMurard/paris-compass/issues/7)
+`w0-deploy` **reste ouverte** alors que son critère est démontré, et le défaut
+trouvé n'a **pas d'issue**. Les corps de `docs/tickets/` font foi en attendant ;
+c'est l'écart connu entre le dépôt et le suivi, à refermer à la main.
+
 **Un ticket est ouvert par ce qu'il a trouvé** et n'existe pas encore sur
 GitHub : `compass_premise_history` annonce `observed = false` et
 `is_vacant = false` là où le local était relevé et vacant. C'est le défaut de
@@ -205,6 +210,30 @@ affichées et **c'est normal** — elles ne relèvent pas de la sécurité :
 
 Ne pas rouvrir le dossier en voyant sept alertes persister : le compteur qui fait
 foi pour la sécurité est `npm.cmd audit`, à zéro.
+
+### `npm.cmd run lint` ne tourne plus — constaté le 24 août
+
+**Il plante avant d'avoir lint quoi que ce soit**, sur `mcp-server/src/index.ts` :
+
+```
+TypeError: Error while loading rule '@typescript-eslint/no-unused-expressions':
+Cannot read properties of undefined (reading 'allowShortCircuit')
+```
+
+C'est une incompatibilité entre ESLint 9.39.5 et la version de
+`@typescript-eslint/eslint-plugin` installée — le plugin appelle la règle de base
+avec un schéma d'options que cette version d'ESLint ne fournit plus. Ce n'est pas
+une erreur de code : **aucun fichier n'est analysé**.
+
+**Vérifié antérieur à la session du 24 août** : `git stash -u`, relance, même
+plante sur un arbre propre. Ce n'est donc pas le bras D qui l'a introduit.
+
+**Pas corrigé, délibérément.** La sortie est une montée de dépendance, et
+`CLAUDE.md` est explicite : chercher la plus petite version qui suffit, jamais
+`npm audit fix --force`. C'est le chantier de `DIAGNOSTIC.md` §7 et §8, pas un
+à-côté de session. **Conséquence à connaître** : depuis une date inconnue, tout
+ce qui a été écrit dans ce dépôt l'a été **sans passer par le linter**. `tsc
+--build` et `vitest` restent les seuls filets, et ils tournent.
 
 **La conclusion du 15 août était fausse, et voici pourquoi.** `DIAGNOSTIC.md` §7
 et cette page annonçaient « Correctif = vite 8 » et « Correctif = vitest 4 ».

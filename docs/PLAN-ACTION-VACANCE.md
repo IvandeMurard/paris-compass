@@ -36,10 +36,18 @@ vaut pour la documentation comme pour l'écran : **un correctif consigné porte 
 
 | Écrit dans la v1.0 | Corrigé en | Source du recoupement |
 | --- | --- | --- |
-| « rejouer les 21 migrations » | 25 dans `supabase/migrations/`, 24 au ledger distant | `ls supabase/migrations` · `docs/REPRISE.md` |
+| « rejouer les 21 migrations » | 25 dans `supabase/migrations/`, ~~24~~ **25** au ledger distant | `ls supabase/migrations` · ~~`docs/REPRISE.md`~~ **le ledger lui-même, remesuré le 24 août** |
 | « le gate (10 invariants…) » | 15 — `I1` à `I15` | `eval/invariants.sql` |
 | Établi / probable 51,6 % / 36,5 % | 51,4 % / 36,7 % | `eval/baselines/ingestion.json`, gel du 17 août |
 | `w0-deploy` présenté comme entièrement à faire | Chargement fait le 15 août ; reste le retrait à l'anonyme | `docs/REPRISE.md`, « La suite, par ordre » n° 1 et 8 |
+
+> **Un cinquième écart, le 24 août — et c'est cette ligne-ci qui l'a propagé.**
+> « 24 au ledger distant » venait de `docs/REPRISE.md` et non du ledger. Le
+> chiffre y était juste **au 17 août**, mesuré avant la poussée de
+> `20260817000001`, et cité ensuite par une ligne qui ne portait pas cette date.
+> Le tableau respectait donc la lettre de la règle — un correctif porte sa
+> source — et en manquait l'esprit : **une documentation n'est pas une mesure.**
+> Recouper contre la base, pas contre la page qui en parle.
 
 Deux diagnostics du document ont en revanche été **vérifiés exacts** :
 

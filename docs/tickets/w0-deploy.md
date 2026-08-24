@@ -52,4 +52,16 @@ La porte complète est au vert contre le distant le même jour : **15/15 invaria
 sous une forme pire : elle rend `observed = false` et `is_vacant = false` là où le local était
 relevé **et vacant**. Voir `DIAGNOSTIC.md` §10. Hors périmètre de ce ticket — à ouvrir séparément.
 
+## Ce qui a été écarté, et pourquoi
+- **Le correctif de `compass_premise_history`** — il change le type de retour, donc il se pose
+  en migration et engage tout appelant futur. Le critère de ce ticket nommait
+  `compass_premises_within` : élargir le périmètre en cours de route aurait mêlé une correction
+  non demandée à une démonstration attendue.
+- **`npm.cmd run lint` est cassé**, et l'était déjà avant cette session — vérifié sur un arbre
+  propre par `git stash -u`. Incompatibilité ESLint 9 / `@typescript-eslint`. Détail et
+  conséquences dans `docs/REPRISE.md`, « `npm.cmd run lint` ne tourne plus ». La sortie est une
+  montée de dépendance, encadrée par `CLAUDE.md` — pas un à-côté de session.
+- **GitHub n'a pas été touché.** L'issue #7 reste ouverte bien que son critère soit démontré, et
+  le défaut du §10 n'a pas d'issue. À refermer à la main.
+
 Voir [`docs/PLAN-ACTION-VACANCE.md`](../PLAN-ACTION-VACANCE.md). Relit `docs/PLAN.md`, `docs/PERIMETRE.md`.
