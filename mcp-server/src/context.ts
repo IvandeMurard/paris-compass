@@ -116,14 +116,15 @@ async function fetchPremises(
 }
 
 /**
- * Provenance of a layer that failed to load.
+ * Provenance of a premises layer whose own metadata could not be read.
  *
- * `scoreLocation` still needs one: `unavailable()` stamps source and licence on the missing
- * figure so a caller learns *which* dataset is silent, not merely that something is. Naming
- * a licence we could not read would be the very substitution this ticket removes, so the
- * string says so in full.
+ * `scoreLocation` still needs an origin for a layer that never loaded: `unavailable()` stamps
+ * it on the missing figure so a caller learns *which* dataset is silent, not merely that
+ * something is. Reached only when `compass_vintages` itself fails — a withheld vintage keeps
+ * its real licence string, which is the useful one, because "unread APUR licence" *is* the
+ * reason the rows are missing.
  */
-const UNREAD_BDCOM = (vintageYear: number): Origin =>
+const UNKNOWN_BDCOM = (vintageYear: number): Origin =>
   BDCOM_ORIGIN(vintageYear, "unknown — compass_vintages could not be read", "unknown")
 
 export async function buildNeighbourhoodContext(
@@ -132,15 +133,13 @@ export async function buildNeighbourhoodContext(
   radiusM: number,
   vintageYear = 2023,
 ): Promise<ContextResult> {
-  // Three independent calls, three independent failures. The vintage metadata rides with the
-  // premises rows rather than beside them: rows without their licence are rows that cannot be
-  // attributed, and an unattributable layer is a layer that did not load.
-  const [amenitiesResult, premisesResult] = await Promise.allSettled([
+  // Three independent calls, three independent failures — and the vintage metadata is its own,
+  // deliberately not bundled with the rows. A withheld vintage returns no rows but its licence
+  // and date are public, and they are exactly what a caller needs to understand the refusal.
+  const [amenitiesResult, premisesResult, originResult] = await Promise.allSettled([
     fetchOverpassAmenities(lat, lng, radiusM),
-    Promise.all([
-      fetchPremises(lat, lng, radiusM, vintageYear),
-      premisesOrigin(vintageYear),
-    ]),
+    fetchPremises(lat, lng, radiusM, vintageYear),
+    premisesOrigin(vintageYear),
   ])
 
   const loaded: Layer[] = []
@@ -155,20 +154,29 @@ export async function buildNeighbourhoodContext(
     failures.push({ layer: "amenities", reason }, { layer: "roads", reason })
   }
 
-  const premises = premisesResult.status === "fulfilled" ? premisesResult.value[0] : []
-  const premisesFrom =
-    premisesResult.status === "fulfilled" ? premisesResult.value[1] : UNREAD_BDCOM(vintageYear)
-  if (premisesResult.status === "fulfilled") {
+  const premises = premisesResult.status === "fulfilled" ? premisesResult.value : []
+  // Rows that arrived but cannot be attributed are rows that must not be scored: an
+  // unattributable figure is one `Measured<T>` exists to keep off the screen. So a metadata
+  // failure withdraws the layer even when the rows themselves came back.
+  if (premisesResult.status === "fulfilled" && originResult.status === "fulfilled") {
     loaded.push("premises")
-  } else {
+  }
+  if (premisesResult.status === "rejected") {
     const reason = premisesResult.reason instanceof Error ? premisesResult.reason.message : String(premisesResult.reason)
+    failures.push({ layer: "premises", reason })
+  } else if (originResult.status === "rejected") {
+    const reason = originResult.reason instanceof Error ? originResult.reason.message : String(originResult.reason)
     failures.push({ layer: "premises", reason })
   }
 
   // Overpass answers with the current state of the map, so the query date is the vintage.
   // BDCom's is not today's date and must never be given it: `as_of` comes from the survey.
   const osm = OSM_ORIGIN(new Date().toISOString().slice(0, 10))
-  const origins: LayerOrigins = { amenities: osm, roads: osm, premises: premisesFrom }
+  const origins: LayerOrigins = {
+    amenities: osm,
+    roads: osm,
+    premises: originResult.status === "fulfilled" ? originResult.value : UNKNOWN_BDCOM(vintageYear),
+  }
 
   const context: NeighbourhoodContext = { amenities, roads, premises, loaded }
   return { index: buildIndex(context), failures, origins }

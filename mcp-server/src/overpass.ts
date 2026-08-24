@@ -13,6 +13,13 @@
 
 import type { Amenity, AmenityCategory, Road } from "../../src/core"
 
+// Overpass's main instance answers 406 to a request that carries no User-Agent, and Node's
+// fetch sends none — so this server never actually reached its first mirror and silently ran
+// on the two fallbacks. Measured 24 August 2026: identical query, no UA -> 406, with this UA
+// -> 200. The browser never had the problem because it sets its own. OSM also asks reusers to
+// identify themselves, so the string names the project rather than mimicking a browser.
+const USER_AGENT = "paris-compass-mcp/0.1 (https://github.com/IvandeMurard/paris-compass)"
+
 const OVERPASS_ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
@@ -111,7 +118,10 @@ export async function fetchOverpassAmenities(
 
   const query = buildQuery(lat, lng, radiusM)
   let data: OverpassResponse | null = null
-  let lastError: unknown = null
+  // Every mirror's failure, not just the last one. Keeping only the last hid a permanent 406
+  // on the primary behind whatever transient 500 the third mirror happened to return, which
+  // is a diagnosis lost every time all three fail.
+  const errors: string[] = []
 
   for (const endpoint of OVERPASS_ENDPOINTS) {
     try {
@@ -120,7 +130,10 @@ export async function fetchOverpassAmenities(
       try {
         const response = await fetch(endpoint, {
           method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": USER_AGENT,
+        },
           body: new URLSearchParams({ data: query }).toString(),
           signal: controller.signal,
         })
@@ -139,11 +152,11 @@ export async function fetchOverpassAmenities(
       }
       break
     } catch (error) {
-      lastError = error
+      errors.push(`${endpoint}: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
-  if (!data) throw lastError instanceof Error ? lastError : new Error("Overpass unavailable")
+  if (!data) throw new Error(`Overpass unavailable — ${errors.join("; ")}`)
 
   const amenities: Amenity[] = []
   const roads: Road[] = []

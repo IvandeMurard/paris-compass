@@ -677,6 +677,59 @@ raisonnement avec elle**, et le suivant refait le trajet ou, ici, prend le mauva
 
 ---
 
+## 13. Une licence affirmée sur des données qui n'en relèvent pas — `scoreLocation`, le 24 août
+
+**Corrigé le 24 août par `w0-provenance` (#10).** Le défaut était connu et écrit depuis le
+15 août — `docs/PLAN.md` §4.1 le consigne comme l'un des « deux manques restants » du serveur
+MCP — mais il n'avait jamais eu de numéro ici, et c'est le seul des treize points de cette page
+à avoir été *documenté avant d'être diagnostiqué*.
+
+**La forme.** `scoreLocation(point, index, origin)` prenait un `Origin` **unique** et le posait
+sur les huit champs de `AreaScores`. Or `mcp-server/src/context.ts` assemble son contexte à
+partir de **deux** sources : les aménités et les routes viennent d'Overpass, les locaux de la
+BDCom de l'APUR via `compass_scoring_context_within`. Les deux appelants passaient
+`OSM_ORIGIN(aujourd'hui)`. Donc, côté agent :
+
+| Champ | Couche réellement lue | Ce qui était affiché |
+| --- | --- | --- |
+| `schools`…`transit`, `walkability` | Overpass | `OpenStreetMap via Overpass`, ODbL — **juste** |
+| `noise` | Overpass | `OpenStreetMap via Overpass`, ODbL — **juste** |
+| `footfall` | **65 % BDCom** + 35 % Overpass | `OpenStreetMap via Overpass`, ODbL — **faux** |
+
+**Ce n'est pas une imprécision d'affichage, c'est une licence.** Un chiffre qui cite ODbL
+autorise implicitement la rediffusion sous ODbL. Les millésimes 2017 et 2020 de la BDCom portent
+une licence APUR que personne n'a lue, avec la mention explicite « ne pas rediffuser avant
+vérification » ; le millésime 2023 est bien ODbL-1.0, mais l'appelant l'apprenait par accident.
+Le champ `asOf` était pire encore : `new Date()`, soit **la date de la requête** posée sur un
+relevé de terrain de **juin 2023**, trois ans d'écart annoncés comme frais du jour.
+
+**Le front n'était pas menteur, seulement indistinct.** Ses trois couches sortent bien du même
+instantané Overpass. C'est ce qui a fait durer le défaut : la signature était vraie là où elle
+était le plus lue.
+
+**Corrigé** en remplaçant le troisième paramètre par un `Origin` **par couche**
+(`LayerOrigins`). Trois conséquences qui ne se déduisent pas du diagnostic :
+
+- **La licence et la date du millésime BDCom se lisent dans `compass_vintages`**, jamais dans une
+  constante du code. Mesuré sur le distant le 24 août par PostgREST en appelant anonyme : 2023 →
+  `ODbL-1.0`, `as_of = 2023-06`, portée `retail_only` ; 2017 et 2020 → `custom`, `as_of` = leur
+  année, portée `all_premises`. Si l'appel échoue, la couche des locaux est déclarée **non
+  chargée** : un chiffre qui ne sait pas énoncer sa provenance ne s'affiche pas.
+- **Le flux piéton nomme ses deux sources**, cumule les licences et porte la **plus ancienne**
+  des deux dates. Un composé n'est jamais plus frais que son ingrédient le plus vieux.
+- **`OSM_ORIGIN` passe de `ODbL` à `ODbL-1.0`**, l'orthographe de `bdcom_vintage.licence`. Sans
+  cela le composé aurait annoncé `ODbL-1.0 + ODbL` — deux obligations là où il n'y en a qu'une.
+  Aucun rendu du front n'affiche ce champ (`MeasuredOrigin` montre source et date, pas la
+  licence), donc le changement ne se voit que dans les réponses MCP.
+
+**La leçon, et c'est celle de la page entière sous une forme nouvelle** : les onze premiers
+points portent sur une **absence** rendue comme un fait. Celui-ci porte sur une **attribution**.
+`Measured<T>` rendait mécanique l'obligation de *porter* une source ; il ne pouvait rien contre
+le fait d'en porter la mauvaise. Un type ne vérifie que ce qu'on lui donne à vérifier — ici, un
+`Origin` unique lui semblait complet.
+
+---
+
 ## Ordre d'attaque suggéré
 
 1. Point 1 — c'est une donnée fausse qui pilote un filtre. Rien d'autre ne devrait passer avant.
