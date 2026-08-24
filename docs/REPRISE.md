@@ -273,11 +273,14 @@ section du 24 août, session 2, en tête de page. Il débloquait `w0-fiche` (#8)
 qui sans lui aurait affiché « non observé, non vacant » sur un local qui était
 vacant.
 
-~~`w0-provenance` (**#10**)~~ **est clos depuis le 24 août, session 3** : provenance
-par couche, démontrée contre le distant par `explain_score` — voir la section en
-tête de page. **L'issue reste à fermer sur GitHub**, ainsi qu'à ouvrir celle du
-défaut Overpass 406 si l'on veut le suivre ; le correctif, lui, est déjà posé.
-Le suivant dans l'ordre est `w0-fiche` (#8) selon `docs/SESSIONS.md`.
+~~`w0-provenance` (**#10**)~~ **est clos depuis le 24 août, session 3, issue fermée** :
+provenance par couche, démontrée contre le distant par `explain_score` — voir la
+section en tête de page. Le défaut Overpass trouvé en chemin a son issue,
+[#52](https://github.com/IvandeMurard/paris-compass/issues/52), ouverte pour la
+seule trace : le correctif est posé. **État GitHub remesuré à la clôture de la
+session 3 : 44 ouvertes, 3 fermées** — `#7`, `#51` et `#10` — plus `#52` ouverte.
+L'épic `#41` coche désormais `#7`, `#10` et `#51`. Le suivant dans l'ordre est
+`w0-fiche` (#8) selon `docs/SESSIONS.md`.
 
 ~~**GitHub n'a pas été touché le 24 août.**~~ **Périmé trois fois dans la journée,
 et c'était le piège de cette page.** Remesuré par `gh` à la clôture de la
@@ -851,6 +854,31 @@ donc `git push origin main` réussit et GitHub se contente d'une ligne —
 `Bypassed rule violations for refs/heads/main`. Facile à manquer dans la sortie.
 Les PR #2 et #3 montrent que le mode de travail voulu est la PR : le push direct
 est une exception à demander, pas un défaut.
+
+**Ne jamais relire un corps d'issue GitHub dans une variable PowerShell pour le
+réécrire.** Le 24 août, la commande `$b = gh issue view 41 --json body -q .body`
+puis `gh issue edit --body-file` a **corrompu** le corps de l'épic #41 : `ç` est
+devenu `├º`, `—` est devenu `ÔÇö`. Mesuré sur les octets bruts par
+`gh api ... --jq .body | od -c` — `342 224 234 302 272` au lieu de `303 247` —
+donc bien dans la donnée stockée, pas dans l'affichage. PowerShell décode la
+sortie de `gh` avec la page de codes de la console et non en UTF-8 ; réécrire
+cette chaîne en UTF-8 la ré-encode une seconde fois.
+
+**Le sens aller est sain, le sens retour non.** Passer une chaîne accentuée *à*
+`gh` en argument fonctionne — vérifié, et l'issue #52 créée le même jour a ses
+accents intacts. C'est la **capture** de la sortie qui casse. Une vérification
+qui ne teste que l'aller conclut à tort que tout va bien : c'est exactement
+l'erreur qui a été commise.
+
+**Non reproduit**, et c'est à savoir avant de croire à un correctif : dans un
+`powershell.exe -NoProfile -File` non interactif sur cette même machine,
+l'aller-retour est propre **sans** rien changer. La casse dépend donc de
+l'encodage console du terminal réellement utilisé. `[Console]::OutputEncoding =
+[Text.Encoding]::UTF8` est le garde-fou correct mais n'a pas pu être éprouvé
+contre le cas qui a échoué. **Donc la règle est d'éviter le motif, pas de le
+rustiner** : modifier le corps depuis l'interface web, ou faire la lecture et
+l'écriture depuis un outil qui parle UTF-8 de bout en bout — c'est par là que la
+réparation est passée.
 
 **Le chemin agent n'hérite d'aucune des politesses du navigateur.** `User-Agent`,
 cookies, `Origin` : tout ce que le navigateur pose gratuitement est absent d'un

@@ -92,7 +92,7 @@ hors de la file, pour qu'aucun ticket ne disparaisse en silence.
 | --- | --- | --- | --- | --- | --- |
 | ~~1~~ | ~~`w0-deploy`~~ | [#7](https://github.com/IvandeMurard/paris-compass/issues/7) | **fait** | P0 | Opus 5 |
 | ~~2~~ | ~~`w0-history`~~ | [#51](https://github.com/IvandeMurard/paris-compass/issues/51) | **fait** | P0 | Opus 5 |
-| 3 | `w0-provenance` | [#10](https://github.com/IvandeMurard/paris-compass/issues/10) | ouvert | P0 | Opus 5 |
+| ~~3~~ | ~~`w0-provenance`~~ | [#10](https://github.com/IvandeMurard/paris-compass/issues/10) | **fait** | P0 | Opus 5 |
 | 4 | `w0-fiche` | [#8](https://github.com/IvandeMurard/paris-compass/issues/8) | ouvert | P0 | Opus 5 |
 | 5 | `w0-cron` | [#6](https://github.com/IvandeMurard/paris-compass/issues/6) | ouvert | P0 | Opus 5 |
 | 6 | `w0-plu` | [#9](https://github.com/IvandeMurard/paris-compass/issues/9) | ouvert | P0 | Sonnet 5 |
