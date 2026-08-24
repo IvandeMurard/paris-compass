@@ -54,17 +54,43 @@ ligne fait échouer la porte.
 | **I9** | Un appelant **anonyme** voit quoi que ce soit d'un millésime non redistribuable — contenu, absence, ou simple existence | La licence de 2017 et 2020 n'est pas lue. Trois migrations ont été nécessaires : retenir le contenu laissait fuiter l'absence, ce qui révélait l'existence |
 | **I10** | Un millésime redistribuable revient retenu par erreur | Le miroir de I9. **Sur-restreindre est aussi une faute** : retenir de l'ODbL prive sans raison et masque un défaut de logique |
 
-> **Cinq invariants ont été ajoutés depuis** : I11 (une fonction `compass_*` non
-> exécutable par `anon`), I12/I13 pour `compass_scoring_context_within` et
-> I14/I15 pour `compass_premises_within` — chaque paire vérifiant qu'une retenue
-> s'annonce *et* qu'un vide réel reste muet. Le tableau ci-dessus s'arrête à I10 ;
+> **Huit invariants ont été ajoutés depuis** : I11 (une fonction `compass_*` non
+> exécutable par `anon`), puis trois paires — I12/I13 pour
+> `compass_scoring_context_within`, I14/I15 pour `compass_premises_within`,
+> I16/I17 pour `compass_premise_history` — chacune vérifiant qu'une retenue
+> s'annonce *et* qu'un vide réel reste muet. Puis I18, qui n'est pas une paire et
+> pas un test de comportement. Le tableau ci-dessus s'arrête à I10 ;
 > `invariants.sql` fait foi.
 >
-> **I9 et I10 tournent en rôle `anon`** (marqueur `-- @as anon`). C'est la leçon la plus
-> chère du 9 août : *le chemin privilégié réussit toujours*. Les trois défauts d'exposition
-> n'ont été trouvés qu'en jouant le chemin anonyme, jamais en testant en propriétaire — dans
-> une fonction `SECURITY DEFINER`, `current_user` est le propriétaire et conclut donc
-> toujours « privilégié ».
+> **I9, I10 et leurs suivantes prennent l'identité d'`anon` par le *claim*, pas par le
+> rôle** (marqueur `-- @as anon`). C'est la leçon la plus chère du 9 août : *le chemin
+> privilégié réussit toujours*. Les défauts d'exposition n'ont été trouvés qu'en jouant le
+> chemin anonyme, jamais en testant en propriétaire — dans une fonction `SECURITY DEFINER`,
+> `current_user` est le propriétaire et conclut donc toujours « privilégié ».
+>
+> **Mais « en rôle » serait faux, et cette imprécision a coûté un défaut le 24 août.** Le
+> lanceur pose `request.jwt.claims` sur une connexion privilégiée et n'émet **jamais**
+> `set local role` : **RLS ne s'applique à aucun moment pendant que le bras A tourne.** Deux
+> conséquences que le contrat doit énoncer plutôt que laisser déduire :
+>
+> - **Une fonction qui ne lit pas le claim est invisible au bras A.** Elle rend tout le
+>   contenu à un « anonyme » qui n'en est pas un, et rien ne paraît anormal. C'est ce qui a
+>   caché `compass_premise_history` pendant quinze jours ; seul le bras D, avec une vraie clé
+>   et RLS derrière, l'a vue. Corollaire pour tout correctif de retenue : **la fonction doit
+>   nuller ses colonnes elle-même**, jamais compter sur RLS pour avoir vidé la jointure.
+> - **Un désaccord entre RLS et le test de claim est indétectable au bras A.** La politique
+>   de `20260809000008` restreint `to anon, authenticated` ; le test de claim juge privilégié
+>   tout ce qui n'est pas `anon`. Une fonction `SECURITY INVOKER` hérite des deux et ment à
+>   l'appelant connecté — `withheld = false` pendant que RLS retire les lignes. Aucun test de
+>   comportement que cette porte sait exprimer ne peut le voir.
+>
+> **D'où I18, seul invariant structurel du lot** : une fonction `compass_*` qui porte une
+> colonne `observed` **doit** être `SECURITY DEFINER`. `observed` est la seule colonne que RLS
+> peut transformer en mensonge — retirer une ligne y devient « ce local n'a pas été relevé ».
+> Les fonctions sans cette colonne peuvent rester `INVOKER` : RLS leur coûte des lignes, pas
+> la vérité. La règle était écrite en prose dans `20260809000008` depuis le 9 août, et une
+> migration l'a enfreinte le 24 en argumentant l'inverse. Une règle qui n'est pas vérifiée
+> n'est qu'un commentaire.
 
 ---
 

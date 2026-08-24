@@ -658,7 +658,7 @@ L'IA ne doit pas entrer dans src/core/. Le cœur reste déterministe, testé, re
 | Parse BODACC / INPI | tuyauterie | Extraire activité, surface, prix, nature d'acte. Golden set dans eval/. Échec = n/a. | Un oracle de valorisation ou un CA estimé. |
 | Vision Mapillary | tuyauterie | Classes fermées (rideau, pancarte, vitrine). Observation + date + crop. Gate 50 façades. Sous le seuil : silence. | « 87 % de chances que ce soit vide ». |
 | explain_score métier-aware | au-dessus du cœur | Réordonner les phrases selon le métier. Les chiffres ne bougent pas. | Des poids appris opaques, un « bon emplacement » universel. |
-| Cœur de scoring | interdit dans src/core | Garder Measured<T>, les quatre niveaux, le gate (15 invariants, 24 baselines, 8 chronologies). | Faire écrire scoring.ts par un LLM. RAG sur forums, Google reviews, SeLoger. |
+| Cœur de scoring | interdit dans src/core | Garder Measured<T>, les quatre niveaux, le gate (18 invariants, 24 baselines, 8 chronologies). | Faire écrire scoring.ts par un LLM. RAG sur forums, Google reviews, SeLoger. |
 
 **Interdits IA**
 

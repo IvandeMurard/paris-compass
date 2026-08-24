@@ -95,7 +95,7 @@ Today's composition across the corpus — this is the quality metric, and improv
 
 That 36.7% is structural, not laziness: BODACC names an *address*, BDCom names a *unit*, and 69% of units share their street number. No public data will say which of eight shopfronts was sold.
 
-A gate runs the whole corpus against **15 invariants, 24 frozen baselines and 8 hand-verified chronologies** before anything ships.
+A gate runs the whole corpus against **18 invariants, 24 frozen baselines and 8 hand-verified chronologies** before anything ships. Seventeen of those invariants check what the functions return; the eighteenth checks what they *are* — a function exposing an `observed` column must be `SECURITY DEFINER`, because row-level security silently turns a withheld row into "never surveyed".
 
 ---
 

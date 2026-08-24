@@ -513,10 +513,12 @@ une ligne marquée retenue. `changed_from_previous` se garde désormais d'un `ob
 null` vaut nul, la branche du CASE ne se déclenchait pas, et la retombée comparait deux nuls avec
 `IS DISTINCT FROM` — ce qui vaut **faux**, soit « rien n'a changé ici » affirmé depuis une licence.
 
-`SECURITY INVOKER` est **conservé**, délibérément. `compass_address_timeline` a dû passer
-`DEFINER` parce qu'elle joint des avis BODACC lisibles à des relevés qui ne le sont pas ; celle-ci
-ne lit que `premise_observation`, donc RLS suffit à *appliquer* la règle et la fonction n'a qu'à
-l'*annoncer*. Même partage qu'en `20260817000001`.
+~~`SECURITY INVOKER` est **conservé**, délibérément.~~ **Faux, et corrigé le jour même par
+`20260824000002` : voir le point 12.** L'argument était que `compass_premise_history` ne lit que
+`premise_observation`, donc que RLS suffirait à *appliquer* la règle et que la fonction n'aurait
+qu'à l'*annoncer*. Cela tient pour un appelant `anon` et tombe pour un appelant `authenticated`,
+que la politique RLS restreint et que le test de claim juge privilégié. `20260809000008` avait
+écrit la bonne règle quinze jours plus tôt, dans le fichier d'à côté.
 
 **Vérifié en comportement** — d'abord dans une transaction jamais validée contre le distant, puis
 **en direct après la poussée**, par un appel PostgREST avec la seule clé publiable et aucun

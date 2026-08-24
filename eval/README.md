@@ -23,7 +23,7 @@ une adaptation qui n'est pas cosmétique et qui est expliquée dans `FAILURE_MOD
 
 | Fichier | Ce qu'il vérifie | Tolérance |
 | --- | --- | --- |
-| `invariants.sql` | **Quinze** requêtes qui doivent renvoyer zéro ligne, sur **100 % de la base** | Zéro |
+| `invariants.sql` | **Dix-huit** requêtes qui doivent renvoyer zéro ligne, sur **100 % de la base** | Zéro |
 | `baselines/ingestion.json` | **Vingt-quatre** effectifs gelés au chargement | Signalé, bloquant au-delà de 1 % |
 | `golden.jsonl` | **Huit** chronologies vérifiées à la main | Zéro |
 | `../scripts/eval/anon-http.ts` | La règle de licence **par HTTP, sans identifiants de base** | Zéro |
@@ -42,7 +42,17 @@ la colonne `withheld`. Le bras D ne détient que la clé publiable et l'URL du
 projet — ce que le navigateur embarque, et rien de plus.
 
 Codes de sortie, repris d'Aetherix : `0` PASS · `1` FAIL · `2` ERROR · `3` WARN.
-Comptez environ une minute — deux invariants balaient les 85 418 locaux.
+Comptez environ une minute contre la base locale, et **près de trois contre le
+distant** — mesuré le 24 août : I1, I2 et I7 balaient les 85 418 locaux et pèsent
+à eux seuls deux minutes et demie à travers le pooler.
+
+**Dix-sept des dix-huit invariants portent sur ce que les fonctions renvoient ;
+le dix-huitième porte sur ce qu'elles sont.** I18 lit `pg_proc` et non des
+données : une fonction `compass_*` qui porte une colonne `observed` doit être
+`SECURITY DEFINER`. Le bras A ne posant jamais `set local role`, RLS ne
+s'applique jamais pendant qu'il tourne, et un défaut né du désaccord entre RLS et
+le test de claim ne peut être attrapé que sur la structure. Voir
+`FAILURE_MODES.md`.
 
 ## Prérequis
 
