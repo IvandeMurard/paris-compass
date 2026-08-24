@@ -1,10 +1,126 @@
-# Reprise — état au 24 août 2026, fin de session 4
+# Reprise — état au 25 août 2026, fin de session 5
+
+> **La session 5 est à cheval sur minuit.** Toutes ses mesures — les 36 contrôles, le local
+> 46393, le point de Massy, l'état GitHub — ont été prises le **24 août** ; la clôture, la
+> régénération du tableau d'ordre et cette page datent du **25**. Les dates écrites plus bas
+> sont celles de la mesure, pas celles de la rédaction, et c'est la règle de `CLAUDE.md` :
+> un chiffre mesuré porte **sa** date.
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`
 (backlog, décisions produit), `docs/PLAN-ACTION-VACANCE.md` (doctrine et backlog
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
+
+---
+
+## Le 24 août, session 5 : le serveur MCP a enfin une porte
+
+**`w0-mcp-verif` (#53) est fait.** `npm.cmd run verify:mcp` exerce les six outils contre
+`dbefhvmyfmmhjeetdddu` en appelant **anonyme**, clé publiable seule. Deux passages mesurés le
+24 août, **0 en échec** dans les deux :
+
+| Passage | Total | Au vert | Échec | Suspendus | Défaut connu |
+| --- | --- | --- | --- | --- | --- |
+| Overpass répond | **36** | 35 | **0** | 1 | 0 |
+| Overpass rend 429/504 | **33** | 30 | **0** | 2 | 1 (§16) |
+
+**Le total n'est pas fixe, et c'est voulu** : la famille `PROVENANCE` tombe de cinq assertions à
+deux quand la couche d'aménités n'est jamais arrivée. Affirmer la provenance de chiffres qui
+n'ont pas été calculés serait un vert qui ne représente rien. **Lire le `0 en échec`, pas le
+total.** Détail complet dans `docs/tickets/w0-mcp-verif.md`.
+
+| Famille | Ce qu'elle tient |
+| --- | --- |
+| `INVENTAIRE` | les six outils enregistrés, contre les six que `mcp-server/README.md` annonce |
+| `PROVENANCE` | chaque chiffre attribué à la couche lue — `footfall` cite ses deux sources et porte `asOf: 2023-06`, la date du recensement et non celle de la requête |
+| `LICENCE` | 2017 et 2020 retenus (`observed: null`, `label: null`), 2023 servi, **et le contre-test** qui échoue si la retenue vide aussi le millésime ODbL |
+| `PANNE` | boîte de coordonnées, rayons, millésime inconnu, **base injoignable**, miroir Overpass injoignable |
+
+### Le piège de ce ticket : un contrôle qui imprime n'est pas un contrôle
+
+Le ticket demandait de câbler `smoke-test.ts`. **Il ne fallait pas.** Ce fichier *imprime* les
+réponses et sort `0` tant que rien ne lève : câblé tel quel, il aurait posé une porte qui reste
+verte pendant que chaque chiffre ment. C'est exactement ce que le « Comment » du ticket met en
+garde — figer l'état présent comme référence — appliqué à son propre libellé.
+
+`mcp-server/src/verify.ts` a donc été écrit **à côté**, et il assène. Le smoke test reste,
+réparé, sous `npm.cmd run smoke:mcp`, comme lecture quand une règle a cassé et qu'on veut voir
+les réponses brutes.
+
+### Trois statuts, pas deux — et le défaut connu qui ne se fige pas
+
+Un miroir Overpass public qui rend 504 n'est pas un défaut de ce dépôt. La porte le classe en
+`panne`, suspend les assertions qui en dépendent, et **vérifie quand même que la panne a été
+rapportée** et qu'aucun champ n'est revenu à zéro. Sans ça, la porte serait rouge un jour sur
+trois et personne ne la lancerait.
+
+Le troisième statut est `défaut` : un défaut déjà consigné, rapporté et non fatal. **Et il passe
+au ROUGE si le défaut disparaît.** C'est voulu : un correctif ne doit pas pouvoir laisser
+`DIAGNOSTIC.md` et son issue derrière lui. Aujourd'hui un seul, `E11` pour §16.
+
+### Le défaut trouvé en chemin : un point hors corpus scoré comme un quartier sans commerces
+
+**`DIAGNOSTIC.md` §16, [#55](https://github.com/IvandeMurard/paris-compass/issues/55) — ouverte,
+elle demande une décision.** C'est le défaut du point 9 dans sa variante **géographique** :
+non plus une couche retenue par licence, mais une couche absente parce que le corpus s'arrête.
+
+Mesuré à **(48,7 · 2,2)**, Massy, à 18 km du 1er : `find_premises` rend honnêtement
+`total_matched: 0`, et `score_location` rend malgré tout `footfall: 22`, cité
+« APUR BDCom 2023 + OpenStreetMap via Overpass », licence ODbL, `asOf: 2023-06` — **sur zéro
+local BDCom lu**. Le chiffre est entièrement dérivé d'OpenStreetMap : `62 × 0,35 = 21,7`.
+
+Le garde-fou de `context.ts` ne l'attrape pas parce que la requête **réussit** avec zéro ligne,
+donc la couche compte comme chargée. Une licence retenue lève, une base injoignable échoue —
+mais un vide hors corpus est indiscernable d'un vide réel. Trancher entre resserrer la boîte
+zod, retirer la couche à zéro ligne, ou interroger PostGIS sur les 80 quartiers : c'est la
+décision, et elle n'appartenait pas à ce ticket.
+
+### Le second écart : une documentation qui décrivait un défaut corrigé le matin même
+
+`mcp-server/README.md`, section « What this does not cover yet », affirmait encore que chaque
+champ cite `OpenStreetMap via Overpass` même quand la couche vient de BDCom, et renvoyait à
+« a separate change ». Ce changement, c'est `w0-provenance` (#10), **fait quelques heures plus
+tôt le même jour**. Corrigé.
+
+> C'est la règle de `CLAUDE.md` — « un correctif consigné porte sa source » — dans son angle
+> mort : la page n'était pas fausse quand elle a été écrite, elle l'est devenue le jour où le
+> chantier qu'elle annonçait a été fait, **et rien dans le dépôt ne relie les deux**. Le ticket
+> qui corrige doit relire les pages qui *attendaient* ce correctif, pas seulement celles qui le
+> décrivent.
+
+### Trois choses à savoir pour la prochaine session
+
+- **`npm.cmd run verify:mcp` fait partie des portes avant de pousser**, et c'est écrit dans le
+  prompt commun de `docs/SESSIONS.md`. À lancer dès qu'on touche `src/core/` ou `mcp-server/` —
+  le typecheck du MCP compile `../src/core` en `strict: true`, plus sévère que le `tsc --build`
+  de la racine qui le compile en `strict: false`.
+- **`tsx` ne démarre toujours pas sur cette machine**, et c'est maintenant contourné pour de
+  bon : `scripts/verify-mcp.mjs` bundle avec l'esbuild de la racine et lance `node`. Les scripts
+  qui restent sur `tsx` — `eval`, `eval:anon`, `sessions`, `generate-sitemap` — n'ont pas été
+  touchés.
+- **`scripts/` n'est typechecké par rien**, trouvé en chemin et laissé ouvert. `tsconfig.app.json`
+  porte `include: ["src"]`, `tsconfig.node.json` `include: ["vite.config.ts"]` : les quatre
+  chargeurs d'ingestion et les deux bras de la porte ne passent sous aucun `tsc`. Ajouter la
+  ligne d'`include` est trivial ; le nombre d'erreurs qu'elle ferait apparaître n'a **pas** été
+  mesuré, donc rien n'a été promis.
+
+### Le piège de la session : le prompt lui-même était faux
+
+Le prompt reçu annonçait « Ticket `w0-cron` (issue #53) » et demandait de lire
+`docs/tickets/w0-fiche.md`. **Trois tickets différents dans un seul en-tête** : `w0-cron` est
+l'issue **#6**, `#53` est `w0-mcp-verif`, et `w0-fiche` (#8) était clos depuis la veille au soir.
+Les consignes de fin de prompt — clé anon, cadences SIRENE/BODACC/BDCom — sont le corps de
+`w0-cron.md` mot pour mot ; le piège `observed = false` est celui de `w0-fiche`.
+
+L'origine est mécanique : les blocs de consignes par session de `docs/SESSIONS.md` se collent à
+la main, et `w0-mcp-verif` avait été inséré **sans numéro de session** entre la 4 et la 5, ce
+qui a décalé tout ce qui suivait. Renuméroté depuis, aligné sur le tableau généré.
+
+> **La leçon vaut au-delà de ce fichier.** Un identifiant de ticket et un numéro d'issue sont
+> deux mesures, et elles peuvent diverger sans que rien ne l'annonce — même mode de défaillance
+> que le ledger à 24 et l'état GitHub périmé trois fois dans la journée. **Recouper l'un contre
+> l'autre par `gh` avant de commencer**, et ne pas supposer que l'en-tête du prompt est juste.
 
 ---
 
@@ -372,11 +488,25 @@ rattachement OpenStreetMap ↔ BDCom, qui n'a pas de clé et se pose donc au lec
 [**#54**](https://github.com/IvandeMurard/paris-compass/issues/54) / `DIAGNOSTIC.md` §15,
 **ouverte**, qui demande une décision avant correctif.
 
-**État GitHub remesuré le 24 août par `gh`, à la clôture de la session 4 : 45 ouvertes,
-4 fermées** — `#7`, `#8`, `#10`, `#51`. Il valait 44/3 à la clôture de la session 3 ; `#53`
-(`w0-mcp-verif`) et `#54` ont été ouvertes entre-temps, `#8` fermée. Un état GitHub est une
-mesure : la remesurer, pas la recopier. Le suivant dans l'ordre est `w0-mcp-verif` (#53)
-selon `docs/SESSIONS.md`, régénéré derrière la fermeture.
+~~`w0-mcp-verif` (**#53**)~~ **est clos depuis le 24 août, session 5, issue fermée** — voir la
+section en tête de page. Le serveur MCP a une porte, `npm.cmd run verify:mcp`, et elle est dans
+les consignes d'avant-poussée. Un défaut en est sorti :
+[**#55**](https://github.com/IvandeMurard/paris-compass/issues/55) / `DIAGNOSTIC.md` §16,
+**ouverte**, qui demande une décision avant correctif.
+
+~~**État GitHub remesuré le 24 août par `gh`, à la clôture de la session 4 : 45 ouvertes,
+4 fermées** — `#7`, `#8`, `#10`, `#51`.~~ **Remesuré à la clôture de la session 5 : 45 ouvertes,
+5 fermées** — `#7`, `#8`, `#10`, `#51`, `#53`. Le nombre d'ouvertes n'a pas bougé et **ce n'est
+pas une coïncidence à interpréter** : `#53` a été fermée et `#55` ouverte dans la même session.
+Deux mouvements qui s'annulent dans le total — raison de plus pour lire la liste et non le
+compte. Un état GitHub est une mesure : la remesurer, pas la recopier.
+
+**Le suivant dans l'ordre est `w0-cron` (#6)**, selon `docs/SESSIONS.md` régénéré derrière la
+fermeture. Il touche aux privilèges — voir l'avertissement plus bas — et une décision est déjà
+prise à son sujet : **le secret `DATABASE_URL` ira en secret de dépôt GitHub Actions**, tranché
+le 24 août. Le dépôt est **public** et ne porte aujourd'hui **aucun secret, aucune variable,
+aucun environnement** (mesuré le 24 août par `gh`) : c'est donc à créer, et par une main humaine
+— une session ne transmet pas une chaîne de connexion à un service tiers.
 
 ~~`w0-provenance` (**#10**)~~ **est clos depuis le 24 août, session 3, issue fermée** :
 provenance par couche, démontrée contre le distant par `explain_score` — voir la
@@ -387,8 +517,11 @@ session 3 : 44 ouvertes, 3 fermées** — `#7`, `#51` et `#10` — plus `#52` ou
 ~~L'épic `#41` coche désormais `#7`, `#10` et `#51`.~~ **Faux, remesuré le 24 août à la
 clôture de la session 4 : l'épic ne cochait aucun des trois.** La réparation d'encodage du
 même jour les avait décochés sans que personne le voie — voir le piège plus bas. Recoché et
-vérifié sur les octets bruts. ~~Le suivant dans l'ordre est `w0-fiche` (#8).~~ **`#8` est clos
-depuis la session 4** ; le suivant est `w0-mcp-verif` (#53).
+vérifié sur les octets bruts. ~~Le suivant dans l'ordre est `w0-fiche` (#8).~~ ~~**`#8` est clos
+depuis la session 4** ; le suivant est `w0-mcp-verif` (#53).~~ **`#53` est clos depuis la
+session 5** ; le suivant est `w0-cron` (#6). Vérifié sur les octets bruts à la clôture de la
+session 5 : l'épic `#41` coche bien `#7`, `#8`, `#10`, `#51` et `#53`, et laisse `#6` et `#9`
+décochés — cette fois sans réparation à faire.
 
 ~~**GitHub n'a pas été touché le 24 août.**~~ **Périmé trois fois dans la journée,
 et c'était le piège de cette page.** Remesuré par `gh` à la clôture de la
@@ -418,7 +551,18 @@ Trois avertissements pour la suite, qui ne se déduisent pas des tickets :
   `src/pages/Methodology.tsx`, plus un défaut Overpass trouvé en chemin. Il n'a
   effectivement été entrelacé avec rien.
 - **`w0-cron` (#6) touche aux privilèges.** Le ticket le dit lui-même : job à
-  privilèges élevés, jamais la clé anon.
+  privilèges élevés, jamais la clé anon. **Tranché le 24 août** : le secret
+  `DATABASE_URL` ira en **secret de dépôt GitHub Actions**, sous le nom que
+  `scripts/ingest/lib/db.ts` lit déjà, avec les déclencheurs limités à `schedule`
+  et `workflow_dispatch` et `permissions: contents: read`. Écartés : les Edge
+  Functions Supabase (runtime Deno, pas de DuckDB — `PLAN.md` §2.2bis), et
+  `pg_cron`, **disponible mais non installé** sur le distant (1.6.4, mesuré le
+  24 août), qui ne saurait qu'appeler un webhook et exigerait de stocker un jeton
+  GitHub *dans la base* — deux secrets au lieu d'un, le plus sensible rangé dans
+  ce que le job protège.
+  > Le serveur MCP, lui, n'a besoin d'**aucun** secret privilégié : sa porte
+  > `verify:mcp` s'exerce avec la clé publiable, ce qui est tout l'intérêt — elle
+  > éprouve ce qu'un visiteur anonyme reçoit.
 
 ### Ce que le plan d'action ne garantit pas
 

@@ -832,6 +832,78 @@ choix est le plus simple et le plus proche de la règle uniforme retenue en `202
 
 ---
 
+## 16. Un point hors corpus rendu comme un quartier sans commerces — `score_location`, le 24 août
+
+Le défaut du point 9 dans sa variante **géographique** : là où 9 à 12 venaient d'une couche
+retenue par licence, celui-ci vient d'une couche **absente parce que le corpus s'arrête**. La
+forme est la même — un vide lu comme un zéro — et la conséquence aussi : un chiffre fabriqué qui
+porte une source.
+
+**Mesuré le 24 août 2026** contre `dbefhvmyfmmhjeetdddu`, à travers le serveur MCP, appelant
+anonyme, point **(48,7 · 2,2)** — Massy/Palaiseau, à environ 18 km du 1er arrondissement :
+
+| Outil | Réponse |
+| --- | --- |
+| `find_premises`, rayon 500 m | `returned: 0`, `total_matched: 0` — **honnête** |
+| `score_location`, rayon 800 m | `footfall: 22`, `missingReason: null`, `context_failures: null` |
+
+Le `footfall` de 22 est cité `« APUR BDCom 2023 + OpenStreetMap via Overpass »`, licence
+`ODbL-1.0`, `asOf: 2023-06`. **Aucun local BDCom n'a pourtant été lu**, puisqu'il n'y en a aucun
+à cet endroit : le corpus est Paris intra-muros. La formule de `src/core/scoring.ts` est
+`saturating(occupiedNearby, 90) × 0,65 + transit × 0,35` ; avec `occupiedNearby = 0` et
+`transit = 62`, elle rend `62 × 0,35 = 21,7 → 22`. Le chiffre est donc **entièrement** dérivé
+d'OpenStreetMap, et il nomme l'APUR comme co-source d'une contribution nulle.
+
+### Pourquoi le garde-fou existant ne l'attrape pas
+
+`context.ts` sait déjà refuser une couche absente, et le fait dans les deux autres cas :
+
+| Cause | Ce que fait la requête | `loaded` | `footfall` |
+| --- | --- | --- | --- |
+| Millésime retenu par licence | rend une ligne `withheld` → `fetchPremises` **lève** | sans `premises` | `null` + raison |
+| Base injoignable | `fetch` **échoue** | sans `premises` | `null` + raison |
+| **Point hors corpus** | **réussit, zéro ligne** | **avec `premises`** | **22** |
+
+La troisième ligne est le défaut. La requête a réussi, donc la couche compte comme chargée,
+donc `scoreLocation` calcule. C'est exactement la phrase du `README.md` du serveur MCP à propos
+de `compass_premises_within` — « un vrai vide reste un vrai vide » — retournée contre elle-même :
+ici le vrai vide n'en est pas un, c'est une absence de couverture.
+
+### Ce qui le rend atteignable
+
+La boîte de coordonnées que les outils acceptent est **48,6–49,1 / 2,1–2,5**, soit une bonne
+part de la petite couronne. Les descriptions zod annoncent pourtant « Paris intra-muros
+(roughly 48.81–48.91) » : la boîte est délibérément plus large que la promesse, et rien entre
+les deux ne refuse ni ne réserve. Un agent qui reçoit `footfall: 22` avec une licence ODbL et une
+date de recensement n'a aucun moyen de se méfier — c'est le critère de `Measured<T>`, satisfait
+dans la forme et vide sur le fond.
+
+### Ce qu'il faut trancher avant de corriger
+
+Deux corrections possibles, et le choix n'appartient pas au ticket qui a trouvé le défaut :
+
+1. **Refuser le point.** Resserrer la boîte zod sur l'emprise réelle de Paris. Simple, mais la
+   boîte englobe encore Boulogne et Vincennes, et un rectangle ne décrit pas une commune.
+2. **Retirer la couche.** Traiter « zéro local rendu » comme une couche non chargée, donc
+   `footfall: null` avec une raison. Correct partout, mais indiscernable d'un rayon
+   réellement désert dans Paris — le contre-test du `README.md`, à ne pas casser.
+
+Une troisième voie existe et coûte une migration : demander à PostGIS si le point tombe dans un
+des 80 quartiers, ce qui est la seule définition non arbitraire de « dans le corpus ».
+
+**Suivi en [#55](https://github.com/IvandeMurard/paris-compass/issues/55)**, ouverte plutôt que
+corrigée : le choix ci-dessus est une décision produit, pas un correctif mécanique.
+
+**Tenu en place, pas gelé.** Le contrôle `E11` de `mcp-server/src/verify.ts` le consigne en
+`défaut` — rapporté, non fatal — et **passe au rouge si le défaut disparaît**, pour qu'un
+correctif ne puisse pas laisser cette page derrière lui.
+
+**Le front n'est pas concerné aujourd'hui** : `src/` n'appelle `compass_scoring_context_within`
+nulle part (vérifié le 24 août) et la carte est bornée à Paris. Le défaut est atteignable par
+l'agent, qui est le second ICP de `PERIMETRE.md` §8 — donc il compte.
+
+---
+
 ## Ordre d'attaque suggéré
 
 1. Point 1 — c'est une donnée fausse qui pilote un filtre. Rien d'autre ne devrait passer avant.

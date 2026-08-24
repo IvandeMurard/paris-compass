@@ -14,6 +14,8 @@
     "lint": "eslint .",
     "eval": "tsx scripts/eval/run.ts",
     "eval:anon": "tsx scripts/eval/anon-http.ts",
+    "verify:mcp": "node scripts/verify-mcp.mjs",
+    "smoke:mcp": "node scripts/verify-mcp.mjs --smoke",
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview",

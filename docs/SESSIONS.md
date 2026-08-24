@@ -55,10 +55,23 @@ dans le fichier qui le portait, un piège dans docs/REPRISE.md. Ne me résume qu
 ce que tu ne peux pas faire toi-même — l'état GitHub (fermer l'issue, en ouvrir
 une), et ce qui demande une décision.
 
-Avant de pousser, lance npm.cmd run sessions et commite ce qu'il change. Si tu
-as touché à l'ordre, au modèle ou aux consignes d'une session, c'est dans
-scripts/sessions.ts pour les deux premiers, dans docs/SESSIONS.md hors du bloc
-généré pour la troisième.
+Avant de pousser, les portes — dans cet ordre, et ne pousse pas sur un rouge :
+
+    npm.cmd run typecheck
+    npm.cmd run test
+    npm.cmd run verify:mcp     # si tu as touché src/core/ ou mcp-server/
+    npm.cmd run build          # et build:dev après toute montée de vite
+
+verify:mcp exerce les six outils MCP contre le distant : inventaire, provenance
+par couche, chemin anonyme, modes de panne. Il rend "panne" et non "échec" quand
+un miroir Overpass est indisponible — ça n'est pas un rouge. Il rend "défaut" sur
+les défauts déjà consignés, et passe au ROUGE si l'un d'eux disparaît : c'est
+voulu, ça veut dire qu'il faut fermer l'issue et mettre à jour DIAGNOSTIC.md.
+
+Puis lance npm.cmd run sessions et commite ce qu'il change. Si tu as touché à
+l'ordre, au modèle ou aux consignes d'une session, c'est dans scripts/sessions.ts
+pour les deux premiers, dans docs/SESSIONS.md hors du bloc généré pour la
+troisième.
 ```
 
 Inutile d'y rappeler `npm.cmd`, la pureté de `src/core/`, `Measured<T>` ou l'encadrement des
@@ -86,7 +99,7 @@ hors de la file, pour qu'aucun ticket ne disparaisse en silence.
 
 <!-- BEGIN sessions -- généré par `npm.cmd run sessions`, ne pas éditer à la main -->
 
-*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 24/08/2026.*
+*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 25/08/2026.*
 
 | # | Ticket | Issue | État | Prio | Modèle |
 | --- | --- | --- | --- | --- | --- |
@@ -94,7 +107,7 @@ hors de la file, pour qu'aucun ticket ne disparaisse en silence.
 | ~~2~~ | ~~`w0-history`~~ | [#51](https://github.com/IvandeMurard/paris-compass/issues/51) | **fait** | P0 | Opus 5 |
 | ~~3~~ | ~~`w0-provenance`~~ | [#10](https://github.com/IvandeMurard/paris-compass/issues/10) | **fait** | P0 | Opus 5 |
 | ~~4~~ | ~~`w0-fiche`~~ | [#8](https://github.com/IvandeMurard/paris-compass/issues/8) | **fait** | P0 | Opus 5 |
-| 5 | `w0-mcp-verif` | [#53](https://github.com/IvandeMurard/paris-compass/issues/53) | ouvert | P0 | Opus 5 |
+| ~~5~~ | ~~`w0-mcp-verif`~~ | [#53](https://github.com/IvandeMurard/paris-compass/issues/53) | **fait** | P0 | Opus 5 |
 | 6 | `w0-cron` | [#6](https://github.com/IvandeMurard/paris-compass/issues/6) | ouvert | P0 | Opus 5 |
 | 7 | `w0-plu` | [#9](https://github.com/IvandeMurard/paris-compass/issues/9) | ouvert | P0 | Sonnet 5 |
 | 8 | `w1-chantiers` | [#11](https://github.com/IvandeMurard/paris-compass/issues/11) | ouvert | P0 | Sonnet 5 |
@@ -222,7 +235,7 @@ Piege du ticket : observed=false doit se lire "non observe", jamais "vacant" ni
 "plus un commerce", et pas de coalesce sur le libelle.
 ```
 
-## Session — `w0-mcp-verif` (#53) · Opus 5
+## Session 5 — `w0-mcp-verif` (#53) · Opus 5 — **faite le 24 août**
 
 **Ouvert le 24 août, après la session `w0-provenance`.** Elle a changé la signature de
 `scoreLocation` sous le serveur MCP et découvert au passage que celui-ci n'atteignait jamais
@@ -233,6 +246,31 @@ Trouvé parce que quelqu'un regardait, pas parce qu'un contrôle a échoué.
 le référence pas ; ni les tests de `src/` (73 le 23 août, **96 après la session 4**) ; ni les
 deux bras de la porte. `smoke-test.ts` et
 `provenance-check.ts` existent mais ne sont câblés à aucun script.
+
+> **Faite le 24 août.** `npm.cmd run verify:mcp` exerce les six outils contre
+> `dbefhvmyfmmhjeetdddu` en appelant anonyme : inventaire, provenance par couche, chemin anonyme,
+> quatre modes de panne. Deux passages mesurés, **0 en échec** dans les deux — 36 contrôles quand
+> Overpass répond, 33 quand il rend 429. Le total n'est pas fixe **par construction** : la
+> famille `PROVENANCE` tombe de cinq assertions à deux quand la couche d'aménités n'est jamais
+> arrivée. Lire le `0 en échec`, pas le total. Le smoke test, qui ne démarrait pas sur cette
+> machine (`npx tsx`), tourne pour la première fois — `npm.cmd run smoke:mcp`.
+>
+> **Le contrôle assène, il n'imprime pas.** `smoke-test.ts` sortait 0 tant que rien ne levait :
+> le câbler tel quel aurait posé une porte qui reste verte pendant que chaque chiffre ment.
+> C'est le piège que le ticket nomme, et la raison pour laquelle `verify.ts` a été écrit à côté
+> plutôt que le smoke test câblé.
+>
+> **Deux écarts trouvés.** Le `README.md` du serveur annonçait encore, sous « What this does not
+> cover yet », une provenance unique pour tous les champs — périmé depuis `w0-provenance`, et
+> mesuré faux le jour même : `footfall` cite bien ses deux couches. Corrigé. Et
+> [**#55**](https://github.com/IvandeMurard/paris-compass/issues/55) / `DIAGNOSTIC.md` **§16**,
+> ouverte : un point hors du corpus BDCom mais dans la boîte de coordonnées acceptée est scoré
+> comme un quartier sans commerces. **Demande une décision** — resserrer la boîte, retirer la
+> couche, ou demander à PostGIS.
+>
+> Reste ouvert et volontairement laissé de côté : `provenance-check.ts` n'est toujours câblé à
+> rien, et le `typecheck` de la racine ne référence toujours pas `mcp-server/` — c'est le script
+> `verify:mcp` qui l'appelle, pas `tsc --build`. Détail dans `docs/tickets/w0-mcp-verif.md`.
 
 ```
 Analyse exhaustive AVANT cablage : cabler un controle sur un serveur dont on n'a
@@ -249,7 +287,7 @@ Ensuite seulement, le script npm a la racine, et la ligne dans SESSIONS.md qui
 demande de le lancer.
 ```
 
-## Session 5 — `w0-cron` (#6) · Opus 5
+## Session 6 — `w0-cron` (#6) · Opus 5
 
 Touche aux privilèges.
 
@@ -262,7 +300,7 @@ rare. Afficher une date de fraicheur sans rafraichissement reel serait le loyer
 fabrique sous une autre forme.
 ```
 
-## Session 6 — `w0-plu` (#9) · Sonnet 5
+## Session 7 — `w0-plu` (#9) · Sonnet 5
 
 Ingestion droite.
 
@@ -274,7 +312,7 @@ L'affichage est informatif, sans valeur reglementaire, et renvoie au Portail des
 Regles d'Urbanisme.
 ```
 
-## Sessions 7 et 8 — `w1-chantiers` (#11), `w1-terrasses` (#15) · Sonnet 5
+## Sessions 8 et 9 — `w1-chantiers` (#11), `w1-terrasses` (#15) · Sonnet 5
 
 Deux ingestions indépendantes, même patron. Réserve commune à rappeler :
 
@@ -284,7 +322,7 @@ d'affaires pour les chantiers ; jamais un CA terrasse deduit d'une autorisation.
 Une autorisation n'est pas une terrasse installee aujourd'hui.
 ```
 
-## Session 9 — `w1-survie` (#14) · Opus 5
+## Session 10 — `w1-survie` (#14) · Opus 5
 
 **Le ticket sous-estime sa propre difficulté.** Il écrit « aucune source nouvelle » comme un
 avantage ; c'est l'inverse.

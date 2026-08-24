@@ -547,7 +547,12 @@ l'UI, ou au moins cesser de la déballer dans l'adaptateur.
 > REST par PostgREST, en construire une seconde aurait dupliqué ce qui existe déjà.
 >
 > Vérifié : les quatre outils s'enregistrent et répondent via un vrai client MCP
-> (`src/smoke-test.ts`, `@modelcontextprotocol/sdk`). `list_sources` et la couche BDCom de
+> (`src/smoke-test.ts`, `@modelcontextprotocol/sdk`). ~~Quatre~~ — **six depuis le 17 août**,
+> `find_premises` et `trace_premise` ayant rejoint le lot, voir le second manque ci-dessous.
+> Et cette vérification-là était **ponctuelle** : le smoke test imprime et n'assène rien, il
+> n'était câblé à aucun script, et le typecheck du paquet n'était appelé par personne. Comblé
+> le 24 août par `w0-mcp-verif` (#53) — `npm.cmd run verify:mcp`, 36 contrôles sur les six
+> outils, détail dans `docs/tickets/w0-mcp-verif.md`. `list_sources` et la couche BDCom de
 > `score_location` vérifiés en direct contre `dbefhvmyfmmhjeetdddu`. La construction de
 > requête Overpass et le parsing des amenités vérifiés — l'un en direct, l'autre en rejouant
 > hors-ligne une réponse réelle capturée — après que les miroirs publics ont commencé à

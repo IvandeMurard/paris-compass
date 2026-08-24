@@ -19,8 +19,17 @@ copy .env.example .env
 npm.cmd run start
 ```
 
-Speaks MCP over stdio. Point an MCP client at `npx tsx src/index.ts` from this directory
-(or `node --experimental-strip-types src/index.ts` once built).
+Speaks MCP over stdio. Point an MCP client at `npx tsx src/index.ts` from this directory.
+
+If `tsx` refuses to start — `spawn UNKNOWN`, errno `-4094` — it is not this package: an
+application-control policy on the development machine blocks the esbuild binary inside
+`mcp-server/node_modules` (`docs/REPRISE.md`). Build with the repository's own esbuild and point
+the client at the bundle instead, which is what `verify:mcp` and `smoke:mcp` already do:
+
+```powershell
+npm.cmd run verify:mcp        # builds mcp-server/.build/server.mjs on the way
+# then: command `node`, args [ "<repo>/mcp-server/.build/server.mjs" ]
+```
 
 ## Tools
 
@@ -45,25 +54,58 @@ still appear in `trace_premise`, as `withheld` rows — the licensed way to say 
 
 ## Verify
 
+Both run from the **repository root**, not from here — they typecheck this package and build it
+before touching the network, so there is nothing to install or remember first:
+
 ```powershell
-npm.cmd run typecheck
-npx tsx src/smoke-test.ts
+npm.cmd run verify:mcp
 ```
 
-The smoke test spawns the server as a real client would and calls every tool against a
-point in Paris. Overpass is a shared public mirror and does rate-limit under repeated
-testing (`context_failures: [{ layer: "amenities", reason: "Overpass responded 429" }]`) —
-that is the server reporting a real outage honestly, not a bug; run the smoke test sparingly
-rather than in a loop.
+The gate. Four families — the six tools registered against the six documented above
+(`INVENTAIRE`), every figure attributed to the layer it was read from (`PROVENANCE`), the
+anonymous licence path with 2017 and 2020 withheld and no label borrowed to fill them
+(`LICENCE`), and four failure modes including an unreachable database (`PANNE`). Exits non-zero
+on a broken rule. Source: [`src/verify.ts`](src/verify.ts).
+
+**The number of checks is not fixed, by design** — 36 when both upstreams answer, 33 in a run
+where Overpass returned 429 (both measured 24 August). `PROVENANCE` collapses from five
+assertions to two when the amenity layer never arrived: there is no point asserting the
+provenance of figures that were never computed, and pretending otherwise would be a green tick
+standing for nothing. Read the `0 en échec`, not the total.
+
+```powershell
+npm.cmd run smoke:mcp
+```
+
+The reading. Spawns the server as a real client would and prints every tool's raw answer. It
+asserts nothing and exits 0 as long as nothing throws — useful when a rule has broken and you
+want to see what an agent actually receives, useless as a control.
+
+Overpass is a shared public mirror and does rate-limit under repeated testing
+(`context_failures: [{ layer: "amenities", reason: "Overpass responded 429" }]`) — that is the
+server reporting a real outage honestly, not a bug. `verify:mcp` records those calls as
+`panne` and suspends the assertions that depend on them, rather than failing; it still checks
+that the outage was *reported* and that no figure came back as a measured zero. Run either
+sparingly rather than in a loop.
 
 ## What this does not cover yet
 
-Every field's `source` currently reads "OpenStreetMap via Overpass" even where the premises
-layer comes from BDCom via Supabase — `scoreLocation` (`src/core/scoring.ts`) takes one
-`Origin` for the whole result, a limitation inherited from the front's existing adapter, not
-introduced here. Splitting provenance per field would mean changing that shared function's
-signature, which affects the browser too — flagged for a separate change, not made silently
-as part of this server.
+~~Every field's `source` currently reads "OpenStreetMap via Overpass" even where the premises
+layer comes from BDCom via Supabase.~~ **Fixed on 24 August** by `w0-provenance` (#10):
+`scoreLocation` takes a `LayerOrigins` — one `Origin` per layer — and each metric is attributed
+to the layer it actually reads. Measured through this server the same day at Montorgueil: the
+seven OpenStreetMap figures cite OSM with the query date, and `footfall` cites
+`APUR BDCom 2023 + OpenStreetMap via Overpass` with `asOf: 2023-06`, the survey's date and not
+the query's. Pinned by `P4`/`P5` in `verify.ts` so it cannot silently regress.
+
+A point **outside the BDCom corpus but inside the accepted coordinate box** is still scored as
+though the corpus covered it: `find_premises` honestly returns zero premises out there, but
+`score_location` reads that same zero as "no businesses here" and returns a footfall figure
+stamped with APUR's licence. `DIAGNOSTIC.md` §16, tracked in
+[#55](https://github.com/IvandeMurard/paris-compass/issues/55) — opened rather than fixed,
+because the choice between refusing the point and withdrawing the layer is a product decision.
+Held in place by `E11` in `verify.ts`, which reports it as a known defect and turns red if it is
+fixed without the record being updated.
 
 ~~No tool here exposes `compass_address_timeline`.~~ Exposed on 17 August as `trace_premise`,
 with `find_premises` as the lookup it needs. The front still has the same gap on its side
