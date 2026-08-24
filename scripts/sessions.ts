@@ -22,6 +22,7 @@ const ORDER = [
   "w0-history",
   "w0-provenance",
   "w0-fiche",
+  "w0-mcp-verif",
   "w0-cron",
   "w0-plu",
   "w1-chantiers",

@@ -11,6 +11,7 @@ Sans ça, le reste ne se voit pas. Déployer le corpus, montrer la timeline, dir
 - [ ] #9 `w0-plu` **P0** — Ingérer le PLU plub_protcom
 - [ ] #10 `w0-provenance` **P0** — Provenance par champ, pas un Origin unique OSM
 - [ ] #51 `w0-history` **P0** — compass_premise_history : une retenue de licence rendue comme un fait
+- [ ] #53 `w0-mcp-verif` **P0** — Le serveur MCP n'a aucune vérification automatique
 
 ## Fait quand
 Tous les tickets de la vague sont clos, ou explicitement reportés avec une note dans `docs/PLAN-ACTION-VACANCE.md`.

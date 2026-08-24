@@ -94,11 +94,12 @@ hors de la file, pour qu'aucun ticket ne disparaisse en silence.
 | ~~2~~ | ~~`w0-history`~~ | [#51](https://github.com/IvandeMurard/paris-compass/issues/51) | **fait** | P0 | Opus 5 |
 | ~~3~~ | ~~`w0-provenance`~~ | [#10](https://github.com/IvandeMurard/paris-compass/issues/10) | **fait** | P0 | Opus 5 |
 | 4 | `w0-fiche` | [#8](https://github.com/IvandeMurard/paris-compass/issues/8) | ouvert | P0 | Opus 5 |
-| 5 | `w0-cron` | [#6](https://github.com/IvandeMurard/paris-compass/issues/6) | ouvert | P0 | Opus 5 |
-| 6 | `w0-plu` | [#9](https://github.com/IvandeMurard/paris-compass/issues/9) | ouvert | P0 | Sonnet 5 |
-| 7 | `w1-chantiers` | [#11](https://github.com/IvandeMurard/paris-compass/issues/11) | ouvert | P0 | Sonnet 5 |
-| 8 | `w1-terrasses` | [#15](https://github.com/IvandeMurard/paris-compass/issues/15) | ouvert | P0 | Sonnet 5 |
-| 9 | `w1-survie` | [#14](https://github.com/IvandeMurard/paris-compass/issues/14) | ouvert | P0 | Opus 5 |
+| 5 | `w0-mcp-verif` | [#53](https://github.com/IvandeMurard/paris-compass/issues/53) | ouvert | P0 | Opus 5 |
+| 6 | `w0-cron` | [#6](https://github.com/IvandeMurard/paris-compass/issues/6) | ouvert | P0 | Opus 5 |
+| 7 | `w0-plu` | [#9](https://github.com/IvandeMurard/paris-compass/issues/9) | ouvert | P0 | Sonnet 5 |
+| 8 | `w1-chantiers` | [#11](https://github.com/IvandeMurard/paris-compass/issues/11) | ouvert | P0 | Sonnet 5 |
+| 9 | `w1-terrasses` | [#15](https://github.com/IvandeMurard/paris-compass/issues/15) | ouvert | P0 | Sonnet 5 |
+| 10 | `w1-survie` | [#14](https://github.com/IvandeMurard/paris-compass/issues/14) | ouvert | P0 | Opus 5 |
 
 **Hors de cette file : 29 tickets ouverts**, à prendre après la vague 0 — 
 le détail par vague est dans [`PLAN-ACTION-VACANCE.md`](./PLAN-ACTION-VACANCE.md).
@@ -200,6 +201,32 @@ cette date. Ne pas toucher .lovable/.
 
 Piege du ticket : observed=false doit se lire "non observe", jamais "vacant" ni
 "plus un commerce", et pas de coalesce sur le libelle.
+```
+
+## Session — `w0-mcp-verif` (#53) · Opus 5
+
+**Ouvert le 24 août, après la session `w0-provenance`.** Elle a changé la signature de
+`scoreLocation` sous le serveur MCP et découvert au passage que celui-ci n'atteignait jamais
+son miroir Overpass principal — sans que rien ne le dise ([#52](https://github.com/IvandeMurard/paris-compass/issues/52)).
+Trouvé parce que quelqu'un regardait, pas parce qu'un contrôle a échoué.
+
+**Mesuré le 24 août : rien ne couvre `mcp-server/`.** Ni le `typecheck` de la racine, qui ne
+le référence pas ; ni les 73 tests ; ni les deux bras de la porte. `smoke-test.ts` et
+`provenance-check.ts` existent mais ne sont câblés à aucun script.
+
+```
+Analyse exhaustive AVANT cablage : cabler un controle sur un serveur dont on n'a
+pas etabli le comportement attendu fige l'etat present comme reference.
+
+Les six outils, un par un, contre le distant : reponse, forme, et la provenance
+citee est-elle celle de la couche lue. Puis le chemin anonyme — 2017 et 2020
+retenus comme dans le front — puis au moins deux modes de panne, le miroir
+Overpass injoignable en tete.
+
+Tout ecart : corrige, ou ouvert en ticket. Ne referme pas un ecart en silence.
+
+Ensuite seulement, le script npm a la racine, et la ligne dans SESSIONS.md qui
+demande de le lancer.
 ```
 
 ## Session 5 — `w0-cron` (#6) · Opus 5
