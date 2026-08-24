@@ -644,7 +644,8 @@ ce défaut avant qu'il n'arrive, à propos de la fonction sœur :
 Ce paragraphe décrit `compass_premise_history` mot pour mot. Il était dans une migration que rien
 n'obligeait à lire, et `20260824000001` a argumenté l'inverse dans son propre en-tête.
 
-**Corrigé par `20260824000002_premise_history_definer.sql`** : la fonction passe `SECURITY
+**Corrigé par `20260824000002_premise_history_definer.sql`, posée sur le distant le 24 août**
+(ledger remesuré à **27**, `SECURITY DEFINER` confirmé en base) : la fonction passe `SECURITY
 DEFINER`, voit toutes les lignes, et la divulgation redevient une décision qu'elle prend au lieu
 d'un effet de bord de ce que la jointure a bien voulu rendre. Le correctif d'`is_vacant` du
 point 11 est conservé — le brouillon dont vient ce raisonnement, lui, ne l'avait pas.
@@ -655,6 +656,14 @@ délibérément : le lanceur pose `request.jwt.claims` sur une connexion privil�
 `set local role`, donc **RLS ne s'applique jamais pendant qu'il tourne**. Ce défaut est invisible à
 tout test de comportement que la porte sait exprimer. Mesuré : deux fonctions portent `observed`,
 la requête rendait **une** ligne avant `20260824000002` et zéro après.
+
+**Vérifié après la poussée**, sur le chemin qu'aucune porte ne sait atteindre — appelant
+`authenticated` avec `set local role` pour que RLS s'applique vraiment, local 54652, 2017 :
+`observed = true, is_vacant = true, « Locaux Vacants »`, là où la veille au soir la même requête
+répondait `observed = false`. Et le pire cas du passage en `DEFINER`, où RLS ne protège plus rien :
+l'appelant anonyme, par le claim seul **et** par HTTP avec la clé publiable, reçoit toujours
+`withheld = true` et rien d'autre. Le local 5 reste lisible comme absent de 2023 pour l'appelant
+connecté également.
 
 Les deux fonctions `_within` restent `INVOKER` légitimement : elles n'ont pas de colonne
 `observed`, donc RLS leur coûte des **lignes** et non la vérité.

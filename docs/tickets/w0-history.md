@@ -131,7 +131,9 @@ sondes `premise_history`. Composition de fiabilité inchangée à **57,31 %**
 > appelant `authenticated`, le test de claim pose `withheld = false` pendant que
 > RLS retire les lignes 2017 dessous, et `observed` revient `false` sur un local
 > relevé et vacant. Corrigé par `20260824000002_premise_history_definer.sql`,
-> **écrite et non poussée**. `DIAGNOSTIC.md` §12, et l'invariant `I18` qui rend
-> la règle mécanique.
+> **posée le 24 août**, ledger à 27. L'appelant connecté reçoit désormais
+> `observed = true, is_vacant = true, Locaux Vacants` sur le local 54652 en 2017,
+> et l'anonyme reste retenu même sans le garde-fou RLS que `DEFINER` écarte.
+> `DIAGNOSTIC.md` §12, et l'invariant `I18` qui rend la règle mécanique.
 
 Voir `DIAGNOSTIC.md` §10 et §9, et [`docs/PLAN-ACTION-VACANCE.md`](../PLAN-ACTION-VACANCE.md).

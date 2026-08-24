@@ -10,10 +10,26 @@ contrat d'évaluation).
 
 ## Le 24 août : le correctif de `w0-history` a raté l'appelant connecté
 
-**`20260824000002_premise_history_definer.sql` est écrite, éprouvée, et NON
-posée.** À pousser avant toute autre chose : `docs/REPRISE.md` point 8 pour la
-commande. C'est le dernier état connu du distant qui compte, pas la section
-suivante, qui décrit une victoire de six heures.
+**Corrigé et posé.** `20260824000002_premise_history_definer.sql` est sur le
+distant, ledger remesuré à **27**, `compass_premise_history` est `SECURITY
+DEFINER` en base. Les deux portes au vert : **18/18** invariants dont `I18`, et
+9 contrôles anonymes.
+
+**Le chemin que la porte ne sait pas tester, mesuré à la main.** Appelant
+`authenticated` avec `set local role` pour que RLS s'applique réellement, local
+54652 :
+
+| Millésime | Avant `…002` | Après `…002` |
+| --- | --- | --- |
+| 2017 | `withheld=false, observed=false` | `withheld=false, observed=true, is_vacant=true, Locaux Vacants` |
+| 2020 | `withheld=false, observed=false` | `observed=true, Galerie d'art` |
+
+**Et le pire cas pour `SECURITY DEFINER`, où RLS ne protège plus rien** : appelant
+`anon` par le claim seul, et par HTTP avec la clé publiable — `withheld = true`,
+tout nul sur 2017 et 2020. La fonction retient par elle-même, ce qui est
+exactement ce que le passage en `DEFINER` l'oblige à savoir faire. Le local 5
+reste lisible comme absent de 2023 (`observed = false`, `is_vacant` nul) pour
+l'appelant connecté aussi : l'absence n'est pas redevenue une occupation.
 
 **Ce qui s'est passé.** `20260824000001` a rendu le chemin **anonyme** honnête et
 laissé le chemin **authentifié** affirmer. La politique RLS de `20260809000008`
@@ -47,8 +63,9 @@ que la porte sait exprimer.
 > du raisonnement dans `20260824000002`.
 
 **Sur le suivi.** `#51` reste **fermée à juste titre** : son critère portait sur
-l'appel **anonyme**, et il est démontré. Le trou de l'appelant connecté est un
-défaut **distinct**, à ouvrir en issue propre — il n'a pas d'issue au 24 août.
+l'appel **anonyme**, et il est démontré. Le trou de l'appelant connecté était un
+défaut **distinct**, ouvert et refermé dans la même journée sans passer par une
+issue — il vit en `DIAGNOSTIC.md` §12, avec sa mesure et sa date.
 
 ---
 
@@ -254,18 +271,17 @@ direct le 17 août sur la base elle-même, pas déduit :
 
 | | Distant `dbefhvmyfmmhjeetdddu` |
 | --- | --- |
-| Migrations au ledger `supabase_migrations` | **26**, de `20250417000001` à `20260824000001` — remesuré le 24 août après la poussée de la session 2. Il était à 25 quelques heures plus tôt. `supabase/migrations/` en compte **27** : `20260824000002` est écrite et **non poussée**. |
+| Migrations au ledger `supabase_migrations` | **27**, de `20250417000001` à `20260824000002` — remesuré le 24 août après la seconde poussée. Il valait 25 le matin et 26 en milieu de journée : trois valeurs justes en une journée. |
 | Tables / fonctions `compass_*` | **18 / 10** — mêmes chiffres que la base de référence |
 | Locaux (`premise_location`) | 85 418 |
 | Relevés (`premise_observation`) | 228 275 — les trois millésimes additionnés |
 | Tronçons de voie / quartiers | 25 094 / 80 |
 | Établissements SIRENE | 68 770 |
 
-**Le dépôt et le distant portaient le même schéma** jusqu'à `20260824000001`
-comprise — les 26 fichiers sont au ledger, vérifié le 24 août après la poussée,
-corps de fonction comparé au fichier et non seulement la signature. **Le 27e,
-`20260824000002`, n'est pas posé** : voir la section en tête de page. Détail au
-point 8 de « La suite, par ordre ».
+**Le dépôt et le distant portent le même schéma** : les **27** fichiers de
+`supabase/migrations/` sont au ledger, `20260824000002` comprise. Vérifié le
+24 août après la poussée — mode de sécurité et comportement relevés en base, pas
+seulement la signature. Détail au point 8 de « La suite, par ordre ».
 
 **En local**, l'agrégat de référence reste en place et sert toujours : dix-neuf
 migrations, quatre sources chargées, porte d'évaluation au vert — rejouée et
@@ -992,15 +1008,15 @@ l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
    depuis PowerShell a suffi** — deuxième fois sur trois poussées. Ce n'est pas un
    blocage, c'est une étape : préparer la ligne, la donner, la faire lancer.
 
-   **En attente : `20260824000002_premise_history_definer.sql`**, qui corrige le
-   trou de l'appelant connecté laissé par la précédente (`DIAGNOSTIC.md` §12).
-   Écrite, répétée dans une transaction annulée contre le distant : `I18` échoue
-   avant et passe après, `I16` et `I17` restent au vert, et l'appelant
-   `authenticated` passe de `observed = false` à `observed = true, is_vacant =
-   true, Locaux Vacants` sur le local 54652 en 2017. Vérifié aussi que sous
-   `SECURITY DEFINER` — où RLS ne protège plus rien — l'appelant anonyme reste
-   retenu : `withheld = true`, tout nul. Même commande, puis rejouer les deux
-   portes.
+   **Posée le 24 août : `20260824000002_premise_history_definer.sql`**, qui
+   corrige le trou de l'appelant connecté laissé par la précédente
+   (`DIAGNOSTIC.md` §12). Ledger à **27**, `SECURITY DEFINER` confirmé en base.
+   Répétée d'abord dans une transaction annulée : `I18` échouait avant et passe
+   après, `I16` et `I17` restent au vert.
+
+   **Trois poussées, deux refus du classificateur.** Le refus n'est pas corrélé
+   au contenu : `20260824000001` a été refusée, `20260824000002` est passée
+   directement. Le préparer plutôt que s'en étonner.
 
    ~~**Ce que la porte d'évaluation ne couvrait pas.**~~ **Fait le 17 août** :
    I12 et I13 ajoutées à `eval/invariants.sql`, exécutées par le vrai lanceur
