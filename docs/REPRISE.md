@@ -194,6 +194,19 @@ dépôt — remesurer plutôt que recopier — vaut pour un identifiant autant q
   l'écart 86,5 / 52,5 tient à cette composition et non à la seule distinction local/exploitant.
   Écrit dans l'`evidence` de chaque ligne SIRENE.
 
+### Deux pièges de procédure, dont un nouveau
+
+- **`supabase db push --include-all` est refusé par le classificateur du mode auto ; sans le
+  drapeau, il passe.** Mesuré le 25 août : la même commande, au même moment, sur la même base.
+  `--include-all` applique *toutes* les migrations en attente, ce que le classificateur lit comme
+  une opération bien plus large. La procédure du point 8 de « La suite, par ordre » — sans
+  drapeau — est donc la bonne, et il ne faut pas « aider » en l'élargissant. Le refus précédent,
+  noté à la session du 24 août, portait probablement sur la même cause.
+- **Le prompt de session était juste, cette fois.** `docs/SESSIONS.md` ligne 115 donne bien
+  session 10 = `w1-survie` = #14, recoupé par `gh` avant d'écrire quoi que ce soit. Les sessions 5
+  et 7 avaient chacune reçu un en-tête faux ; le recoupement reste le réflexe à garder, et il
+  coûte trente secondes.
+
 ### La garde anti-prévisionnel est un mécanisme, pas une intention
 
 `src/i18n/survivalText.ts`, tenu par 14 tests. Le sujet grammatical est toujours la cohorte passée,
