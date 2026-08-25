@@ -15,7 +15,7 @@
 import type { Client } from "pg"
 
 import { codedDomains, queryPages } from "./lib/arcgis"
-import { connect, inTransaction, insertRows, log } from "./lib/db"
+import { assertPrivileged, connect, inTransaction, insertRows, log, recordRun } from "./lib/db"
 
 const SERVICE = "https://carto2.apur.org/apur/rest/services"
 
@@ -141,8 +141,20 @@ async function loadNomenclature(client: Client): Promise<void> {
   const label = (field: string, code: unknown): string | null =>
     code === null || code === undefined ? null : (domains[field]?.get(String(code)) ?? null)
 
-  await client.query("delete from public.bdcom_activity")
-
+  // Deliberately no `delete` here, and this is the difference between a script that loads once
+  // and one that can be replayed.
+  //
+  // Emptying this table worked exactly once: on a first load `premise_observation` is still
+  // empty when the nomenclature is written, so nothing references the codes. On every run
+  // afterwards the delete hits `premise_observation_activity_code_fkey` and the whole
+  // transaction rolls back — measured 25 August against the loaded remote, which is how this
+  // was found. w0-cron assumes the four loaders are replayable; this one was not.
+  //
+  // Nor should it be. A nomenclature code that observations still point at must not be removed:
+  // deleting it would either orphan real relevés or, with a cascade, delete them. So codes are
+  // upserted and stale ones are left in place — an unused code costs a row and misleads nobody,
+  // while a missing one would take observations with it.
+  //
   // Codes present in 2023: full hierarchy from the rows, labels from the domains.
   const fromService = await client.query<{
     codact: string; niv47: number; niv18: number; niv8: number; niv2: number; type: string
@@ -163,7 +175,16 @@ async function loadNomenclature(client: Client): Promise<void> {
       r.niv8, label("niv8", r.niv8), r.niv2, label("niv2", r.niv2),
       r.type, label("type", r.type), "service_2023",
     ]),
-    "on conflict (code) do nothing",
+    // `do update`, not `do nothing`: without the delete above, a re-run has to be able to
+    // refresh a label the service has reworded, and to promote a code first seen in 2017/2020
+    // — which carries only a level-8 grouping — to the full hierarchy the day 2023 publishes it.
+    `on conflict (code) do update set
+       label = excluded.label, niv47 = excluded.niv47, label_47 = excluded.label_47,
+       niv18 = excluded.niv18, label_18 = excluded.label_18,
+       niv8  = excluded.niv8,  label_8  = excluded.label_8,
+       niv2  = excluded.niv2,  label_2  = excluded.label_2,
+       type_code = excluded.type_code, type_label = excluded.type_label,
+       source = excluded.source`,
   )
 
   // Codes seen only in the older censuses. Their label and level-8 grouping ride
@@ -371,6 +392,8 @@ async function main(): Promise<void> {
     if (!(v in LAYERS)) throw new Error(`millésime inconnu : ${v} (connus : 2017, 2020, 2023)`)
   }
 
+  assertPrivileged()
+  const startedAt = Date.now()
   const client = await connect()
   try {
     // One transaction for the whole run: a half-loaded census is worse than none,
@@ -410,6 +433,21 @@ async function main(): Promise<void> {
     log("terminé")
     for (const row of summary.rows) log(`  ${row.year}`, `${row.observations} relevés`)
     log("  locaux distincts", summary.rows[0]?.locations ?? "0")
+
+    // The freshness of BDCom is the newest survey it holds, never the date of this run. A
+    // census reloaded today is still a census of the year it was walked — `as_of` is read
+    // from bdcom_vintage, which is the only place that knows it.
+    const loaded = await client.query<{ as_of: string; total: string }>(
+      `select max(v.as_of) as as_of,
+              (select count(*) from public.premise_observation)::text as total
+         from public.bdcom_vintage v
+        where v.ingested_at is not null`,
+    )
+    await recordRun(client, "bdcom", {
+      rowCount: Number(loaded.rows[0]?.total ?? 0),
+      sourceAsOf: loaded.rows[0]?.as_of ?? "inconnu",
+      durationMs: Date.now() - startedAt,
+    })
   } finally {
     await client.end()
   }

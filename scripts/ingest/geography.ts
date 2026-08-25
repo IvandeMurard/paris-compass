@@ -8,7 +8,7 @@
 
 import type { Client } from "pg"
 
-import { connect, inTransaction, insertRows, log } from "./lib/db"
+import { assertPrivileged, connect, inTransaction, insertRows, log, recordRun } from "./lib/db"
 
 const PORTAL = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets"
 
@@ -187,6 +187,8 @@ async function attach(client: Client): Promise<void> {
 // ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
+  assertPrivileged()
+  const startedAt = Date.now()
   const client = await connect()
   try {
     await inTransaction(client, async () => {
@@ -212,6 +214,20 @@ async function main(): Promise<void> {
     `)
     log("terminé")
     for (const row of summary.rows) log(`  ${row.label}`, row.n)
+
+    // Paris Open Data publishes no vintage for these layers, so the honest `source_as_of` is
+    // the day the export was read. That is a real property of this dataset and not a
+    // stand-in for one: the quartier boundaries and the street network are a current-state
+    // export, exactly like an Overpass query, and dating them today is correct where dating a
+    // BDCom census today would be a fabrication.
+    const counted = await client.query<{ n: string }>(
+      "select (select count(*) from public.quartier) + (select count(*) from public.street_segment) as n",
+    )
+    await recordRun(client, "geography", {
+      rowCount: Number(counted.rows[0]?.n ?? 0),
+      sourceAsOf: new Date().toISOString().slice(0, 10),
+      durationMs: Date.now() - startedAt,
+    })
   } finally {
     await client.end()
   }

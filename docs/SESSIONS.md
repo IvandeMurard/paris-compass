@@ -287,9 +287,34 @@ Ensuite seulement, le script npm a la racine, et la ligne dans SESSIONS.md qui
 demande de le lancer.
 ```
 
-## Session 6 — `w0-cron` (#6) · Opus 5
+## Session 6 — `w0-cron` (#6) · Opus 5 — **à moitié faite le 25 août, issue laissée ouverte**
 
 Touche aux privilèges.
+
+> **Faite à moitié le 25 août, et l'issue reste ouverte à dessein.** Le « Fait quand » est en
+> deux temps : `compass_*` expose une date de fraîcheur pour les quatre sources — **fait**,
+> migration `20260825000001`, ledger distant à 28 — et un cron a tourné au moins une fois sans
+> intervention — **non**, le secret de dépôt `DATABASE_URL` restant à poser par une main
+> humaine. L'issue se ferme au premier passage planifié, que `run_by` rendra visible en
+> basculant de `manual` à `github-actions`.
+>
+> **Ce ticket redit `PLAN.md` §2.2bis et §2.2ter mot pour mot** ; les deux sont traités
+> ensemble et se citent l'un l'autre.
+>
+> **Deux choses trouvées en rejouant les quatre chargeurs**, qu'aucune lecture n'aurait
+> données. `bdcom.ts` **ne pouvait tourner qu'une fois** — il vidait une table que
+> `premise_observation` référence, ce qui ne passe qu'au premier chargement : `DIAGNOSTIC.md`
+> §17, corrigé, et la prémisse « les scripts sont idempotents » était donc fausse. Et l'URL du
+> parquet SIRENE **rend 404** depuis que data.gouv.fr l'a remplacée le 21 août :
+> [**#56**](https://github.com/IvandeMurard/paris-compass/issues/56), ouverte, **demande une
+> décision**.
+>
+> La garantie centrale — une exécution ratée ne rajeunit rien — n'a pas eu à être mise en
+> scène : les deux échecs ci-dessus ont laissé `compass_source_freshness()` sur « jamais
+> chargé ».
+>
+> Reste ouvert : la fraîcheur n'atteint pas le navigateur (`src/` n'appelle pas la fonction),
+> et le pipeline se connecte toujours en `postgres` là où un rôle dédié suffirait.
 
 ```
 Ce job ne doit jamais porter la cle anon. Dis-moi ou tu comptes stocker le secret

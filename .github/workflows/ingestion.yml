@@ -1,0 +1,116 @@
+# Ingestion planifiée — w0-cron (#6), PLAN.md §2.2bis et §2.2ter.
+#
+# Les quatre sources n'ont pas le même rythme, et une cadence unique serait fausse pour au
+# moins trois d'entre elles : BODACC publie chaque jour ouvré, l'INSEE republie SIRENE chaque
+# mois, l'APUR recense tous les trois ans sans calendrier annoncé, et la géographie de
+# référence ne bouge qu'à la marge. D'où quatre `cron` dans un seul fichier plutôt qu'une
+# planification commune — le pas de temps est une propriété de la source, pas du pipeline.
+#
+# Ce job porte la connexion privilégiée, jamais la clé anon. Les chargeurs écrivent dans des
+# tables sans politique d'insertion (scripts/ingest/lib/db.ts) : il leur faut un rôle qui
+# contourne RLS. La clé anon, elle, est publique — elle est dans le bundle du navigateur.
+#
+# Dépôt public, donc les déclencheurs sont volontairement réduits à `schedule` et
+# `workflow_dispatch`. Jamais `pull_request` ni surtout `pull_request_target` : le second
+# exécuterait du code de branche externe avec accès aux secrets.
+
+name: Ingestion
+
+on:
+  schedule:
+    # Heures UTC. Décalées les unes des autres pour qu'un retard de planification de GitHub
+    # — courant, plusieurs dizaines de minutes aux heures rondes — ne fasse pas se croiser
+    # deux chargements. Le verrou `concurrency` ci-dessous est la vraie garantie ; ceci
+    # évite seulement d'y faire la queue tous les jours.
+    - cron: "17 3 * * *"      # BODACC — quotidien, la seule source qui vieillit en jours
+    - cron: "43 4 3 * *"      # SIRENE — mensuel, le 3, après la republication INSEE du mois
+    - cron: "11 5 5 1,4,7,10 *"  # BDCom — trimestriel : on vérifie, on ne rajeunit pas
+    - cron: "37 6 7 1,7 *"    # Géographie — semestriel, et jamais collé à BDCom
+
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Jeu à recharger"
+        required: true
+        type: choice
+        options: [bodacc, sirene, bdcom, geography]
+
+# Une seule ingestion à la fois, et on ne tue pas celle qui tourne : un chargement
+# interrompu laisse une transaction annulée, donc rien de chargé, donc une exécution perdue.
+# Les chargeurs sont idempotents, pas concurrents.
+concurrency:
+  group: ingestion
+  cancel-in-progress: false
+
+# Le job ne pousse rien et n'ouvre rien. Il lit le dépôt et écrit dans Postgres.
+permissions:
+  contents: read
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    # SIRENE lit un parquet INSEE de plusieurs centaines de Mo par DuckDB avant la moindre
+    # écriture — comptez cinq minutes et davantage sur un runner partagé.
+    timeout-minutes: 60
+
+    steps:
+      - name: Quelle source
+        id: which
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+          CHOSEN: ${{ inputs.source }}
+        run: |
+          set -euo pipefail
+          case "${SCHEDULE:-}" in
+            "17 3 * * *")           source=bodacc ;;
+            "43 4 3 * *")           source=sirene ;;
+            "11 5 5 1,4,7,10 *")    source=bdcom ;;
+            "37 6 7 1,7 *")         source=geography ;;
+            "")                     source="${CHOSEN:?ni schedule ni input : rien à faire}" ;;
+            *)
+              echo "::error::Planification inconnue « ${SCHEDULE} » — la table de correspondance de ce fichier est désynchronisée du bloc on.schedule."
+              exit 1 ;;
+          esac
+          echo "source=${source}" >> "$GITHUB_OUTPUT"
+          echo "Source retenue : ${source}"
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Charger ${{ steps.which.outputs.source }}
+        env:
+          # Le seul secret de ce workflow. Jamais imprimé : les chargeurs passent par
+          # `connectionTarget()`, qui rend la référence du projet et l'hôte sans le mot de
+          # passe. GitHub masque aussi la valeur dans les logs, mais s'en remettre au
+          # masquage plutôt qu'à du code qui ne l'imprime pas serait un pari.
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          case "${{ steps.which.outputs.source }}" in
+            bodacc)    npx tsx scripts/ingest/bodacc.ts ;;
+            sirene)    npx tsx scripts/ingest/sirene.ts ;;
+            geography) npx tsx scripts/ingest/geography.ts ;;
+            bdcom)
+              # Enchaînés, et dans cet ordre. `geography.ts` rattache chaque local à son
+              # quartier et à son tronçon : recharger le recensement sans rejouer le
+              # rattachement laisserait les nouveaux locaux non rattachés, donc absents des
+              # agrégats par quartier — une perte silencieuse, la famille de défauts que ce
+              # projet traque.
+              npx tsx scripts/ingest/bdcom.ts
+              npx tsx scripts/ingest/geography.ts ;;
+          esac
+
+      - name: Fraîcheur après chargement
+        if: always()
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        # `always()` : c'est en cas d'échec que ce relevé compte le plus. Il montre alors que
+        # `last_success_at` n'a **pas** bougé — une exécution ratée ne rajeunit rien, et
+        # c'est exactement ce que la table doit garantir.
+        run: npx tsx scripts/ingest/freshness.ts

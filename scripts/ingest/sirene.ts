@@ -17,7 +17,7 @@ import { join } from "path"
 import { DuckDBInstance } from "@duckdb/node-api"
 import type { Client } from "pg"
 
-import { connect, inTransaction, insertRows, log } from "./lib/db"
+import { assertPrivileged, connect, inTransaction, insertRows, log, recordRun } from "./lib/db"
 
 /**
  * INSEE's geolocated establishment file, republished monthly on data.gouv.fr.
@@ -125,6 +125,8 @@ async function confirm(client: Client): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  assertPrivileged()
+  const startedAt = Date.now()
   const client = await connect()
   try {
     const siren = await sirenToResolve(client)
@@ -165,6 +167,23 @@ async function main(): Promise<void> {
     `)
     log("terminé")
     for (const row of summary.rows) log(`  ${row.label}`, row.n)
+
+    // Read off the pinned parquet URL, which carries INSEE's own publication stamp. This is
+    // the column that makes the pin visible instead of hiding it: a monthly job reloading the
+    // same file moves `last_success_at` and leaves this untouched, so a reader can see that
+    // the refresh is real and the data is not newer. Bumping PARQUET is what moves it.
+    const stamp = /\/(\d{8})-\d+\//.exec(PARQUET)?.[1]
+    const sourceAsOf = stamp
+      ? `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`
+      : "inconnu — URL du parquet non datée"
+    const counted = await client.query<{ n: string }>(
+      "select count(*)::text as n from public.sirene_establishment",
+    )
+    await recordRun(client, "sirene", {
+      rowCount: Number(counted.rows[0]?.n ?? 0),
+      sourceAsOf,
+      durationMs: Date.now() - startedAt,
+    })
   } finally {
     await client.end()
   }

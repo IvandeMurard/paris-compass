@@ -1,16 +1,85 @@
-# Reprise — état au 25 août 2026, fin de session 5
-
-> **La session 5 est à cheval sur minuit.** Toutes ses mesures — les 36 contrôles, le local
-> 46393, le point de Massy, l'état GitHub — ont été prises le **24 août** ; la clôture, la
-> régénération du tableau d'ordre et cette page datent du **25**. Les dates écrites plus bas
-> sont celles de la mesure, pas celles de la rédaction, et c'est la règle de `CLAUDE.md` :
-> un chiffre mesuré porte **sa** date.
+# Reprise — état au 25 août 2026, fin de session 6
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`
 (backlog, décisions produit), `docs/PLAN-ACTION-VACANCE.md` (doctrine et backlog
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
+
+> **Les sessions 5 et 6 sont à cheval sur minuit.** Les mesures de la session 5 — les contrôles
+> MCP, le local 46393, le point de Massy, l'état GitHub — ont été prises le **24 août** ; celles
+> de la session 6 — les chargements, la table de fraîcheur, le 404 de SIRENE — le **25**. Les
+> dates écrites plus bas sont celles de la mesure, pas celles de la rédaction, et c'est la règle
+> de `CLAUDE.md` : un chiffre mesuré porte **sa** date.
+
+---
+
+## Le 25 août, session 6 : la fraîcheur est mesurable, le cron ne tourne pas encore
+
+**`w0-cron` (#6) est à moitié fait, et l'issue reste ouverte.** Le critère est en deux temps :
+`compass_*` expose une date de fraîcheur pour les quatre sources — **fait**, migration
+`20260825000001`, ledger distant à **28** — et un cron a tourné au moins une fois sans
+intervention — **non**, le secret de dépôt `DATABASE_URL` n'est pas posé, et ce n'est pas à une
+session de le poser.
+
+**Ce ticket redit `PLAN.md` §2.2bis et §2.2ter mot pour mot.** Les deux sont traités comme un
+seul chantier et se citent l'un l'autre.
+
+### Deux dates, jamais une — c'est tout le sujet
+
+La faute à éviter n'est pas l'absence de date, c'est **l'effondrement de deux dates en une**.
+Mesuré le 25 août, après avoir rechargé BDCom **le jour même** :
+
+| source | cadence | source datée | chargé le | lignes | par |
+| --- | --- | --- | --- | --- | --- |
+| `bdcom` | triennial | **2023-06** | **2026-08-25** | 228 275 | manual |
+| `bodacc` | continuous | 2026-08-23 | 2026-08-25 | 163 788 | manual |
+| `geography` | rare | 2026-08-25 | 2026-08-25 | 25 174 | manual |
+| `sirene` | monthly | — | — | — | — |
+
+La ligne `bdcom` est la démonstration : trois ans d'écart sur une donnée chargée il y a une
+minute. La ligne `sirene` en est une autre : **jamais chargée**, et elle le dit au lieu
+d'emprunter la date d'un voisin. La colonne `par` est celle qui rend la doctrine vérifiable —
+tant qu'elle vaut `manual`, la cadence est déclarée et non tenue, et `npm.cmd run freshness`
+l'écrit noir sur blanc.
+
+### Rejouer les quatre chargeurs a trouvé deux choses qu'aucune lecture n'aurait données
+
+**1. `bdcom.ts` ne pouvait tourner qu'une fois.** `DIAGNOSTIC.md` §17, **corrigé**. Il vidait
+`bdcom_activity`, que `premise_observation.activity_code` référence. Le `delete` ne passait
+qu'au premier chargement, quand `premise_observation` est encore vide — le 15 août était ce
+premier chargement, et le défaut attendait le second. **La prémisse du ticket était donc
+fausse** : « les scripts sont idempotents » ne valait pas pour celui-ci.
+
+**2. L'URL du parquet SIRENE rend 404.**
+[**#56**](https://github.com/IvandeMurard/paris-compass/issues/56), **ouverte, P0**.
+data.gouv.fr a remplacé la ressource le 21 août et n'en garde qu'une : celle épinglée au
+21 juillet n'existe plus. Le cron mensuel SIRENE échouera tant que ce n'est pas tranché, et
+c'est laissé ainsi délibérément — un job qui échoue bruyamment chaque mois est un rappel, un
+job absent est un oubli.
+
+> L'épinglage était un choix documenté, et **sa prémisse a changé** : il n'existait alors aucun
+> endroit où consigner quel millésime avait été chargé, donc épingler était le seul moyen de
+> rendre le changement délibéré. `ingestion_run.source_as_of` est maintenant cet endroit.
+
+### La garantie centrale, démontrée par un vrai échec
+
+**Une exécution ratée ne rajeunit rien.** `recordRun` est appelée après le commit, jamais
+dedans. Ça n'a pas eu à être mis en scène : l'échec de `bdcom.ts` a laissé
+`compass_source_freshness()` sur « jamais chargé », et celui de `sirene.ts` l'y laisse encore.
+
+### Trois choses à savoir pour la prochaine session
+
+- **Le secret est la seule chose qui bloque la seconde moitié de #6.** Il se pose par
+  `gh secret set DATABASE_URL`, avec la valeur qui est déjà dans `.env.local` — la chaîne du
+  **pooler session, port 5432**. Ne pas prendre la connexion directe : `db.<ref>.supabase.co`
+  n'a qu'un enregistrement AAAA et les runners GitHub n'ont pas d'IPv6, même piège qu'en local.
+- **`scripts/` est enfin typechecké et testé.** Ajouté à `tsconfig.node.json` et à
+  `vitest.config.ts` — mesuré à **zéro erreur** en `strict` avant de l'inclure, ce qui ferme le
+  trou que `w0-mcp-verif` avait trouvé sans le combler. `npm.cmd run test` : **107 tests**.
+- **Le workflow se relit lui-même.** `scripts/ingest/workflow.test.ts` vérifie que la table de
+  correspondance cron -> jeu n'a pas dérivé du bloc `on.schedule`. Sans ça, une dérive ne se
+  verrait que le jour où le cron se déclenche — deux fois l'an pour la géographie.
 
 ---
 
@@ -501,12 +570,12 @@ pas une coïncidence à interpréter** : `#53` a été fermée et `#55` ouverte 
 Deux mouvements qui s'annulent dans le total — raison de plus pour lire la liste et non le
 compte. Un état GitHub est une mesure : la remesurer, pas la recopier.
 
-**Le suivant dans l'ordre est `w0-cron` (#6)**, selon `docs/SESSIONS.md` régénéré derrière la
-fermeture. Il touche aux privilèges — voir l'avertissement plus bas — et une décision est déjà
-prise à son sujet : **le secret `DATABASE_URL` ira en secret de dépôt GitHub Actions**, tranché
-le 24 août. Le dépôt est **public** et ne porte aujourd'hui **aucun secret, aucune variable,
-aucun environnement** (mesuré le 24 août par `gh`) : c'est donc à créer, et par une main humaine
-— une session ne transmet pas une chaîne de connexion à un service tiers.
+~~**Le suivant dans l'ordre est `w0-cron` (#6)**~~ **Pris le 25 août, session 6, et laissé
+ouvert à moitié** — voir la section en tête de page. Le secret `DATABASE_URL` va en **secret de
+dépôt GitHub Actions**, tranché le 24 août ; le dépôt est **public** et ne portait **aucun
+secret, aucune variable, aucun environnement** (mesuré le 24 août par `gh`). **Il reste à
+créer, par une main humaine** — une session ne transmet pas une chaîne de connexion à un
+service tiers. C'est la seule chose qui bloque la seconde moitié du critère.
 
 ~~`w0-provenance` (**#10**)~~ **est clos depuis le 24 août, session 3, issue fermée** :
 provenance par couche, démontrée contre le distant par `explain_score` — voir la

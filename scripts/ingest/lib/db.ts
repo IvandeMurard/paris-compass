@@ -111,3 +111,91 @@ export function log(step: string, detail = ""): void {
   const stamp = new Date().toISOString().slice(11, 19)
   process.stdout.write(`[${stamp}] ${step}${detail ? ` — ${detail}` : ""}\n`)
 }
+
+/** The four datasets `ingestion_run` tracks. Keys, not labels — the labels live in the table. */
+export type IngestionSource = "bdcom" | "geography" | "bodacc" | "sirene"
+
+/**
+ * Records a successful load.
+ *
+ * Called *after* the transaction commits, never inside it. A run that rolled back has not
+ * loaded anything, and a freshness date that advanced on a rollback would be the exact
+ * failure this table exists to prevent — a date that looks current and is not.
+ *
+ * `sourceAsOf` is the recency of the *data*, read from the source, and it is deliberately a
+ * required argument rather than an optional one: every caller has to decide what it means for
+ * its own dataset, and a default of `now()` is the mistake that would be silently inherited.
+ */
+export async function recordRun(
+  client: Client,
+  source: IngestionSource,
+  measured: { rowCount: number; sourceAsOf: string; durationMs: number },
+): Promise<void> {
+  // GitHub Actions sets GITHUB_ACTIONS=true on every runner. Anything else is a person at a
+  // terminal, and saying so is what keeps "the refresh is automated" an auditable claim
+  // instead of an assumption (PLAN.md §2.2ter).
+  const automated = process.env.GITHUB_ACTIONS === "true"
+  const runRef =
+    automated && process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
+      ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+      : null
+
+  await client.query(
+    `update public.ingestion_run
+        set last_success_at = now(),
+            row_count       = $2,
+            source_as_of    = $3,
+            duration_ms     = $4,
+            run_by          = $5,
+            run_ref         = $6
+      where source = $1`,
+    [
+      source,
+      measured.rowCount,
+      measured.sourceAsOf,
+      measured.durationMs,
+      automated ? "github-actions" : "manual",
+      runRef,
+    ],
+  )
+  log("fraîcheur", `${source} — ${measured.rowCount} lignes, source datée ${measured.sourceAsOf}`)
+}
+
+/**
+ * Refuses to run against anything but a privileged Postgres connection.
+ *
+ * The pipeline writes to tables that carry no insert policy, so it needs a role that bypasses
+ * row level security. Handing it an anon key would not fail loudly — PostgREST would refuse
+ * each write and a careless caller could read that as "nothing to do". Worse, the anon key is
+ * public: it ships in the browser bundle. Naming the failure here costs one call and removes
+ * the possibility.
+ */
+export function assertPrivileged(): void {
+  const url = process.env.DATABASE_URL
+  const automated = process.env.GITHUB_ACTIONS === "true" || process.env.CI === "true"
+
+  if (!url) {
+    // On a workstation, no DATABASE_URL means "the local aggregate", which is the documented
+    // default. On a runner it means the secret is missing — and falling back to 127.0.0.1
+    // there would spend the job's minutes failing to reach a database that was never going to
+    // be present, with a connection error instead of the real cause.
+    if (automated) {
+      throw new Error(
+        "DATABASE_URL est absente sur un runner. Le secret de dépôt du même nom n'est pas posé, " +
+          "ou n'est pas exposé à ce job. Poser la chaîne du pooler session (port 5432) — jamais " +
+          "la clé anon, qui est publique.",
+      )
+    }
+    return // local default: the postgres superuser on the port `supabase start` prints
+  }
+  if (/^sb_publishable_|^eyJ|^sbp_/.test(url.trim())) {
+    throw new Error(
+      "DATABASE_URL ressemble à une clé Supabase et non à une chaîne de connexion Postgres. " +
+        "Ce chargeur écrit dans des tables sans politique d'insertion : il lui faut le rôle " +
+        "privilégié, jamais la clé anon.",
+    )
+  }
+  if (!/^postgres(ql)?:\/\//.test(url.trim())) {
+    throw new Error("DATABASE_URL n'est pas une URL postgres:// — refus de démarrer.")
+  }
+}

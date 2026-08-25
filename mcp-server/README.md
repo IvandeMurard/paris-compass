@@ -61,14 +61,15 @@ before touching the network, so there is nothing to install or remember first:
 npm.cmd run verify:mcp
 ```
 
-The gate. Four families — the six tools registered against the six documented above
-(`INVENTAIRE`), every figure attributed to the layer it was read from (`PROVENANCE`), the
-anonymous licence path with 2017 and 2020 withheld and no label borrowed to fill them
-(`LICENCE`), and four failure modes including an unreachable database (`PANNE`). Exits non-zero
-on a broken rule. Source: [`src/verify.ts`](src/verify.ts).
+The gate. Five families — the six tools registered against the six documented above
+(`INVENTAIRE`), every figure attributed to the layer it was read from (`PROVENANCE`), the two
+freshness dates kept apart (`FRAICHEUR`), the anonymous licence path with 2017 and 2020
+withheld and no label borrowed to fill them (`LICENCE`), and four failure modes including an
+unreachable database (`PANNE`). Exits non-zero on a broken rule. Source:
+[`src/verify.ts`](src/verify.ts).
 
-**The number of checks is not fixed, by design** — 36 when both upstreams answer, 33 in a run
-where Overpass returned 429 (both measured 24 August). `PROVENANCE` collapses from five
+**The number of checks is not fixed, by design** — 40 when both upstreams answer, 33 in a run
+where Overpass returned 429 (measured 24–25 August). `PROVENANCE` collapses from five
 assertions to two when the amenity layer never arrived: there is no point asserting the
 provenance of figures that were never computed, and pretending otherwise would be a green tick
 standing for nothing. Read the `0 en échec`, not the total.
@@ -106,6 +107,14 @@ stamped with APUR's licence. `DIAGNOSTIC.md` §16, tracked in
 because the choice between refusing the point and withdrawing the layer is a product decision.
 Held in place by `E11` in `verify.ts`, which reports it as a known defect and turns red if it is
 fixed without the record being updated.
+
+~~Freshness is reported for BDCom only; BODACC and SIRENE have no ingestion date.~~ **Closed on
+25 August** by `w0-cron` (#6). `list_sources` now carries a `freshness` block per dataset, and
+it deliberately reports **two** dates rather than one: `dataAsOf` is how current the facts are,
+`lastLoadedAt` is when this copy was refreshed. Reloading does not make the facts newer — BDCom
+reloaded on 25 August still reads `dataAsOf: "2023-06"`. `upkeep` says whether the refresh is
+actually automated, so a declared cadence cannot be mistaken for a kept one. Pinned by
+`F1`–`F4` in `verify.ts`.
 
 ~~No tool here exposes `compass_address_timeline`.~~ Exposed on 17 August as `trace_premise`,
 with `find_premises` as the lookup it needs. The front still has the same gap on its side

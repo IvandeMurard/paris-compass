@@ -14,6 +14,7 @@
     "lint": "eslint .",
     "eval": "tsx scripts/eval/run.ts",
     "eval:anon": "tsx scripts/eval/anon-http.ts",
+    "freshness": "tsx scripts/ingest/freshness.ts",
     "verify:mcp": "node scripts/verify-mcp.mjs",
     "smoke:mcp": "node scripts/verify-mcp.mjs --smoke",
     "test": "vitest run",

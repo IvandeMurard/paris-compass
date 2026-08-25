@@ -904,6 +904,62 @@ l'agent, qui est le second ICP de `PERIMETRE.md` §8 — donc il compte.
 
 ---
 
+## 17. Un chargeur qui ne pouvait tourner qu'une fois — `bdcom.ts`, corrigé le 25 août
+
+Trouvé en rejouant les quatre chargeurs pour `w0-cron` (#6), et **il invalidait la prémisse du
+ticket** : « les scripts sont idempotents mais rien ne les rejoue » était faux pour BDCom, qui
+n'était pas rejouable du tout.
+
+`scripts/ingest/bdcom.ts` vidait la nomenclature avant de la réécrire :
+
+```ts
+await client.query("delete from public.bdcom_activity")
+```
+
+Or `premise_observation.activity_code` référence `bdcom_activity.code`. **Mesuré le 25 août**
+contre le distant chargé :
+
+```
+ÉCHEC — update or delete on table "bdcom_activity" violates foreign key constraint
+        "premise_observation_activity_code_fkey" on table "premise_observation"
+```
+
+### Pourquoi personne ne l'avait vu
+
+L'ordre de `main()` le cachait exactement une fois. Au **premier** chargement, la nomenclature
+s'écrit *avant* la promotion : `premise_observation` est encore vide, rien ne référence les
+codes, le `delete` passe. À partir du **second**, la table est peuplée par l'exécution
+précédente et le `delete` échoue — donc toute la transaction.
+
+Le chargement du 15 août était un premier chargement. Le défaut attendait le second, qui n'a
+eu lieu que le 25.
+
+### Le correctif, et pourquoi ce n'est pas seulement une question d'idempotence
+
+Le `delete` est supprimé, et les deux insertions passent en `on conflict (code) do update`.
+Mais le fond est plus simple que l'idempotence : **une entrée de nomenclature que des relevés
+référencent ne doit pas pouvoir disparaître.** La supprimer orphelinerait des relevés réels —
+ou, avec une cascade, les effacerait. Un code devenu inutilisé coûte une ligne et ne trompe
+personne ; un code manquant emporte des observations avec lui.
+
+Le `do update` a une seconde vertu : un code vu d'abord en 2017/2020 ne porte qu'un
+regroupement à 8 postes, et il est promu à la hiérarchie complète le jour où le service 2023 le
+publie.
+
+### Ce qui le démontre
+
+Rejoué immédiatement après le correctif, contre le distant, il rend **exactement les mêmes
+chiffres** qu'au 15 août — 84 031 relevés en 2017, 83 399 en 2020, 60 845 en 2023, 85 418
+locaux distincts, 228 275 relevés au total. L'idempotence n'est plus supposée : elle est
+mesurée sur deux exécutions successives.
+
+> **Et la table de fraîcheur a tenu sa promesse par accident.** L'exécution ratée n'a rien
+> écrit : `compass_source_freshness()` rendait toujours `bdcom` en « jamais chargé » juste
+> après l'échec. C'est la garantie que `20260825000001` doit offrir — une exécution ratée ne
+> rajeunit rien — démontrée par un vrai échec plutôt que par un test fabriqué.
+
+---
+
 ## Ordre d'attaque suggéré
 
 1. Point 1 — c'est une donnée fausse qui pilote un filtre. Rien d'autre ne devrait passer avant.

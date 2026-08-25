@@ -8,7 +8,7 @@
 
 import type { Client } from "pg"
 
-import { connect, inTransaction, insertRows, log } from "./lib/db"
+import { assertPrivileged, connect, inTransaction, insertRows, log, recordRun } from "./lib/db"
 
 const PORTAL =
   "https://bodacc-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/annonces-commerciales"
@@ -289,6 +289,8 @@ async function main(): Promise<void> {
     throw new Error(`année de départ invalide : ${since}`)
   }
 
+  assertPrivileged()
+  const startedAt = Date.now()
   const client = await connect()
   try {
     await inTransaction(client, async () => {
@@ -312,6 +314,18 @@ async function main(): Promise<void> {
     `)
     log("terminé")
     for (const row of summary.rows) log(`  ${row.label}`, row.n)
+
+    // The newest notice actually held, not the date of the run. If DILA has published nothing
+    // for a week, this stays a week old — which is the true answer, and the one a caller needs
+    // in order to know whether a recent sale would already be visible.
+    const newest = await client.query<{ as_of: string | null; n: string }>(
+      `select max(published_on)::text as as_of, count(*)::text as n from public.bodacc_announcement`,
+    )
+    await recordRun(client, "bodacc", {
+      rowCount: Number(newest.rows[0]?.n ?? 0),
+      sourceAsOf: newest.rows[0]?.as_of ?? "inconnu",
+      durationMs: Date.now() - startedAt,
+    })
   } finally {
     await client.end()
   }

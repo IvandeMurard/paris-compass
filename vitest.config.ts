@@ -11,6 +11,11 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    // `scripts/` a rejoint la liste le 25 août, pour un seul test — celui qui vérifie que la
+    // table de correspondance cron -> source de .github/workflows/ingestion.yml n'a pas dérivé
+    // du bloc `on.schedule`. Le workflow échoue bruyamment sur une planification inconnue,
+    // mais seulement quand le cron se déclenche : deux fois l'an pour la géographie. Un test
+    // le dit à chaque `npm.cmd run test`.
+    include: ['src/**/*.test.ts', 'scripts/**/*.test.ts'],
   },
 });

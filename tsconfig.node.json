@@ -18,5 +18,9 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts"]
+  // `scripts/` a rejoint ce projet le 25 août : il passait sous aucun `tsc`, alors que les
+  // quatre chargeurs d'ingestion y écrivent en base avec une connexion privilégiée. Mesuré
+  // avant de l'ajouter — zéro erreur en `strict` — donc l'inclusion ne coûte rien et ferme
+  // le trou que w0-mcp-verif avait trouvé sans le combler.
+  "include": ["vite.config.ts", "scripts/**/*.ts"]
 }

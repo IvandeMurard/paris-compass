@@ -310,6 +310,74 @@ async function checkProvenance(client: Client): Promise<ScoreResponse | null> {
   return response
 }
 
+/**
+ * Freshness, as list_sources reports it — w0-cron (#6), PLAN.md §2.2ter.
+ *
+ * The failure this guards against is a collapse, not an absence: rendering one date where there
+ * are two. "Loaded this morning" and "surveyed in 2023" are different facts, and a caller given
+ * only the first will say the corpus is current. That is the fabricated rent in its temporal
+ * form, so it is asserted rather than trusted to a comment.
+ */
+async function checkFreshness(client: Client): Promise<void> {
+  const outcome = await call(client, "list_sources")
+  if (outcome.isError) {
+    record("FRAICHEUR", "F1", "list_sources répond", "fail", outcome.text.slice(0, 200))
+    return
+  }
+  const sources = (parse(outcome).sources ?? []) as {
+    name: string
+    freshness?: { dataAsOf: string | null; lastLoadedAt: string | null; cadence?: string; upkeep?: string }
+  }[]
+
+  const withoutFreshness = sources.filter((s) => !s.freshness)
+  expect(
+    "FRAICHEUR",
+    "F1",
+    "les quatre jeux chargés portent une fraîcheur, plus OpenStreetMap",
+    withoutFreshness.length === 0,
+    withoutFreshness.length === 0
+      ? `${sources.length} sources décrites`
+      : `sans fraîcheur : ${withoutFreshness.map((s) => s.name).join(", ")}`,
+  )
+
+  const bdcom = sources.find((s) => s.name.startsWith("APUR BDCom"))
+  const fresh = bdcom?.freshness
+  const today = new Date().toISOString().slice(0, 10)
+
+  // The whole point, in one assertion: BDCom's data date must be the survey's, and it must not
+  // be the day we happened to load it — even when we loaded it today.
+  expect(
+    "FRAICHEUR",
+    "F2",
+    "BDCom : la date de la donnée est celle du recensement, pas celle du chargement",
+    Boolean(fresh && fresh.dataAsOf && !fresh.dataAsOf.startsWith(today) && /^\d{4}/.test(fresh.dataAsOf)),
+    `dataAsOf=${fresh?.dataAsOf} · lastLoadedAt=${fresh?.lastLoadedAt?.slice(0, 10) ?? "—"}`,
+  )
+
+  // And a source never loaded must say so rather than borrow a neighbour's date — the same
+  // absence-is-not-zero rule the licence path already holds.
+  const sirene = sources.find((s) => s.name.startsWith("SIRENE"))
+  expect(
+    "FRAICHEUR",
+    "F3",
+    "un jeu jamais chargé le dit, il n'emprunte pas une date",
+    Boolean(sirene?.freshness) &&
+      (sirene?.freshness?.lastLoadedAt === null ? sirene.freshness.dataAsOf === null : true),
+    `SIRENE : lastLoadedAt=${sirene?.freshness?.lastLoadedAt ?? "null"} · dataAsOf=${sirene?.freshness?.dataAsOf ?? "null"}`,
+  )
+
+  // Declared or real, never ambiguous. A cadence with no automated run behind it has to be
+  // legible as such, or "monthly" reads as a guarantee.
+  const upkeep = sources.filter((s) => s.freshness?.upkeep).map((s) => s.freshness?.upkeep ?? "")
+  expect(
+    "FRAICHEUR",
+    "F4",
+    "l'entretien est déclaré : un rafraîchissement manuel ne se lit pas comme automatique",
+    upkeep.every((u) => /scheduled job|by hand|No refresh recorded/.test(u)),
+    upkeep.length > 0 ? `${upkeep.length} jeux qualifient leur entretien` : "aucun jeu ne qualifie son entretien",
+  )
+}
+
 // ---------------------------------------------------------------------------
 // LICENCE — the anonymous path, tool by tool. DIAGNOSTIC.md §9 to §12, and #51's rule.
 // ---------------------------------------------------------------------------
@@ -581,6 +649,7 @@ async function main(): Promise<void> {
   try {
     await checkInventory(client)
     await checkProvenance(client)
+    await checkFreshness(client)
     await checkWithheldVintages(client)
     const found = await checkFindPremises(client)
     if (found && found.premises.length > 0) {

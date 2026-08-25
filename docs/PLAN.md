@@ -97,6 +97,18 @@ journal de millésime : télécharger, normaliser, charger.
 > de « pas encore chargé ». Un contrôle de complétude refuse de valider si le nombre de relevés
 > promus diffère du nombre de lignes lues.
 
+> **Traité le 25 août par `w0-cron` (#6), et les deux points ci-dessous sont un seul chantier
+> avec lui** — le ticket les redisait mot pour mot. Ce qui est posé : la table générique
+> `ingestion_run`, la fonction `compass_source_freshness()`, les quatre chargeurs qui
+> l'écrivent, et `.github/workflows/ingestion.yml` avec **quatre cadences distinctes**. Ce qui
+> ne l'est pas : aucun cron n'a encore tourné, le secret de dépôt restant à poser. Détail et
+> mesures dans `docs/tickets/w0-cron.md`.
+>
+> Deux choses trouvées en rejouant les chargeurs, qui ne se déduisaient d'aucune lecture :
+> `bdcom.ts` **ne pouvait tourner qu'une fois** (`DIAGNOSTIC.md` §17, corrigé), et l'URL du
+> parquet SIRENE épinglée **rend 404** depuis que data.gouv.fr l'a remplacée
+> ([#56](https://github.com/IvandeMurard/paris-compass/issues/56), ouverte).
+
 **2.2bis — Rien ne se recharge tout seul. Constat du 15 août, vérifié et pas supposé.**
 `bdcom.ts`, `geography.ts`, `bodacc.ts`, `sirene.ts` sont idempotents et rejouables — mais
 rien ne les rejoue. Vérifié : aucun `.github/workflows`, aucun `cron.schedule` dans les
@@ -116,11 +128,13 @@ Les sources n'ont pas le même rythme naturel : SIRENE se republie **mensuelleme
 fixe, la géographie (quartiers, voies) rarement. Une seule cadence pour les quatre serait
 fausse pour au moins trois d'entre elles.
 
-À trancher avant d'automatiser, pas après : où tourne un job planifié qui a besoin d'une
-connexion à privilèges élevés — GitHub Actions avec le secret en dépôt, `pg_cron` côté
-Supabase s'il peut appeler un webhook externe, ou autre — puisque cette connexion ne doit
-jamais être accessible autrement que depuis un environnement serveur maîtrisé (voir
-`scripts/ingest/lib/db.ts`).
+~~À trancher avant d'automatiser, pas après : où tourne un job planifié qui a besoin d'une
+connexion à privilèges élevés.~~ **Tranché le 24 août : GitHub Actions, avec `DATABASE_URL` en
+secret de dépôt**, déclencheurs réduits à `schedule` et `workflow_dispatch`, et
+`permissions: contents: read`. Écartés, avec leur raison : les Edge Functions Supabase (runtime
+Deno, pas de DuckDB, limite de temps), et `pg_cron` — **disponible mais non installé** sur le
+distant, mesuré le 24 août — qui ne saurait qu'appeler un webhook et exigerait de stocker un
+jeton GitHub *dans la base même* que le job protège, soit deux secrets au lieu d'un.
 
 *Exemple donné le 15 août : le PLU.* Le jeu `plub_protcom` (§2.4) répond justement à ce
 scénario — mais il n'est **pas encore ingéré du tout**, indépendamment de toute question
@@ -133,15 +147,28 @@ L'infrastructure existe déjà, à moitié : `bdcom_vintage.ingested_at` est pos
 table équivalente : impossible aujourd'hui de répondre « quand cette table a-t-elle été
 chargée pour la dernière fois » pour trois sources sur quatre.
 
-À construire : une table générique (source, dernière exécution réussie, nombre de lignes)
-que les quatre scripts écrivent en fin de course, exposée par une fonction `compass_*` au même
-titre que `compass_vintages` — dans l'esprit `Measured<T>` déjà en place (CLAUDE.md), pas un
-concept séparé.
+~~À construire : une table générique (source, dernière exécution réussie, nombre de lignes).~~
+**Posée le 25 août** — `public.ingestion_run`, migration `20260825000001`, exposée par
+`compass_source_freshness()`. Elle porte trois colonnes de plus que demandé, chacune pour une
+raison mesurée :
+
+| Colonne | Pourquoi elle existe |
+| --- | --- |
+| `source_as_of` | La date de la **donnée**, lue sur la source. Distincte de la date de chargement : BDCom rechargé le 25 août rend toujours `2023-06`. Sans elle, une seule date aurait répondu à deux questions. |
+| `cadence` | Le rythme de publication de la source, déclaré. Les quatre diffèrent de trois ordres de grandeur. |
+| `run_by` | `manual` ou `github-actions`. C'est ce qui rend « réel ou déclaré » **vérifiable** : sans cette colonne, la table serait identique selon que le cron marche ou que quelqu'un a rechargé à la main en août. |
 
 **Un couplage à ne pas rater avec 2.2bis** : afficher une date de dernière mise à jour n'est
 honnête que si le rythme de rafraîchissement est soit réel, soit déclaré. Poser la date sans
 l'automatisation ferait la même faute que le loyer fabriqué (`DIAGNOSTIC.md` §1) sous une autre
 forme — un chiffre qui a l'air à jour et ne l'est pas forcément.
+
+> **Tenu, et de façon lisible.** `compass_source_freshness()` rend `run_by` à côté de chaque
+> date, `npm.cmd run freshness` écrit noir sur blanc « cadence déclarée, pas tenue » tant
+> qu'aucune exécution planifiée n'a eu lieu, et `list_sources` qualifie l'entretien de chaque
+> jeu — « Refreshed by a scheduled job » ou « Last refresh was run by hand. The cadence above
+> is declared, not demonstrated. » Le contrôle `F4` de `mcp-server/src/verify.ts` échoue si un
+> jeu cesse de qualifier le sien.
 
 **2.3 — BDCom (APUR), les trois millésimes.** Recensement de terrain porte-à-porte de tous les
 locaux parisiens en rez-de-chaussée avec vitrine et accès sur rue. Chaque local porte sa

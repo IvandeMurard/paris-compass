@@ -27,6 +27,53 @@ interface VintageRow {
   ingested_at: string | null
 }
 
+/**
+ * `compass_source_freshness` (20260825000001) — one row per dataset the pipeline loads.
+ *
+ * Two dates, never one. `source_as_of` is how current the data is, `ingested_at` is when our
+ * copy was last refreshed, and an agent that relays only the second will tell someone a 2023
+ * survey is from this morning. `run_by` says whether the refresh is actually automated, which
+ * is what keeps "this is kept up to date" a checkable claim rather than a promise.
+ */
+interface FreshnessRow {
+  source: string
+  label: string
+  cadence: string
+  cadence_note: string
+  source_as_of: string | null
+  ingested_at: string | null
+  row_count: number | null
+  run_by: string | null
+  age_days: number | null
+}
+
+function freshnessOf(rows: FreshnessRow[], source: string): Record<string, unknown> | undefined {
+  const r = rows.find((f) => f.source === source)
+  if (!r) return undefined
+  return {
+    dataAsOf: r.source_as_of,
+    lastLoadedAt: r.ingested_at,
+    // Spelled out rather than left as a bare pair of dates: the distinction is the one a
+    // caller is most likely to collapse, and collapsing it is what manufactures a freshness.
+    reading:
+      r.ingested_at === null
+        ? "Never loaded into this database — not 'empty', not 'zero'."
+        : "dataAsOf is how current the facts are; lastLoadedAt is when this copy was refreshed. Reloading does not make the facts newer.",
+    cadence: r.cadence,
+    cadenceNote: r.cadence_note,
+    rowCount: r.row_count,
+    refreshedBy: r.run_by,
+    // A cadence nobody keeps is a cadence, not a guarantee. Saying so here is cheaper than
+    // letting an agent infer upkeep from the word "monthly".
+    upkeep:
+      r.run_by === "github-actions"
+        ? "Refreshed by a scheduled job."
+        : r.run_by === "manual"
+          ? "Last refresh was run by hand. The cadence above is declared, not demonstrated."
+          : "No refresh recorded.",
+  }
+}
+
 export function registerListSources(server: McpServer): void {
   server.registerTool(
     "list_sources",
@@ -42,6 +89,10 @@ export function registerListSources(server: McpServer): void {
       if (error) throw new Error(`compass_vintages: ${error.message}`)
       const vintages = (data ?? []) as VintageRow[]
 
+      const { data: freshData, error: freshError } = await supabase.rpc("compass_source_freshness")
+      if (freshError) throw new Error(`compass_source_freshness: ${freshError.message}`)
+      const freshness = (freshData ?? []) as FreshnessRow[]
+
       const sources = [
         {
           // Taken from the constructor the scores themselves are stamped with, not restated:
@@ -51,6 +102,9 @@ export function registerListSources(server: McpServer): void {
           licence: OSM_ORIGIN("").licence,
           usage: "Amenities (schools, healthcare, groceries, parks, transit) and major roads, within a radius of any scored point.",
           note: "Volunteer-contributed. Coverage and freshness vary by street.",
+          // No freshness row: OSM is queried live per call, so its data is as current as the
+          // request. It is the one source here with nothing to refresh on a schedule.
+          freshness: { dataAsOf: "live", reading: "Queried at call time, not loaded in advance." },
         },
         ...vintages.map((v) => ({
           name: `APUR BDCom ${v.vintage_year}`,
@@ -60,6 +114,7 @@ export function registerListSources(server: McpServer): void {
           scope: v.vintage_scope,
           recordCount: v.record_count,
           ingestedAt: v.ingested_at,
+          freshness: freshnessOf(freshness, "bdcom"),
           note:
             v.vintage_scope === "retail_only"
               ? "Retail and commercial services only — vacant premises are not published in this vintage."
@@ -77,8 +132,10 @@ export function registerListSources(server: McpServer): void {
           note:
             "A notice identifies an address, not a shopfront, and a proceeding carries the company's " +
             "registered office — which for a company is not necessarily the shop. Prices are extracted " +
-            "by regex from the published sentence, kept verbatim alongside. Freshness is not reported: " +
-            "only BDCom records an ingestion date today (PLAN.md §2.2ter).",
+            "by regex from the published sentence, kept verbatim alongside.",
+          // ~~Freshness is not reported: only BDCom records an ingestion date.~~ Closed on
+          // 25 August by w0-cron (#6): all four datasets now carry one.
+          freshness: freshnessOf(freshness, "bodacc"),
         },
         {
           name: "SIRENE geolocated establishments (INSEE)",
@@ -87,8 +144,8 @@ export function registerListSources(server: McpServer): void {
             "Reached through trace_premise, never returned as rows: it answers 'does this company have " +
             "an establishment at this address', which is what produces the `corrobore` confidence level.",
           note:
-            "SIRENE places a company, never a shopfront — the establishment may be an office upstairs. " +
-            "Same freshness gap as BODACC.",
+            "SIRENE places a company, never a shopfront — the establishment may be an office upstairs.",
+          freshness: freshnessOf(freshness, "sirene"),
         },
       ]
 
