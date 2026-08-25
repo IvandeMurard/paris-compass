@@ -31,12 +31,27 @@ dernière exécution réussie, nombre de lignes) » : ce sont les deux moitiés 
 
 | « Fait quand » | État |
 | --- | --- |
-| `compass_*` expose `ingested_at` pour BDCom, géographie, BODACC et SIRENE | **fait** — `compass_source_freshness()`, migration `20260825000001`, ledger distant à **28** |
-| Un cron a tourné au moins une fois sans intervention manuelle | **non** — le secret de dépôt `DATABASE_URL` n'est pas posé, et ce n'est pas à une session de le poser |
+| `compass_*` expose `ingested_at` pour BDCom, géographie, BODACC et SIRENE | **fait** — `compass_source_freshness()`, migration `20260825000001`, ledger distant remesuré à **30** en fin de session |
+| Un cron a tourné au moins une fois sans intervention manuelle | **pas encore** — le secret est posé et le pipeline tourne en CI, mais aucun `schedule` ne s'est déclenché |
 
 L'issue reste donc **ouverte**. Elle se ferme au premier passage planifié, que
-`compass_source_freshness()` rendra visible en basculant `run_by` de `manual` à
-`github-actions`.
+`compass_source_freshness()` rendra visible en basculant `run_by` sur `schedule`.
+
+**Ce qui est démontré en CI**, run
+[32798202890](https://github.com/IvandeMurard/paris-compass/actions/runs/32798202890) du
+25 août : le job atteint le distant **par le pooler**, charge la géographie — 80 quartiers,
+25 094 tronçons — et enregistre `run_by = workflow-dispatch`. **Pas `schedule`**, et c'est le
+point : le relevé de fin de job écrit toujours « aucune source n'a encore été rafraîchie par un
+cron, cadence déclarée, pas tenue ». Une pression sur un bouton ne se fait pas passer pour une
+cadence tenue.
+
+> **Le premier lancement, lui, a échoué** — et utilement. La valeur du secret n'était pas une
+> URL `postgres://`, la garde a refusé de démarrer, et rien n'a été écrit. Mais son message
+> envoyait chercher à l'aveugle, et sur un runner personne ne peut inspecter la valeur.
+> `assertPrivileged` décrit désormais la **forme** de ce qu'elle a reçu sans en révéler le
+> contenu : ligne `.env` entière collée, guillemets ramassés, marque-place `[YOUR-PASSWORD]`,
+> commande `psql` prise pour une URL, espaces en tête — plus le cas `db.<ref>.supabase.co`, qui
+> échoue sur un runner faute d'IPv6, exactement comme sur ce poste.
 
 ### Les chiffres d'entrée, remesurés
 
@@ -152,7 +167,51 @@ d'échec que le relevé compte le plus, puisqu'il montre que rien n'a bougé.
 | `scripts/ingest/workflow.test.ts` | **11 tests** : la table cron -> jeu ne peut pas dériver du bloc `on.schedule` sans que `npm.cmd run test` le dise. |
 | `mcp-server/src/tools/listSources.ts` | La fraîcheur des quatre jeux atteint l'agent, avec la lecture des deux dates écrite à côté. |
 | `mcp-server/src/verify.ts` | Famille `FRAICHEUR`, quatre contrôles. |
+| `scripts/ingest/sirene.ts` | `--confirm-only` : rejoue la confirmation sans relire l'INSEE. |
+| `eval/baselines/ingestion.json` | `identifiants_reattribues` compte enfin ce que son nom annonce. |
 | `tsconfig.node.json`, `vitest.config.ts` | `scripts/` entre dans le typecheck et dans les tests. |
+
+### Deux défauts de plus, trouvés le même jour en rejouant les chargeurs
+
+Aucun des deux ne se déduisait d'une lecture, et **aucun des deux ne faisait échouer quoi que ce
+soit** : le premier détruisait une donnée en silence, le second produisait une base différente
+sans erreur.
+
+**3. Recharger BODACC détruit toutes les confirmations SIRENE.** `bodacc.ts` reconstruit
+`bodacc_announcement` en entier, ce qui cascade sur `bodacc_establishment` et emporte
+`operator_confirmed`. Mesuré à la porte d'évaluation : **3 147 niveaux `corrobore` tombés à
+zéro**, soit **5,92 points** de composition établi+corroboré — la métrique de qualité du projet.
+
+Et c'était un défaut du **workflow autant que du chargeur** : un cron BODACC *quotidien* aurait
+effacé ces niveaux chaque nuit, quand SIRENE ne repasse que *tous les mois*. Corrigé par
+`sirene.ts --confirm-only`, qui rejoue la seule étape de confirmation — elle ne lit que
+`sirene_establishment`, que BODACC ne touche pas, donc sans relire les centaines de mégaoctets
+du parquet INSEE. Ce qui tombe bien : cette URL rend 404 (#56), et les confirmations auraient
+été autrement irrécupérables. La branche `bodacc` du workflow enchaîne désormais cette étape, et
+un test l'exige.
+
+**Réparé** : `corrobore` de retour à 3 147, les huit cas dorés au vert, tendance
+établi+corroboré revenue à 57,26 %.
+
+**4. La promotion BDCom dépendait de l'ordre de chargement.** `DIAGNOSTIC.md` §17, seconde
+partie. Le drapeau `ordre_address_conflict` se calculait pendant chaque promotion, contre l'état
+courant de `premise_location` — donc contre un corpus encore en construction.
+
+| | 2017 | 2020 | 2023 | total |
+| --- | --- | --- | --- | --- |
+| chargement initial, 15 août | 0 | 0 | 74 | **74** |
+| rechargement, 25 août | 73 | 73 | 74 | **220** |
+
+**Les deux chiffres sont vrais et ne mesurent pas la même chose.** Il y a bien **74 identifiants
+réattribués** — propriété stable du corpus — et ils touchent **220 relevés**. La métrique
+s'appelait `identifiants_reattribues` et sa requête comptait des *relevés* : les deux ne
+coïncidaient que par l'artefact ci-dessus. Corrigé des deux côtés — drapeau posé après les trois
+promotions, requête en `count(distinct l.ordre)` — et **la valeur gelée n'a pas eu à bouger**.
+
+> Cela invalide une phrase que ce même ticket portait plus haut. « Rejoué après correctif, il
+> rend exactement les mêmes chiffres » était vrai des **effectifs** et faux du **contenu** : la
+> base n'était pas identique. L'en-tête de `bdcom.ts` promettait « Re-running yields the same
+> database » ; il était faux deux fois, et il est maintenant mesuré.
 
 ### Ce qui reste, et qui n'était pas dans le critère
 

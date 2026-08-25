@@ -68,8 +68,8 @@ withheld and no label borrowed to fill them (`LICENCE`), and four failure modes 
 unreachable database (`PANNE`). Exits non-zero on a broken rule. Source:
 [`src/verify.ts`](src/verify.ts).
 
-**The number of checks is not fixed, by design** — 40 when both upstreams answer, 33 in a run
-where Overpass returned 429 (measured 24–25 August). `PROVENANCE` collapses from five
+**The number of checks is not fixed, by design** — 41 when both upstreams answer, fewer when
+Overpass rate-limits (measured 24–25 August). `PROVENANCE` collapses from five
 assertions to two when the amenity layer never arrived: there is no point asserting the
 provenance of figures that were never computed, and pretending otherwise would be a green tick
 standing for nothing. Read the `0 en échec`, not the total.
@@ -99,14 +99,17 @@ seven OpenStreetMap figures cite OSM with the query date, and `footfall` cites
 `APUR BDCom 2023 + OpenStreetMap via Overpass` with `asOf: 2023-06`, the survey's date and not
 the query's. Pinned by `P4`/`P5` in `verify.ts` so it cannot silently regress.
 
-A point **outside the BDCom corpus but inside the accepted coordinate box** is still scored as
-though the corpus covered it: `find_premises` honestly returns zero premises out there, but
-`score_location` reads that same zero as "no businesses here" and returns a footfall figure
-stamped with APUR's licence. `DIAGNOSTIC.md` §16, tracked in
-[#55](https://github.com/IvandeMurard/paris-compass/issues/55) — opened rather than fixed,
-because the choice between refusing the point and withdrawing the layer is a product decision.
-Held in place by `E11` in `verify.ts`, which reports it as a known defect and turns red if it is
-fixed without the record being updated.
+~~A point outside the BDCom corpus but inside the accepted coordinate box is still scored as
+though the corpus covered it.~~ **Fixed on 25 August** by `20260825000003`
+([#55](https://github.com/IvandeMurard/paris-compass/issues/55), `DIAGNOSTIC.md` §16).
+`compass_scoring_context_within` now tests membership of the 80 quartier polygons and returns an
+`out_of_corpus` marker row, so the layer is withdrawn and footfall comes back unknown with its
+reason — the same shape `withheld` already had.
+
+Both halves are pinned, and the second is the one that matters: `E12` checks that a genuinely
+empty radius **inside** Paris still reads as a measured zero. The Bois de Vincennes sits in the
+Picpus quartier and holds no premise within 400 m — treating every empty result as "outside the
+corpus" would have passed `E11` and destroyed the one answer the data gives with certainty.
 
 ~~Freshness is reported for BDCom only; BODACC and SIRENE have no ingestion date.~~ **Closed on
 25 August** by `w0-cron` (#6). `list_sources` now carries a `freshness` block per dataset, and

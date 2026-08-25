@@ -68,8 +68,44 @@ job absent est un oubli.
 dedans. Ça n'a pas eu à être mis en scène : l'échec de `bdcom.ts` a laissé
 `compass_source_freshness()` sur « jamais chargé », et celui de `sirene.ts` l'y laisse encore.
 
+### Le même jour, plus tard : `#55` corrigé, et deux défauts trouvés en le faisant
+
+**`DIAGNOSTIC.md` §16 est corrigé** — voie 3 (PostGIS) plus voie 1 (hygiène), migration
+`20260825000003`. `compass_scoring_context_within` rend une ligne-marqueur `out_of_corpus` sur
+le modèle de `withheld` ; la couche est retirée, `footfall` revient inconnu. **`verify:mcp` :
+41 contrôles, 41 au vert, zéro défaut connu.**
+
+> **Le contre-test est la moitié qui compte.** Traiter « zéro ligne » comme couche absente
+> aurait été plus simple et faux : le Bois de Vincennes est dans le quartier Picpus et porte
+> **zéro local dans 400 m** — un vrai zéro. `E12` et `I20` l'interdisent. Sans eux, le mauvais
+> correctif serait passé au vert.
+
+**Deux défauts trouvés en rejouant les chargeurs, tous deux invisibles à la lecture :**
+
+- **Recharger BODACC détruit toutes les confirmations SIRENE.** La reconstruction de
+  `bodacc_announcement` cascade sur `bodacc_establishment`, donc sur `operator_confirmed`.
+  Mesuré : **3 147 niveaux `corrobore` tombés à zéro, 5,92 points** de composition
+  établi+corroboré — la métrique de qualité du projet. Un cron BODACC **quotidien** les aurait
+  effacés chaque nuit quand SIRENE ne repasse que **tous les mois**. D'où
+  `sirene.ts --confirm-only`, qui rejoue la confirmation sans relire l'INSEE — ce qui tombe
+  bien, l'URL du parquet rendant 404 (#56) — et l'enchaînement dans le workflow, tenu par test.
+  **Réparé** : `corrobore` de retour à 3 147, les huit cas dorés au vert.
+- **La promotion BDCom dépendait de l'ordre de chargement.** Le drapeau de conflit se calculait
+  contre un corpus encore en construction : 74 relevés marqués sur base vierge, 220 au
+  rechargement. Les **identifiants** réattribués sont 74 dans les deux cas — c'est la requête de
+  la baseline qui comptait des *relevés* sous un nom qui annonce des *identifiants*. Corrigé des
+  deux côtés, et la valeur gelée n'a pas eu à bouger. `DIAGNOSTIC.md` §17.
+
+> **Ce que ces deux-là ont en commun** : rien n'échouait. Le premier détruisait une donnée en
+> silence, le second produisait une base différente sans erreur. Aucun des deux ne se serait vu
+> autrement qu'en lançant les chargeurs — ce que `w0-cron` a forcé à faire pour la première fois
+> depuis le 15 août.
+
 ### Trois choses à savoir pour la prochaine session
 
+- **Le secret est posé, et le premier lancement en CI a échoué sur sa valeur** — puis réussi
+  après ré-application depuis `.env.local`. La garde décrit maintenant la *forme* d'un secret
+  mal posé sans en révéler le contenu. **Le cron n'a pas encore tourné.**
 - **Le secret est la seule chose qui bloque la seconde moitié de #6.** Il se pose par
   `gh secret set DATABASE_URL`, avec la valeur qui est déjà dans `.env.local` — la chaîne du
   **pooler session, port 5432**. Ne pas prendre la connexion directe : `db.<ref>.supabase.co`
