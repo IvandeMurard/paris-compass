@@ -113,7 +113,14 @@ export function log(step: string, detail = ""): void {
 }
 
 /** The datasets `ingestion_run` tracks. Keys, not labels — the labels live in the table. */
-export type IngestionSource = "bdcom" | "geography" | "bodacc" | "sirene" | "plu" | "chantiers"
+export type IngestionSource =
+  | "bdcom"
+  | "geography"
+  | "bodacc"
+  | "sirene"
+  | "plu"
+  | "chantiers"
+  | "terrasses"
 
 /**
  * Records a successful load.

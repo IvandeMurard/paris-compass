@@ -246,6 +246,16 @@ export type Database = {
           chantier_date_debut: string | null;
           chantier_date_fin: string | null;
           chantier_statut_label: string | null;
+          /**
+           * 'oui' only when exactly one premise sits at the matched street+number — a
+           * shared address (69% of premises share one, PLAN.md §3.3) comes back
+           * 'inconnu' rather than guessing which co-located premise holds the
+           * authorisation. Never proof a terrace is installed today.
+           */
+          terrasse_status: 'oui' | 'non' | 'inconnu' | null;
+          terrasse_permanente: boolean | null;
+          terrasse_estivale: boolean | null;
+          terrasse_etalage: boolean | null;
           /** Count before `p_limit`, so the interface can say "22 of 125". */
           total_matched: number | null;
           /**

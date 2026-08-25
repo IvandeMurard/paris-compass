@@ -1,4 +1,4 @@
-# Reprise — état au 25 août 2026, fin de session 8
+# Reprise — état au 25 août 2026, fin de session 9
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`
@@ -6,7 +6,7 @@ qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.m
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
 
-## Clôture de la session 8 — l'état exact au 25 août 2026, 09 h 41 UTC
+## Clôture de la session 9 — l'état exact au 25 août 2026, 10 h 16 UTC
 
 Tout est mesuré à la clôture, pas recopié. C'est le point de départ propre de la session
 suivante.
@@ -14,15 +14,17 @@ suivante.
 | Mesure | Valeur |
 | --- | --- |
 | `main` local | arbre modifié, **pas encore poussé** — voir « Ce qui reste à faire » ci-dessous |
-| Ledger distant `dbefhvmyfmmhjeetdddu` | **35** migrations, dernière `20260825000008` |
-| Fonctions `compass_*` | **11**, compte inchangé — `compass_premises_within` a été étendue une deuxième fois, pas ajoutée |
-| Issues | **40 ouvertes, 11 fermées** — remesuré par `gh` après coup : `#11` fermée avec un commentaire de clôture, sur autorisation explicite donnée au tour suivant |
-| Portes | `typecheck` ✓ · **108 tests** ✓ (inchangé) · `eval` ✓ (20/20 invariants, 8/8 cas dorés, avertissements seuls) · `build` et `build:dev` ✓ · `verify:mcp` non relancée (ni `src/core/` ni `mcp-server/` touchés) |
+| Ledger distant `dbefhvmyfmmhjeetdddu` | **37** migrations, dernière `20260825000010` |
+| Fonctions `compass_*` | **11**, compte inchangé — `compass_premises_within` a été étendue une troisième fois, pas ajoutée |
+| Issues | **40 ouvertes, 11 fermées** — remesuré par `gh`, inchangé : `#15` reste ouverte, sa fermeture est laissée à une décision explicite |
+| Portes | `typecheck` ✓ · **108 tests** ✓ (inchangé) · `eval` — 20/20 invariants, 8/8 cas dorés, sort avec le code 3 (`AVERTISSEMENT`, pas `ÉCHEC`) sur les dix mêmes écarts de baseline déjà notés · `build` et `build:dev` ✓ · `verify:mcp` non relancée (ni `src/core/` ni `mcp-server/` touchés) |
 
-**`w1-chantiers` (#11) est fait**, deuxième ticket de la vague 1. Le suivant dans l'ordre de
-`docs/SESSIONS.md` est `w1-terrasses` (#15), même patron, même session Sonnet 5.
+**`w1-terrasses` (#15) est fait**, deuxième ticket de la vague 1 sur les trois de la file.
+Le suivant et dernier dans l'ordre de `docs/SESSIONS.md` est `w1-survie` (#14), Opus 5 — après
+lui, tous les tickets P0 non bloqués de la vague 1 seront faits (`w1-historique` reste hors
+file, suspendu à une réponse de l'APUR).
 
-### Les six sources sont chargées, chantiers est la nouvelle
+### Les sept sources sont chargées, terrasses est la nouvelle
 
 ```
 source     cadence     source datée  chargé le   âge   lignes    par
@@ -32,15 +34,12 @@ chantiers  weekly      2026-08-25    2026-08-25  0 j       120   manual
 geography  rare        2026-08-25    2026-08-25  0 j    25 174   workflow-dispatch
 plu        rare        2024-11-20    2026-08-25  0 j     5 107   manual
 sirene     monthly     2026-08-21    2026-08-25  0 j    68 881   manual
+terrasses  rare        2026-08-25    2026-08-25  0 j    24 194   manual
 ```
 
-`chantiers` introduit une cinquième cadence, `weekly` — aucune des quatre existantes ne
-correspondait sans mentir, voir « Le 25 août, session 8 » plus bas. `source_as_of` vient de
-`metas.default.modified` du catalogue opendata.paris.fr (la date à laquelle le portail a
-lui-même retraité le jeu), pas de `now()` : même discipline que `bdcom`/`bodacc`/`sirene`, sur
-une source qui ne publie aucun millésime propre à chaque ligne. `par = manual` : comme PLU,
-`chantiers` n'est pas câblé sur le cron de `w0-cron` — décision volontaire, voir
-`docs/tickets/w1-chantiers.md`.
+`terrasses` reste sur `rare` par défaut — le jeu ne publie aucune cadence, à la différence de
+`chantiers-perturbants` : un manque déclaré, pas une mesure, voir « Le 25 août, session 9 »
+plus bas. `par = manual`, comme PLU et chantiers avant elle.
 
 ### Les branches restantes, et ce qu'il faut en faire
 
@@ -86,6 +85,74 @@ distante ne se fait pas sur un « probablement inutile ».
 > de la session 6 — les chargements, la table de fraîcheur, le 404 de SIRENE — le **25**. Les
 > dates écrites plus bas sont celles de la mesure, pas celles de la rédaction, et c'est la règle
 > de `CLAUDE.md` : un chiffre mesuré porte **sa** date.
+
+---
+
+## Le 25 août, session 9 : `w1-terrasses` est fait, rattaché par adresse et non par proximité
+
+**`w1-terrasses` (#15) est fait**, démontré par un appel anonyme réel sur ses **trois** états :
+**86 RUE ABBE GROULT** (adresse non partagée) rend `terrasse_status: oui`,
+`terrasse_permanente: true` ; **7 RUE ABBE DE L'EPEE** (adresse partagée par plusieurs locaux)
+rend `inconnu` plutôt qu'un local tiré au hasard, avec `terrasse_estivale: true` ; **1 RUE
+ABBAYE** rend `non`. Détail complet dans `docs/tickets/w1-terrasses.md`.
+
+**Ce ticket levait une contradiction que `PLAN-ACTION-VACANCE.md` assumait déjà par écrit** :
+`PLAN.md` §5.4 classe les sources d'appoint « à vérifier avant engagement, aucune n'a été
+confirmée », alors que `w1-terrasses` était en P0 avec un critère définitif — « la vérification
+reste un préalable non écrit du ticket ». C'est par là que la session a commencé, avant d'écrire
+une ligne de migration : la source existe (24 204 lignes, ODbL), mais sans code de typologie ni
+cadence de mise à jour publiés — deux manques déclarés dans la doctrine et la documentation
+plutôt que découverts en cours de chargement.
+
+### Le rattachement par proximité a été mesuré, puis rejeté — avant d'être écrit en base
+
+Sur un échantillon aléatoire de 2 000 terrasses, le local BDCom le plus proche est à une médiane
+de 4,4 m (p90 10,7 m) — assez serré pour tenter le même rattachement par nearest-match que
+`w0-plu` et `w1-chantiers`. Un contrôle sur 12 terrasses nommées a renversé ce diagnostic : « LE
+MANDARIN DE CHOISY » a pour local le plus proche, à 9 m, l'enseigne « PICARD » — un surgelé —
+et un tiers de l'échantillon pointait sur le mauvais commerce. C'est le piège que
+`src/services/compass/premiseHistory.ts` documente déjà pour OpenStreetMap ↔ BDCom : dès que
+plusieurs locaux se partagent une adresse ou un pas de porte, le plus proche n'est pas la même
+vitrine.
+
+**Le rattachement se fait donc par adresse**, en réutilisant `compass_bodacc_street_key`
+(la clé déjà posée pour BODACC le 9 août) plutôt qu'en écrivant une seconde fonction de
+normalisation de rue. L'adresse brute du jeu (« 125 AVENUE DE CHOISY ») est parsée par
+`scripts/ingest/terrasses.ts` en numéro + type de voie + nom — 99,8 % des 24 204 adresses s'y
+prêtent. Mesuré ensuite : **4 295 adresses distinctes** rattachent à un seul local (`oui`),
+**7 500** à plusieurs (`inconnu` — 69 % des locaux partagent un numéro de rue, `PLAN.md` §3.3),
+**2 625** à aucun (`non`).
+
+### Trois états, pas deux — appliqué en base plutôt qu'en commentaire
+
+Le « Fait quand » du ticket demandait explicitement oui/non/**inconnu**, pas juste un
+booléen. `terrasse_status` porte les trois valeurs, avec une contrainte `check` plutôt qu'un
+commentaire de bonne intention : une adresse partagée ne dit jamais laquelle des locations
+colocalisées détient l'autorisation, et le coder en `oui` pour toutes aurait été exactement la
+seconde erreur fondatrice que `PLAN.md` §2.5 nomme — attribuer le fait d'un commerce à son
+voisin.
+
+### Ce qui n'a pas été fait, et pourquoi c'est le bon arrêt
+
+- **Aucun test unitaire** pour `parseAddress`/`categorie`, alors que ce sont les premières
+  fonctions de parsing de texte de `scripts/ingest/` — délibéré, pour rester cohérent avec les
+  quatre chargeurs précédents, aucun n'en a : la discipline établie est la mesure ad hoc plus la
+  porte `eval`, pas des tests unitaires par fichier.
+- **SIRET n'a pas servi au rattachement**, bien que présent sur 96 % des lignes — le croiser à
+  BDCom passerait par SIRENE, l'inférence que `docs/SESSIONS.md` nomme « la plus difficile du
+  backlog » pour `w1-survie`, hors du périmètre d'une ingestion droite. Conservé en base pour
+  qu'un chantier futur n'ait pas à retélécharger la source.
+- **Front-end et cron**, même arbitrage que PLU et chantiers : laissés à Lovable et au
+  chargement manuel.
+
+### Portes
+
+`typecheck` ✓ · **108 tests** ✓ (inchangé) · `build` et `build:dev` ✓ · `eval` — 20/20
+invariants, 8/8 cas dorés, composition de fiabilité stable. **Sort avec le code 3
+(`AVERTISSEMENT`), pas 0** : dix écarts de baseline sous le seuil bloquant, la même dérive
+BODACC/SIRENE déjà notée aux clôtures précédentes — `scripts/eval/run.ts` distingue `ÉCHEC`
+(code 1) d'`AVERTISSEMENT` (code 3, avertissements seuls) ; lire le message, pas le seul code de
+sortie. `verify:mcp` non relancée : ce ticket ne touche ni `src/core/` ni `mcp-server/`.
 
 ---
 

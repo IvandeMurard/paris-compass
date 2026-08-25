@@ -100,9 +100,12 @@ chantier**, sinon les deux backlogs divergent.
 - **L'idée de pente** (`PLAN.md` §5.8) — la gentrification est une tendance, pas un état.
   `w2-filosofi` est un instantané et ne la porte pas. **Toujours sans ticket.**
 
-**Une contradiction assumée.** `PLAN.md` §5.4 écrit des sources d'appoint « à vérifier avant
-engagement, aucune n'a été confirmée » ; `w1-terrasses` est ici en P0 avec un critère
-définitif. La vérification reste un préalable non écrit du ticket.
+**Une contradiction assumée, levée le 25 août.** `PLAN.md` §5.4 écrit des sources d'appoint « à
+vérifier avant engagement, aucune n'a été confirmée » ; `w1-terrasses` était ici en P0 avec un
+critère définitif, la vérification restant un préalable non écrit du ticket. Vérifiée en
+ouvrant la session : `terrasses-autorisations` existe, 24 204 lignes, géolocalisé, ODbL — mais
+sans code de typologie ni cadence de mise à jour publiés, deux manques déclarés plutôt que
+mesurés dans `docs/tickets/w1-terrasses.md`.
 
 ## Thèse
 
@@ -236,7 +239,7 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 | `w0-provenance` | 0 | Q3 2026 | Provenance par champ, pas un Origin unique OSM | explain_score sur un local BDCom cite APUR, pas OSM, pour l'activité ; OSM reste sur les aménités. |
 | `w1-chantiers` | 1 | Q3 2026 | Chantiers de voirie (fait d'exposition) | La fiche d'un local à 40 m d'un polygone perturbant affiche le chantier ; un voisin hors polygone, non. — **fait le 25/08** : démontré en appel anonyme, 25 vs 50 RUE JEAN DE LA FONTAINE, `chantier_exposed` bascule vrai/faux avec la même rue de part et d'autre du seuil. Détail dans `docs/tickets/w1-chantiers.md`. |
 | `w1-survie` | 1 | Q3 2026 | Courbes de survie SIRENE × BDCom | Un café aux Halles et un café au Mail affichent deux survies, chacune avec n et millésimes, rapportées au métier pas à Paris entier. |
-| `w1-terrasses` | 1 | Q3 2026 | Terrasses et étalages autorisés | La fiche restauration affiche oui/non/inconnu terrasse, avec le type (permanente, estivale) et la source. |
+| `w1-terrasses` | 1 | Q3 2026 | Terrasses et étalages autorisés | La fiche restauration affiche oui/non/inconnu terrasse, avec le type (permanente, estivale) et la source. — **fait le 25/08** : démontré en appel anonyme sur les trois états, rattaché par adresse après avoir mesuré et rejeté le rattachement par proximité (un tiers de mauvais commerce sur un échantillon nommé). Détail dans `docs/tickets/w1-terrasses.md`. |
 | `w0-history` | 0 | Q3 2026 | `compass_premise_history` : une retenue de licence rendue comme un fait | Un appel anonyme sur le local 54652 en 2017 ne rend plus `observed = false` avec `is_vacant = false`, le couple d'invariants est posé, et `eval:anon` le couvre. — **fait le 24/08** : migration `20260824000001` posée (ledger remesuré à 26), I16/I17 et la sonde éprouvés contre sabotage, les deux portes au vert contre le distant. Issue #51 fermée. Détail dans `docs/tickets/w0-history.md`. |
 | `w1-historique` | 1 | Q3 2026 | bdcom20032020 : porter l'historique de six à vingt ans | Soit les couches 2003–2020 ingérées avec leur licence portée par millésime, soit une note publique dans `docs/BDCOM.md` fermant la piste. |
 | `w3-mapillary` | 3 | Q4 2026 | Mapillary : rideau, pancarte, vitrine — observation datée | Gate : précision/rappel sur 50 façades annotées. Affichage uniquement au-dessus du seuil, avec la photo et la date. |
@@ -362,6 +365,7 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 - **Comment.** opendata.paris.fr/terrasses-autorisations, géolocalisé. Rattacher à l'adresse / au linéaire. Signal de vitalité et réponse d'exploitation.
 - **Doctrine.** Fait administratif, measured. Ne pas en déduire un CA terrasse.
 - **Fait quand.** La fiche restauration affiche oui/non/inconnu terrasse, avec le type (permanente, estivale) et la source.
+- **Fait le 25 août**, mesuré contre le distant en appel anonyme, sur les trois états : 86 RUE ABBE GROULT (adresse non partagée) rend `terrasse_status: oui`, `terrasse_permanente: true` ; 7 RUE ABBE DE L'EPEE (adresse partagée par plusieurs locaux) rend `inconnu` plutôt qu'un local choisi au hasard ; 1 RUE ABBAYE rend `non`. Le rattachement par proximité, mesuré avant d'être écrit (médiane 4,4 m), a été rejeté après un contrôle sur 12 terrasses nommées : un tiers pointait sur le mauvais commerce. Rattaché par adresse à la place, en réutilisant la clé de rue déjà posée pour BODACC. Détail complet dans `docs/tickets/w1-terrasses.md`.
 
 #### w1-ppri — PPRI en zonage, pas en booléen
 
