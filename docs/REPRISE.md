@@ -6,6 +6,63 @@ qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.m
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
 
+## Clôture des sessions 5 et 6 — l'état exact au 25 août 2026, 08 h 40 UTC
+
+Tout est mesuré à la clôture, pas recopié. C'est le point de départ propre de la session
+suivante.
+
+| Mesure | Valeur |
+| --- | --- |
+| `main` local et distant | **`7ae254c`**, identiques, arbre propre |
+| Ledger distant `dbefhvmyfmmhjeetdddu` | **30** migrations, dernière `20260825000003` |
+| Fonctions `compass_*` | **11** — `compass_source_freshness` est la nouvelle |
+| Issues | **43 ouvertes, 8 fermées** — `#6`, `#7`, `#8`, `#10`, `#51`, `#53`, `#55`, `#56` |
+| Pull requests ouvertes | **0** |
+| Portes | `typecheck` ✓ · **108 tests** ✓ · `verify:mcp` **41 / 0 en échec** ✓ · `eval` avertissement seul · `build` et `build:dev` ✓ |
+| `npm.cmd audit` | **0 vulnérabilité** |
+
+**La vague 0 est finie à un ticket près : il ne reste que `w0-plu` (#9).** C'est le suivant dans
+l'ordre de `docs/SESSIONS.md`, en Sonnet 5 — une ingestion de source qui suit le patron déjà
+écrit dans `scripts/ingest/`.
+
+### Les quatre sources sont chargées, et deux d'entre elles par un job
+
+```
+source     cadence     source datée  chargé le   âge   lignes    par
+bdcom      triennial   2023-06       2026-08-25  0 j   228 275   manual
+bodacc     continuous  2026-08-23    2026-08-25  0 j   163 788   schedule
+geography  rare        2026-08-25    2026-08-25  0 j   25 174    workflow-dispatch
+sirene     monthly     2026-08-21    2026-08-25  0 j    68 881   manual
+```
+
+Les deux colonnes de dates sont le produit de ces deux sessions : `bdcom` porte une donnée de
+**2023** chargée le **25 août**, et les confondre serait le loyer fabriqué sous sa forme
+temporelle. La colonne `par` dit lequel des trois déclenchements a eu lieu — seul `schedule`
+démontre qu'une cadence est tenue.
+
+### Les branches restantes, et ce qu'il faut en faire
+
+Aucune ne porte de travail à récupérer. **Vérifié une par une à la clôture**, pas supposé :
+
+| Branche | État | Quoi en faire |
+| --- | --- | --- |
+| `fix/loyer-et-carte-vide` | **fusionnée** dans `main` | supprimable |
+| `mcp-server-agent` | **fusionnée** dans `main` | supprimable |
+| `fix/noiseestimate-import-mort` | **périmée** — le correctif est déjà sur `main`, arrivé par un autre commit | supprimable |
+| `claude/js-yaml-merge-key-vuln-0d3vyf` | **non fusionnée, et à ne pas fusionner** | voir ci-dessous |
+
+**Pourquoi la dernière n'a pas été fusionnée.** Elle ne touche que `package-lock.json`
+(+1 353 / −2 162), date du 19 août, et `main` a bougé de 35 commits depuis. Surtout,
+`npm.cmd audit` rend **0 vulnérabilité** à la clôture : elle ne corrige plus rien, et la
+fusionner reviendrait à ramener un état de verrou périmé sur un arbre qui a changé — pour un
+gain nul. `CLAUDE.md` est explicite sur la prudence en matière de dépendances. À fermer plutôt
+qu'à fusionner, mais c'est une décision, pas un geste de ménage.
+
+> Les branches n'ont **pas** été supprimées : effacer une référence distante est irréversible et
+> ne débloque rien. Le relevé est là pour que la décision se prenne sur des faits.
+
+---
+
 > **Les sessions 5 et 6 sont à cheval sur minuit.** Les mesures de la session 5 — les contrôles
 > MCP, le local 46393, le point de Massy, l'état GitHub — ont été prises le **24 août** ; celles
 > de la session 6 — les chargements, la table de fraîcheur, le 404 de SIRENE — le **25**. Les
@@ -623,12 +680,10 @@ pas une coïncidence à interpréter** : `#53` a été fermée et `#55` ouverte 
 Deux mouvements qui s'annulent dans le total — raison de plus pour lire la liste et non le
 compte. Un état GitHub est une mesure : la remesurer, pas la recopier.
 
-~~**Le suivant dans l'ordre est `w0-cron` (#6)**~~ **Pris le 25 août, session 6, et laissé
-ouvert à moitié** — voir la section en tête de page. Le secret `DATABASE_URL` va en **secret de
-dépôt GitHub Actions**, tranché le 24 août ; le dépôt est **public** et ne portait **aucun
-secret, aucune variable, aucun environnement** (mesuré le 24 août par `gh`). **Il reste à
-créer, par une main humaine** — une session ne transmet pas une chaîne de connexion à un
-service tiers. C'est la seule chose qui bloque la seconde moitié du critère.
+~~**Le suivant dans l'ordre est `w0-cron` (#6)**~~ **Fait et clos le 25 août, session 6** — voir
+la section en tête de page. Le secret `DATABASE_URL` est **posé en secret de dépôt GitHub
+Actions** et le cron tourne. **Le suivant dans l'ordre est `w0-plu` (#9)**, en Sonnet 5 : c'est
+le dernier de la vague 0, et une ingestion de source qui suit le patron de `scripts/ingest/`.
 
 ~~`w0-provenance` (**#10**)~~ **est clos depuis le 24 août, session 3, issue fermée** :
 provenance par couche, démontrée contre le distant par `explain_score` — voir la
