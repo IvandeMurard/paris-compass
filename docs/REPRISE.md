@@ -44,11 +44,26 @@ démontre qu'une cadence est tenue.
 
 Aucune ne porte de travail à récupérer. **Vérifié une par une à la clôture**, pas supposé :
 
-| Branche | État | Quoi en faire |
+**Trois ont été supprimées le 25 août**, après vérification une par une. Leurs identifiants sont
+notés ici parce que c'est ce qui les rend récupérables : une branche effacée se recrée par
+`git branch <nom> <sha>` tant que le commit n'est pas ramassé par le garbage collector.
+
+| Branche supprimée | Identifiant | Pourquoi |
 | --- | --- | --- |
-| `fix/loyer-et-carte-vide` | **fusionnée** dans `main` | supprimable |
-| `mcp-server-agent` | **fusionnée** dans `main` | supprimable |
-| `fix/noiseestimate-import-mort` | **périmée** — le correctif est déjà sur `main`, arrivé par un autre commit | supprimable |
+| `fix/loyer-et-carte-vide` | `196992c` | **fusionnée** dans `main` |
+| `mcp-server-agent` | `bad78d1` | **fusionnée** dans `main` |
+| `fix/noiseestimate-import-mort` | `fdc60ef` | **périmée** — voir ci-dessous |
+
+> **Le cas périmé mérite sa note, parce qu'un contrôle naïf s'y trompe.** `git diff
+> main...branche` compare à la **base de fusion**, pas à `main` d'aujourd'hui : il affichait donc
+> le correctif comme s'il manquait. Le diff à deux points, qui compare les contenus réels, montre
+> l'inverse — `main` porte déjà la ligne corrigée, et tout le reste de l'écart est du travail que
+> `main` a **en plus** (les origines par couche de `w0-provenance`). La branche était simplement
+> en retard de 54 commits. **Trois points pour l'historique, deux points pour le contenu**, et
+> c'est le second qui décide si une branche a quelque chose à donner.
+
+| Branche restante | État | Quoi en faire |
+| --- | --- | --- |
 | `claude/js-yaml-merge-key-vuln-0d3vyf` | **non fusionnée, et à ne pas fusionner** | voir ci-dessous |
 
 **Pourquoi la dernière n'a pas été fusionnée.** Elle ne touche que `package-lock.json`
@@ -58,8 +73,9 @@ fusionner reviendrait à ramener un état de verrou périmé sur un arbre qui a 
 gain nul. `CLAUDE.md` est explicite sur la prudence en matière de dépendances. À fermer plutôt
 qu'à fusionner, mais c'est une décision, pas un geste de ménage.
 
-> Les branches n'ont **pas** été supprimées : effacer une référence distante est irréversible et
-> ne débloque rien. Le relevé est là pour que la décision se prenne sur des faits.
+Elle est donc la **seule branche restante** avec `main`. Elle n'a pas été supprimée : à la
+différence des trois autres, elle porte un commit que `main` n'a pas, et effacer une référence
+distante ne se fait pas sur un « probablement inutile ».
 
 ---
 
