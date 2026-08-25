@@ -122,10 +122,11 @@ hors de la file, pour qu'aucun ticket ne disparaisse en silence.
 | ~~4~~ | ~~`w0-fiche`~~ | [#8](https://github.com/IvandeMurard/paris-compass/issues/8) | **fait** | P0 | Opus 5 |
 | ~~5~~ | ~~`w0-mcp-verif`~~ | [#53](https://github.com/IvandeMurard/paris-compass/issues/53) | **fait** | P0 | Opus 5 |
 | ~~6~~ | ~~`w0-cron`~~ | [#6](https://github.com/IvandeMurard/paris-compass/issues/6) | **fait** | P0 | Opus 5 |
-| ~~7~~ | ~~`w0-plu`~~ | [#9](https://github.com/IvandeMurard/paris-compass/issues/9) | **fait** | P0 | Sonnet 5 |
-| ~~8~~ | ~~`w1-chantiers`~~ | [#11](https://github.com/IvandeMurard/paris-compass/issues/11) | **fait** | P0 | Sonnet 5 |
-| 9 | `w1-terrasses` | [#15](https://github.com/IvandeMurard/paris-compass/issues/15) | ouvert | P0 | Sonnet 5 |
-| ~~10~~ | ~~`w1-survie`~~ | [#14](https://github.com/IvandeMurard/paris-compass/issues/14) | **fait** | P0 | Opus 5 |
+| 7 | `w0-retenue` | [#57](https://github.com/IvandeMurard/paris-compass/issues/57) | ouvert | P0 | Opus 5 |
+| ~~8~~ | ~~`w0-plu`~~ | [#9](https://github.com/IvandeMurard/paris-compass/issues/9) | **fait** | P0 | Sonnet 5 |
+| ~~9~~ | ~~`w1-chantiers`~~ | [#11](https://github.com/IvandeMurard/paris-compass/issues/11) | **fait** | P0 | Sonnet 5 |
+| 10 | `w1-terrasses` | [#15](https://github.com/IvandeMurard/paris-compass/issues/15) | ouvert | P0 | Sonnet 5 |
+| ~~11~~ | ~~`w1-survie`~~ | [#14](https://github.com/IvandeMurard/paris-compass/issues/14) | **fait** | P0 | Opus 5 |
 
 **Hors de cette file : 29 tickets ouverts**, à prendre après la vague 0 — 
 le détail par vague est dans [`PLAN-ACTION-VACANCE.md`](./PLAN-ACTION-VACANCE.md).

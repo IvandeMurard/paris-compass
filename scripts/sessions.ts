@@ -24,6 +24,7 @@ const ORDER = [
   "w0-fiche",
   "w0-mcp-verif",
   "w0-cron",
+  "w0-retenue",
   "w0-plu",
   "w1-chantiers",
   "w1-terrasses",
