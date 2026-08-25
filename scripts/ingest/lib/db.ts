@@ -131,12 +131,20 @@ export async function recordRun(
   source: IngestionSource,
   measured: { rowCount: number; sourceAsOf: string; durationMs: number },
 ): Promise<void> {
-  // GitHub Actions sets GITHUB_ACTIONS=true on every runner. Anything else is a person at a
-  // terminal, and saying so is what keeps "the refresh is automated" an auditable claim
-  // instead of an assumption (PLAN.md §2.2ter).
-  const automated = process.env.GITHUB_ACTIONS === "true"
+  // Three triggers, not two — and the distinction is the one w0-cron's criterion turns on.
+  //
+  // A run started from the Actions tab sets GITHUB_ACTIONS=true exactly like a scheduled one:
+  // reading only that variable would record a button press as a kept cadence, and list_sources
+  // would answer "Refreshed by a scheduled job". GITHUB_EVENT_NAME is what separates them, and
+  // only `schedule` demonstrates that a cadence is actually held.
+  const onRunner = process.env.GITHUB_ACTIONS === "true"
+  const runBy = onRunner
+    ? process.env.GITHUB_EVENT_NAME === "schedule"
+      ? "schedule"
+      : "workflow-dispatch"
+    : "manual"
   const runRef =
-    automated && process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
+    onRunner && process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
       ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
       : null
 
@@ -154,7 +162,7 @@ export async function recordRun(
       measured.rowCount,
       measured.sourceAsOf,
       measured.durationMs,
-      automated ? "github-actions" : "manual",
+      runBy,
       runRef,
     ],
   )

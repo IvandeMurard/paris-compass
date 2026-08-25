@@ -79,20 +79,24 @@ async function main(): Promise<void> {
       )
     }
 
-    const automated = rows.filter((r) => r.run_by === "github-actions").length
+    // Seul `schedule` compte comme cadence tenue. Un `workflow-dispatch` tourne sur un runner
+    // mais reste une intervention humaine — le « Fait quand » de w0-cron demande un cron qui
+    // s'est déclenché seul, et confondre les deux rendrait le critère inatteignable à vérifier.
+    const scheduled = rows.filter((r) => r.run_by === "schedule").length
     process.stdout.write(
-      `\n${rows.length} sources — ${automated} rafraîchie(s) par un job planifié, ` +
-        `${rows.filter((r) => r.run_by === "manual").length} à la main, ` +
+      `\n${rows.length} sources — ${scheduled} rafraîchie(s) par un cron, ` +
+        `${rows.filter((r) => r.run_by === "workflow-dispatch").length} par un lancement manuel du workflow, ` +
+        `${rows.filter((r) => r.run_by === "manual").length} depuis un terminal, ` +
         `${rows.filter((r) => r.run_by === null).length} jamais chargée(s) depuis cette table.\n`,
     )
 
     // Déclaré, pas affirmé. Tant que ce compteur est à zéro, aucune date de cette table n'est
     // adossée à un rafraîchissement réel — et c'est la faute que PLAN.md §2.2ter décrit comme
     // le loyer fabriqué sous une autre forme.
-    if (automated === 0) {
+    if (scheduled === 0) {
       process.stdout.write(
-        "\nAucune source n'a encore été rafraîchie par un job planifié. Les dates ci-dessus\n" +
-          "sont donc réelles mais leur entretien n'est pas démontré : cadence déclarée, pas tenue.\n",
+        "\nAucune source n'a encore été rafraîchie par un cron. Les dates ci-dessus sont donc\n" +
+          "réelles mais leur entretien n'est pas démontré : cadence déclarée, pas tenue.\n",
       )
     }
     if (late > 0) {

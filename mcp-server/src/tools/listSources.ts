@@ -65,12 +65,18 @@ function freshnessOf(rows: FreshnessRow[], source: string): Record<string, unkno
     refreshedBy: r.run_by,
     // A cadence nobody keeps is a cadence, not a guarantee. Saying so here is cheaper than
     // letting an agent infer upkeep from the word "monthly".
+    //
+    // Three triggers, not two: a run started from the Actions tab happens on a runner but is
+    // still someone pressing a button. Calling that "scheduled" would let a manual refresh
+    // pass for a kept cadence, which is the same fabrication one level up.
     upkeep:
-      r.run_by === "github-actions"
-        ? "Refreshed by a scheduled job."
-        : r.run_by === "manual"
-          ? "Last refresh was run by hand. The cadence above is declared, not demonstrated."
-          : "No refresh recorded.",
+      r.run_by === "schedule"
+        ? "Refreshed by the scheduled job — this cadence is demonstrated, not just declared."
+        : r.run_by === "workflow-dispatch"
+          ? "Last refresh was triggered by hand from CI. The cadence above is declared, not demonstrated."
+          : r.run_by === "manual"
+            ? "Last refresh was run by hand from a terminal. The cadence above is declared, not demonstrated."
+            : "No refresh recorded.",
   }
 }
 

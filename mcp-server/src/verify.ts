@@ -373,7 +373,10 @@ async function checkFreshness(client: Client): Promise<void> {
     "FRAICHEUR",
     "F4",
     "l'entretien est déclaré : un rafraîchissement manuel ne se lit pas comme automatique",
-    upkeep.every((u) => /scheduled job|by hand|No refresh recorded/.test(u)),
+    upkeep.every((u) => /scheduled job|by hand|No refresh recorded|Queried at call time/.test(u)) &&
+      // Et le sens compte, pas seulement la présence : un rafraîchissement manuel ne doit
+      // jamais se lire comme démontré.
+      upkeep.every((u) => !/by hand/.test(u) || /declared, not demonstrated/.test(u)),
     upkeep.length > 0 ? `${upkeep.length} jeux qualifient leur entretien` : "aucun jeu ne qualifie son entretien",
   )
 }
