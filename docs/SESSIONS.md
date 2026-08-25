@@ -55,6 +55,19 @@ dans le fichier qui le portait, un piège dans docs/REPRISE.md. Ne me résume qu
 ce que tu ne peux pas faire toi-même — l'état GitHub (fermer l'issue, en ouvrir
 une), et ce qui demande une décision.
 
+CORRIGER UNE DONNÉE N'EST PAS CORRIGER UN DÉFAUT. Avant de dire qu'un défaut est
+réglé, réponds à deux questions et écris les réponses :
+
+  1. Est-ce que ça survit à un rechargement ? Si un chargeur, une migration ou
+     un import peut réintroduire l'état fautif, le correctif est provisoire.
+  2. Est-ce que ça protège un consommateur qui n'existe pas encore ? Une garde
+     sur le chemin de l'écran laisse passer l'agent qui appelle PostgREST en
+     direct. La règle vit là où la valeur est produite, pas là où elle s'affiche.
+
+Si les deux réponses ne sont pas oui, tu as encore un invariant, une contrainte
+ou un test à écrire — et c'est ça, le livrable, pas la ligne réparée. Dis
+explicitement ce que ta règle ne rattrape pas : elle a toujours une limite.
+
 Avant de pousser, les portes — dans cet ordre, et ne pousse pas sur un rouge :
 
     npm.cmd run typecheck

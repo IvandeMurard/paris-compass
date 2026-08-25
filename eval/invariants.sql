@@ -436,3 +436,25 @@ cross join lateral public.compass_survival_by_trade(
 where s.evidence ~* '\y(votre|vos|vous|chances?|risques?|probabilit\w*|pr[ée]vision\w*)\y'
    or s.evidence ~* '\y(tiendra|tiendront|durera|dureront|survivra|survivront|fermera|fermeront|restera|resteront|sera|seront|aura|auront)\y'
 limit 20;
+
+-- @invariant I22 :: le pont NAF invente un poste d'activité qui n'existe pas dans la nomenclature
+-- The rule the 25 August fix did not leave behind. `activity_naf_bridge` is Compass's own
+-- reading of which NAF codes match a BDCom level-18 trade; nothing in the schema says a
+-- niv18 must be real. Two invented codes were written on the same day — 101 read as
+-- Alimentaire when it is Grand magasin, and 114 which does not exist at all — and the
+-- correction (20260825000013) edited the rows without leaving anything that would catch
+-- the third one.
+--
+-- A foreign key is not available: niv18 is not unique in bdcom_activity, one row per
+-- 224-post code, so there is nothing to point at. Hence an invariant.
+--
+-- What it does NOT catch, and the limit is worth stating: a niv18 that exists but names
+-- the wrong trade. 101 was real and wrong. Only a measurement against the label catches
+-- that, and no rule replaces having looked — see the comment of 20260825000013.
+--
+-- Measured 25 August 2026: twelve posts, 101 to 112, and zero orphan in the bridge.
+select distinct b.niv18
+from public.activity_naf_bridge b
+where not exists (
+  select 1 from public.bdcom_activity a where a.niv18 = b.niv18)
+limit 20;

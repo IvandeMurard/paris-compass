@@ -1088,46 +1088,46 @@ est `compass_premises_within` — les quatre contrôles qui l'exercent (`premise
 tolérer `out_of_corpus` comme elle tolère déjà les autres colonnes nulles, et déterminer si le
 timeout RLS demande un index, une requête moins chère, ou un contournement de count.
 
-## 19. Une retenue de licence rendue comme un fait chiffrÃ© â€” `compass_street_rotation`, le 25 aoÃ»t
+## 19. Une retenue de licence rendue comme un fait chiffré — `compass_street_rotation`, le 25 août
 
-TrouvÃ© en Ã©crivant `w1-survie` (#14), qui s'appuie sur les mÃªmes millÃ©simes retenus, et **consignÃ©
-plutÃ´t que corrigÃ©** : hors du pÃ©rimÃ¨tre du ticket.
+Trouvé en écrivant `w1-survie` (#14), qui s'appuie sur les mêmes millésimes retenus, et **consigné
+plutôt que corrigé** : hors du périmètre du ticket.
 
 `compass_street_rotation` est `SECURITY INVOKER` et lit `premise_observation`, dont la politique
-RLS de `20260809000008` restreint les lignes aux millÃ©simes redistribuables. MesurÃ© le 25 aoÃ»t,
+RLS de `20260809000008` restreint les lignes aux millésimes redistribuables. Mesuré le 25 août,
 Halles, rayon 300 m :
 
-| Appelant | MillÃ©simes rendus | `changed_since_previous` sur 2023 |
+| Appelant | Millésimes rendus | `changed_since_previous` sur 2023 |
 | --- | --- | --- |
-| PrivilÃ©giÃ© (service) | 2017, 2020, 2023 | **78** |
-| **Anonyme (clÃ© publiable)** | **2023 seul** | **0**, sans aucun marqueur |
+| Privilégié (service) | 2017, 2020, 2023 | **78** |
+| **Anonyme (clé publiable)** | **2023 seul** | **0**, sans aucun marqueur |
 
-Le `lag()` de la fonction n'a plus de millÃ©sime antÃ©rieur Ã  comparer, donc **la fonction affirme
-Â« aucun changement d'activitÃ© Â»** lÃ  oÃ¹ la vÃ©ritÃ© mesurÃ©e est 78. Ce n'est pas un silence : c'est
-une affirmation chiffrÃ©e, positive et fausse, produite par une retenue de licence. Un agent qui la
+Le `lag()` de la fonction n'a plus de millésime antérieur à comparer, donc **la fonction affirme
+« aucun changement d'activité »** là où la vérité mesurée est 78. Ce n'est pas un silence : c'est
+une affirmation chiffrée, positive et fausse, produite par une retenue de licence. Un agent qui la
 lit conclut Â« rue parfaitement stable Â».
 
-**Famille des points 9, 12, 15 et 16**, cinquiÃ¨me variante : non plus une retenue rendue comme une
-absence, ni une conclusion posÃ©e par-dessus une retenue, mais une **retenue transformÃ©e en zÃ©ro par
-un calcul de fenÃªtre**. Elle est plus difficile Ã  voir que les quatre autres parce que rien n'est
-nul â€” chaque colonne porte un nombre plausible.
+**Famille des points 9, 12, 15 et 16**, cinquième variante : non plus une retenue rendue comme une
+absence, ni une conclusion posée par-dessus une retenue, mais une **retenue transformée en zéro par
+un calcul de fenêtre**. Elle est plus difficile à voir que les quatre autres parce que rien n'est
+nul — chaque colonne porte un nombre plausible.
 
 **Pas atteignable par le produit** : la fonction n'a aucun appelant, ni front ni MCP
-(`PLAN.md` Â§6.3, `PERIMETRE.md`). Elle l'est en revanche par tout agent via PostgREST, oÃ¹ elle est
+(`PLAN.md` §6.3, `PERIMETRE.md`). Elle l'est en revanche par tout agent via PostgREST, où elle est
 `grant execute ... to anon` depuis `20260808000005`.
 
-**Le correctif, quand il viendra**, est celui que ce dÃ©pÃ´t a dÃ©jÃ  appliquÃ© quatre fois : passer la
-fonction en `SECURITY DEFINER` et Ã©mettre la retenue comme une ligne marquÃ©e plutÃ´t que comme une
-absence â€” exactement ce que `20260809000011` a fait pour `compass_address_timeline`,
+**Le correctif, quand il viendra**, est celui que ce dépôt a déjà appliqué quatre fois : passer la
+fonction en `SECURITY DEFINER` et émettre la retenue comme une ligne marquée plutôt que comme une
+absence — exactement ce que `20260809000011` a fait pour `compass_address_timeline`,
 `20260816000001` pour `compass_scoring_context_within` et `20260824000002` pour
-`compass_premise_history`. `compass_survival_by_trade` (`20260825000012`) est Ã©crite ainsi dÃ¨s le
-premier jet **Ã  cause de** ce dÃ©faut : c'est son prÃ©cÃ©dent, pas une prÃ©caution abstraite.
+`compass_premise_history`. `compass_survival_by_trade` (`20260825000012`) est écrite ainsi dès le
+premier jet **à cause de** ce défaut : c'est son précédent, pas une précaution abstraite.
 
-> **Ce qui l'a rendu invisible jusqu'ici mÃ©rite d'Ãªtre notÃ©.** L'invariant `I18` vÃ©rifie qu'une
+> **Ce qui l'a rendu invisible jusqu'ici mérite d'être noté.** L'invariant `I18` vérifie qu'une
 > fonction `compass_*` portant une colonne `observed` est `SECURITY DEFINER`.
-> `compass_street_rotation` n'a pas de colonne `observed` â€” elle n'expose que des dÃ©nombrements â€”
-> donc `I18` ne la regarde pas. La rÃ¨gle structurelle attrapait la forme du dÃ©faut de l'Ã©poque,
-> pas sa cause. **Une fonction qui agrÃ¨ge des lignes soumises Ã  RLS est exposÃ©e au mÃªme dÃ©faut
+> `compass_street_rotation` n'a pas de colonne `observed` — elle n'expose que des dénombrements —
+> donc `I18` ne la regarde pas. La règle structurelle attrapait la forme du défaut de l'époque,
+> pas sa cause. **Une fonction qui agrège des lignes soumises à RLS est exposée au même défaut
 > qu'une fonction qui les rend une par une**, et l'invariant ne le dit pas encore.
 
 ---
@@ -1176,3 +1176,42 @@ l'être corrigé, mais n'est pas non plus mentir.
 **Décision : report assumé.** Échanger un chiffre déclaré comme plancher contre une carte
 utilisable sur trois rues serait un mauvais troc. Le vrai correctif reste le RPC point +
 rayon, qui interroge un disque et non un rectangle — et qui ne dépend que du déploiement.
+
+---
+
+## 20. Un correctif qui n'a pas laissé de règle derrière lui — le pont NAF, le 25 août
+
+**Corrigé le 25 août par `I22`.** Le défaut n'est pas dans la donnée : elle est juste depuis
+`20260825000013`. Il est dans le fait que **rien n'empêche qu'elle redevienne fausse.**
+
+**Ce qui s'est passé.** `20260825000012` a créé `activity_naf_bridge`, la lecture propre à
+Compass de quels codes NAF correspondent à un métier BDCom de niveau 18. Deux codes inventés y
+sont entrés le même jour : `101` lu comme *Alimentaire* alors que c'est *Grand magasin*, et
+`114` qui n'existe pas du tout. `20260825000013` les a corrigés — par un `delete` puis un
+`insert`.
+
+**Le correctif a réparé les lignes et n'a rien laissé derrière.** Mesuré le 25 août :
+
+| Ce qui aurait pu tenir la règle | État avant `I22` |
+| --- | --- |
+| Clé étrangère sur `niv18` | **absente** — `activity_naf_bridge` ne porte qu'un `primary key (niv18, naf)` |
+| Invariant | **aucun** — zéro occurrence de `naf_bridge` ou `niv18` dans `eval/invariants.sql` |
+| Baseline | **aucune** |
+
+Une clé étrangère n'était pas disponible : `niv18` n'est pas unique dans `bdcom_activity`, qui
+porte une ligne par code à 224 postes. D'où l'invariant plutôt que la contrainte.
+
+**La preuve que ça comptait, trouvée en posant la règle.** Le commentaire de
+`20260825000012` écrit, à propos de l'hôtellerie, « niv18 116, 92,6 % de survie à six ans ».
+**Le poste 116 n'existe pas.** Mesuré le 25 août sur `bdcom_activity` : la nomenclature porte
+**douze postes, 101 à 112**, l'hôtellerie étant **112**. Un troisième code inventé, dans le même
+chantier que les deux autres, avec un pourcentage d'allure mesurée accroché dessus — et il a
+survécu au correctif, parce que le correctif visait des lignes et non la règle.
+
+Le fichier `20260825000012` n'est pas réécrit : une migration posée ne l'est jamais, et son
+corps en base doit rester identique au fichier versionné. La correction vit ici.
+
+**Ce que `I22` ne rattrape pas, et il faut le dire.** Un `niv18` qui existe mais nomme le mauvais
+métier. `101` était réel *et* faux. Aucune règle ne remplace le fait d'avoir regardé : les codes
+vérifiés étaient justes, les codes supposés étaient faux, dans la même table et le même commit.
+La règle rend impossible le code inventé, pas le code mal lu.
