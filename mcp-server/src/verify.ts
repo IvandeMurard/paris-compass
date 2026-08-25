@@ -367,16 +367,30 @@ async function checkFreshness(client: Client): Promise<void> {
     `dataAsOf=${fresh?.dataAsOf} · lastLoadedAt=${fresh?.lastLoadedAt?.slice(0, 10) ?? "—"}`,
   )
 
-  // And a source never loaded must say so rather than borrow a neighbour's date — the same
-  // absence-is-not-zero rule the licence path already holds.
-  const sirene = sources.find((s) => s.name.startsWith("SIRENE"))
+  // The two dates travel together or not at all — the absence-is-not-zero rule applied to
+  // freshness. A dataset carrying a data date with no load date would be claiming a currency
+  // nothing backs; one carrying a load date with no data date would have loaded something whose
+  // recency it cannot state, which `Measured<T>` exists to keep off the screen.
+  //
+  // This used to test SIRENE alone, on the grounds that it was the one dataset never loaded.
+  // It was loaded on 25 August (#56), which made that check pass vacuously — so it now asserts
+  // the pairing across every dataset, which holds whatever is or is not loaded.
+  const halfDated = sources.filter((s) => {
+    const f = s.freshness
+    if (!f || f.dataAsOf === "live") return false
+    return (f.dataAsOf === null) !== (f.lastLoadedAt === null)
+  })
   expect(
     "FRAICHEUR",
     "F3",
-    "un jeu jamais chargé le dit, il n'emprunte pas une date",
-    Boolean(sirene?.freshness) &&
-      (sirene?.freshness?.lastLoadedAt === null ? sirene.freshness.dataAsOf === null : true),
-    `SIRENE : lastLoadedAt=${sirene?.freshness?.lastLoadedAt ?? "null"} · dataAsOf=${sirene?.freshness?.dataAsOf ?? "null"}`,
+    "les deux dates voyagent ensemble : jamais l'une sans l'autre",
+    halfDated.length === 0,
+    halfDated.length === 0
+      ? sources
+          .filter((s) => s.freshness && s.freshness.dataAsOf !== "live")
+          .map((s) => `${s.name.replace(/ .*/, "")}:${s.freshness?.dataAsOf ?? "—"}`)
+          .join(" ")
+      : `dépareillés : ${halfDated.map((s) => s.name).join(", ")}`,
   )
 
   // Declared or real, never ambiguous. A cadence with no automated run behind it has to be

@@ -58,16 +58,28 @@ qu'au premier chargement, quand `premise_observation` est encore vide — le 15 
 premier chargement, et le défaut attendait le second. **La prémisse du ticket était donc
 fausse** : « les scripts sont idempotents » ne valait pas pour celui-ci.
 
-**2. L'URL du parquet SIRENE rend 404.**
-[**#56**](https://github.com/IvandeMurard/paris-compass/issues/56), **ouverte, P0**.
-data.gouv.fr a remplacé la ressource le 21 août et n'en garde qu'une : celle épinglée au
-21 juillet n'existe plus. Le cron mensuel SIRENE échouera tant que ce n'est pas tranché, et
-c'est laissé ainsi délibérément — un job qui échoue bruyamment chaque mois est un rappel, un
-job absent est un oubli.
+**2. L'URL du parquet SIRENE rendait 404.**
+[**#56**](https://github.com/IvandeMurard/paris-compass/issues/56), **corrigée et fermée le
+25 août**. data.gouv.fr **remplace** la ressource au lieu de l'archiver : celle épinglée au
+21 juillet n'existait plus, et le chargeur ne pouvait plus tourner du tout. Un épinglage sur ce
+jeu garantit une panne dans le mois — il a tenu du 15 juillet au 21 août.
+
+`sirene.ts` résout désormais l'URL depuis l'API data.gouv.fr et **écrit le millésime résolu**
+dans `source_as_of`. Il refuse de retomber sur une URL précédente si le portail est injoignable :
+un repli ferait avancer `last_success_at` sur un millésime que personne n'a choisi, ce qui est
+précisément le défaut que ce projet traque.
 
 > L'épinglage était un choix documenté, et **sa prémisse a changé** : il n'existait alors aucun
 > endroit où consigner quel millésime avait été chargé, donc épingler était le seul moyen de
-> rendre le changement délibéré. `ingestion_run.source_as_of` est maintenant cet endroit.
+> rendre le changement délibéré. `ingestion_run.source_as_of` est cet endroit, et le chargeur
+> hurle en clair quand le millésime bouge — `CHANGEMENT DE MILLÉSIME 2026-07-21 -> 2026-08-21`.
+
+**Et `--dry-run` est né de là.** Un changement de millésime déplace les confirmations, donc le
+niveau `corrobore`, donc la composition de fiabilité. Le mode charge, mesure, puis **annule**
+dans la même transaction : l'écart est connu avant d'être commis. Mesuré le 25 août avant de
+charger — +111 établissements, **+24 avis confirmés**, −6 infirmés. Négligeable, donc commis ;
+si l'écart avait été celui du 25 août au matin (−3 147 corroborations), il aurait fallu
+s'arrêter. C'est l'outil qui manquait ce matin-là.
 
 ### La garantie centrale, démontrée par un vrai échec
 

@@ -1,9 +1,16 @@
 // SIRENE establishment geolocation, for the companies BODACC names in Paris.
 //
-//   npx.cmd tsx scripts/ingest/sirene.ts
+//   npx.cmd tsx scripts/ingest/sirene.ts                 # resolve, load, confirm
+//   npx.cmd tsx scripts/ingest/sirene.ts --dry-run       # load, measure the delta, roll back
+//   npx.cmd tsx scripts/ingest/sirene.ts --confirm-only  # replay confirmation, no INSEE read
 //
 // Run after bodacc.ts: the SIREN to load are read from the notices already
-// stored, and the confirmation step needs their addresses.
+// stored, and the confirmation step needs their addresses. A BODACC reload destroys the
+// confirmations, which is why the daily job chains --confirm-only behind it.
+//
+// --dry-run exists because a change of vintage moves the confirmations, and the confirmations
+// decide the `corrobore` level — the project's headline quality metric. Measuring the delta
+// before committing it is cheaper than measuring it afterwards.
 //
 // Answers one question — does the company filing at this address actually have
 // an establishment there — because that is the single largest quality lever
@@ -20,13 +27,72 @@ import type { Client } from "pg"
 import { assertPrivileged, connect, inTransaction, insertRows, log, recordRun } from "./lib/db"
 
 /**
- * INSEE's geolocated establishment file, republished monthly on data.gouv.fr.
- * Pinned rather than resolved dynamically: a silent change of vintage would move
- * every confirmation without anything saying so. Bump it deliberately, and
- * expect the eval baselines to move with it.
+ * INSEE's geolocated establishment file, resolved from data.gouv.fr rather than pinned.
+ *
+ * It used to be pinned, for a good reason: "a silent change of vintage would move every
+ * confirmation without anything saying so". That reasoning was right, and **its premise
+ * changed**. There was then nowhere to record which vintage had been loaded, so pinning was
+ * the only way to make a change deliberate. Since 20260825000001 there is such a place —
+ * `ingestion_run.source_as_of`, which this loader writes and `compass_source_freshness()`
+ * publishes. The change is no longer silent, so it no longer has to be prevented.
+ *
+ * And pinning had stopped working anyway. data.gouv.fr **replaces** the resource rather than
+ * archiving it: measured 25 August 2026, the URL pinned on 21 July returned HTTP 404 and the
+ * loader could not run at all. A pin on this dataset guarantees a breakage within the month —
+ * it held from 15 July to 21 August. Issue #56.
  */
-const PARQUET =
-  "https://static.data.gouv.fr/resources/geolocalisation-des-etablissements-du-repertoire-sirene-pour-les-etudes-statistiques/20260721-131144/geoloc-geolocalisationetablissement-sirene-pour-etudes-statistiques-parquet.parquet"
+const DATASET =
+  "https://www.data.gouv.fr/api/1/datasets/geolocalisation-des-etablissements-du-repertoire-sirene-pour-les-etudes-statistiques/"
+
+/** Identifies this pipeline to data.gouv.fr, as the portal asks reusers to do. */
+const USER_AGENT = "paris-compass ingestion (github.com/IvandeMurard/paris-compass)"
+
+interface ResolvedParquet {
+  url: string
+  /** INSEE's own publication stamp, read from the URL. Becomes `source_as_of`. */
+  asOf: string
+}
+
+/**
+ * The parquet the dataset currently publishes, and the date it carries.
+ *
+ * Throws rather than falling back to a previous URL. A fallback would be the defect this whole
+ * project is built against: the loader would appear to succeed, `last_success_at` would move,
+ * and the data would be a vintage nobody chose. An unreachable portal is an outage, and an
+ * outage must read as an outage.
+ */
+async function resolveParquet(): Promise<ResolvedParquet> {
+  const response = await fetch(DATASET, { headers: { "User-Agent": USER_AGENT } })
+  if (!response.ok) {
+    throw new Error(
+      `data.gouv.fr a répondu ${response.status} pour le jeu SIRENE géolocalisé. ` +
+        `Sans lui, le millésime à charger est inconnu — et charger un millésime inconnu est ` +
+        `exactement ce que ce chargeur refuse de faire.`,
+    )
+  }
+  const payload = (await response.json()) as { resources?: { url?: string; title?: string }[] }
+  const parquets = (payload.resources ?? []).filter((r) => /\.parquet$/.test(r.url ?? ""))
+
+  // The dataset has held exactly one parquet on every look. More than one is not an error we
+  // can resolve by guessing — picking "the newest" would be a choice this file is not entitled
+  // to make silently, and the whole point of resolving is that the choice is recorded.
+  if (parquets.length !== 1) {
+    throw new Error(
+      `Le jeu SIRENE publie ${parquets.length} ressources parquet, une seule était attendue. ` +
+        `Choisir à l'aveugle reviendrait à charger un millésime que personne n'a désigné.`,
+    )
+  }
+
+  const url = parquets[0].url as string
+  const stamp = /\/(\d{8})-\d+\//.exec(url)?.[1]
+  if (!stamp) {
+    throw new Error(
+      `L'URL du parquet ne porte pas de millésime lisible : ${url}. La date de la donnée serait ` +
+        `inconnue, et un chiffre sans sa date n'est pas publié.`,
+    )
+  }
+  return { url, asOf: `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}` }
+}
 
 /** Paris communes are 75101..75120. */
 const PARIS_COMMUNE_PREFIX = "751"
@@ -57,7 +123,7 @@ async function sirenToResolve(client: Client): Promise<string[]> {
   return result.rows.map((r) => r.siren)
 }
 
-async function readFromInsee(siren: string[]): Promise<[string, string, number, number, string][]> {
+async function readFromInsee(parquetUrl: string, siren: string[]): Promise<[string, string, number, number, string][]> {
   const db = await DuckDBInstance.create(":memory:")
   const connection = await db.connect()
   await connection.run("install httpfs; load httpfs;")
@@ -79,7 +145,7 @@ async function readFromInsee(siren: string[]): Promise<[string, string, number, 
            e.x_longitude,
            e.y_latitude,
            e.qualite_xy
-    from read_parquet('${PARQUET}') e
+    from read_parquet('${parquetUrl}') e
     join wanted w on w.siren = substr(e.siret, 1, 9)
     where e.plg_code_commune like '${PARIS_COMMUNE_PREFIX}%'
       and e.qualite_xy = '${EXACT_GEOCODING}'
@@ -168,23 +234,55 @@ async function confirmOnly(): Promise<void> {
   }
 }
 
+/** Sentinel: rolls the trial transaction back through inTransaction's catch, then exits 0. */
+class DryRunComplete extends Error {}
+
 async function main(): Promise<void> {
   if (process.argv.includes("--confirm-only")) {
     await confirmOnly()
     return
   }
 
+  // --dry-run charge, mesure, puis annule. Écrit pour ne plus avoir à choisir entre « lancer
+  // pour savoir » et « ne pas savoir » : un changement de millésime déplace les confirmations,
+  // donc le niveau `corrobore`, donc la composition de fiabilité — la métrique de qualité du
+  // projet. Ce mode donne l'écart exact avant de le commettre.
+  const dryRun = process.argv.includes("--dry-run")
+
   assertPrivileged()
   const startedAt = Date.now()
   const client = await connect()
   try {
+    const parquet = await resolveParquet()
+    const previous = await client.query<{ as_of: string | null }>(
+      "select source_as_of as as_of from public.ingestion_run where source = 'sirene'",
+    )
+    const held = previous.rows[0]?.as_of ?? null
+    log("millésime publié", `${parquet.asOf}${held ? ` — en base : ${held}` : " — rien en base"}`)
+    if (held && held !== parquet.asOf) {
+      // Loud on purpose. This is the moment the pin used to prevent, and the point of removing
+      // it is that the moment is announced and recorded, not that it stops happening.
+      log("CHANGEMENT DE MILLÉSIME", `${held} -> ${parquet.asOf} — les confirmations vont bouger`)
+    }
+
     const siren = await sirenToResolve(client)
     log("SIREN à résoudre", `${siren.length}`)
 
     log("lecture INSEE", "parquet distant, filtré à Paris — comptez quelques minutes")
     const started = Date.now()
-    const rows = await readFromInsee(siren)
+    const rows = await readFromInsee(parquet.url, siren)
     log("  lu", `${rows.length} établissements en ${((Date.now() - started) / 1000).toFixed(0)}s`)
+
+    const countConfirmations = async () =>
+      (
+        await client.query<{ confirmes: string; infirmes: string; total: string }>(`
+          select (select count(*)::text from public.bodacc_establishment where operator_confirmed) as confirmes,
+                 (select count(*)::text from public.bodacc_establishment where operator_confirmed = false) as infirmes,
+                 (select count(*)::text from public.sirene_establishment) as total
+        `)
+      ).rows[0]
+
+    const before = await countConfirmations()
 
     await inTransaction(client, async () => {
       await client.query("delete from public.sirene_establishment")
@@ -203,6 +301,23 @@ async function main(): Promise<void> {
         on conflict (siret) do nothing
       `)
       await confirm(client)
+
+      // Measured here, *inside* the transaction, and this placement is the whole mechanism:
+      // inTransaction commits when its callback returns, so anything after it would already be
+      // committed. Throwing from within is what rolls the work back.
+      if (dryRun) {
+        const after = await countConfirmations()
+        const delta = (a: string, b: string) => {
+          const d = Number(b) - Number(a)
+          return `${a} -> ${b} (${d >= 0 ? "+" : ""}${d})`
+        }
+        log("ESSAI — rien ne sera commis")
+        log("  établissements SIRENE", delta(before.total, after.total))
+        log("  avis confirmés", delta(before.confirmes, after.confirmes))
+        log("  avis infirmés", delta(before.infirmes, after.infirmes))
+        log("  millésime", `${held ?? "aucun"} -> ${parquet.asOf}`)
+        throw new DryRunComplete()
+      }
     })
 
     const summary = await client.query<{ label: string; n: string }>(`
@@ -217,20 +332,15 @@ async function main(): Promise<void> {
     log("terminé")
     for (const row of summary.rows) log(`  ${row.label}`, row.n)
 
-    // Read off the pinned parquet URL, which carries INSEE's own publication stamp. This is
-    // the column that makes the pin visible instead of hiding it: a monthly job reloading the
-    // same file moves `last_success_at` and leaves this untouched, so a reader can see that
-    // the refresh is real and the data is not newer. Bumping PARQUET is what moves it.
-    const stamp = /\/(\d{8})-\d+\//.exec(PARQUET)?.[1]
-    const sourceAsOf = stamp
-      ? `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}`
-      : "inconnu — URL du parquet non datée"
+    // The vintage actually loaded, read from the URL that was actually used. This is the
+    // column that makes a change of vintage visible instead of hiding it — the objection that
+    // once justified pinning, answered by recording rather than by prevention.
     const counted = await client.query<{ n: string }>(
       "select count(*)::text as n from public.sirene_establishment",
     )
     await recordRun(client, "sirene", {
       rowCount: Number(counted.rows[0]?.n ?? 0),
-      sourceAsOf,
+      sourceAsOf: parquet.asOf,
       durationMs: Date.now() - startedAt,
     })
   } finally {
@@ -239,6 +349,10 @@ async function main(): Promise<void> {
 }
 
 main().catch((error) => {
+  if (error instanceof DryRunComplete) {
+    log("essai terminé", "transaction annulée, base inchangée")
+    return
+  }
   log("ÉCHEC", error instanceof Error ? error.message : String(error))
   process.exitCode = 1
 })
