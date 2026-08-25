@@ -112,8 +112,8 @@ export function log(step: string, detail = ""): void {
   process.stdout.write(`[${stamp}] ${step}${detail ? ` — ${detail}` : ""}\n`)
 }
 
-/** The four datasets `ingestion_run` tracks. Keys, not labels — the labels live in the table. */
-export type IngestionSource = "bdcom" | "geography" | "bodacc" | "sirene"
+/** The datasets `ingestion_run` tracks. Keys, not labels — the labels live in the table. */
+export type IngestionSource = "bdcom" | "geography" | "bodacc" | "sirene" | "plu"
 
 /**
  * Records a successful load.

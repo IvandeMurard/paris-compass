@@ -9,22 +9,7 @@
 import type { Client } from "pg"
 
 import { assertPrivileged, connect, inTransaction, insertRows, log, recordRun } from "./lib/db"
-
-const PORTAL = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets"
-
-/**
- * The record endpoint refuses an offset past 10 000 and there are 25 096 street
- * segments, so bulk export is the only way to read the whole layer. Asking for
- * records and stopping at the cap would silently load two thirds of Paris.
- */
-async function exportJson<T>(dataset: string, format: "json" | "geojson"): Promise<T> {
-  const url = `${PORTAL}/${dataset}/exports/${format}`
-  const response = await fetch(url, {
-    headers: { "User-Agent": "paris-compass ingestion (github.com/IvandeMurard/paris-compass)" },
-  })
-  if (!response.ok) throw new Error(`${url} responded ${response.status}`)
-  return (await response.json()) as T
-}
+import { exportJson } from "./lib/parisOpendata"
 
 interface Feature {
   properties: Record<string, unknown>

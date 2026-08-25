@@ -315,7 +315,8 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 - **Pourquoi.** Identifié, pas encore chargé. Sur un linéaire protégé, le rez-de-chaussée ne peut pas changer de destination — première chose qui tue un projet.
 - **Comment.** Jeu opendata.paris.fr, version votée 20 novembre 2024. Bandeau d'alerte sur la fiche. Informatif, sans valeur réglementaire, renvoi au Portail des Règles d'Urbanisme.
 - **Doctrine.** Contrainte binaire cartographiée, pas un score d'urbanisme.
-- **Fait quand.** Deux adresses de la même rue, l'une sur linéaire protégé, l'autre non, reçoivent deux verdicts distincts.
+- **Fait quand.** Deux adresses de la même rue, l'une sur linéaire protégé, l'autre non, reçoivent deux verdicts distincts. — **Démontré le 25 août**, appel anonyme réel (clé publiable, `compass_premises_within`) : **1 RUE MONTORGUEIL** rend `plu_protected: false`, **25 RUE MONTORGUEIL** — même rue, tronçon voisin — rend `plu_protected: true, plu_commerce_proximite: true`. Le bandeau d'alerte lui-même reste côté Lovable, comme prévu au « Comment » — ce ticket pose le RPC qu'il lira. Détail dans `docs/tickets/w0-plu.md`.
+- **Ce ticket redisait `docs/PLAN.md` §2.4**, comme la section « Ce que ce document ne couvre pas » l'annonçait. Les deux sont clos ensemble.
 
 #### w0-provenance — Provenance par champ, pas un Origin unique OSM
 

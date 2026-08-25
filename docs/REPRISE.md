@@ -1,4 +1,4 @@
-# Reprise — état au 25 août 2026, fin de session 6
+# Reprise — état au 25 août 2026, fin de session 7
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`
@@ -6,39 +6,37 @@ qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.m
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
 
-## Clôture des sessions 5 et 6 — l'état exact au 25 août 2026, 08 h 40 UTC
+## Clôture de la session 7 — l'état exact au 25 août 2026, 09 h 15 UTC
 
 Tout est mesuré à la clôture, pas recopié. C'est le point de départ propre de la session
 suivante.
 
 | Mesure | Valeur |
 | --- | --- |
-| `main` local et distant | **`7ae254c`**, identiques, arbre propre |
-| Ledger distant `dbefhvmyfmmhjeetdddu` | **30** migrations, dernière `20260825000003` |
-| Fonctions `compass_*` | **11** — `compass_source_freshness` est la nouvelle |
-| Issues | **43 ouvertes, 8 fermées** — `#6`, `#7`, `#8`, `#10`, `#51`, `#53`, `#55`, `#56` |
-| Pull requests ouvertes | **0** |
-| Portes | `typecheck` ✓ · **108 tests** ✓ · `verify:mcp` **41 / 0 en échec** ✓ · `eval` avertissement seul · `build` et `build:dev` ✓ |
-| `npm.cmd audit` | **0 vulnérabilité** |
+| `main` local | arbre modifié, **pas encore poussé** — voir « Ce qui reste à faire » ci-dessous |
+| Ledger distant `dbefhvmyfmmhjeetdddu` | **32** migrations, dernière `20260825000005` |
+| Fonctions `compass_*` | **11**, compte inchangé — `compass_premises_within` a été étendue, pas ajoutée |
+| Issues | **43 ouvertes, 8 fermées** — inchangé, `#9` reste ouverte : à fermer par le chat, pas par cette session |
+| Portes | `typecheck` ✓ · **108 tests** ✓ (inchangé) · `eval` ✓ (20/20 invariants, avertissements seuls) · `eval:anon` **6/9**, trois écarts hors périmètre — `DIAGNOSTIC.md` §18 · `build` et `build:dev` ✓ · `verify:mcp` non relancée (ni `src/core/` ni `mcp-server/` touchés) |
 
-**La vague 0 est finie à un ticket près : il ne reste que `w0-plu` (#9).** C'est le suivant dans
-l'ordre de `docs/SESSIONS.md`, en Sonnet 5 — une ingestion de source qui suit le patron déjà
-écrit dans `scripts/ingest/`.
+**La vague 0 est finie.** `w0-plu` (#9) était le dernier ticket de la file de
+`docs/SESSIONS.md` ; le suivant dans l'ordre est `w1-chantiers` (#11), Sonnet 5.
 
-### Les quatre sources sont chargées, et deux d'entre elles par un job
+### Les cinq sources sont chargées, PLU est la nouvelle
 
 ```
 source     cadence     source datée  chargé le   âge   lignes    par
 bdcom      triennial   2023-06       2026-08-25  0 j   228 275   manual
 bodacc     continuous  2026-08-23    2026-08-25  0 j   163 788   schedule
 geography  rare        2026-08-25    2026-08-25  0 j   25 174    workflow-dispatch
+plu        rare        2024-11-20    2026-08-25  0 j     5 107   manual
 sirene     monthly     2026-08-21    2026-08-25  0 j    68 881   manual
 ```
 
-Les deux colonnes de dates sont le produit de ces deux sessions : `bdcom` porte une donnée de
-**2023** chargée le **25 août**, et les confondre serait le loyer fabriqué sous sa forme
-temporelle. La colonne `par` dit lequel des trois déclenchements a eu lieu — seul `schedule`
-démontre qu'une cadence est tenue.
+`plu` porte la même discipline de double date que les quatre autres : la source (le vote du
+Conseil de Paris, 20 novembre 2024) et le chargement (25 août) sont deux faits distincts. `par =
+manual` : PLU n'est pas câblé sur le cron de `w0-cron` — décision volontaire, voir
+`docs/tickets/w0-plu.md`.
 
 ### Les branches restantes, et ce qu'il faut en faire
 
@@ -84,6 +82,69 @@ distante ne se fait pas sur un « probablement inutile ».
 > de la session 6 — les chargements, la table de fraîcheur, le 404 de SIRENE — le **25**. Les
 > dates écrites plus bas sont celles de la mesure, pas celles de la rédaction, et c'est la règle
 > de `CLAUDE.md` : un chiffre mesuré porte **sa** date.
+
+---
+
+## Le 25 août, session 7 : `w0-plu` est fait, dernier ticket de la vague 0
+
+**`w0-plu` (#9) est fait**, démontré par un appel anonyme réel : `compass_premises_within` sur
+**1 RUE MONTORGUEIL** rend `plu_protected: false`, sur **25 RUE MONTORGUEIL** — même rue,
+tronçon voisin — rend `plu_protected: true`. Deux adresses, deux verdicts, sans avoir eu à
+chercher plus loin que la rue déjà utilisée par `w0-provenance` et `w0-fiche`. Détail complet
+dans `docs/tickets/w0-plu.md` — sources, seuil de rattachement mesuré, et le bug de conception
+trouvé puis corrigé avant que rien ne soit poussé.
+
+**Ce ticket redit `docs/PLAN.md` §2.4** mot pour mot ; les deux sont clos ensemble.
+
+### Le piège du prompt, encore — même défaut que la session 5, un cran plus loin
+
+Le prompt annonçait « Ticket `w0-plu` (issue #9) » mais demandait de lire
+`docs/tickets/w0-fiche.md` — un ticket clos la veille, sur un sujet différent. Vérifié contre
+`docs/SESSIONS.md` avant d'écrire quoi que ce soit : la session 7 est bien `w0-plu`. Le corps du
+prompt portait aussi la consigne « clé anon » et le rappel de cadences de `w0-cron` (déjà clos)
+plutôt que celle de `w0-plu` — sans conséquence, `lib/db.ts` applique déjà cette règle à tout
+chargeur. **La leçon de la session 5** — « un identifiant de ticket et un numéro d'issue sont
+deux mesures, et elles peuvent diverger sans que rien ne l'annonce » — vaut aussi pour le fichier
+de consignes cité en tête : recouper contre `docs/SESSIONS.md`, pas supposer que le prompt colle
+au bon bloc.
+
+### Un bug de conception trouvé par la mesure, avant tout push
+
+Le rattachement linéaire PLU → tronçon de rue a d'abord été écrit en « tout tronçon à moins de
+15 m de n'importe quel linéaire » plutôt qu'en « chaque linéaire à son tronçon le plus proche ».
+Résultat mesuré : **10 800 tronçons, 65 589 locaux** — environ 2,5× le chiffre attendu. La cause :
+sur des blocs courts près d'un carrefour, un même linéaire PLU sied à moins de 15 m de deux ou
+trois tronçons voisins, et la version many-to-many les protégeait tous. Trouvé en comparant au
+résultat d'une mesure exploratoire faite *avant* d'écrire le chargeur (percentiles de distance
+linéaire → tronçon dans une transaction annulée), pas après coup — la même discipline que le
+`--dry-run` de `sirene.ts` (session 6) appliquée à un nouveau chargeur plutôt qu'à un
+rechargement. Rejoué avec le rattachement many-to-one : **4 340 tronçons, 29 624 locaux**,
+conforme à la mesure exploratoire (± 1 %, du bruit d'égalité de distance dans l'opérateur KNN de
+PostGIS, sans incidence sur le critère).
+
+### Un écart trouvé en lançant une porte non exigée par ce ticket
+
+`npm.cmd run eval:anon` n'est pas dans la liste des portes du prompt commun pour ce ticket (elle
+l'est seulement « si tu as touché `src/core/` ou `mcp-server/` », ce que `w0-plu` ne fait pas) —
+lancée quand même parce que `compass_premises_within`, la fonction exercée, a changé de
+signature. Trois échecs sur neuf, aucun lié à `w0-plu` : deux sur `compass_scoring_context_within`
+(un écart datant du matin même du 25 août, avant cette session — `expectWithheld` n'a pas été
+mise à jour après que `20260825000003` lui a ajouté la colonne `out_of_corpus`), un timeout
+Postgres (`57014`) sur un `count=exact` de `premise_observation`. `git log` confirme qu'aucun des
+deux fichiers en cause n'a bougé depuis avant cette session. Consigné, non corrigé — hors
+périmètre. `DIAGNOSTIC.md` §18.
+
+### Ce qui reste à faire, et qui n'appartient pas à cette session
+
+- **Pousser sur `origin/main`.** Fait juste après cette clôture, comme demandé par le prompt
+  commun ; si cette ligne est encore là, ce n'est pas encore fait — vérifier `git status`
+  avant de continuer.
+- **Fermer l'issue [#9](https://github.com/IvandeMurard/paris-compass/issues/9)** sur GitHub.
+- **Le bandeau d'alerte PLU sur la fiche** reste côté Lovable, comme `PLAN.md` §2.5 l'annonce —
+  cette session pose le RPC, pas l'écran.
+- **`w0-plu` n'est pas câblé sur le cron de `w0-cron`.** Cadence `rare` déclarée dans
+  `ingestion_run`, chargeable seulement à la main. Pas demandé par le ticket ; à trancher si le
+  produit veut un jour republier automatiquement une nouvelle version du PLU.
 
 ---
 
@@ -698,8 +759,10 @@ compte. Un état GitHub est une mesure : la remesurer, pas la recopier.
 
 ~~**Le suivant dans l'ordre est `w0-cron` (#6)**~~ **Fait et clos le 25 août, session 6** — voir
 la section en tête de page. Le secret `DATABASE_URL` est **posé en secret de dépôt GitHub
-Actions** et le cron tourne. **Le suivant dans l'ordre est `w0-plu` (#9)**, en Sonnet 5 : c'est
-le dernier de la vague 0, et une ingestion de source qui suit le patron de `scripts/ingest/`.
+Actions** et le cron tourne. ~~**Le suivant dans l'ordre est `w0-plu` (#9)**, en Sonnet 5 : c'est
+le dernier de la vague 0, et une ingestion de source qui suit le patron de `scripts/ingest/`.~~
+**Fait et clos le 25 août, session 7** — voir la section en tête de page. La vague 0 est
+terminée ; le suivant dans l'ordre de `docs/SESSIONS.md` est `w1-chantiers` (#11), Sonnet 5.
 
 ~~`w0-provenance` (**#10**)~~ **est clos depuis le 24 août, session 3, issue fermée** :
 provenance par couche, démontrée contre le distant par `explain_score` — voir la

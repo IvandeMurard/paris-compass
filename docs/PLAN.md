@@ -221,6 +221,16 @@ un linéaire protégé, un local en rez-de-chaussée ne peut pas changer de dest
 première chose qui peut faire capoter un projet. **Fourni pour information, sans valeur
 réglementaire** — à afficher comme signal, avec renvoi au Portail des Règles d'Urbanisme.
 
+> **Fait le 25 août** (`w0-plu`, [#9](https://github.com/IvandeMurard/paris-compass/issues/9)).
+> 5 107 linéaires chargés dans `plu_linear_protection`, rattachés aux 25 174 tronçons de rue par
+> proximité — mesuré avant de choisir le seuil : les deux réseaux sont dessinés sur la même
+> ligne centrale (p50 = 0 m, p99 = 0,0003 m sur les 5 107 linéaires), avec des écarts jusqu'à
+> 10 m ; 15 m capture les 5 107. 4 340 tronçons et 29 624 locaux `premise_location` en ressortent
+> protégés sur au moins une des trois protections (générale, proximité, culturelle). Démontré
+> par un appel anonyme réel à `compass_premises_within` : **1 RUE MONTORGUEIL** rend
+> `plu_protected: false`, **25 RUE MONTORGUEIL** rend `plu_protected: true`. Détail dans
+> `docs/tickets/w0-plu.md`.
+
 **2.5 — L'affichage.** Une fois les RPC en place, la fiche et le bandeau d'alerte PLU se font
 plus vite côté Lovable.
 

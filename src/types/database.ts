@@ -224,6 +224,15 @@ export type Database = {
           size_label: string | null;
           situation_label: string | null;
           sign_name: string | null;
+          /**
+           * A binary, mapped constraint (PLAN.md §2.4), never a score: on a protected
+           * linear a ground-floor premise cannot change use. Informational only, no
+           * regulatory value. `plu_protected` is the OR of the three components.
+           */
+          plu_protected: boolean | null;
+          plu_commerce_artisanat: boolean | null;
+          plu_commerce_proximite: boolean | null;
+          plu_commerce_culturel: boolean | null;
           /** Count before `p_limit`, so the interface can say "22 of 125". */
           total_matched: number | null;
           /**

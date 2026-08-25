@@ -1034,6 +1034,62 @@ rend **74** quel que soit l'ordre de chargement, et la valeur gelée n'a pas eu 
 
 ---
 
+## 18. `npm.cmd run eval:anon` porte trois échecs non liés à `w0-plu` — trouvés en chemin, non corrigés
+
+Trouvés le 25 août en faisant tourner la porte anonyme après le changement de signature de
+`compass_premises_within` pour `w0-plu` (#9) — pas dans le périmètre de ce ticket, et laissés
+ouverts plutôt que corrigés en silence, sur la règle du prompt commun de `SESSIONS.md` : « tout
+écart : corrigé, ou ouvert en ticket ».
+
+`git log` le confirme : aucun des trois ne touche à `compass_premises_within` ni à
+`premise_location`, les deux seules choses que ce ticket a changées. Les trois existaient déjà.
+
+**Deux sur `compass_scoring_context_within`**, `expectWithheld` du bras D
+(`scripts/eval/anon-http.ts`) rend :
+
+```
+FAIL  scoring_context_within 2017 — contenu non nul sur une ligne retenue : [["out_of_corpus",false]]
+FAIL  scoring_context_within 2020 — contenu non nul sur une ligne retenue : [["out_of_corpus",false]]
+```
+
+Le point 16 (25 août, plus haut) a donné à `compass_scoring_context_within` une troisième
+réponse, `out_of_corpus`, orthogonale à la retenue de licence — un point hors du corpus BDCom
+reste hors corpus qu'un millésime soit retenu ou non. `expectWithheld` n'a pas été mise à jour
+pour le savoir : elle attend encore que **toute** colonne soit nulle sur une ligne retenue, et
+`out_of_corpus: false` la fait échouer alors que la fonction répond correctement. `git log
+--oneline -- scripts/eval/anon-http.ts` confirme que le fichier n'a plus bougé depuis le 24 août
+(`840877a`), soit avant la migration `20260825000003` qui a introduit la colonne — l'écart
+existe depuis cette migration, pas depuis aujourd'hui.
+
+**Un sur la RLS brute de `premise_observation`** :
+
+```
+FAIL  RLS premise_observation — NaN relevés visibles, attendu 60845 (le millésime ODbL seul)
+```
+
+`NaN` vient d'une réponse HTTP **500**, pas d'un mauvais compte :
+
+```
+proxy-status: PostgREST; error=57014
+```
+
+`57014` est `query_canceled` côté Postgres — un timeout serveur sur le `count=exact` de
+`GET /premise_observation?select=vintage_id&limit=1`. La ligne RLS de `premise_observation`
+(`20260809000008`) doit évaluer la retenue pour chacun des 228 275 relevés afin de compter ceux
+que l'appelant anonyme voit, et ce compte exact semble désormais trop coûteux pour la fenêtre de
+timeout par défaut de PostgREST. Rien dans ce ticket ne touche `premise_observation`, sa
+politique RLS ni ses index — la requête est restée identique depuis le 24 août
+(`scripts/eval/anon-http.ts`, ligne ~200).
+
+**Aucun des trois n'a été corrigé.** Ni `expectWithheld`, ni la requête RLS, ni la fonction
+`compass_scoring_context_within` elle-même n'appartiennent à `w0-plu`, dont le seul RPC touché
+est `compass_premises_within` — les quatre contrôles qui l'exercent (`premises_within 2017`,
+`2020`, `2023`, `2023 rayon 1 m`) passent tous. À trancher : mettre à jour `expectWithheld` pour
+tolérer `out_of_corpus` comme elle tolère déjà les autres colonnes nulles, et déterminer si le
+timeout RLS demande un index, une requête moins chère, ou un contournement de count.
+
+---
+
 ## Ordre d'attaque suggéré
 
 1. Point 1 — c'est une donnée fausse qui pilote un filtre. Rien d'autre ne devrait passer avant.

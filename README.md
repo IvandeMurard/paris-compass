@@ -201,6 +201,7 @@ Scores computed client-side: walkability, transport access, density per category
 | **BDCom** 2017 / 2020 / 2023 | APUR | Door-to-door census of every ground-floor unit with a shop window, 224-activity nomenclature, floor-area bands. The unit identifier is stable across vintages, so three censuses give **turnover measured against its own street**, with previous lives as the evidence. Two limits are part of the claim: vacancy is measurable on 2017 and 2020 only — the 2023 layer carries retail alone, so a missing unit is "no longer a shop", not "empty" — and the licence differs by vintage, so BDCom cannot be announced as ODbL across the board |
 | **BODACC** | DILA | Goodwill sales *with their price*, and insolvency proceedings — the closest public figure to what an entrepreneur will pay, and a signal that a unit is coming free |
 | **Sirene** geolocated | INSEE | Corroboration: places an establishment of the same company at the address, which raises a notice to *corroborated* without ever making it *established* |
+| **PLU** commercial protections (`plub_protcom`) | Ville de Paris | On a protected linear, a ground-floor unit cannot change use — the first thing that can kill a project. Informational only, no regulatory value: the [Portail des Règles d'Urbanisme](https://regles-urbanisme.paris.fr/) is the authority. Version voted by the Conseil de Paris 20 November 2024 |
 
 </details>
 
@@ -212,7 +213,6 @@ Scores computed client-side: walkability, transport access, density per category
 | Source | Producer | Contribution |
 | --- | --- | --- |
 | Mobiliscope | CNRS | Population *actually present* hour by hour — distinguishes an office district that triples at noon from a residential one |
-| PLU commercial protections | Ville de Paris | On a protected frontage, a ground-floor unit cannot change use. The first thing that can kill a project |
 | Transit validations | Île-de-France Mobilités | Counted entries per station, hourly since 2015 — replaces the footfall proxy with a measured number |
 | DVF | DGFiP | Sale prices of the walls per m² |
 | INSEE IRIS / FiLoSoFi | INSEE | Population, income, socio-professional categories |
