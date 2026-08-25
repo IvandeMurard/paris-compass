@@ -16,7 +16,7 @@ suivante.
 | `main` local | arbre modifié, **pas encore poussé** — voir « Ce qui reste à faire » ci-dessous |
 | Ledger distant `dbefhvmyfmmhjeetdddu` | **35** migrations, dernière `20260825000008` |
 | Fonctions `compass_*` | **11**, compte inchangé — `compass_premises_within` a été étendue une deuxième fois, pas ajoutée |
-| Issues | **41 ouvertes, 10 fermées** — remesuré par `gh`, inchangé : `#11` reste ouverte, sa fermeture est laissée à une décision explicite (voir « Ce qui reste à faire ») |
+| Issues | **40 ouvertes, 11 fermées** — remesuré par `gh` après coup : `#11` fermée avec un commentaire de clôture, sur autorisation explicite donnée au tour suivant |
 | Portes | `typecheck` ✓ · **108 tests** ✓ (inchangé) · `eval` ✓ (20/20 invariants, 8/8 cas dorés, avertissements seuls) · `build` et `build:dev` ✓ · `verify:mcp` non relancée (ni `src/core/` ni `mcp-server/` touchés) |
 
 **`w1-chantiers` (#11) est fait**, deuxième ticket de la vague 1. Le suivant dans l'ordre de
@@ -154,10 +154,8 @@ relancée : ce ticket ne touche ni `src/core/` ni `mcp-server/`.
 
 ### Ce qui reste, et qui n'appartient pas à cette session
 
-- **La fermeture de l'issue #11** est laissée à une décision explicite plutôt que faite ici —
-  contrairement aux sessions précédentes, qui l'ont fait sur autorisation donnée au tour
-  suivant. Rien n'a encore été poussé sur `origin/main` non plus : `git pull`/`push` restent à
-  faire avant la prochaine session, et avant le 1ᵉʳ septembre (retour de Lovable).
+- **L'issue #11 est fermée**, avec un commentaire reprenant le tableau des deux adresses,
+  sur autorisation explicite donnée au tour suivant — même geste que `w0-plu` avant elle.
 - **Le bandeau « chantier à proximité » sur la fiche** reste côté Lovable, comme le bandeau PLU
   avant lui.
 - **Les millésimes historiques 2019–2023** restent non chargés — voir ci-dessus.
