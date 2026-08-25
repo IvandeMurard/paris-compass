@@ -204,6 +204,53 @@ export function assertPrivileged(): void {
     )
   }
   if (!/^postgres(ql)?:\/\//.test(url.trim())) {
-    throw new Error("DATABASE_URL n'est pas une URL postgres:// — refus de démarrer.")
+    // Diagnostiquer sans divulguer. Un secret mal posé se corrige en trente secondes *si* le
+    // message dit quoi regarder ; « n'est pas une URL postgres:// » envoie chercher à l'aveugle,
+    // et sur un runner personne ne peut inspecter la valeur. Chaque indice ci-dessous est une
+    // propriété de forme, jamais un fragment de la chaîne.
+    throw new Error(
+      `DATABASE_URL n'est pas une URL postgres:// — refus de démarrer. ${describeShape(url)}`,
+    )
   }
+  // Le pooler, pas la connexion directe. `db.<ref>.supabase.co` n'a qu'un enregistrement AAAA
+  // et les runners GitHub n'ont pas d'IPv6 : la connexion échouerait en EAI_AGAIN, une panne
+  // réseau opaque là où la cause est un choix d'hôte. Mesuré sur ce poste comme sur le runner.
+  if (automated && /@db\.[a-z0-9]{20}\.supabase\.co/.test(url)) {
+    throw new Error(
+      "DATABASE_URL vise la connexion directe (db.<ref>.supabase.co), qui n'a qu'un " +
+        "enregistrement AAAA. Les runners GitHub n'ont pas d'IPv6. Utiliser le pooler session : " +
+        "postgres.<ref>@aws-1-eu-west-1.pooler.supabase.com:5432.",
+    )
+  }
+}
+
+/**
+ * Décrit la *forme* d'une valeur de secret mal posée, sans en révéler le contenu.
+ *
+ * Les cas ci-dessous sont ceux qu'on rencontre réellement en collant un secret à la main :
+ * la ligne `.env` entière plutôt que sa valeur, des guillemets ramassés au passage, un
+ * gabarit du tableau de bord encore porteur de son marque-place.
+ */
+function describeShape(raw: string): string {
+  const url = raw.trim()
+  const hints: string[] = []
+  if (/^[A-Z_]+\s*=/.test(url)) {
+    hints.push(
+      "elle commence par « NOM= » : c'est la ligne entière de .env.local qui a été collée, " +
+        "pas seulement sa valeur. Ne coller que ce qui suit le premier « = ».",
+    )
+  }
+  if (/^["']|["']$/.test(url)) hints.push("elle est entourée de guillemets — les retirer.")
+  if (/\[[^\]]*\]/.test(url)) {
+    hints.push("elle contient un marque-place entre crochets, du type [YOUR-PASSWORD], à remplacer.")
+  }
+  if (/^psql\b/.test(url)) hints.push("c'est une commande psql, pas une URL : n'en garder que l'URL.")
+  if (raw !== url) hints.push("elle porte des espaces ou un retour à la ligne en tête ou en fin.")
+  if (hints.length === 0) {
+    hints.push(
+      "attendu : postgresql://postgres.<ref>:<mot de passe>@aws-1-eu-west-1.pooler.supabase.com:5432/postgres " +
+        `(reçu ${url.length} caractères commençant par « ${url.slice(0, 4)} »).`,
+    )
+  }
+  return hints.join(" ")
 }

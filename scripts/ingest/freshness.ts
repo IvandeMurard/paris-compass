@@ -11,7 +11,7 @@
 // quand remonte notre copie. Recharger BODACC aujourd'hui rend la seconde à jour et laisse la
 // première où elle est — et un millésime BDCom rechargé ce matin reste un recensement de 2023.
 
-import { connect, connectionTarget, log } from "./lib/db"
+import { assertPrivileged, connect, connectionTarget, log } from "./lib/db"
 
 interface Row {
   source: string
@@ -39,6 +39,11 @@ const TOLERANCE_DAYS: Record<string, number | null> = {
 }
 
 async function main(): Promise<void> {
+  // Même garde que les chargeurs, bien que ce script ne fasse que lire : lancé en fin de job
+  // avec `if: always()`, c'est souvent lui qu'on lit en premier quand quelque chose a cassé.
+  // Sans la garde, un secret mal posé s'y présentait en « getaddrinfo EAI_AGAIN db » — une
+  // panne réseau apparente là où la cause était la valeur du secret.
+  assertPrivileged()
   const client = await connect()
   try {
     log("fraîcheur", connectionTarget())
