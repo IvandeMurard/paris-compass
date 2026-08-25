@@ -1,4 +1,4 @@
-# Reprise — état au 25 août 2026, fin de session 7
+# Reprise — état au 25 août 2026, fin de session 8
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`
@@ -6,7 +6,7 @@ qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.m
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
 
-## Clôture de la session 7 — l'état exact au 25 août 2026, 09 h 15 UTC
+## Clôture de la session 8 — l'état exact au 25 août 2026, 09 h 41 UTC
 
 Tout est mesuré à la clôture, pas recopié. C'est le point de départ propre de la session
 suivante.
@@ -14,29 +14,33 @@ suivante.
 | Mesure | Valeur |
 | --- | --- |
 | `main` local | arbre modifié, **pas encore poussé** — voir « Ce qui reste à faire » ci-dessous |
-| Ledger distant `dbefhvmyfmmhjeetdddu` | **32** migrations, dernière `20260825000005` |
-| Fonctions `compass_*` | **11**, compte inchangé — `compass_premises_within` a été étendue, pas ajoutée |
-| Issues | **41 ouvertes, 10 fermées** — remesuré par `gh`, `#9` fermée avec un commentaire de clôture |
-| Portes | `typecheck` ✓ · **108 tests** ✓ (inchangé) · `eval` ✓ (20/20 invariants, avertissements seuls) · `eval:anon` **6/9**, trois écarts hors périmètre — `DIAGNOSTIC.md` §18 · `build` et `build:dev` ✓ · `verify:mcp` non relancée (ni `src/core/` ni `mcp-server/` touchés) |
+| Ledger distant `dbefhvmyfmmhjeetdddu` | **35** migrations, dernière `20260825000008` |
+| Fonctions `compass_*` | **11**, compte inchangé — `compass_premises_within` a été étendue une deuxième fois, pas ajoutée |
+| Issues | **41 ouvertes, 10 fermées** — remesuré par `gh`, inchangé : `#11` reste ouverte, sa fermeture est laissée à une décision explicite (voir « Ce qui reste à faire ») |
+| Portes | `typecheck` ✓ · **108 tests** ✓ (inchangé) · `eval` ✓ (20/20 invariants, 8/8 cas dorés, avertissements seuls) · `build` et `build:dev` ✓ · `verify:mcp` non relancée (ni `src/core/` ni `mcp-server/` touchés) |
 
-**La vague 0 est finie.** `w0-plu` (#9) était le dernier ticket de la file de
-`docs/SESSIONS.md` ; le suivant dans l'ordre est `w1-chantiers` (#11), Sonnet 5.
+**`w1-chantiers` (#11) est fait**, deuxième ticket de la vague 1. Le suivant dans l'ordre de
+`docs/SESSIONS.md` est `w1-terrasses` (#15), même patron, même session Sonnet 5.
 
-### Les cinq sources sont chargées, PLU est la nouvelle
+### Les six sources sont chargées, chantiers est la nouvelle
 
 ```
 source     cadence     source datée  chargé le   âge   lignes    par
 bdcom      triennial   2023-06       2026-08-25  0 j   228 275   manual
 bodacc     continuous  2026-08-23    2026-08-25  0 j   163 788   schedule
-geography  rare        2026-08-25    2026-08-25  0 j   25 174    workflow-dispatch
+chantiers  weekly      2026-08-25    2026-08-25  0 j       120   manual
+geography  rare        2026-08-25    2026-08-25  0 j    25 174   workflow-dispatch
 plu        rare        2024-11-20    2026-08-25  0 j     5 107   manual
 sirene     monthly     2026-08-21    2026-08-25  0 j    68 881   manual
 ```
 
-`plu` porte la même discipline de double date que les quatre autres : la source (le vote du
-Conseil de Paris, 20 novembre 2024) et le chargement (25 août) sont deux faits distincts. `par =
-manual` : PLU n'est pas câblé sur le cron de `w0-cron` — décision volontaire, voir
-`docs/tickets/w0-plu.md`.
+`chantiers` introduit une cinquième cadence, `weekly` — aucune des quatre existantes ne
+correspondait sans mentir, voir « Le 25 août, session 8 » plus bas. `source_as_of` vient de
+`metas.default.modified` du catalogue opendata.paris.fr (la date à laquelle le portail a
+lui-même retraité le jeu), pas de `now()` : même discipline que `bdcom`/`bodacc`/`sirene`, sur
+une source qui ne publie aucun millésime propre à chaque ligne. `par = manual` : comme PLU,
+`chantiers` n'est pas câblé sur le cron de `w0-cron` — décision volontaire, voir
+`docs/tickets/w1-chantiers.md`.
 
 ### Les branches restantes, et ce qu'il faut en faire
 
@@ -82,6 +86,81 @@ distante ne se fait pas sur un « probablement inutile ».
 > de la session 6 — les chargements, la table de fraîcheur, le 404 de SIRENE — le **25**. Les
 > dates écrites plus bas sont celles de la mesure, pas celles de la rédaction, et c'est la règle
 > de `CLAUDE.md` : un chiffre mesuré porte **sa** date.
+
+---
+
+## Le 25 août, session 8 : `w1-chantiers` est fait, deuxième ticket de la vague 1
+
+**`w1-chantiers` (#11) est fait**, démontré par un appel anonyme réel : **25 RUE JEAN DE LA
+FONTAINE**, à 0 m d'un chantier `ENTRETIEN_RESEAU` en cours (18 mai → 29 oct. 2026), rend
+`chantier_exposed: true` avec l'objet, les dates et le statut ; **50 RUE JEAN DE LA FONTAINE**,
+même rue, ~124 m plus loin, rend `chantier_exposed: false` et tout le reste `null`. Vérifié
+aussi au seuil lui-même — 7 rue Valentin Hauy à 33,4 m d'un chantier (exposé) contre 43 avenue
+de Saxe à 41,8 m du même chantier (non exposé), à moins de 9 m l'un de l'autre. Détail complet
+dans `docs/tickets/w1-chantiers.md`.
+
+**Ce ticket redit `docs/PLAN.md` §5.1** presque mot pour mot (« dix-huit mois de travaux devant
+une vitrine décident d'un commerce, et personne ne le dit au preneur avant la signature ») ; les
+deux sont clos ensemble.
+
+### Un chiffre du ticket était faux, trouvé avant d'écrire quoi que ce soit
+
+Le « Comment » du ticket et `PLAN.md` §5.1 disaient tous deux « chantiers-perturbants
+quotidien ». Mesuré contre la description du jeu sur le catalogue opendata.paris.fr lui-même :
+« Mise à jour hebdomadaire ». Faux depuis la rédaction du plan, jamais recoupé contre la source
+— même mode de défaillance que le ledger à 24 de la session 1 et le « quotidien » aurait pu
+rester non détecté indéfiniment puisque rien ne l'aurait fait échouer, contrairement à un
+chiffre qui alimente un test. Les deux documents sont corrigés. Conséquence directe en base :
+aucune des quatre cadences existantes (`continuous`, `monthly`, `triennial`, `rare`) ne convenait
+sans mentir — `continuous` sert déjà BODACC pour un rythme différent (chaque jour ouvré) — donc
+une cinquième valeur, `weekly`, a été ajoutée à `ingestion_cadence`, dans sa propre migration
+plutôt que celle qui l'utilise : Postgres refuse qu'une transaction se serve d'une valeur
+d'énumération qu'elle vient d'ajouter elle-même.
+
+### La leçon de `w0-plu` appliquée sans avoir à la refaire
+
+Le rattachement local → chantier va directement du côté local (`distinct on (l.id)`, plus proche
+d'abord), jamais du côté chantier vers tous les locaux à portée : exactement la restriction que
+`w0-plu` avait dû ajouter après coup, quand sa première version, many-to-many, avait sur-attaché
+d'un facteur 2,5. Écrite nearest-only dès le premier jet cette fois, et vérifiée directement au
+seuil de 40 m (le couple Valentin Hauy / Saxe ci-dessus) plutôt que supposée correcte.
+
+### Ce qui n'a pas été chargé, et pourquoi c'est le bon arrêt
+
+**Les cinq millésimes historiques (`chantiers-a-paris-copie` à `-copie3`, 2019–2023, 20 073 à
+32 201 lignes chacun) ne sont pas chargés.** Le « Comment » du ticket les cite, mais le « Fait
+quand » n'exerce que `chantiers-perturbants`, et c'est `w7-etude-chantiers` (§5.5), qui dépend
+de ce ticket, qui en aura réellement besoin pour son étude rétrospective 2020→2023. Les charger
+maintenant aurait élargi ce chantier au-delà de son critère pour un usage pas encore défini —
+même arbitrage que `w0-plu` avec le bandeau d'alerte, laissé à Lovable plutôt qu'anticipé.
+
+**Ni le front-end ni le serveur MCP ne consomment les nouveaux champs**, pour la même raison que
+PLU : `premiseHistory.ts` ne mappait déjà pas les champs PLU sur `PremiseCandidate`, et
+`findPremises.ts` ne les exposait pas non plus — ce chantier est une ingestion (« Sessions 8 et
+9 » de `docs/SESSIONS.md`), pas une session d'interface, et Lovable reste indisponible jusqu'au
+1ᵉʳ septembre.
+
+**Le chargeur n'est pas câblé sur le cron.** Chargeable seulement à la main
+(`npx tsx scripts/ingest/chantiers.ts`) ; `scripts/ingest/workflow.test.ts` continue de vérifier
+exactement les quatre plannings existants, inchangé.
+
+### Portes
+
+`typecheck` ✓ · **108 tests** ✓ (inchangé — aucun test ajouté, ce ticket ne touche aucun code
+sous test) · `eval` ✓ (20/20 invariants, 8/8 cas dorés, composition de fiabilité stable à
+57,26 %, dix écarts de baseline sous le seuil d'avertissement — dérive naturelle de
+BODACC/SIRENE déjà notée aux clôtures précédentes) · `build` et `build:dev` ✓. `verify:mcp` non
+relancée : ce ticket ne touche ni `src/core/` ni `mcp-server/`.
+
+### Ce qui reste, et qui n'appartient pas à cette session
+
+- **La fermeture de l'issue #11** est laissée à une décision explicite plutôt que faite ici —
+  contrairement aux sessions précédentes, qui l'ont fait sur autorisation donnée au tour
+  suivant. Rien n'a encore été poussé sur `origin/main` non plus : `git pull`/`push` restent à
+  faire avant la prochaine session, et avant le 1ᵉʳ septembre (retour de Lovable).
+- **Le bandeau « chantier à proximité » sur la fiche** reste côté Lovable, comme le bandeau PLU
+  avant lui.
+- **Les millésimes historiques 2019–2023** restent non chargés — voir ci-dessus.
 
 ---
 

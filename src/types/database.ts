@@ -233,6 +233,19 @@ export type Database = {
           plu_commerce_artisanat: boolean | null;
           plu_commerce_proximite: boolean | null;
           plu_commerce_culturel: boolean | null;
+          /**
+           * A fait d'exposition (PLAN.md §5.1), never a prediction of impact on
+           * turnover: true when a disruptive worksite sits within 40 m of the
+           * premise. Dated by `chantier_date_debut`/`chantier_date_fin`, sourced by
+           * the Ville de Paris — never collapsed into a score.
+           */
+          chantier_exposed: boolean | null;
+          chantier_distance_m: number | null;
+          chantier_objet: string | null;
+          chantier_description: string | null;
+          chantier_date_debut: string | null;
+          chantier_date_fin: string | null;
+          chantier_statut_label: string | null;
           /** Count before `p_limit`, so the interface can say "22 of 125". */
           total_matched: number | null;
           /**

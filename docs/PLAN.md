@@ -685,12 +685,16 @@ l'environnement est autant temporel que spatial.
 
 Ordre de priorité. Le premier point est de loin le meilleur rapport valeur/effort du backlog.
 
-**5.1 — Chantiers de voirie.** ✅ *Vérifié le 12 août : les jeux existent et portent la
-géométrie.*
+**5.1 — Chantiers de voirie.** ✅ *Fait le 25 août 2026 — `w1-chantiers` (issue #11), même
+chantier que ce paragraphe, clos ensemble. Détail complet dans
+[`docs/tickets/w1-chantiers.md`](tickets/w1-chantiers.md).*
 
 `opendata.paris.fr` publie l'historique géolocalisé année par année — `chantiers-a-paris-copie`
-(2019) à `chantiers-a-paris-copie3` (2023) — plus `chantiers-perturbants`, « travaux perturbant
-la circulation », mis à jour quotidiennement, en polygones.
+(2019) à `chantiers-a-paris-copie3` (2023, 20 073 à 32 201 lignes chacun, mesuré le 25 août,
+non chargés par ce ticket : voir plus bas) — plus `chantiers-perturbants`, « travaux perturbant
+la circulation », en polygones, **mis à jour chaque semaine** — mesuré le 25 août 2026 sur la
+description du jeu lui-même (« Mise à jour hebdomadaire ») : ce paragraphe disait
+« quotidiennement » avant cette session, et c'était faux, jamais remesuré depuis sa rédaction.
 
 C'est peut-être l'information la plus rentable du produit entier. Dix-huit mois de travaux
 devant une vitrine décident d'un commerce, et personne ne le dit au preneur avant la
@@ -701,6 +705,13 @@ signature. La forme est un **fait d'exposition, jamais une prévision** :
 
 Daté, sourcé, décisif, et sans un mot de prédiction. Entre directement dans `Measured<T>` en
 `measured` — c'est un acte administratif, pas un modèle.
+
+**Fait pour `chantiers-perturbants` seul.** `compass_premises_within` rend `chantier_exposed`,
+`chantier_distance_m` et les champs du chantier (objet, dates, statut) pour tout local à 40 m
+d'un polygone. Les cinq millésimes historiques (`chantiers-a-paris-copie` à `-copie3`) restent
+non chargés : ils ne servent à rien pour le fait d'exposition d'aujourd'hui, et
+`w7-etude-chantiers` §5.5, qui en aura besoin pour son étude rétrospective 2020→2023, les
+chargera quand ce chantier-là démarrera plutôt que par anticipation.
 
 **5.2 — Croiser SIRENE et BDCom.** Aucune source nouvelle, aucune licence nouvelle : les deux
 sont déjà ingérées.

@@ -234,7 +234,7 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 | `w0-cron` | 0 | Q3 2026 | Ingestion planifiée + date de fraîcheur par source | compass_* expose ingested_at pour BDCom, géographie, BODACC et SIRENE. Un cron a tourné au moins une fois sans intervention manuelle. |
 | `w0-plu` | 0 | Q3 2026 | Ingérer le PLU plub_protcom | Deux adresses de la même rue, l'une sur linéaire protégé, l'autre non, reçoivent deux verdicts distincts. |
 | `w0-provenance` | 0 | Q3 2026 | Provenance par champ, pas un Origin unique OSM | explain_score sur un local BDCom cite APUR, pas OSM, pour l'activité ; OSM reste sur les aménités. |
-| `w1-chantiers` | 1 | Q3 2026 | Chantiers de voirie (fait d'exposition) | La fiche d'un local à 40 m d'un polygone perturbant affiche le chantier ; un voisin hors polygone, non. |
+| `w1-chantiers` | 1 | Q3 2026 | Chantiers de voirie (fait d'exposition) | La fiche d'un local à 40 m d'un polygone perturbant affiche le chantier ; un voisin hors polygone, non. — **fait le 25/08** : démontré en appel anonyme, 25 vs 50 RUE JEAN DE LA FONTAINE, `chantier_exposed` bascule vrai/faux avec la même rue de part et d'autre du seuil. Détail dans `docs/tickets/w1-chantiers.md`. |
 | `w1-survie` | 1 | Q3 2026 | Courbes de survie SIRENE × BDCom | Un café aux Halles et un café au Mail affichent deux survies, chacune avec n et millésimes, rapportées au métier pas à Paris entier. |
 | `w1-terrasses` | 1 | Q3 2026 | Terrasses et étalages autorisés | La fiche restauration affiche oui/non/inconnu terrasse, avec le type (permanente, estivale) et la source. |
 | `w0-history` | 0 | Q3 2026 | `compass_premise_history` : une retenue de licence rendue comme un fait | Un appel anonyme sur le local 54652 en 2017 ne rend plus `observed = false` avec `is_vacant = false`, le couple d'invariants est posé, et `eval:anon` le couvre. — **fait le 24/08** : migration `20260824000001` posée (ledger remesuré à 26), I16/I17 et la sonde éprouvés contre sabotage, les deux portes au vert contre le distant. Issue #51 fermée. Détail dans `docs/tickets/w0-history.md`. |
@@ -332,9 +332,10 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 - Priorité **P0** · vague 1 · Q3 2026
 - Dépend de : `w0-fiche`
 - **Pourquoi.** Un restaurateur signe ou non sur « 40 m d'un chantier perturbant, sept. 2026 → mars 2027 ».
-- **Comment.** opendata.paris.fr : historiques 2019–2023 + chantiers-perturbants quotidien, polygones. Distance au local, dates déclarées. measured — acte administratif, pas un modèle.
+- **Comment.** opendata.paris.fr : historiques 2019–2023 + chantiers-perturbants, polygones. Distance au local, dates déclarées. measured — acte administratif, pas un modèle. **Cadence remesurée le 25 août 2026** : le jeu se dit lui-même « Mise à jour hebdomadaire », pas quotidienne — cette ligne était fausse depuis sa rédaction, jamais recoupée contre la source.
 - **Doctrine.** Jamais une prévision d'impact. La phrase, datée, sourcée. L'association chantier→disparition attend l'étude 5.5.
 - **Fait quand.** La fiche d'un local à 40 m d'un polygone perturbant affiche le chantier ; un voisin hors polygone, non.
+- **Fait le 25 août**, mesuré contre le distant en appel anonyme : 25 RUE JEAN DE LA FONTAINE (0 m d'un chantier ENTRETIEN_RESEAU, statut « en cours », 18 mai → 29 oct. 2026) rend `chantier_exposed: true` avec l'objet et les dates ; 50 RUE JEAN DE LA FONTAINE, même rue, ~124 m plus loin, rend `chantier_exposed: false` et tout le reste `null`. Seul `chantiers-perturbants` (120 polygones exploitables sur 121 lignes) est chargé — les cinq millésimes historiques 2019–2023 (20 073 à 32 201 lignes chacun) restent pour `w7-etude-chantiers`, qui en a besoin et pas celui-ci. Détail complet, y compris le rattachement et son seuil, dans `docs/tickets/w1-chantiers.md`. Même chantier que `docs/PLAN.md` §5.1.
 
 #### w1-survie — Courbes de survie SIRENE × BDCom
 
