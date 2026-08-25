@@ -16,7 +16,7 @@ suivante.
 | `main` local | arbre modifié, **pas encore poussé** — voir « Ce qui reste à faire » ci-dessous |
 | Ledger distant `dbefhvmyfmmhjeetdddu` | **32** migrations, dernière `20260825000005` |
 | Fonctions `compass_*` | **11**, compte inchangé — `compass_premises_within` a été étendue, pas ajoutée |
-| Issues | **43 ouvertes, 8 fermées** — inchangé, `#9` reste ouverte : à fermer par le chat, pas par cette session |
+| Issues | **41 ouvertes, 10 fermées** — remesuré par `gh`, `#9` fermée avec un commentaire de clôture |
 | Portes | `typecheck` ✓ · **108 tests** ✓ (inchangé) · `eval` ✓ (20/20 invariants, avertissements seuls) · `eval:anon` **6/9**, trois écarts hors périmètre — `DIAGNOSTIC.md` §18 · `build` et `build:dev` ✓ · `verify:mcp` non relancée (ni `src/core/` ni `mcp-server/` touchés) |
 
 **La vague 0 est finie.** `w0-plu` (#9) était le dernier ticket de la file de
@@ -134,12 +134,25 @@ Postgres (`57014`) sur un `count=exact` de `premise_observation`. `git log` conf
 deux fichiers en cause n'a bougé depuis avant cette session. Consigné, non corrigé — hors
 périmètre. `DIAGNOSTIC.md` §18.
 
-### Ce qui reste à faire, et qui n'appartient pas à cette session
+### Poussé et fermé — `#9` clôturée avec un commentaire, pas seulement le libellé du ticket
 
-- **Pousser sur `origin/main`.** Fait juste après cette clôture, comme demandé par le prompt
-  commun ; si cette ligne est encore là, ce n'est pas encore fait — vérifier `git status`
-  avant de continuer.
-- **Fermer l'issue [#9](https://github.com/IvandeMurard/paris-compass/issues/9)** sur GitHub.
+**Poussé sur `origin/main` à `125125f`**, sur autorisation explicite donnée au tour suivant
+(« pousse et merge, puis ferme proprement ») — rien à fusionner, ce dépôt n'ouvre pas de PR pour
+ce genre de session, `git push` a posé directement sur `main`. **Issue
+[#9](https://github.com/IvandeMurard/paris-compass/issues/9) fermée**, avec le tableau des deux
+adresses en commentaire, comme `w0-fiche` l'avait fait avant elle. `npm.cmd run sessions`
+régénéré derrière : 39 tickets suivis, 7 fermés.
+
+> **Le compte d'issues de la table de clôture, plus haut, portait déjà un écart avant cette
+> session.** « 43 ouvertes, 8 fermées » (hérité de la clôture de la session 6) omettait
+> [#52](https://github.com/IvandeMurard/paris-compass/issues/52) — le défaut Overpass de la
+> session 3, fermé entre-temps sans que cette page ne soit remesurée. Remesuré par `gh` en
+> fermant `#9` : **41 ouvertes, 10 fermées** avant même de compter `#9`. Encore un exemple de la
+> règle que cette page répète depuis le 24 août — un état GitHub est une mesure, pas une valeur
+> à recopier d'une session à l'autre.
+
+### Ce qui reste, et qui n'appartient pas à cette session
+
 - **Le bandeau d'alerte PLU sur la fiche** reste côté Lovable, comme `PLAN.md` §2.5 l'annonce —
   cette session pose le RPC, pas l'écran.
 - **`w0-plu` n'est pas câblé sur le cron de `w0-cron`.** Cadence `rare` déclarée dans
