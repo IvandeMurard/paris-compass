@@ -124,7 +124,56 @@ async function confirm(client: Client): Promise<void> {
   log("  confirmation", `${result.rowCount} avis évalués`)
 }
 
+/**
+ * Replays the confirmation step alone, without re-reading INSEE.
+ *
+ * Needed because bodacc.ts rebuilds bodacc_announcement wholesale, which cascades to
+ * bodacc_establishment and takes `operator_confirmed` with it. **A BODACC reload therefore
+ * destroys every SIRENE confirmation**, and nothing said so: measured 25 August, the
+ * evaluation gate fell from 3 147 `corrobore` levels to zero — 5.92 points of the
+ * established+corroborated composition, which is the project's headline quality metric.
+ *
+ * That is why the daily BODACC job chains this step. Confirmation reads only
+ * sirene_establishment, which a BODACC reload does not touch, so there is no reason to re-read
+ * the several hundred megabytes of INSEE parquet to rebuild it — which is fortunate, since the
+ * pinned URL now answers 404 (#56) and the confirmations would otherwise be unrecoverable.
+ *
+ *   npx tsx scripts/ingest/sirene.ts --confirm-only
+ */
+async function confirmOnly(): Promise<void> {
+  assertPrivileged()
+  const client = await connect()
+  try {
+    const held = await client.query<{ n: string }>(
+      "select count(*)::text as n from public.sirene_establishment",
+    )
+    if (Number(held.rows[0]?.n ?? 0) === 0) {
+      throw new Error(
+        "sirene_establishment est vide : il n'y a rien avec quoi confirmer. Lancer le " +
+          "chargement complet — mais voir #56, l'URL du parquet épinglée rend 404.",
+      )
+    }
+    log("confirmation seule", `${held.rows[0].n} établissements SIRENE en base`)
+    await inTransaction(client, () => confirm(client))
+
+    const after = await client.query<{ label: string; n: string }>(`
+      select 'avis confirmés sur place' as label, count(*)::text as n
+        from public.bodacc_establishment where operator_confirmed
+      union all select 'avis infirmés', count(*)::text
+        from public.bodacc_establishment where operator_confirmed = false
+    `)
+    for (const row of after.rows) log(`  ${row.label}`, row.n)
+  } finally {
+    await client.end()
+  }
+}
+
 async function main(): Promise<void> {
+  if (process.argv.includes("--confirm-only")) {
+    await confirmOnly()
+    return
+  }
+
   assertPrivileged()
   const startedAt = Date.now()
   const client = await connect()

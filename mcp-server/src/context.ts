@@ -77,6 +77,11 @@ interface ScoringContextRow {
   total_matched: number | null
   /** True on a single coordinate-less row when the caller may not receive this vintage. */
   withheld: boolean
+  /**
+   * True on a single coordinate-less row when the point falls outside every Paris quartier.
+   * Added by 20260825000003 — see the throw below for why an empty result was not enough.
+   */
+  out_of_corpus: boolean
 }
 
 async function fetchPremises(
@@ -105,6 +110,24 @@ async function fetchPremises(
         `read, so this caller receives neither its contents nor its counts. Scores that ` +
         `depend on the premises layer are unknown for this vintage, not zero. ` +
         `Vintage 2023 is ODbL and can be scored; call list_sources for the licence of each.`,
+    )
+  }
+
+  // A point outside the corpus is not an empty neighbourhood either, and this was the harder
+  // of the two to see: the query *succeeded* with zero rows, so the layer counted as loaded and
+  // the footfall proxy came back as a real number — 22 at Massy, computed on zero premises and
+  // still stamped "APUR BDCom 2023". DIAGNOSTIC.md §16, issue #55.
+  //
+  // Note what is deliberately not done here: zero rows is still treated as a genuine zero.
+  // Measured 25 August, the Bois de Vincennes sits inside the Picpus quartier and holds no
+  // BDCom premise within 400 m — a true empty radius inside Paris. Treating every empty result
+  // as "unknown" would destroy the one answer the data gives with certainty.
+  if (rows.some((r) => r.out_of_corpus)) {
+    throw new Error(
+      `This point lies outside the BDCom corpus, which covers Paris intra-muros only — it is ` +
+        `in none of the 80 quartiers. Premises are unknown here, not absent: no door-to-door ` +
+        `survey was carried out at this address. Scores that depend on the premises layer are ` +
+        `unavailable rather than zero.`,
     )
   }
 

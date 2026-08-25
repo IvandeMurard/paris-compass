@@ -1,17 +1,15 @@
-// Le workflow d'ingestion se relit lui-même : sa table de correspondance cron -> source
-// doit rester alignée sur son propre bloc `on.schedule`.
+// The ingestion workflow reads itself: its cron -> source lookup must stay aligned with its
+// own `on.schedule` block.
 //
-// Pourquoi un test plutôt que la confiance : `.github/workflows/ingestion.yml` porte quatre
-// planifications dans un seul fichier, et un `case` qui les traduit en nom de jeu. Changer une
-// heure dans `on.schedule` sans changer la ligne correspondante du `case` produit une
-// planification que le job ne reconnaît pas. Le workflow s'en aperçoit — il sort en erreur —
-// mais **seulement le jour où ce cron se déclenche** : deux fois l'an pour la géographie, une
-// fois par trimestre pour BDCom. Un chargement qui ne part pas pendant six mois est exactement
-// la panne silencieuse que w0-cron existe pour supprimer.
+// Why a test rather than trust: .github/workflows/ingestion.yml carries four schedules in one
+// file, and a `case` translating them into dataset names. Changing an hour in `on.schedule`
+// without changing the matching `case` arm produces a schedule the job does not recognise. The
+// workflow does notice — it exits with an error — but **only on the day that cron fires**:
+// twice a year for geography, once a quarter for BDCom. A load that fails to start for six
+// months is exactly the silent breakage w0-cron exists to remove.
 //
-// Volontairement sans bibliothèque YAML : le fichier est sous notre contrôle, et ajouter une
-// dépendance pour lire quatre chaînes serait cher payé (CLAUDE.md — vérifier les avis avant
-// d'ajouter une dépendance).
+// Deliberately without a YAML library: the file is under our control, and adding a dependency
+// to read four strings would be dear (CLAUDE.md — check advisories before adding one).
 
 import { readFileSync } from "fs"
 import { resolve } from "path"
@@ -22,24 +20,24 @@ const WORKFLOW = resolve(import.meta.dirname, "../../.github/workflows/ingestion
 const yaml = readFileSync(WORKFLOW, "utf8")
 
 /**
- * Le fichier sans ses lignes de commentaire.
+ * The file without its comment lines.
  *
- * Nécessaire, et trouvé en écrivant ce test : le workflow *explique* pourquoi il n'utilise pas
- * `pull_request_target`, et la recherche naïve de cette chaîne trouvait l'explication. Un
- * contrôle qui confond une mise en garde avec la chose contre laquelle elle met en garde est
- * un contrôle qui crie au loup — et qu'on finit par désarmer.
+ * Needed, and found while writing this test: the workflow *explains* why it does not use
+ * `pull_request_target`, and a naive search for that string found the explanation. A check that
+ * mistakes a warning for the thing it warns against is a check that cries wolf — and one that
+ * eventually gets disarmed.
  */
 const structure = yaml
   .split("\n")
   .filter((line) => !/^\s*#/.test(line))
   .join("\n")
 
-/** Les `- cron: "..."` du bloc `on.schedule`. */
+/** The `- cron: "..."` entries of the `on.schedule` block. */
 function declaredCrons(): string[] {
   return [...structure.matchAll(/^\s*-\s*cron:\s*"([^"]+)"/gm)].map((m) => m[1])
 }
 
-/** Les branches `"..." ) source=nom` de l'étape « Quelle source ». */
+/** The `"..." ) source=name` arms of the "Quelle source" step. */
 function caseArms(): { cron: string; source: string }[] {
   return [...structure.matchAll(/^\s*"([^"]+)"\)\s*source=(\w+)\s*;;/gm)].map((m) => ({
     cron: m[1],
@@ -47,7 +45,7 @@ function caseArms(): { cron: string; source: string }[] {
   }))
 }
 
-/** Les options de `workflow_dispatch.inputs.source`. */
+/** The options of `workflow_dispatch.inputs.source`. */
 function dispatchOptions(): string[] {
   const block = /options:\s*\[([^\]]+)\]/.exec(structure)?.[1] ?? ""
   return block.split(",").map((s) => s.trim()).filter(Boolean)
@@ -55,8 +53,8 @@ function dispatchOptions(): string[] {
 
 describe("workflow d'ingestion", () => {
   it("déclare quatre planifications, une par cadence", () => {
-    // Quatre sources, quatre rythmes. Une cadence unique serait fausse pour au moins trois
-    // d'entre elles — PLAN.md §2.2bis.
+    // Four sources, four rhythms. A single cadence would be wrong for at least three of them
+    // — PLAN.md §2.2bis.
     expect(declaredCrons()).toHaveLength(4)
   })
 
@@ -68,8 +66,8 @@ describe("workflow d'ingestion", () => {
   })
 
   it("ne garde aucune branche orpheline", () => {
-    // L'autre sens : une branche dont la planification a disparu est du code mort qui donne
-    // l'illusion qu'un jeu est rafraîchi.
+    // The other direction: an arm whose schedule has gone is dead code that gives the
+    // impression a dataset is being refreshed.
     const declared = new Set(declaredCrons())
     for (const arm of caseArms()) {
       expect(declared, `la branche « ${arm.cron} » -> ${arm.source} ne correspond à aucune planification`).toContain(arm.cron)
@@ -86,15 +84,15 @@ describe("workflow d'ingestion", () => {
   })
 
   it("n'expose le job à aucun déclencheur qui exécuterait du code externe", () => {
-    // Dépôt public : `pull_request_target` exécuterait le workflow d'une branche quelconque
-    // avec accès aux secrets, dont la chaîne de connexion privilégiée.
+    // Public repository: `pull_request_target` would run a workflow from any branch with
+    // access to the secrets, including the privileged connection string.
     expect(structure).not.toMatch(/pull_request_target/)
     expect(structure).not.toMatch(/^\s*pull_request:/m)
   })
 
   it("sérialise les chargements et ne les interrompt pas", () => {
-    // Deux chargeurs qui écrivent en même temps se marchent dessus ; et tuer celui qui tourne
-    // annule sa transaction, donc perd l'exécution au lieu de la remplacer.
+    // Two loaders writing at once tread on each other; and killing the running one rolls back
+    // its transaction, losing the run instead of replacing it.
     expect(structure).toMatch(/group:\s*ingestion/)
     expect(structure).toMatch(/cancel-in-progress:\s*false/)
   })
@@ -106,20 +104,32 @@ describe("workflow d'ingestion", () => {
   it("ne porte qu'un secret, et jamais la clé anon", () => {
     const secrets = [...structure.matchAll(/secrets\.(\w+)/g)].map((m) => m[1])
     expect(new Set(secrets)).toEqual(new Set(["DATABASE_URL"]))
-    // La clé publiable est publique : elle n'a rien à faire ici, et surtout pas sous un nom
-    // qui laisserait croire qu'elle suffit à charger.
+    // The publishable key is public: it has no business here, least of all under a name that
+    // would suggest it is enough to load with.
     expect(structure).not.toMatch(/ANON_KEY|PUBLISHABLE/)
   })
 
   it("relève la fraîcheur même quand le chargement a échoué", () => {
-    // C'est en cas d'échec que le relevé compte : il montre que last_success_at n'a pas bougé.
+    // The reading matters most on failure: it shows last_success_at did not move.
     expect(structure).toMatch(/if:\s*always\(\)/)
   })
 
+  it("rejoue la confirmation SIRENE après BDCom, sans quoi le cron quotidien détruit les corroborations", () => {
+    // bodacc.ts reconstruit bodacc_announcement en entier, ce qui efface en cascade
+    // operator_confirmed. Sans cet enchaînement, le cron quotidien effacerait chaque nuit les
+    // 3 147 niveaux `corrobore` que SIRENE établit, et SIRENE ne repasse que tous les mois.
+    const arm = /bodacc\)([\s\S]*?);;/.exec(structure)?.[1] ?? ""
+    const bodaccAt = arm.indexOf("ingest/bodacc.ts")
+    const confirmAt = arm.indexOf("--confirm-only")
+    expect(bodaccAt, "la branche bodacc ne lance pas bodacc.ts").toBeGreaterThan(-1)
+    expect(confirmAt, "la branche bodacc n'enchaîne pas la confirmation SIRENE").toBeGreaterThan(-1)
+    expect(confirmAt).toBeGreaterThan(bodaccAt)
+  })
+
   it("rejoue la géographie après BDCom, jamais l'inverse", () => {
-    // geography.ts rattache chaque local à son quartier et à son tronçon. Recharger le
-    // recensement sans rejouer le rattachement laisserait les nouveaux locaux hors des
-    // agrégats par quartier — une perte silencieuse.
+    // geography.ts attaches every premise to its quartier and street segment. Reloading the
+    // census without replaying the attachment would leave new premises out of the per-quartier
+    // aggregates — a silent loss.
     const arm = /bdcom\)([\s\S]*?);;/.exec(structure)?.[1] ?? ""
     const bdcomAt = arm.indexOf("ingest/bdcom.ts")
     const geoAt = arm.indexOf("ingest/geography.ts")

@@ -367,3 +367,49 @@ where n.nspname = 'public'
   and 'observed' = any(p.proargnames)
   and not p.prosecdef
 limit 20;
+
+-- @invariant I19 :: un point hors du corpus est rendu comme un quartier sans commerces, via compass_scoring_context_within
+-- @as anon
+-- DIAGNOSTIC.md §16, issue #55, corrigé par 20260825000003. Le défaut du point 9 dans sa
+-- variante géographique : les points 9 à 12 venaient d'une couche retenue par licence,
+-- celui-ci d'une couche absente parce que le corpus s'arrête aux limites de Paris. La
+-- requête réussissait avec zéro ligne, donc la couche comptait comme chargée, donc le flux
+-- piéton était calculé — 22 à Massy, sur zéro local, et cité « APUR BDCom 2023 ».
+--
+-- Boulogne-Billancourt (48,835 · 2,240) plutôt que Massy : c'est le cas dur. Il tombe dans
+-- le rectangle le plus serré autour de Paris — 48,8156–48,9022 / 2,2241–2,4698, mesuré sur
+-- les 80 quartiers — donc aucune borne de coordonnées ne l'écarte. Seule l'appartenance à
+-- un quartier le distingue, et c'est le sujet de cet invariant.
+--
+-- Même `left join lateral ... on true` que I12 : il transforme « la fonction n'a rien rendu »
+-- en une ligne de nulls que cette requête peut voir. Le silence est exactement le défaut
+-- contrôlé ; un appel nu le laisserait se cacher au lieu d'échouer.
+select r.lat, r.lng, r.is_vacant, r.total_matched, r.withheld, r.out_of_corpus
+from (values (1)) t(x)
+left join lateral public.compass_scoring_context_within(
+  48.835::double precision, 2.24::double precision, 800::double precision, 2023::smallint
+) r on true
+where r.out_of_corpus is distinct from true
+   or r.out_of_corpus is null
+   or r.lat is not null or r.lng is not null or r.is_vacant is not null
+   or r.total_matched is not null or r.withheld is distinct from false
+limit 20;
+
+-- @invariant I20 :: un rayon réellement vide dans Paris se lit comme un point hors corpus
+-- @as anon
+-- Le contre-test, et la moitié qui se saute. Corriger I19 en traitant tout résultat vide
+-- comme « hors corpus » aurait été plus simple, et faux : le Bois de Vincennes
+-- (48,828 · 2,440) est dans le quartier Picpus et ne porte **aucun** local BDCom dans 400 m
+-- — mesuré le 25 août sur le distant. C'est un vrai zéro : il n'y a réellement pas de
+-- commerce, et le rendre « inconnu » détruirait la seule réponse que la donnée sait donner
+-- avec certitude.
+--
+-- Zéro ligne est donc la réponse attendue ici, exactement comme avant 20260825000003. Toute
+-- ligne rendue est une violation — que ce soit un marqueur `out_of_corpus` posé à tort ou un
+-- local qui serait apparu, auquel cas c'est le point de mesure qu'il faut revoir, pas la
+-- fonction.
+select *
+from public.compass_scoring_context_within(
+  48.828::double precision, 2.44::double precision, 400::double precision, 2023::smallint
+)
+limit 20;

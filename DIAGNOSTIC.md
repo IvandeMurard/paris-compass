@@ -832,7 +832,7 @@ choix est le plus simple et le plus proche de la règle uniforme retenue en `202
 
 ---
 
-## 16. Un point hors corpus rendu comme un quartier sans commerces — `score_location`, le 24 août
+## 16. Un point hors corpus rendu comme un quartier sans commerces — `score_location`, **corrigé le 25 août**
 
 Le défaut du point 9 dans sa variante **géographique** : là où 9 à 12 venaient d'une couche
 retenue par licence, celui-ci vient d'une couche **absente parce que le corpus s'arrête**. La
@@ -891,16 +891,53 @@ Deux corrections possibles, et le choix n'appartient pas au ticket qui a trouvé
 Une troisième voie existe et coûte une migration : demander à PostGIS si le point tombe dans un
 des 80 quartiers, ce qui est la seule définition non arbitraire de « dans le corpus ».
 
-**Suivi en [#55](https://github.com/IvandeMurard/paris-compass/issues/55)**, ouverte plutôt que
-corrigée : le choix ci-dessus est une décision produit, pas un correctif mécanique.
+### Corrigé le 25 août — voie 3, plus la voie 1 en hygiène
 
-**Tenu en place, pas gelé.** Le contrôle `E11` de `mcp-server/src/verify.ts` le consigne en
-`défaut` — rapporté, non fatal — et **passe au rouge si le défaut disparaît**, pour qu'un
-correctif ne puisse pas laisser cette page derrière lui.
+**[#55](https://github.com/IvandeMurard/paris-compass/issues/55) fermée.** La décision a été
+prise après mesure : les voies 1 et 2 sont l'une insuffisante et l'autre fausse.
 
-**Le front n'est pas concerné aujourd'hui** : `src/` n'appelle `compass_scoring_context_within`
-nulle part (vérifié le 24 août) et la carte est bornée à Paris. Le défaut est atteignable par
-l'agent, qui est le second ICP de `PERIMETRE.md` §8 — donc il compte.
+**La voie 1 seule ne corrige rien.** Le rectangle le plus serré autour de Paris —
+**48,8156–48,9022 / 2,2241–2,4698**, `ST_Extent` des 80 quartiers, mesuré le 25 août — contient
+encore Boulogne-Billancourt (48,835 · 2,240), Levallois, Saint-Mandé et Montreuil. Elle ne fait
+que rétrécir le défaut à l'anneau collé au périphérique, c'est-à-dire là où l'erreur est la plus
+vraisemblable. Retenue quand même, mais **comme hygiène de schéma** : les descriptions zod
+annonçaient « Paris intra-muros » pendant que la boîte acceptait 48,6–49,1.
+
+**La voie 2 aurait détruit une information vraie.** Traiter « zéro ligne » comme une couche
+absente est plus simple et faux : mesuré le 25 août, le **Bois de Vincennes** (48,828 · 2,440)
+est dans le quartier Picpus et porte **zéro local BDCom dans 400 m**. C'est un vrai zéro.
+
+**Voie 3, en migration `20260825000003`.** `compass_scoring_context_within` teste
+l'appartenance aux 80 polygones de `quartier` et rend une **ligne-marqueur `out_of_corpus`** —
+exactement la forme que `20260816000001` avait donnée à `withheld`. `context.ts` lève dessus,
+la couche est retirée, `footfall` revient inconnu avec sa raison. Les trois réponses sont
+désormais distinctes :
+
+| Situation | Réponse |
+| --- | --- |
+| Millésime retenu | ligne `withheld` → `footfall: null`, « licence non lue » |
+| **Point hors corpus** | **ligne `out_of_corpus`** → `footfall: null`, « hors de la zone recensée » |
+| Dans le corpus, rayon vide | **zéro ligne** → `footfall` calculé — le Bois de Vincennes n'a pas de commerces |
+
+L'ordre des deux tests porte du sens : la retenue de licence passe **avant** le test de corpus,
+sans quoi une réponse « hors zone » sur un millésime retenu divulguerait que la zone, elle,
+aurait répondu.
+
+**Démontré des deux côtés**, contre le distant, appelant anonyme :
+
+| Contrôle | Point | Résultat |
+| --- | --- | --- |
+| `E11` | Boulogne-Billancourt | `footfall = null` + raison — plus de chiffre fabriqué |
+| `E12` | Bois de Vincennes | `footfall = 0` — le vrai zéro survit |
+| `I19` / `I20` | les deux mêmes | zéro ligne, porte au vert |
+
+Le contre-test n'est pas décoratif : c'est lui qui interdit le correctif paresseux. `E11` seul
+serait passé au vert avec la voie 2, qui est fausse.
+
+**Le front n'était pas concerné** : `src/` n'appelle `compass_scoring_context_within` nulle
+part — il appelle `compass_premises_within` et `compass_address_timeline`, laissées intactes par
+le correctif. Le défaut était atteignable par l'agent, qui est le second ICP de `PERIMETRE.md`
+§8 — donc il comptait.
 
 ---
 
@@ -957,6 +994,43 @@ mesurée sur deux exécutions successives.
 > écrit : `compass_source_freshness()` rendait toujours `bdcom` en « jamais chargé » juste
 > après l'échec. C'est la garantie que `20260825000001` doit offrir — une exécution ratée ne
 > rajeunit rien — démontrée par un vrai échec plutôt que par un test fabriqué.
+
+### Le second défaut du même fichier : la promotion dépendait de l'ordre de chargement
+
+Trouvé juste après, par la porte d'évaluation, et **de la même famille** : un chargeur qui ne
+rend pas la même base selon qu'il tourne sur une base vierge ou sur une base pleine.
+
+Le drapeau `ordre_address_conflict` — posé sur un relevé dont l'`ordre` BDCom a été réattribué
+à une autre adresse — se calculait **pendant** chaque promotion, contre l'état *courant* de
+`premise_location` :
+
+```sql
+when l.ordre in (select ordre from public.premise_location group by ordre having count(*) > 1)
+```
+
+Au premier chargement, la passe 2017 ne voyait pas encore les doublons que 2020 et 2023
+allaient créer : seul le dernier millésime finissait marqué. Au rechargement, la table étant
+déjà pleine, les trois l'étaient.
+
+| | 2017 | 2020 | 2023 | total |
+| --- | --- | --- | --- | --- |
+| chargement initial, 15 août | 0 | 0 | 74 | **74** |
+| rechargement, 25 août | 73 | 73 | 74 | **220** |
+
+**Les deux chiffres sont vrais et ne mesurent pas la même chose.** Il y a bien **74 identifiants
+réattribués** — c'est une propriété du corpus, stable — et ils touchent **220 relevés**. Le
+métrique s'appelait `identifiants_reattribues` mais sa requête comptait des *relevés* : les deux
+ne coïncidaient que par l'artefact ci-dessus.
+
+Corrigé des deux côtés. Le drapeau se pose désormais **après** les trois promotions, en une
+passe globale, idempotente et indépendante de l'ordre. Et la requête de
+`eval/baselines/ingestion.json` compte `count(distinct l.ordre)`, ce que son nom annonce : elle
+rend **74** quel que soit l'ordre de chargement, et la valeur gelée n'a pas eu à bouger.
+
+> **Ce que ça corrige dans l'en-tête de `bdcom.ts`** : « Re-running yields the same database »
+> était faux deux fois — sur la nomenclature, qui empêchait tout rechargement, et ici, où le
+> rechargement réussissait mais produisait une base différente. C'est le second cas le plus
+> instructif : rien n'échouait.
 
 ---
 

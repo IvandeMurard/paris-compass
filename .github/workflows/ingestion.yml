@@ -1,31 +1,30 @@
-# Ingestion planifiée — w0-cron (#6), PLAN.md §2.2bis et §2.2ter.
+# Scheduled ingestion — w0-cron (#6), PLAN.md §2.2bis and §2.2ter.
 #
-# Les quatre sources n'ont pas le même rythme, et une cadence unique serait fausse pour au
-# moins trois d'entre elles : BODACC publie chaque jour ouvré, l'INSEE republie SIRENE chaque
-# mois, l'APUR recense tous les trois ans sans calendrier annoncé, et la géographie de
-# référence ne bouge qu'à la marge. D'où quatre `cron` dans un seul fichier plutôt qu'une
-# planification commune — le pas de temps est une propriété de la source, pas du pipeline.
+# The four sources do not share a rhythm, and one cadence would be wrong for at least three of
+# them: BODACC publishes every working day, INSEE republishes SIRENE monthly, APUR surveys every
+# three years with no announced calendar, and the reference geography barely moves. Hence four
+# `cron` entries in one file rather than a common schedule — the time step is a property of the
+# source, not of the pipeline.
 #
-# Ce job porte la connexion privilégiée, jamais la clé anon. Les chargeurs écrivent dans des
-# tables sans politique d'insertion (scripts/ingest/lib/db.ts) : il leur faut un rôle qui
-# contourne RLS. La clé anon, elle, est publique — elle est dans le bundle du navigateur.
+# This job carries the privileged connection, never the anon key. The loaders write to tables
+# with no insert policy (scripts/ingest/lib/db.ts), so they need a role that bypasses RLS. The
+# anon key is public — it ships in the browser bundle.
 #
-# Dépôt public, donc les déclencheurs sont volontairement réduits à `schedule` et
-# `workflow_dispatch`. Jamais `pull_request` ni surtout `pull_request_target` : le second
-# exécuterait du code de branche externe avec accès aux secrets.
+# Public repository, so the triggers are deliberately reduced to `schedule` and
+# `workflow_dispatch`. Never `pull_request`, and above all never `pull_request_target`: the
+# latter would run branch code from anywhere with access to the secrets.
 
 name: Ingestion
 
 on:
   schedule:
-    # Heures UTC. Décalées les unes des autres pour qu'un retard de planification de GitHub
-    # — courant, plusieurs dizaines de minutes aux heures rondes — ne fasse pas se croiser
-    # deux chargements. Le verrou `concurrency` ci-dessous est la vraie garantie ; ceci
-    # évite seulement d'y faire la queue tous les jours.
-    - cron: "17 3 * * *"      # BODACC — quotidien, la seule source qui vieillit en jours
-    - cron: "43 4 3 * *"      # SIRENE — mensuel, le 3, après la republication INSEE du mois
-    - cron: "11 5 5 1,4,7,10 *"  # BDCom — trimestriel : on vérifie, on ne rajeunit pas
-    - cron: "37 6 7 1,7 *"    # Géographie — semestriel, et jamais collé à BDCom
+    # UTC. Offset from one another so that GitHub's scheduling lag — common, tens of minutes
+    # on the hour — does not make two loads collide. The `concurrency` lock below is the real
+    # guarantee; this only avoids queueing behind it every day.
+    - cron: "17 3 * * *"      # BODACC — daily, the only source that ages in days
+    - cron: "43 4 3 * *"      # SIRENE — monthly, on the 3rd, after INSEE republishes
+    - cron: "11 5 5 1,4,7,10 *"  # BDCom — quarterly: we verify, we do not rejuvenate
+    - cron: "37 6 7 1,7 *"    # Geography — twice a year, never next to BDCom
 
   workflow_dispatch:
     inputs:
@@ -35,22 +34,22 @@ on:
         type: choice
         options: [bodacc, sirene, bdcom, geography]
 
-# Une seule ingestion à la fois, et on ne tue pas celle qui tourne : un chargement
-# interrompu laisse une transaction annulée, donc rien de chargé, donc une exécution perdue.
-# Les chargeurs sont idempotents, pas concurrents.
+# One ingestion at a time, and the running one is never killed: an interrupted load leaves a
+# rolled-back transaction, so nothing loaded, so a run lost rather than replaced. The loaders
+# are idempotent, not concurrent.
 concurrency:
   group: ingestion
   cancel-in-progress: false
 
-# Le job ne pousse rien et n'ouvre rien. Il lit le dépôt et écrit dans Postgres.
+# The job pushes nothing and opens nothing. It reads the repository and writes to Postgres.
 permissions:
   contents: read
 
 jobs:
   ingest:
     runs-on: ubuntu-latest
-    # SIRENE lit un parquet INSEE de plusieurs centaines de Mo par DuckDB avant la moindre
-    # écriture — comptez cinq minutes et davantage sur un runner partagé.
+    # SIRENE reads several hundred megabytes of INSEE parquet through DuckDB before writing
+    # anything — five minutes and more on a shared runner.
     timeout-minutes: 60
 
     steps:
@@ -85,23 +84,35 @@ jobs:
 
       - name: Charger ${{ steps.which.outputs.source }}
         env:
-          # Le seul secret de ce workflow. Jamais imprimé : les chargeurs passent par
-          # `connectionTarget()`, qui rend la référence du projet et l'hôte sans le mot de
-          # passe. GitHub masque aussi la valeur dans les logs, mais s'en remettre au
-          # masquage plutôt qu'à du code qui ne l'imprime pas serait un pari.
+          # The only secret in this workflow. Never printed: the loaders go through
+          # `connectionTarget()`, which returns the project ref and host without the password.
+          # GitHub also masks the value in logs, but relying on masking rather than on code
+          # that does not print it would be a bet.
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           set -euo pipefail
           case "${{ steps.which.outputs.source }}" in
-            bodacc)    npx tsx scripts/ingest/bodacc.ts ;;
+            bodacc)
+              # Chained, and this one is not optional. bodacc.ts rebuilds bodacc_announcement
+              # wholesale, which cascades to bodacc_establishment and takes `operator_confirmed`
+              # with it — every SIRENE confirmation, destroyed by a reload. Measured 25 August:
+              # the evaluation gate fell from 3 147 `corrobore` levels to zero, 5.92 points of
+              # the established+corroborated composition, and nothing said so.
+              #
+              # Without this line a daily BODACC cron would wipe the confirmations every night
+              # while SIRENE only runs monthly. The confirmation step reads sirene_establishment
+              # alone, which a BODACC reload does not touch, so it costs seconds and no INSEE
+              # download. DIAGNOSTIC.md §17, issue #56.
+              npx tsx scripts/ingest/bodacc.ts
+              npx tsx scripts/ingest/sirene.ts --confirm-only ;;
             sirene)    npx tsx scripts/ingest/sirene.ts ;;
             geography) npx tsx scripts/ingest/geography.ts ;;
             bdcom)
-              # Enchaînés, et dans cet ordre. `geography.ts` rattache chaque local à son
-              # quartier et à son tronçon : recharger le recensement sans rejouer le
-              # rattachement laisserait les nouveaux locaux non rattachés, donc absents des
-              # agrégats par quartier — une perte silencieuse, la famille de défauts que ce
-              # projet traque.
+              # Chained, and in this order. geography.ts attaches every premise to its
+              # quartier and street segment: reloading the census without replaying the
+              # attachment would leave new premises unattached, and so absent from the
+              # per-quartier aggregates — a silent loss, the family of defects this project
+              # hunts.
               npx tsx scripts/ingest/bdcom.ts
               npx tsx scripts/ingest/geography.ts ;;
           esac
@@ -110,7 +121,7 @@ jobs:
         if: always()
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        # `always()` : c'est en cas d'échec que ce relevé compte le plus. Il montre alors que
-        # `last_success_at` n'a **pas** bougé — une exécution ratée ne rajeunit rien, et
-        # c'est exactement ce que la table doit garantir.
+        # `always()`: this reading matters most on failure, where it shows `last_success_at`
+        # did **not** move — a failed run refreshes nothing, which is exactly what the table
+        # has to guarantee.
         run: npx tsx scripts/ingest/freshness.ts

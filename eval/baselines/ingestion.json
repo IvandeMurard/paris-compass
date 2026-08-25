@@ -41,7 +41,7 @@
     },
     "identifiants_reattribues": {
       "value": 74,
-      "sql": "select count(*) n from public.premise_observation where match_method = 'ordre_address_conflict'"
+      "sql": "select count(distinct l.ordre) n from public.premise_location l where l.ordre in (select ordre from public.premise_location group by ordre having count(*) > 1)"
     },
     "rue_rattachee_par_nom": {
       "value": 84459,

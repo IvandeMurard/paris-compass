@@ -1,18 +1,18 @@
--- `run_by` distingue trois déclenchements, plus deux.
+-- `run_by` tells three triggers apart, not two.
 --
--- `20260825000001` posait `run_by in ('manual', 'github-actions')`, et c'était une distinction
--- trop grossière d'un cran. Un job lancé à la main depuis l'onglet Actions tourne sur un
--- runner : `GITHUB_ACTIONS=true`, donc il se serait enregistré `github-actions`, donc
--- `list_sources` aurait répondu « Refreshed by a scheduled job » — d'une pression sur un bouton.
+-- 20260825000001 wrote `run_by in ('manual', 'github-actions')`, and that was one notch too
+-- coarse. A job started by hand from the Actions tab runs on a runner: GITHUB_ACTIONS=true, so
+-- it would have recorded itself as `github-actions`, and list_sources would have answered
+-- "Refreshed by a scheduled job" — to a button press.
 --
--- C'est précisément la faute que cette table existe pour empêcher, à un niveau de plus : non
--- plus « une date sans rafraîchissement », mais « un rafraîchissement manuel présenté comme
--- automatique ». Le « Fait quand » de w0-cron demande un cron qui a tourné **sans intervention
--- manuelle** : sans cette colonne, rien dans la base ne saurait dire si le critère est atteint.
+-- That is exactly the failure this table exists to prevent, one level up: no longer "a date
+-- with no refresh behind it", but "a manual refresh presented as an automatic one". w0-cron's
+-- criterion asks for a cron that ran **without manual intervention**; without this column,
+-- nothing in the database could say whether the criterion had been met.
 --
---   manual             quelqu'un à un terminal
---   workflow-dispatch  quelqu'un sur le bouton « Run workflow » — automatisé, pas planifié
---   schedule           le cron s'est déclenché seul. C'est le seul qui démontre la cadence.
+--   manual             someone at a terminal
+--   workflow-dispatch  someone on the "Run workflow" button — automated, but not scheduled
+--   schedule           the cron fired on its own. The only one that demonstrates a cadence.
 
 alter table public.ingestion_run
   drop constraint if exists ingestion_run_run_by_known;
@@ -22,10 +22,9 @@ alter table public.ingestion_run
   check (run_by is null or run_by in ('manual', 'workflow-dispatch', 'schedule'));
 
 comment on column public.ingestion_run.run_by is
-  'manual | workflow-dispatch | schedule. Seul `schedule` démontre qu''une cadence est tenue : '
-  'les deux autres sont des gestes humains, l''un depuis un terminal et l''autre depuis un '
-  'bouton. Les confondre reviendrait à présenter une intervention manuelle comme un '
-  'rafraîchissement automatique.';
+  'manual | workflow-dispatch | schedule. Only `schedule` demonstrates that a cadence is kept: '
+  'the other two are human actions, one from a terminal and one from a button. Conflating them '
+  'would present a manual refresh as an automatic one.';
 
--- Aucune ligne à convertir : les trois lignes écrites le 25 août portent déjà `manual`, et
--- aucune exécution n'a encore eu lieu sur un runner. Vérifié avant d'écrire cette migration.
+-- Nothing to convert: the three rows written on 25 August already carry `manual`, and no run
+-- had yet happened on a runner. Checked before writing this migration.

@@ -8,12 +8,14 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { z } from "zod"
 
+import { LAT_DESCRIPTION, LNG_DESCRIPTION, PARIS_BOUNDS } from "../parisBounds"
+
 import { AMENITY_RADIUS_M, type AreaScores } from "../../../src/core"
 import { scorePoint } from "../scorePoint"
 
 const point = z.object({
-  lat: z.number().min(48.6).max(49.1),
-  lng: z.number().min(2.1).max(2.5),
+  lat: z.number().min(PARIS_BOUNDS.latMin).max(PARIS_BOUNDS.latMax).describe(LAT_DESCRIPTION),
+  lng: z.number().min(PARIS_BOUNDS.lngMin).max(PARIS_BOUNDS.lngMax).describe(LNG_DESCRIPTION),
 })
 
 const inputShape = {

@@ -204,17 +204,15 @@ export function assertPrivileged(): void {
     )
   }
   if (!/^postgres(ql)?:\/\//.test(url.trim())) {
-    // Diagnostiquer sans divulguer. Un secret mal posé se corrige en trente secondes *si* le
-    // message dit quoi regarder ; « n'est pas une URL postgres:// » envoie chercher à l'aveugle,
-    // et sur un runner personne ne peut inspecter la valeur. Chaque indice ci-dessous est une
-    // propriété de forme, jamais un fragment de la chaîne.
+    // Diagnose without disclosing. A badly set secret is a thirty-second fix *if* the message
+    // says where to look; "not a postgres:// URL" sends someone searching blind.
     throw new Error(
       `DATABASE_URL n'est pas une URL postgres:// — refus de démarrer. ${describeShape(url)}`,
     )
   }
-  // Le pooler, pas la connexion directe. `db.<ref>.supabase.co` n'a qu'un enregistrement AAAA
-  // et les runners GitHub n'ont pas d'IPv6 : la connexion échouerait en EAI_AGAIN, une panne
-  // réseau opaque là où la cause est un choix d'hôte. Mesuré sur ce poste comme sur le runner.
+  // The pooler, not the direct connection. `db.<ref>.supabase.co` has only an AAAA record and
+  // GitHub runners have no IPv6: the connection fails with EAI_AGAIN, an opaque network error
+  // where the cause is a choice of host. Measured on this workstation and on the runner alike.
   if (automated && /@db\.[a-z0-9]{20}\.supabase\.co/.test(url)) {
     throw new Error(
       "DATABASE_URL vise la connexion directe (db.<ref>.supabase.co), qui n'a qu'un " +
@@ -225,11 +223,12 @@ export function assertPrivileged(): void {
 }
 
 /**
- * Décrit la *forme* d'une valeur de secret mal posée, sans en révéler le contenu.
+ * Describes the *shape* of a badly set secret without revealing its contents.
  *
- * Les cas ci-dessous sont ceux qu'on rencontre réellement en collant un secret à la main :
- * la ligne `.env` entière plutôt que sa valeur, des guillemets ramassés au passage, un
- * gabarit du tableau de bord encore porteur de son marque-place.
+ * These are the cases that actually happen when a secret is pasted by hand: the whole .env
+ * line rather than its value, quotes picked up along the way, a dashboard template still
+ * carrying its placeholder. Every hint below is a property of form, never a fragment of the
+ * string — on a runner nobody can inspect the value, so the message has to do the work.
  */
 function describeShape(raw: string): string {
   const url = raw.trim()

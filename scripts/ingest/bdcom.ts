@@ -7,7 +7,12 @@
 // Idempotent by construction: staging is emptied per vintage before loading, and
 // promotion upserts on keys the source guarantees (`ordre` is unique within a
 // vintage — verified: 84 031 / 84 031 for 2017, 83 399 / 83 399 for 2020,
-// 60 845 / 60 845 for 2023). Re-running yields the same database.
+// 60 845 / 60 845 for 2023).
+//
+// "Re-running yields the same database" was asserted here and was false twice, both found on
+// 25 August by actually replaying it against a loaded database (DIAGNOSTIC.md §17). The
+// nomenclature load made a second run impossible, and the conflict flag made it produce a
+// different database without failing. Both are fixed below; the claim is now measured.
 //
 // Writes with a role that bypasses row level security, so it must never be given
 // the anon key. See scripts/ingest/lib/db.ts.
@@ -142,7 +147,7 @@ async function loadNomenclature(client: Client): Promise<void> {
     code === null || code === undefined ? null : (domains[field]?.get(String(code)) ?? null)
 
   // Deliberately no `delete` here, and this is the difference between a script that loads once
-  // and one that can be replayed.
+  // and one that can be replayed. DIAGNOSTIC.md §17.
   //
   // Emptying this table worked exactly once: on a first load `premise_observation` is still
   // empty when the nomenclature is written, so nothing references the codes. On every run
@@ -421,6 +426,32 @@ async function main(): Promise<void> {
         if (vintage === 2023) await promote2023(client)
         else await promoteOd(client, vintage)
         await assertComplete(client, vintage)
+      }
+
+      // The conflict flag is set here, after all three promotions, and not during them.
+      //
+      // Each promotion used to compute it against the *current* state of premise_location, so
+      // against a corpus still being built: on a first load the 2017 pass could not yet see
+      // the duplicate `ordre` that 2020 and 2023 were about to create, and only the last
+      // vintage ended up flagged. On a reload the table is already full, so all three were —
+      // 74 observations flagged on 15 August, 220 on the 25th.
+      //
+      // The count of reattributed *identifiers* never moved: it is 74 either way. What
+      // differed was how many observations carried the flag, and that depended on load order.
+      // Reloading the same source must yield the same database, so the pass is global,
+      // idempotent and order-independent. DIAGNOSTIC.md §17.
+      const flagged = await client.query(`
+        update public.premise_observation o
+           set match_method = 'ordre_address_conflict'
+          from public.premise_location l
+         where l.id = o.location_id
+           and l.ordre in (
+             select ordre from public.premise_location group by ordre having count(*) > 1
+           )
+           and o.match_method is distinct from 'ordre_address_conflict'
+      `)
+      if ((flagged.rowCount ?? 0) > 0) {
+        log("conflits d'identifiant", `${flagged.rowCount} relevés marqués`)
       }
     })
 

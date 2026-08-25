@@ -1,15 +1,18 @@
-// Lit `compass_source_freshness()` et l'imprime. Aucun effet de bord.
+// Reads compass_source_freshness() and prints it. No side effects.
 //
 //   npm.cmd run freshness
 //
-// Utilisé par .github/workflows/ingestion.yml en fin de job, y compris quand le chargement a
-// échoué : c'est là que le relevé compte le plus, puisqu'il montre que `last_success_at` n'a
-// pas bougé. Une exécution ratée ne rajeunit rien.
+// Used by .github/workflows/ingestion.yml at the end of every job, including one that failed:
+// that is when the reading matters most, because it shows `last_success_at` did not move. A
+// failed run refreshes nothing.
 //
-// Les deux colonnes de dates répondent à deux questions différentes et ne doivent jamais être
-// fondues en une : `source datée` dit à quel point la donnée est récente, `chargé le` dit à
-// quand remonte notre copie. Recharger BODACC aujourd'hui rend la seconde à jour et laisse la
-// première où elle est — et un millésime BDCom rechargé ce matin reste un recensement de 2023.
+// The two date columns answer different questions and must never be melted into one:
+// "source datée" says how current the data is, "chargé le" says when our copy was refreshed.
+// Reloading BODACC today brings the second up to date and leaves the first where it was — and
+// a BDCom vintage reloaded this morning is still a 2023 survey.
+//
+// Output strings stay in French: this is product-facing reporting, read by whoever runs the
+// pipeline (CLAUDE.md — comments in English, product documentation in French).
 
 import { assertPrivileged, connect, connectionTarget, log } from "./lib/db"
 
@@ -30,19 +33,19 @@ interface Row {
 /** ISO day, in UTC. `Date.toString()` gives "Tue Aug 25 …", which is not a date a log should carry. */
 const isoDay = (d: Date | null): string => (d === null ? "—" : d.toISOString().slice(0, 10))
 
-/** Ce que la cadence déclarée tolère avant qu'une copie ne soit visiblement en retard. */
+/** What each declared cadence tolerates before a copy is visibly behind. */
 const TOLERANCE_DAYS: Record<string, number | null> = {
   continuous: 3,
   monthly: 45,
   triennial: 400,
-  rare: null, // rien à dire : ces couches ne vieillissent pas en jours
+  rare: null, // nothing to say: these layers do not age in days
 }
 
 async function main(): Promise<void> {
-  // Même garde que les chargeurs, bien que ce script ne fasse que lire : lancé en fin de job
-  // avec `if: always()`, c'est souvent lui qu'on lit en premier quand quelque chose a cassé.
-  // Sans la garde, un secret mal posé s'y présentait en « getaddrinfo EAI_AGAIN db » — une
-  // panne réseau apparente là où la cause était la valeur du secret.
+  // Same guard as the loaders, although this script only reads: run at the end of a job with
+  // `if: always()`, it is often the first thing read when something broke. Without the guard a
+  // badly set secret surfaced here as "getaddrinfo EAI_AGAIN db" — an apparent network outage
+  // where the cause was the value of the secret.
   assertPrivileged()
   const client = await connect()
   try {
@@ -52,17 +55,17 @@ async function main(): Promise<void> {
     const cell = (s: string, w: number) => s.padEnd(w)
     process.stdout.write(
       `\n${cell("source", 11)}${cell("cadence", 12)}${cell("source datée", 14)}${cell("chargé le", 12)}` +
-        `${cell("âge", 7)}${cell("lignes", 10)}${cell("par", 15)}état\n`,
+        `${cell("âge", 7)}${cell("lignes", 10)}${cell("par", 19)}état\n`,
     )
-    process.stdout.write(`${"-".repeat(88)}\n`)
+    process.stdout.write(`${"-".repeat(92)}\n`)
 
     let late = 0
     for (const r of rows) {
       const tolerance = TOLERANCE_DAYS[r.cadence] ?? null
       let state: string
       if (r.ingested_at === null) {
-        // Jamais chargé n'est pas « très vieux » : c'est une absence de mesure, et la
-        // distinguer est la même règle que partout ailleurs dans ce produit.
+        // Never loaded is not "very old": it is an absence of measurement, and keeping the two
+        // apart is the same rule that governs everything else in this product.
         state = "jamais chargé"
       } else if (tolerance !== null && r.age_days !== null && r.age_days > tolerance) {
         state = `EN RETARD (> ${tolerance} j)`
@@ -78,15 +81,15 @@ async function main(): Promise<void> {
           cell(isoDay(r.ingested_at), 12) +
           cell(r.age_days === null ? "—" : `${r.age_days} j`, 7) +
           cell(r.row_count === null ? "—" : r.row_count.toLocaleString("fr-FR"), 10) +
-          cell(r.run_by ?? "—", 15) +
+          cell(r.run_by ?? "—", 19) +
           state +
           "\n",
       )
     }
 
-    // Seul `schedule` compte comme cadence tenue. Un `workflow-dispatch` tourne sur un runner
-    // mais reste une intervention humaine — le « Fait quand » de w0-cron demande un cron qui
-    // s'est déclenché seul, et confondre les deux rendrait le critère inatteignable à vérifier.
+    // Only `schedule` counts as a cadence actually kept. A `workflow-dispatch` runs on a
+    // runner but is still a human action — w0-cron's criterion asks for a cron that fired on
+    // its own, and conflating the two would make that criterion impossible to check.
     const scheduled = rows.filter((r) => r.run_by === "schedule").length
     process.stdout.write(
       `\n${rows.length} sources — ${scheduled} rafraîchie(s) par un cron, ` +
@@ -95,9 +98,8 @@ async function main(): Promise<void> {
         `${rows.filter((r) => r.run_by === null).length} jamais chargée(s) depuis cette table.\n`,
     )
 
-    // Déclaré, pas affirmé. Tant que ce compteur est à zéro, aucune date de cette table n'est
-    // adossée à un rafraîchissement réel — et c'est la faute que PLAN.md §2.2ter décrit comme
-    // le loyer fabriqué sous une autre forme.
+    // Declared, not asserted. While this counter is zero, no date in this table is backed by a
+    // real refresh — the failure PLAN.md §2.2ter calls the fabricated rent in another form.
     if (scheduled === 0) {
       process.stdout.write(
         "\nAucune source n'a encore été rafraîchie par un cron. Les dates ci-dessus sont donc\n" +

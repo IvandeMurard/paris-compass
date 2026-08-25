@@ -6,10 +6,11 @@
 //
 //   node ../scripts/verify-mcp.mjs      # from the repository root: npm.cmd run verify:mcp
 //
-// Four families, in the order w0-mcp-verif sets out:
+// Five families, in the order w0-mcp-verif sets out:
 //
 //   INVENTAIRE  the six tools registered, against the six README.md documents
 //   PROVENANCE  every figure attributed to the layer it was actually read from (w0-provenance)
+//   FRAICHEUR   the two freshness dates kept apart, and upkeep declared honestly (w0-cron)
 //   LICENCE     the anonymous path — 2017 and 2020 withheld, 2023 served, and no label
 //               borrowed from a neighbouring row to fill a withheld one
 //   PANNE       base injoignable, miroir Overpass injoignable, point hors boîte, rayon absurde
@@ -37,11 +38,23 @@ const CALL_TIMEOUT_MS = 240_000
 const MONTORGUEIL = { lat: 48.8657, lng: 2.3459 }
 
 /**
- * Inside the coordinate box the tools accept, outside the corpus they describe: this is
- * Massy/Palaiseau, some 18 km from the 1er. Used by the PANNE family to hold defect §16 of
- * DIAGNOSTIC.md in place — see checkOutsideCorpus.
+ * Boulogne-Billancourt — inside the accepted coordinate box, outside every Paris quartier.
+ *
+ * The point used to be Massy (48.7 · 2.2), which the tightened bounds of 20260825000003 now
+ * reject outright. Boulogne is the harder and more useful case: it passes schema validation,
+ * so it exercises the corpus test itself rather than the box around it. Measured 25 August —
+ * in the tightest possible rectangle around Paris, in none of the 80 quartiers.
  */
-const OUTSIDE_CORPUS = { lat: 48.7, lng: 2.2 }
+const OUTSIDE_CORPUS = { lat: 48.835, lng: 2.24 }
+
+/**
+ * Bois de Vincennes — inside the Picpus quartier, and holding no BDCom premise within 400 m.
+ *
+ * The counter-test, and the half that gets skipped. A fix that treated every empty result as
+ * "outside the corpus" would pass every check above and destroy the one answer the data gives
+ * with certainty: there really are no shops here.
+ */
+const TRUE_EMPTY = { lat: 48.828, lng: 2.44 }
 
 const EXPECTED_TOOLS: Record<string, string[]> = {
   list_sources: [],
@@ -374,8 +387,8 @@ async function checkFreshness(client: Client): Promise<void> {
     "F4",
     "l'entretien est déclaré : un rafraîchissement manuel ne se lit pas comme automatique",
     upkeep.every((u) => /scheduled job|by hand|No refresh recorded|Queried at call time/.test(u)) &&
-      // Et le sens compte, pas seulement la présence : un rafraîchissement manuel ne doit
-      // jamais se lire comme démontré.
+      // And the meaning counts, not just the presence: a manual refresh must never read as a
+      // demonstrated one.
       upkeep.every((u) => !/by hand/.test(u) || /declared, not demonstrated/.test(u)),
     upkeep.length > 0 ? `${upkeep.length} jeux qualifient leur entretien` : "aucun jeu ne qualifie son entretien",
   )
@@ -589,16 +602,18 @@ async function checkDatabaseOutage(): Promise<void> {
 }
 
 /**
- * Point hors corpus — DIAGNOSTIC.md §16, tenu en place plutôt que gelé comme correct.
+ * Point outside the corpus — DIAGNOSTIC.md §16, fixed 25 August by 20260825000003 (issue #55).
  *
- * The coordinate box the tools accept (48.6–49.1 / 2.1–2.5) is far wider than the corpus, which
- * is Paris intra-muros. `find_premises` answers honestly out there — zero premises, zero
- * matched. `score_location` does not: the premises query *succeeds* with zero rows, so the layer
- * counts as loaded and footfall is computed as though the neighbourhood held no businesses.
+ * This check changed nature. It used to hold the defect in place as `defaut`; it now verifies
+ * the fix, and verifies **both halves** — because the easy half alone would have produced a
+ * mirror defect.
  *
- * Recorded as `defaut`, not `fail`, because the fix needs a decision this ticket does not own.
- * If the figure ever comes back null, this check turns red on purpose — a defect that is fixed
- * must not leave its record standing.
+ *   E10  outside the corpus, find_premises returns an honest emptiness
+ *   E11  outside the corpus, score_location withdraws the layer: footfall unknown, never a figure
+ *   E12  inside the corpus but genuinely empty, the zero stays a zero
+ *
+ * E12 is the counter-test. Treating "zero rows" as "outside the corpus" would have been simpler
+ * and wrong: the Bois de Vincennes is inside Paris and genuinely has no shop within 400 m.
  */
 async function checkOutsideCorpus(client: Client): Promise<void> {
   const found = await call(client, "find_premises", { ...OUTSIDE_CORPUS, radius_m: 500 })
@@ -609,39 +624,51 @@ async function checkOutsideCorpus(client: Client): Promise<void> {
       "E10",
       "hors corpus, find_premises rend un vide honnête",
       response.total_matched === 0 && response.returned === 0,
-      `${response.returned} rendus sur ${response.total_matched} appariés`,
+      `Boulogne : ${response.returned} rendus sur ${response.total_matched} appariés`,
     )
   }
 
   const scored = await call(client, "score_location", { ...OUTSIDE_CORPUS })
   if (scored.isError) {
     record("PANNE", "E11", "score_location hors corpus", "fail", scored.text.slice(0, 160))
-    return
-  }
-  const response = parse(scored) as unknown as ScoreResponse
-  const outage = amenitiesOutage(response)
-  if (outage) {
-    record("PANNE", "E11", "hors corpus : footfall fabriqué (§16)", "outage", outage.slice(0, 110))
-    return
+  } else {
+    const response = parse(scored) as unknown as ScoreResponse
+    const outage = amenitiesOutage(response)
+    if (outage) {
+      record("PANNE", "E11", "hors corpus : footfall retiré, jamais fabriqué", "outage", outage.slice(0, 110))
+    } else {
+      const footfall = response.scores.footfall
+      const failure = response.context_failures?.find((f) => f.layer === "premises")
+      expect(
+        "PANNE",
+        "E11",
+        "hors corpus : footfall est retiré, jamais fabriqué sur zéro local",
+        footfall?.value === null && Boolean(footfall?.missingReason) && Boolean(failure),
+        `value=${footfall?.value ?? "null"} · ${failure?.reason.slice(0, 90) ?? "aucune panne déclarée"}`,
+      )
+    }
   }
 
-  const footfall = response.scores.footfall
-  if (footfall?.value === null) {
-    record(
-      "PANNE",
-      "E11",
-      "hors corpus : footfall fabriqué (§16) — LE DÉFAUT A DISPARU",
-      "fail",
-      "footfall revient null hors corpus : §16 est corrigé, mettre à jour DIAGNOSTIC.md et fermer l'issue.",
-    )
+  // The counter-test. Without it, "every emptiness is outside the corpus" would pass green.
+  const empty = await call(client, "score_location", { ...TRUE_EMPTY, radius_m: 400 })
+  if (empty.isError) {
+    record("PANNE", "E12", "un vrai vide dans Paris", "fail", empty.text.slice(0, 160))
     return
   }
-  record(
+  const response = parse(empty) as unknown as ScoreResponse
+  const outage = amenitiesOutage(response)
+  if (outage) {
+    record("PANNE", "E12", "un vrai vide dans Paris reste un vrai vide", "outage", outage.slice(0, 110))
+    return
+  }
+  const footfall = response.scores.footfall
+  const premisesFailure = response.context_failures?.find((f) => f.layer === "premises")
+  expect(
     "PANNE",
-    "E11",
-    "hors corpus : footfall fabriqué (§16), défaut connu",
-    "defaut",
-    `footfall=${footfall?.value} cité « ${footfall?.source} » sur zéro local BDCom — issue ouverte`,
+    "E12",
+    "dans le corpus, un rayon réellement vide reste un zéro mesuré",
+    typeof footfall?.value === "number" && !premisesFailure,
+    `Bois de Vincennes : footfall=${footfall?.value ?? "null"} · panne premises : ${premisesFailure ? "oui" : "non"}`,
   )
 }
 
