@@ -681,8 +681,12 @@ l'appelant anonyme, par le claim seul **et** par HTTP avec la clé publiable, re
 `withheld = true` et rien d'autre. Le local 5 reste lisible comme absent de 2023 pour l'appelant
 connecté également.
 
-Les deux fonctions `_within` restent `INVOKER` légitimement : elles n'ont pas de colonne
-`observed`, donc RLS leur coûte des **lignes** et non la vérité.
+~~Les deux fonctions `_within` restent `INVOKER` légitimement : elles n'ont pas de colonne
+`observed`, donc RLS leur coûte des **lignes** et non la vérité.~~ **Faux, et mesuré faux le
+25 août : voir le point 21.** L'exemption tenait pour `anon` et tombait pour `authenticated`, à qui
+les deux fonctions rendaient zéro ligne et aucun marqueur sur 2017. Le critère n'était pas
+`observed` — c'était de lire une table dont RLS peut retirer des lignes. Les deux sont passées
+`SECURITY DEFINER` par `20260825000014`.
 
 **Trouvé** en lisant un brouillon non commité laissé dans le worktree de la session qui avait
 découvert le point 10 — elle était arrivée à `SECURITY DEFINER` par ce même chemin, et n'a jamais
@@ -1090,20 +1094,34 @@ timeout RLS demande un index, une requête moins chère, ou un contournement de 
 
 ## 19. Une retenue de licence rendue comme un fait chiffré — `compass_street_rotation`, le 25 août
 
-Trouvé en écrivant `w1-survie` (#14), qui s'appuie sur les mêmes millésimes retenus, et **consigné
-plutôt que corrigé** : hors du périmètre du ticket.
+~~Trouvé en écrivant `w1-survie` (#14) et **consigné plutôt que corrigé**.~~ **Corrigé le 25 août
+par `20260825000014_licence_withholding_rule.sql`**, ticket `w0-retenue` (#57). La fonction passe
+`SECURITY DEFINER`, lit le claim, rend **une ligne marquée par millésime retenu** — jamais une par
+tronçon, ce qui divulguerait où le millésime retenu a des locaux — et pose
+`changed_since_previous` à **nul** dès que la comparaison est impossible. Couverte par `I25`/`I26`
+et par le bras D. Deux autres défauts sont sortis en la corrigeant : points 21 et 22.
+
+> **Le chiffre de ce point n'était pas reproductible, et c'est la faute qu'il illustre.** Ce point
+> annonçait « 78 » changements d'activité sur 2023 sans nommer son point de mesure. Remesuré le
+> 25 août sur le distant, centroïde du quartier Halles (48,86229 / 2,34490), rayon 300 m, sommé
+> sur les 98 tronçons : **81** sur 2023 et **76** sur 2020. Aucune variante essayée — périmètre
+> commerce ou non — ne rend 78. La règle de `CLAUDE.md` « un chiffre mesuré porte sa date » vaut
+> aussi pour **son lieu** : sans ses coordonnées, un dénombrement géographique n'est pas
+> vérifiable, seulement recopiable. Les chiffres ci-dessous sont ceux du 25 août, avec leur point.
+
+Trouvé en écrivant `w1-survie` (#14), qui s'appuie sur les mêmes millésimes retenus.
 
 `compass_street_rotation` est `SECURITY INVOKER` et lit `premise_observation`, dont la politique
 RLS de `20260809000008` restreint les lignes aux millésimes redistribuables. Mesuré le 25 août,
-Halles, rayon 300 m :
+Halles (centroide du quartier, 48,86229 / 2,34490), rayon 300 m, somme sur les 98 tronçons :
 
 | Appelant | Millésimes rendus | `changed_since_previous` sur 2023 |
 | --- | --- | --- |
-| Privilégié (service) | 2017, 2020, 2023 | **78** |
+| Privilégié (service) | 2017, 2020, 2023 | **81** |
 | **Anonyme (clé publiable)** | **2023 seul** | **0**, sans aucun marqueur |
 
 Le `lag()` de la fonction n'a plus de millésime antérieur à comparer, donc **la fonction affirme
-« aucun changement d'activité »** là où la vérité mesurée est 78. Ce n'est pas un silence : c'est
+« aucun changement d'activité »** là où la vérité mesurée est 81. Ce n'est pas un silence : c'est
 une affirmation chiffrée, positive et fausse, produite par une retenue de licence. Un agent qui la
 lit conclut Â« rue parfaitement stable Â».
 
@@ -1116,19 +1134,30 @@ nul — chaque colonne porte un nombre plausible.
 (`PLAN.md` §6.3, `PERIMETRE.md`). Elle l'est en revanche par tout agent via PostgREST, où elle est
 `grant execute ... to anon` depuis `20260808000005`.
 
-**Le correctif, quand il viendra**, est celui que ce dépôt a déjà appliqué quatre fois : passer la
-fonction en `SECURITY DEFINER` et émettre la retenue comme une ligne marquée plutôt que comme une
-absence — exactement ce que `20260809000011` a fait pour `compass_address_timeline`,
-`20260816000001` pour `compass_scoring_context_within` et `20260824000002` pour
-`compass_premise_history`. `compass_survival_by_trade` (`20260825000012`) est écrite ainsi dès le
-premier jet **à cause de** ce défaut : c'est son précédent, pas une précaution abstraite.
+**Le correctif** est celui que ce dépôt avait déjà appliqué quatre fois : passer la fonction en
+`SECURITY DEFINER` et émettre la retenue comme une ligne marquée plutôt que comme une absence —
+exactement ce que `20260809000011` a fait pour `compass_address_timeline`, `20260816000001` pour
+`compass_scoring_context_within` et `20260824000002` pour `compass_premise_history`.
+`compass_survival_by_trade` (`20260825000012`) est écrite ainsi dès le premier jet **à cause de**
+ce défaut : c'est son précédent, pas une précaution abstraite.
 
-> **Ce qui l'a rendu invisible jusqu'ici mérite d'être noté.** L'invariant `I18` vérifie qu'une
-> fonction `compass_*` portant une colonne `observed` est `SECURITY DEFINER`.
-> `compass_street_rotation` n'a pas de colonne `observed` — elle n'expose que des dénombrements —
-> donc `I18` ne la regarde pas. La règle structurelle attrapait la forme du défaut de l'époque,
-> pas sa cause. **Une fonction qui agrège des lignes soumises à RLS est exposée au même défaut
-> qu'une fonction qui les rend une par une**, et l'invariant ne le dit pas encore.
+**Mesuré après correctif**, même point, même rayon, dans une transaction annulée puis en ligne :
+
+| Appelant | 2017 | 2020 | 2023 |
+| --- | --- | --- | --- |
+| Privilégié | 660 locaux, `chg` **nul** | 631, `chg` 76 | 619, `chg` 81 |
+| **Anonyme** | **1 ligne `withheld`**, sans tronçon | **1 ligne `withheld`** | 619 locaux, `chg` **nul** |
+
+Le `0` a disparu des deux côtés, et pour deux raisons distinctes — voir le point 22 pour celle qui
+touche le chemin privilégié.
+
+> **Ce qui l'a rendu invisible mérite d'être noté, parce que c'est ce qui a produit le livrable du
+> ticket.** L'invariant `I18` vérifie qu'une fonction `compass_*` portant une colonne `observed`
+> est `SECURITY DEFINER`. `compass_street_rotation` n'a pas de colonne `observed` — elle n'expose
+> que des dénombrements — donc `I18` ne la regardait pas. La règle structurelle attrapait la forme
+> du défaut de l'époque, pas sa cause. **Une fonction qui agrège des lignes soumises à RLS est
+> exposée au même défaut qu'une fonction qui les rend une par une.** C'est cette phrase que `I23`
+> énonce désormais en SQL, et l'énoncer a immédiatement condamné deux fonctions de plus : point 21.
 
 ---
 
@@ -1215,3 +1244,263 @@ corps en base doit rester identique au fichier versionné. La correction vit ici
 métier. `101` était réel *et* faux. Aucune règle ne remplace le fait d'avoir regardé : les codes
 vérifiés étaient justes, les codes supposés étaient faux, dans la même table et le même commit.
 La règle rend impossible le code inventé, pas le code mal lu.
+
+---
+
+## 21. Une exemption écrite noir sur blanc, et fausse — les deux fonctions `_within`, le 25 août
+
+**Trouvée en énonçant la règle du point 19, pas en cherchant un défaut.** C'est tout l'intérêt
+d'écrire une règle plutôt que de corriger une fonction : `I23` a été écrit pour attraper
+`compass_street_rotation`, et il a rendu **trois** lignes.
+
+`20260824000002` avait tranché explicitement, et le point 12 le recopie :
+
+> Les deux fonctions `_within` restent `INVOKER` légitimement : elles n'ont pas de colonne
+> `observed`, donc RLS leur coûte des **lignes** et non la vérité.
+
+**Mesuré le 25 août sur le distant**, Halles (48,86229 / 2,34490), rayon 800 m, millésime 2017,
+avec `set local role` pour que RLS s'applique vraiment :
+
+| Appelant | `compass_scoring_context_within` | `compass_premises_within` |
+| --- | --- | --- |
+| Privilégié | 4 773 locaux, `withheld = false` | 4 773 appariés, `withheld = false` |
+| Anonyme | 1 ligne, `withheld = **true**` | 1 ligne, `withheld = **true**` |
+| **Authentifié** | **0 ligne, aucun marqueur** | **0 ligne, aucun marqueur** |
+
+Zéro ligne sans marqueur : **le défaut du point 9, mot pour mot, vivant pour tout appelant
+connecté**, sur les deux fonctions que le point 12 déclarait saines. Il y a bien 4 773 locaux à cet
+endroit en 2017 ; quiconque a créé un compte en recevait l'équivalent d'un désert commercial.
+
+**Pourquoi l'exemption paraissait solide.** Elle l'était pour le rôle `anon`, seul chemin que les
+portes savaient jouer. Le désaccord que le point 12 nomme lui-même n'avait simplement pas été
+reporté sur les fonctions d'à côté :
+
+| | Qui est restreint |
+| --- | --- |
+| La politique RLS de `20260809000008` | `to anon, authenticated` |
+| Le test d'appelant de `20260809000010` | tout ce qui n'est pas `anon` est **privilégié** |
+
+Une fonction `INVOKER` hérite des deux : le claim conclut « privilégié », donc `withheld = false`,
+pendant que RLS retire les lignes en dessous. Pour une fonction à colonne `observed` cela produit
+une affirmation ; pour une fonction de dénombrement, un **silence** — et le point 12 a jugé le
+silence acceptable. Le point 9 avait pourtant déjà établi l'inverse, sur cette fonction précise :
+zéro ligne sans erreur faisait déclarer la couche `premises` chargée, donc le flux piéton calculé
+comme un zéro mesuré. **Le raisonnement du point 12 contredisait le point 9 sans le citer.**
+
+**Corrigé par `20260825000014`**, deux `alter function ... security definer` — les corps étaient
+justes, seul le mode l'était pas, et recopier une fonction de quarante colonnes pour changer un
+mot-clé est la manière dont deux versions commencent à diverger.
+
+**Ce que le correctif ne décide pas, et qu'il faut nommer.** Un appelant `authenticated` reçoit
+désormais le contenu 2017 de ces deux fonctions. Ce n'est pas une exposition nouvelle : il le
+recevait déjà de `compass_address_timeline`, `compass_premise_history` et
+`compass_survival_by_trade`, toutes trois `DEFINER` — mesuré le 25 août, local 54652,
+`observed = true, is_vacant = true, Locaux Vacants`. La question de fond — **`authenticated` doit-il
+être privilégié, alors que c'est le rôle de quiconque a créé un compte ?** — est une décision de
+doctrine posée le 9 août par `20260809000010`, appliquée depuis à quatre fonctions, et elle
+n'appartient pas à ce ticket. Elle est notée ici pour qu'elle cesse d'être invisible.
+
+---
+
+## 22. Un taux de rotation affirmé là où il n'y a rien à comparer — le chemin privilégié, le 25 août
+
+**Trouvé sous le point 19, et il n'a jamais eu besoin d'une licence pour se produire.**
+
+`compass_street_rotation` calculait `changed_since_previous` par
+`count(*) filter (where previous_code is not null and ...)`. Sur le **premier** millésime de la
+série, `previous_code` est nul partout : le filtre ne retient rien, `count(*)` rend **0**, et la
+fonction répond « aucun changement d'activité en 2017 ». Il n'y a pas de relevé antérieur à 2017 —
+la bonne réponse est « il n'y a rien à comparer ».
+
+**Mesuré le 25 août**, Halles (48,86229 / 2,34490), 300 m, appelant **privilégié** :
+
+| Millésime | `changed_since_previous` — avant | après |
+| --- | --- | --- |
+| 2017 | **0** | **nul** |
+| 2020 | 76 | 76 |
+| 2023 | 81 | 81 |
+
+Même famille que le point 11 (`coalesce(is_vacant, false)` : « ce local n'était pas vacant » dit
+d'un local jamais relevé) : **une absence rendue comme une mesure**. Vrai depuis
+`20260808000005`, donc depuis le premier jour du dépôt, et sur le chemin qui « marche toujours ».
+
+**Corrigé dans la même migration.** `changed_since_previous` est nul dès que la comparaison est
+impossible — pas de millésime précédent, ou un millésime précédent que cet appelant ne peut pas
+voir. Un `0` de cette colonne redevient donc un zéro **mesuré**, ce qu'il n'avait jamais été.
+
+**Portée élargie assumée.** Le ticket `w0-retenue` ne demandait que la retenue de licence. Séparer
+les deux corrections aurait inscrit l'incohérence dans le schéma — nul pour une licence, zéro pour
+une absence, dans la même colonne — et un lecteur futur l'aurait prise pour une doctrine. Même
+raisonnement, et même conclusion, que le point 11 pour `is_vacant`.
+
+---
+
+## 23. La règle de retenue n'était écrite nulle part — recensée le 25 août par `I23` et `I24`
+
+**Le point 20, appliqué à une règle bien plus ancienne que le pont NAF.** Le défaut n'est pas dans
+une fonction : il est dans le fait que **rien n'empêchait la sixième de naître fausse.**
+
+La règle existe depuis le 9 août — *une fonction qui traverse une table dont RLS peut retirer des
+lignes doit annuler son propre contenu, annoncer sa retenue, et ne jamais compter sur RLS pour
+l'avoir fait*. Elle a été **réécrite quatre fois à la main**, une paire d'invariants par fonction,
+et zéro fois comme règle. Chaque nouvelle fonction naissait fausse et n'était rattrapée que si
+quelqu'un regardait ; la cinquième l'a été par accident, en écrivant un autre ticket.
+
+| Ce qui aurait pu tenir la règle | État avant `I23`/`I24` |
+| --- | --- |
+| Un invariant structurel | `I18` seulement, sur le critère `observed` — qui manquait trois fonctions sur six |
+| Une énumération des fonctions concernées | **aucune** — la liste vivait dans l'en-tête de `scripts/eval/anon-http.ts`, tenue à la main |
+| Une contrainte de schéma | sans objet : Postgres n'a rien à contraindre ici |
+
+`eval/FAILURE_MODES.md` le disait déjà, dans sa section « Ce qui n'est pas couvert » : « Rien dans
+la porte ne dit *quelles* fonctions portent la règle de licence : cette liste est tenue à la main,
+et une fonction ajoutée sans y être inscrite ne sera pas couverte. » Le manque était écrit, daté, et
+il a quand même produit un défaut.
+
+### Les deux moitiés de la règle
+
+**`I23`, structurel.** Depuis `pg_proc`, toute fonction `compass_*` dont le corps cite une table
+dont une politique `SELECT` porte un prédicat autre que `true` doit être `SECURITY DEFINER` **et**
+exposer une colonne `withheld`. La population des tables vient elle aussi du catalogue, pas du nom
+`premise_observation`, pour que la table restreinte suivante soit couverte sans que personne y
+pense. Écrit pour attraper `compass_street_rotation`, il a rendu **trois** lignes — voir le
+point 21.
+
+**`I24`, la couverture.** Depuis `pg_proc` toujours, la même population ; puis, pour chaque nom,
+la vérification qu'au moins un invariant marqué `-- @as anon` **appelle** cette fonction,
+commentaires retirés. La moitié SQL énumère, la moitié TypeScript croise — nécessairement, puisque
+`eval/invariants.sql` est sur la machine du développeur et non sur le serveur.
+
+> **`pg_depend` ne pouvait pas servir, et le ticket le demandait.** Mesuré le 25 août : pour ces
+> fonctions, `pg_depend` ne porte que le schéma, le langage et les types — **jamais les tables
+> lues**. Postgres n'enregistre les dépendances du corps d'une fonction que pour la syntaxe SQL
+> standard `BEGIN ATOMIC` (PG14+) ; avec un corps en chaîne, `plpgsql` comme `sql`, le corps est
+> opaque au catalogue. D'où `pg_proc.prosrc`, et la limite qui va avec.
+
+### Démontré, pas supposé
+
+`npm.cmd run eval:sabotage` crée une **sixième fonction** — `compass_sabotage_probe`, qui lit
+`premise_observation`, `SECURITY INVOKER`, sans colonne `withheld` et sans test — dans une
+transaction annulée, rejoue `I23` et `I24` contre elle, puis annule et les rejoue au propre. Le
+script importe le verdict de `scripts/eval/census.ts`, celui-là même qu'utilise la porte : une
+preuve qui rejoue une copie du contrôle ne prouve rien sur le contrôle.
+
+Mesuré le 25 août, **avant** la migration : `I23` rendait déjà **3** lignes — les trois fonctions
+`INVOKER` — et passait à **4** sous sabotage ; `I24` recensait **6** fonctions et sortait
+`compass_sabotage_probe` comme non couverte, population portée à 7. Après `rollback`, la fonction
+n'existe plus en base.
+
+### Le verdict de chaque fonction, aucune laissée en silence
+
+Mesuré le 25 août par énumération du catalogue — **13 fonctions `compass_*`**, dont **6** lisent
+une table restreinte :
+
+| Fonction | Lit une table restreinte | Verdict |
+| --- | --- | --- |
+| `compass_address_timeline` | oui | déjà juste — `DEFINER`, `withheld`, `I9`/`I10` |
+| `compass_premise_history` | oui | déjà juste — `DEFINER`, `withheld`, `I16`/`I17` |
+| `compass_scoring_context_within` | oui | **corrigée** — `DEFINER`, point 21 |
+| `compass_premises_within` | oui | **corrigée** — `DEFINER`, point 21 |
+| `compass_street_rotation` | oui | **corrigée** — `DEFINER` + marqueur, points 19 et 22 |
+| `compass_survival_by_trade` | oui | juste, mais **sans test anonyme** : `I27`/`I28` ajoutés |
+| `compass_bodacc_within` | non | **hors périmètre** — voir ci-dessous |
+| `compass_vintages` | non | **hors périmètre** — voir ci-dessous |
+| `compass_source_freshness` | non | **hors périmètre** — voir ci-dessous |
+| `compass_max_radius_m`, `compass_street_key`, `compass_bodacc_street_key`, `compass_survival_min_cohort` | non | sans donnée : une constante et trois fonctions de clé |
+
+**`compass_bodacc_within` — hors périmètre.** Elle lit `bodacc_establishment`,
+`bodacc_announcement`, `bodacc_judgment` et `premise_location`. Aucune n'est restreinte : leurs
+politiques sont `using (true)`, et BODACC est en Licence Ouverte. Mesuré le 25 août, Halles 400 m :
+**200 lignes, `total_matched` 2 573, 80 rattachements** — strictement identiques pour les trois
+appelants. Le point important est que `premise_location` n'est pas restreinte non plus : **ce sont
+les relevés qui portent la licence, pas les locaux.**
+
+**`compass_vintages` — hors périmètre, et c'est un choix, pas une omission.** Elle ne lit que
+`bdcom_vintage`, non restreinte. Elle publie pourtant à `anon` le `record_count` des millésimes
+retenus — **84 031** pour 2017, **83 399** pour 2020, mesuré le 25 août. Deux raisons de ne pas y
+toucher, et la seconde compte plus que la première : ces nombres décrivent la **taille du fichier
+publié**, pas un relevé ni un agrégat d'un sous-ensemble choisi — la différence exacte que
+`w1-survie` avait tranchée en retenant « n = 310 cafés aux Halles en 2017 » ; et cette fonction est
+**ce qui rend la retenue lisible** — licence, date, URL. La retenir viderait de sens tous les
+marqueurs `withheld` du corpus. La question reste ouverte si l'APUR répond que même la taille du
+fichier n'est pas diffusable ; elle n'est pas ouverte aujourd'hui.
+
+**`compass_source_freshness` — hors périmètre, même raison.** Elle lit `ingestion_run`, non
+restreinte, et publie `bdcom: 228 275` — la somme des trois millésimes, donc exactement ce que
+`compass_vintages` publie déjà ligne par ligne. Mesuré identique pour les trois appelants le
+25 août. Son commentaire de `20260825000001` l'avait anticipé : « une date de chargement ne
+divulgue rien du contenu d'un millésime retenu ».
+
+### Ce que la règle ne rattrape pas
+
+Elle a une limite, et trois plutôt qu'une.
+
+- **`I23` lit du texte.** `prosrc ~ '\ytable\y'` ne voit pas une fonction qui atteindrait la table
+  restreinte par une **vue**, par du **SQL dynamique**, ou en appelant une autre fonction. À
+  l'inverse, une fonction qui cite la table en commentaire est signalée à tort. Le faux positif
+  coûte une lecture, le faux négatif coûte un défaut — d'où ce sens-là. Une vue interposée est le
+  trou le plus plausible : il n'y en a aucune aujourd'hui, ce qui est une mesure et non une
+  garantie.
+- **`I24` vérifie qu'un test existe, pas qu'il teste.** Un invariant `@as anon` qui appellerait la
+  fonction sans rien contrôler d'utile satisferait la couverture. C'est la limite de `I22` sous une
+  autre forme : la règle interdit la fonction sans test, pas le test creux.
+- **Le bras A ne joue pas RLS.** Le lanceur pose `request.jwt.claims` sans jamais `set local role`.
+  `I25`/`I26` ne valent donc pour l'appelant réel que **parce que** la fonction lit désormais le
+  claim ; jouées contre l'ancienne version, elles auraient vu la réponse privilégiée et n'auraient
+  rien trouvé. C'est le bras D, avec une vraie clé publiable, qui tient cette moitié — et c'est
+  pourquoi `compass_street_rotation` et `compass_survival_by_trade` y sont ajoutées plutôt que
+  seulement dans `invariants.sql`.
+
+Et la limite qui les résume : **`I23` et `I24` rendent impossible la fonction née sans règle et
+sans test. Ils ne rendent pas impossible la fonction mal écrite.** Aucune règle ne remplace le fait
+d'avoir regardé — c'est déjà ce que disait le point 20.
+
+---
+
+## 24. Un taux dérivé de deux millésimes qui ne cite que la licence du plus permissif — `compass_survival_by_trade`, le 25 août
+
+**Trouvé en sabotant `I28`, et consigné plutôt que corrigé** : hors du périmètre de `w0-retenue`,
+qui portait sur la retenue et non sur l'étiquetage de licence.
+
+`compass_survival_by_trade` calcule le volet BDCom sur **deux** millésimes — la cohorte de départ
+et le millésime d'arrivée. Sur la branche retenue, elle cite la licence de la **cohorte**, ce qui
+est juste. Sur la branche divulguée, elle cite celle du millésime d'**arrivée** :
+
+```sql
+(select v.licence from public.bdcom_vintage v where v.id = v_end_id)
+```
+
+**Mesuré le 25 août sur le distant**, Halles, niv18 111, appelant privilégié :
+
+| Colonne | Valeur |
+| --- | --- |
+| `cohort_n` / `survival_rate` | 310 · **86,5 %** |
+| `period_start` → `period_end` | **2017** → 2023 |
+| `licence` | **`ODbL-1.0`** |
+
+Or 2017 porte `licence = 'custom'` et `publicly_redistributable = false` — c'est tout le motif de
+la retenue de la branche d'à côté. **Le chiffre dérive des deux millésimes ; l'étiquette ne nomme
+que le plus permissif des deux.** Un consommateur privilégié qui republie « 86,5 %, ODbL-1.0 »
+attache une licence ouverte à un résultat dont la moitié vient d'un millésime dont la licence n'a
+pas été lue.
+
+**Famille du point 13** — « une licence affirmée sur des données qui n'en relèvent pas » — dans sa
+variante *dérivation* : là où `scoreLocation` estampillait une couche entière, celle-ci estampille
+un agrégat de deux sources de licences différentes. La règle qui manque est simple à énoncer :
+**une valeur dérivée de plusieurs millésimes porte la licence la plus restrictive des deux**, jamais
+celle de l'un d'eux choisie par la structure de la requête.
+
+**Portée limitée, et la raison compte.** Un appelant `anon` ne voit jamais cette ligne : elle est
+retenue, et c'est la branche qui cite la bonne licence. Le défaut n'existe donc que pour les
+appelants privilégiés et `authenticated` — c'est-à-dire exactement ceux qui pourraient republier.
+Aucun consommateur expédié ne lit cette colonne aujourd'hui (`src/i18n/survivalText.ts` rend le
+texte, pas la licence).
+
+> **Un écart de documentation trouvé au même endroit.** Le commentaire de `20260825000012` écrit,
+> à propos du pont NAF partiel : « A trade absent here gets no SIRENE row at all, which reads as
+> "not bridged" rather than as a rate of zero. » Mesuré en retirant le métier 111 du pont dans une
+> transaction annulée : **la ligne SIRENE sort quand même**, chiffres nuls et `evidence` explicite
+> — « Aucune correspondance NAF n'est posée pour "Café et Restaurant" […] ». Le comportement réel
+> est *meilleur* que celui annoncé — une absence nommée vaut mieux qu'une absence muette, c'est la
+> doctrine du point 9 — mais le commentaire décrit autre chose que le code, et c'est le
+> commentaire qui est faux.

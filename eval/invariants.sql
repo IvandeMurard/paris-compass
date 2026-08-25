@@ -1,8 +1,18 @@
--- Invariants. Every query below must return zero rows.
+-- Invariants. Every query below must return zero rows — with one exception,
+-- marked, and stated here so it is not mistaken for a broken check.
 --
 -- Each block is delimited by a `-- @invariant <id> :: <description>` line, which
 -- the runner (scripts/eval/run.ts) parses. Keep the marker format; the runner
 -- reports by id.
+--
+-- Two optional directives on the lines that follow it:
+--   `-- @as <role>`      impersonate that role through request.jwt.claims
+--   `-- @census <column>` the rows are a POPULATION, not violations. The runner
+--                         fails on any value of <column> that no `@as anon`
+--                         invariant calls, and on an empty population. One block
+--                         uses it, I24 — run by hand, it lists the functions the
+--                         licence rule applies to, which is information rather
+--                         than a failure.
 --
 -- Contract and rationale: eval/FAILURE_MODES.md.
 
@@ -457,4 +467,270 @@ select distinct b.niv18
 from public.activity_naf_bridge b
 where not exists (
   select 1 from public.bdcom_activity a where a.niv18 = b.niv18)
+limit 20;
+
+-- ===========================================================================
+-- w0-retenue (#57) — la règle de retenue, recensée depuis le catalogue
+-- ===========================================================================
+-- I9/I10, I12/I13, I14/I15, I16/I17 : quatre paires, une par fonction, la même
+-- règle réécrite quatre fois à la main. Une cinquième fonction est née fausse et
+-- n'a été trouvée que par accident, en écrivant w1-survie (DIAGNOSTIC.md §19).
+-- I23 et I24 remplacent la liste tenue de mémoire par une énumération.
+--
+-- POURQUOI pg_proc.prosrc ET NON pg_depend. Mesuré le 25 août 2026 sur le
+-- distant : pg_depend ne porte, pour ces fonctions, que le schéma, le langage et
+-- les types — jamais les tables lues. Postgres n'enregistre les dépendances du
+-- corps d'une fonction que pour la syntaxe SQL standard `BEGIN ATOMIC` (PG14+) ;
+-- pour un corps en chaîne, plpgsql comme sql, le corps est opaque au catalogue.
+-- Le ticket demandait « pg_proc / pg_depend » : pg_depend ne pouvait pas répondre.
+
+-- @invariant I23 :: une fonction compass_* lisant une table restreinte par RLS ne sait pas annoncer sa retenue
+-- La généralisation de I18, et la règle que ce dépôt appliquait sans l'écrire.
+--
+-- I18 vérifie qu'une fonction portant une colonne `observed` est SECURITY DEFINER.
+-- Il attrapait la *forme* du défaut d'août, pas sa cause : compass_street_rotation
+-- n'expose que des dénombrements, donc I18 ne la regardait pas, et elle rendait
+-- `changed_since_previous = 0` là où la vérité mesurée est 81 (DIAGNOSTIC.md §19).
+-- Le critère n'est pas `observed` : c'est **lire une table dont RLS peut retirer
+-- des lignes en silence**. Une fonction qui agrège ces lignes ment tout autant
+-- qu'une fonction qui les rend une par une.
+--
+-- Deux exigences, et il faut les deux :
+--   SECURITY DEFINER — sinon RLS vide la jointure sous une fonction qui a déjà
+--     conclu « rien n'est retenu », le désaccord de 20260809000008 (RLS restreint
+--     anon ET authenticated) avec 20260809000010 (tout ce qui n'est pas anon est
+--     privilégié). Mesuré le 25 août : compass_scoring_context_within rendait
+--     zéro ligne et aucun marqueur à un appelant `authenticated` sur 2017.
+--   une colonne `withheld` — parce qu'une fonction qui voit tout doit *dire* ce
+--     qu'elle ne montre pas, sinon la retenue redevient un silence.
+--
+-- La population est restreinte aux tables dont une politique SELECT porte un
+-- prédicat autre que `true` : mesuré le 25 août, `premise_observation` est la
+-- seule table de contenu dans ce cas ; les quatre autres (saved_properties,
+-- saved_searches, user_preferences, notification_settings) sont les tables par
+-- utilisateur de Lovable, qu'aucune fonction compass_* ne lit. La règle est écrite
+-- sur le catalogue plutôt que sur le nom `premise_observation` pour que la table
+-- restreinte *suivante* soit couverte sans que personne y pense.
+--
+-- CE QUE I23 NE RATTRAPE PAS, et la limite compte : `prosrc ~ '\ytable\y'` lit du
+-- texte. Une fonction qui atteindrait la table par une vue, par du SQL dynamique
+-- ou par une autre fonction n'est pas vue ; une fonction qui la cite seulement en
+-- commentaire est signalée à tort. Le faux positif coûte une lecture, le faux
+-- négatif coûte un défaut — d'où ce sens-là. Et I23 est structurel : il dit que la
+-- fonction *peut* annoncer sa retenue, jamais qu'elle l'annonce juste. C'est le
+-- travail de I24 et des paires de comportement.
+with restricted as (
+  select c.relname
+  from pg_class c
+  join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity
+    and exists (
+      select 1 from pg_policy p
+       where p.polrelid = c.oid
+         and p.polcmd in ('r', '*')
+         and coalesce(pg_get_expr(p.polqual, p.polrelid), '') <> 'true')
+)
+select p.proname, p.prosecdef as security_definer, r.relname as restricted_table
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+join restricted r on p.prosrc ~ ('\y' || r.relname || '\y')
+where n.nspname = 'public'
+  and p.proname like 'compass\_%'
+  and (not p.prosecdef or not ('withheld' = any(p.proargnames)))
+limit 20;
+
+-- @invariant I24 :: une fonction compass_* lisant une table restreinte n'a aucun test de retenue anonyme
+-- @census proname
+-- Le recensement, et le livrable de w0-retenue. Il n'a PAS la forme des autres :
+-- ses lignes sont la population, pas des violations. Le lanceur ne les compte pas
+-- comme des échecs — il vérifie, pour chaque nom rendu, qu'au moins un invariant
+-- marqué `-- @as anon` **appelle** cette fonction, commentaires retirés. Une
+-- mention en commentaire ne vaut donc pas couverture, et c'est délibéré : I16 cite
+-- ses trois voisines dans son en-tête sans rien vérifier à leur sujet.
+--
+-- C'est le seul contrôle de cette porte qui croise le catalogue avec le fichier
+-- lui-même. Aucune requête ne peut le faire : eval/invariants.sql est sur la
+-- machine du développeur, pas sur le serveur. D'où la moitié TypeScript, dans
+-- scripts/eval/run.ts.
+--
+-- Ce qu'il rend impossible : la sixième fonction née sans test. Ce qu'il ne rend
+-- PAS impossible, et c'est la limite à énoncer — un invariant `@as anon` qui
+-- appelle la fonction sans rien vérifier d'utile. La couverture est mécanique, la
+-- pertinence reste une lecture. Comme I22 : la règle interdit le code inventé, pas
+-- le code mal lu.
+--
+-- Mesuré le 25 août 2026 : six fonctions dans la population — compass_address_timeline,
+-- compass_premise_history, compass_premises_within, compass_scoring_context_within,
+-- compass_street_rotation, compass_survival_by_trade. Les deux dernières n'avaient
+-- aucun test anonyme avant ce ticket.
+with restricted as (
+  select c.relname
+  from pg_class c
+  join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity
+    and exists (
+      select 1 from pg_policy p
+       where p.polrelid = c.oid
+         and p.polcmd in ('r', '*')
+         and coalesce(pg_get_expr(p.polqual, p.polrelid), '') <> 'true')
+)
+select distinct p.proname
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+join restricted r on p.prosrc ~ ('\y' || r.relname || '\y')
+where n.nspname = 'public'
+  and p.proname like 'compass\_%'
+order by 1;
+
+-- @invariant I25 :: un appelant anonyme reçoit un dénombrement là où un millésime est retenu, via compass_street_rotation
+-- @as anon
+-- La cinquième fonction de la famille, et la variante la plus difficile à voir :
+-- rien n'est nul, chaque colonne porte un nombre plausible. Mesuré le 25 août 2026
+-- sur le distant, centroïde du quartier Halles (48,86229 / 2,34490), rayon 300 m,
+-- périmètre commerce, sommé sur les 98 tronçons :
+--
+--   appelant                     2017          2020           2023
+--   privilégié                   660 / chg 0   631 / chg 76   619 / chg 81
+--   anonyme (claim + set role)   —             —              619 / chg 0
+--
+-- `chg 0` sur 2023 est une affirmation : « cette rue n'a pas tourné », produite par
+-- la disparition des millésimes antérieurs sous RLS. La vérité mesurée est 81.
+--
+-- DIAGNOSTIC.md §19 donnait 78 pour ce chiffre sans nommer son point de mesure ;
+-- 78 n'est reproductible sous aucune variante essayée le 25 août (300 m, périmètre
+-- commerce ou non, centroïde du quartier). Le chiffre écrit ici porte ses
+-- coordonnées, ce que §19 ne faisait pas — la clause « un chiffre mesuré porte sa
+-- date » de CLAUDE.md vaut aussi pour son lieu.
+--
+-- Deux exigences, et la seconde est celle qui manquait :
+--   un millésime retenu sort comme UNE ligne marquée, sans tronçon ni dénombrement ;
+--   un millésime rendu dont le PRÉCÉDENT est retenu porte `changed_since_previous`
+--     NUL — « ce qui a changé depuis 2020 » est un fait sur 2020. Sous SECURITY
+--     DEFINER la fenêtre voit vraiment les codes du millésime retenu, donc le test
+--     est posé plutôt qu'hérité de ce que la jointure a bien voulu rendre.
+with vintage as (
+  select v.year,
+         v.publicly_redistributable                             as odbl,
+         lag(v.year) over (order by v.year)                     as previous_year,
+         lag(v.publicly_redistributable) over (order by v.year) as previous_odbl
+  from public.bdcom_vintage v
+)
+select r.vintage_year, r.withheld, r.street_segment_id, r.premises, r.vacant,
+       r.changed_since_previous
+from public.compass_street_rotation(48.86229, 2.34490, 300) r
+join vintage vi on vi.year = r.vintage_year
+where case
+  when not vi.odbl then
+    r.withheld is distinct from true
+    or r.street_segment_id is not null or r.street_name is not null
+    or r.premises is not null or r.vacant is not null
+    or r.changed_since_previous is not null
+  else
+    r.changed_since_previous is not null
+    and (vi.previous_year is null or not coalesce(vi.previous_odbl, false))
+end
+limit 20;
+-- Note: cet invariant ne dit RIEN sur le millésime ODbL lui-même — ni qu'il sort, ni qu'il porte
+-- ses dénombrements. C'est le travail de I26, et la séparation est délibérée : une version qui
+-- retiendrait tout satisfait I25 et fait échouer I26, une version qui fuite fait l'inverse.
+-- Éprouvé dans les deux sens, cf. DIAGNOSTIC.md §19.
+
+-- @invariant I26 :: une retenue excessive ou un vide réel rendu comme un fait, via compass_street_rotation
+-- @as anon
+-- Le miroir, et la moitié qui se saute. Retenir trop est une faute aussi : le
+-- millésime ODbL doit sortir avec ses tronçons et ses dénombrements, et un rayon
+-- réellement vide ne doit produire aucune ligne de contenu.
+--
+-- Une différence de forme avec I13/I15/I20, et il faut la dire : le marqueur de
+-- retenue de cette fonction ne dépend pas du rayon. compass_street_rotation rend
+-- les trois millésimes d'un coup, là où les fonctions `_within` en prennent un en
+-- paramètre. À 1 m sur Châtelet, un appelant anonyme reçoit donc les deux lignes
+-- marquées 2017 et 2020 — qui n'affirment rien sur le lieu — et **zéro** ligne de
+-- contenu ; un appelant privilégié reçoit zéro ligne tout court. Mesuré le 25 août.
+-- Le contre-test ne regarde donc que les lignes rendues, jamais le compte total.
+select * from (
+  select 'millésime ODbL retenu ou vidé'::text as probleme, v.year::text as detail
+  from public.bdcom_vintage v
+  where v.publicly_redistributable
+    and not exists (
+      select 1 from public.compass_street_rotation(48.86229, 2.34490, 300) r
+      where r.vintage_year = v.year
+        and r.withheld is false
+        and r.street_segment_id is not null
+        and r.premises > 0)
+  union all
+  select 'un rayon réellement vide rend du contenu'::text, count(*)::text
+  from public.compass_street_rotation(48.8566, 2.3522, 1) r
+  where r.withheld is false
+  having count(*) > 0
+) x
+limit 20;
+
+-- @invariant I27 :: un appelant anonyme reçoit un effectif ou un taux issu d'un millésime retenu, via compass_survival_by_trade
+-- @as anon
+-- La sixième fonction de la population, et la seule que le recensement a sortie
+-- sans qu'un défaut l'ait signalée. Elle est juste depuis son premier jet — écrite
+-- SECURITY DEFINER *à cause* du défaut de compass_street_rotation — mais aucun
+-- invariant ne la jouait en anonyme : I21 l'appelle en privilégié, pour la doctrine
+-- observationnelle, pas pour la licence. Une fonction juste sans test est une
+-- fonction qui redeviendra fausse sans qu'on le sache : c'est le point 20.
+--
+-- Le volet BDCom est retenu parce qu'énoncer « n = 310 en 2017 » publie un
+-- dénombrement d'un millésime dont la licence n'a pas été lue — w1-survie (#14).
+-- Ce qu'une ligne retenue garde : le quartier, le métier, la période et la licence,
+-- métadonnées que compass_vintages() publie déjà à anon. Ce qu'elle ne garde pas :
+-- l'effectif, le nombre de survivants, le taux.
+--
+-- Mesuré le 25 août 2026, Halles (48,86229 / 2,34490), niv18 111 « Café et
+-- Restaurant » : privilégié 310 / 268 / 86,5 % ; anonyme retenu, tout nul.
+--
+-- Le `left join lateral ... on true` est celui de I12 et I14, pour la même raison : il transforme
+-- « le volet n'est pas sorti du tout » en une ligne de nulls que cette requête peut voir. Une
+-- retenue muette est exactement le défaut contrôlé ; un appel nu la laisserait se cacher dans les
+-- zéro lignes que le lanceur lit comme un succès.
+select coalesce(s.source, '(volet BDCom absent)') as source, s.withheld,
+       s.cohort_n, s.survived_n, s.survival_rate
+from (values (1)) t(x)
+left join lateral (
+  select b.* from public.compass_survival_by_trade(48.86229, 2.34490, 111::smallint) b
+  where b.source = 'APUR BDCom'
+) s on true
+where s.source is null
+   or s.withheld is distinct from true
+   or s.cohort_n is not null
+   or s.survived_n is not null
+   or s.survival_rate is not null
+limit 20;
+
+-- @invariant I28 :: le volet Licence Ouverte est retenu par erreur, via compass_survival_by_trade
+-- @as anon
+-- Le miroir de I27, et il porte quelque chose que ce corpus n'avait jamais eu : le
+-- premier vrai taux rendu à un appelant sans clé. SIRENE est en Licence Ouverte v2,
+-- donc la ligne INSEE doit sortir complète — taux, effectif, survivants, période, et
+-- l'`evidence` qui dit que les deux cohortes ne se comparent pas terme à terme. La
+-- retenir « par prudence » détruirait la seule réponse publiable de la fonction.
+--
+-- Mesuré le 25 août 2026, Halles, niv18 111, appelant anonyme : 185 / 102 / 55,1 %,
+-- `insufficient_n = false`, seuil de publication à 30 (compass_survival_min_cohort).
+--
+-- Même `left join lateral ... on true` que I27, et ici il porte le cas le plus probable de
+-- retenue excessive : le pont NAF est partiel par conception (20260825000012), donc retirer le
+-- métier du pont fait disparaître la ligne SIRENE au lieu de la vider. Un appel nu passerait.
+select coalesce(s.source, '(volet SIRENE absent)') as source, s.withheld, s.insufficient_n,
+       s.out_of_corpus, s.cohort_n, s.survived_n, s.survival_rate
+from (values (1)) t(x)
+left join lateral (
+  select i.* from public.compass_survival_by_trade(48.86229, 2.34490, 111::smallint) i
+  where i.source = 'INSEE SIRENE'
+) s on true
+where s.source is null
+   or s.withheld is distinct from false
+   or s.insufficient_n is distinct from false
+   or s.out_of_corpus is distinct from false
+   or s.cohort_n is null
+   or s.survived_n is null
+   or s.survival_rate is null
+   or s.period_start is null
+   or s.period_end is null
+   or s.evidence is null or btrim(s.evidence) = ''
 limit 20;

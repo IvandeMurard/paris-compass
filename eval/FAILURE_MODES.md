@@ -54,13 +54,15 @@ ligne fait échouer la porte.
 | **I9** | Un appelant **anonyme** voit quoi que ce soit d'un millésime non redistribuable — contenu, absence, ou simple existence | La licence de 2017 et 2020 n'est pas lue. Trois migrations ont été nécessaires : retenir le contenu laissait fuiter l'absence, ce qui révélait l'existence |
 | **I10** | Un millésime redistribuable revient retenu par erreur | Le miroir de I9. **Sur-restreindre est aussi une faute** : retenir de l'ODbL prive sans raison et masque un défaut de logique |
 
-> **Huit invariants ont été ajoutés depuis** : I11 (une fonction `compass_*` non
-> exécutable par `anon`), puis trois paires — I12/I13 pour
+> **Dix-huit invariants ont été ajoutés depuis** : I11 (une fonction `compass_*`
+> non exécutable par `anon`), puis cinq paires — I12/I13 pour
 > `compass_scoring_context_within`, I14/I15 pour `compass_premises_within`,
-> I16/I17 pour `compass_premise_history` — chacune vérifiant qu'une retenue
-> s'annonce *et* qu'un vide réel reste muet. Puis I18, qui n'est pas une paire et
-> pas un test de comportement. Le tableau ci-dessus s'arrête à I10 ;
-> `invariants.sql` fait foi.
+> I16/I17 pour `compass_premise_history`, I25/I26 pour `compass_street_rotation`,
+> I27/I28 pour `compass_survival_by_trade` — chacune vérifiant qu'une retenue
+> s'annonce *et* qu'un vide réel reste muet. Puis I18, I19/I20, I21, I22, et enfin
+> **I23/I24, qui ne portent sur aucune fonction en particulier : ils énumèrent
+> celles auxquelles la règle s'applique** (voir « Ce qui n'est pas couvert »).
+> Le tableau ci-dessus s'arrête à I10 ; `invariants.sql` fait foi.
 >
 > **I9, I10 et leurs suivantes prennent l'identité d'`anon` par le *claim*, pas par le
 > rôle** (marqueur `-- @as anon`). C'est la leçon la plus chère du 9 août : *le chemin
@@ -84,13 +86,21 @@ ligne fait échouer la porte.
 >   l'appelant connecté — `withheld = false` pendant que RLS retire les lignes. Aucun test de
 >   comportement que cette porte sait exprimer ne peut le voir.
 >
-> **D'où I18, seul invariant structurel du lot** : une fonction `compass_*` qui porte une
-> colonne `observed` **doit** être `SECURITY DEFINER`. `observed` est la seule colonne que RLS
-> peut transformer en mensonge — retirer une ligne y devient « ce local n'a pas été relevé ».
-> Les fonctions sans cette colonne peuvent rester `INVOKER` : RLS leur coûte des lignes, pas
-> la vérité. La règle était écrite en prose dans `20260809000008` depuis le 9 août, et une
+> **D'où I18, premier invariant structurel du lot** : une fonction `compass_*` qui porte une
+> colonne `observed` **doit** être `SECURITY DEFINER`. `observed` est la colonne que RLS
+> transforme le plus visiblement en mensonge — retirer une ligne y devient « ce local n'a pas
+> été relevé ». La règle était écrite en prose dans `20260809000008` depuis le 9 août, et une
 > migration l'a enfreinte le 24 en argumentant l'inverse. Une règle qui n'est pas vérifiée
 > n'est qu'un commentaire.
+>
+> ~~Les fonctions sans cette colonne peuvent rester `INVOKER` : RLS leur coûte des lignes, pas
+> la vérité.~~ **Faux, mesuré le 25 août** (`DIAGNOSTIC.md` §21) : les deux fonctions `_within`
+> rendaient **zéro ligne et aucun marqueur** à un appelant `authenticated` sur un millésime
+> retenu — le défaut §9 exactement, pour quiconque a créé un compte. `observed` n'était pas le
+> critère, c'était la forme que le défaut avait prise en août. **Le critère est de lire une
+> table dont RLS peut retirer des lignes**, et c'est ce que `I23` énonce depuis le 25 août.
+> `I18` est conservé : plus étroit, il reste vrai, et une règle qui a coûté un défaut ne se
+> retire pas parce qu'une plus large est arrivée.
 
 ---
 
@@ -183,12 +193,32 @@ politique RLS ni la sérialisation PostgREST. Le bras D appelle le projet héber
 en HTTP avec la seule clé publiable. Il reste hors du `npm.cmd run eval` par
 nécessité — il n'a rien à interroger sur une base locale sans PostgREST.
 
-**Les fonctions que personne n'a auditées.** Le bras D vérifie les fonctions
-qu'on lui nomme. La première fois qu'il a été joué, il a trouvé que
-`compass_premise_history` n'annonçait aucune retenue et rendait `observed = false`
-sur un local relevé (`DIAGNOSTIC.md` §10). Rien dans la porte ne dit *quelles*
-fonctions portent la règle de licence : cette liste est tenue à la main, et une
-fonction ajoutée sans y être inscrite ne sera pas couverte.
+~~**Les fonctions que personne n'a auditées.**~~ **Couvert depuis le 25 août par
+`I23` et `I24`** — `w0-retenue` (#57). Ce paragraphe disait : « Rien dans la porte
+ne dit *quelles* fonctions portent la règle de licence : cette liste est tenue à
+la main, et une fonction ajoutée sans y être inscrite ne sera pas couverte. » Le
+manque était écrit, daté, et il a quand même produit un défaut — la cinquième
+fonction (`DIAGNOSTIC.md` §19), trouvée par accident en écrivant un autre ticket.
+
+La liste ne se tient plus à la main. `I23` énumère depuis `pg_proc` toute fonction
+`compass_*` dont le corps cite une table dont une politique `SELECT` porte un
+prédicat autre que `true`, et exige qu'elle soit `SECURITY DEFINER` **et** qu'elle
+porte une colonne `withheld`. `I24` reprend la même population et vérifie qu'au
+moins un invariant `-- @as anon` **appelle** chacune, commentaires retirés — une
+mention en commentaire ne vaut pas couverture. Détail et limites : `DIAGNOSTIC.md`
+§23.
+
+`npm.cmd run eval:sabotage` le démontre plutôt que de l'affirmer : il crée une
+sixième fonction fautive dans une transaction annulée et vérifie que les deux
+invariants passent au rouge. Il importe le verdict de `scripts/eval/census.ts`,
+celui qu'utilise la porte — une preuve qui rejoue une copie du contrôle ne prouve
+rien sur le contrôle.
+
+**Ce qui reste non couvert de ce côté.** `I23` lit `prosrc`, donc une table
+atteinte par une **vue**, par du SQL dynamique ou par une autre fonction lui
+échappe ; `I24` vérifie qu'un test existe, pas qu'il teste quoi que ce soit
+d'utile. La règle rend impossible la fonction née sans règle, pas la fonction mal
+écrite — même limite que `I22`.
 
 
 ## Une règle de doctrine tenue des deux côtés — `I21`, 25 août 2026

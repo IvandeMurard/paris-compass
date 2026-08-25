@@ -23,7 +23,7 @@ une adaptation qui n'est pas cosmétique et qui est expliquée dans `FAILURE_MOD
 
 | Fichier | Ce qu'il vérifie | Tolérance |
 | --- | --- | --- |
-| `invariants.sql` | **Dix-huit** requêtes qui doivent renvoyer zéro ligne, sur **100 % de la base** | Zéro |
+| `invariants.sql` | **Vingt-huit** requêtes, dont vingt-sept doivent renvoyer zéro ligne — la vingt-huitième est un recensement, voir plus bas | Zéro |
 | `baselines/ingestion.json` | **Vingt-quatre** effectifs gelés au chargement | Signalé, bloquant au-delà de 1 % |
 | `golden.jsonl` | **Huit** chronologies vérifiées à la main | Zéro |
 | `../scripts/eval/anon-http.ts` | La règle de licence **par HTTP, sans identifiants de base** | Zéro |
@@ -46,13 +46,39 @@ Comptez environ une minute contre la base locale, et **près de trois contre le
 distant** — mesuré le 24 août : I1, I2 et I7 balaient les 85 418 locaux et pèsent
 à eux seuls deux minutes et demie à travers le pooler.
 
-**Dix-sept des dix-huit invariants portent sur ce que les fonctions renvoient ;
-le dix-huitième porte sur ce qu'elles sont.** I18 lit `pg_proc` et non des
-données : une fonction `compass_*` qui porte une colonne `observed` doit être
-`SECURITY DEFINER`. Le bras A ne posant jamais `set local role`, RLS ne
-s'applique jamais pendant qu'il tourne, et un défaut né du désaccord entre RLS et
-le test de claim ne peut être attrapé que sur la structure. Voir
-`FAILURE_MODES.md`.
+**Vingt-cinq invariants portent sur ce que les fonctions renvoient ; trois
+portent sur ce qu'elles sont.** I18 et I23 lisent `pg_proc` et non des données.
+Le bras A ne posant jamais `set local role`, RLS ne s'applique jamais pendant
+qu'il tourne : un défaut né du désaccord entre RLS et le test de claim ne peut
+être attrapé que sur la structure. I18 exige `SECURITY DEFINER` d'une fonction
+portant une colonne `observed` ; **I23 généralise au vrai critère** — lire une
+table dont une politique RLS peut retirer des lignes — et exige en plus une
+colonne `withheld`. Voir `FAILURE_MODES.md`.
+
+**I24 est le seul contrôle de cette porte qui n'a pas la forme des autres.** Ses
+lignes sont une *population*, pas des violations : il énumère depuis `pg_proc`
+les fonctions auxquelles la règle de licence s'applique, et le lanceur échoue sur
+tout nom qu'aucun invariant `-- @as anon` n'appelle. C'est le seul contrôle qui
+croise le catalogue avec ce fichier-ci, ce qu'aucune requête SQL ne peut faire :
+`invariants.sql` est sur la machine du développeur, pas sur le serveur. Il échoue
+aussi si la population est **vide** — un recensement qui ne trouve plus rien a
+cessé de fonctionner.
+
+Sa preuve se rejoue :
+
+```powershell
+npm.cmd run eval:sabotage
+```
+
+Le script crée une sixième fonction fautive dans une transaction annulée, rejoue
+I23 et I24 contre elle — les deux doivent passer au rouge — puis annule et les
+rejoue au propre. Il importe le verdict de `../scripts/eval/census.ts`, celui
+qu'utilise la porte : une preuve qui rejoue une copie du contrôle ne prouve rien
+sur le contrôle. Détail et limites dans `../DIAGNOSTIC.md` §23.
+
+> Ce fichier annonçait **dix-huit** invariants jusqu'au 25 août, alors que I19 à
+> I22 existaient déjà. Un compte recopié plutôt que remesuré, exactement ce que
+> `CLAUDE.md` interdit — remesuré ici par `grep -c '^-- @invariant '`.
 
 ## Prérequis
 

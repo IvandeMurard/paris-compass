@@ -3,7 +3,8 @@
 //   npx.cmd tsx scripts/eval/run.ts
 //
 // Three arms, run in order, cheapest first:
-//   A — invariants (eval/invariants.sql), each must return zero rows
+//   A — invariants (eval/invariants.sql), each must return zero rows — except a
+//       `@census` block, whose rows are a population to be checked for coverage
 //   B — ingestion baselines (eval/baselines/ingestion.json), drift over 1% fails
 //   C — golden cases (eval/golden.jsonl), hand-verified chronologies
 //
@@ -18,6 +19,7 @@ import { resolve } from "path"
 import type { Client } from "pg"
 
 import { connect, connectionTarget, log } from "../ingest/lib/db"
+import { anonymousCoverage, censusVerdict, readInvariants } from "./census"
 
 const ROOT = resolve(import.meta.dirname, "../..")
 
@@ -40,29 +42,11 @@ const pass = (what: string, detail = ""): void => {
 // A — invariants
 // ---------------------------------------------------------------------------
 
-interface Invariant {
-  id: string
-  description: string
-  sql: string
-  /** Role to impersonate, from an optional `-- @as <role>` line. */
-  as?: string
-}
-
-/** Splits invariants.sql on its `-- @invariant <id> :: <description>` markers. */
-function readInvariants(): Invariant[] {
-  const source = readFileSync(resolve(ROOT, "eval/invariants.sql"), "utf8")
-  const blocks = source.split(/^--\s*@invariant\s+/m).slice(1)
-  return blocks.map((block) => {
-    const [header, ...rest] = block.split("\n")
-    const [id, description] = header.split("::").map((s) => s.trim())
-    const body = rest.join("\n")
-    return { id, description, as: /^--\s*@as\s+(\S+)/m.exec(body)?.[1], sql: body.trim() }
-  })
-}
-
 async function runInvariants(client: Client): Promise<void> {
   log("A — invariants", "chaque requête doit renvoyer zéro ligne")
-  for (const invariant of readInvariants()) {
+  const invariants = readInvariants()
+  const covered = anonymousCoverage(invariants)
+  for (const invariant of invariants) {
     const started = Date.now()
     // Impersonation is transaction-local, so the privileged connection is
     // restored whatever the invariant does. Without this the gate could only
@@ -76,6 +60,19 @@ async function runInvariants(client: Client): Promise<void> {
     const result = await client.query(invariant.sql)
     await client.query("rollback")
     const seconds = ((Date.now() - started) / 1000).toFixed(1)
+
+    // A census block returns the population, not violations: each row names a
+    // function the licence rule applies to, and the failure is a name no `@as
+    // anon` invariant calls. Verdict in ./census.ts, shared with the sabotage
+    // proof (npm.cmd run eval:sabotage) so the demonstration exercises the
+    // check that ships rather than a copy of it.
+    if (invariant.census) {
+      const verdict = censusVerdict(result.rows as Record<string, unknown>[], invariant.census, covered)
+      if (verdict.ok) pass(invariant.id, `${verdict.detail} (${seconds}s)`)
+      else fail(invariant.id, `${invariant.description} — ${verdict.detail}`)
+      continue
+    }
+
     if (result.rowCount === 0) {
       pass(invariant.id, `${invariant.description} (${seconds}s)`)
     } else {

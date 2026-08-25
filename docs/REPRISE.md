@@ -1,4 +1,4 @@
-# Reprise — état au 25 août 2026, fin de session 10
+# Reprise — état au 25 août 2026, fin de session 11
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`
@@ -6,10 +6,28 @@ qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.m
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
 
-## Clôture de la session 10 — l'état exact au 25 août 2026, 13 h 30 UTC
+## Clôture de la session 11 — l'état exact au 25 août 2026, 19 h 30 UTC
 
-Tout est mesuré à la clôture, pas recopié. C'est le point de départ propre de la session
-suivante.
+Tout est mesuré à la clôture, pas recopié.
+
+| Mesure | Valeur |
+| --- | --- |
+| `main` local | arbre modifié, **non commité** — `w0-retenue` en entier |
+| Ledger distant `dbefhvmyfmmhjeetdddu` | **40** migrations, dernière `20260825000013` — **`20260825000014` est écrite et PAS posée**, voir ci-dessous |
+| Fonctions `compass_*` | **13**, inchangé — la migration en attente n'en ajoute aucune, elle en corrige trois |
+| Invariants | **28** (`grep -c '^-- @invariant '`) — `I23` à `I28` ajoutés |
+| Issues | **40 ouvertes, 12 fermées**, inchangé. [`#57`](https://github.com/IvandeMurard/paris-compass/issues/57) **reste ouverte** : son critère 1 exige un appel anonyme réel, donc la migration posée |
+| Portes | `typecheck` ✓ · **122 tests** ✓ · `build` et `build:dev` ✓ · `verify:mcp` **41 contrôles, 39 au vert, 0 en échec**, 2 suspendus sur panne Overpass (429) · **`eval` : 22 au vert, `I23` échoue sur 3 lignes, `I25` erreur** — c'est la porte qui refuse la base non migrée, pas un défaut du travail |
+
+> **La seule chose qui manque est une commande.** `supabase db push` a été refusé par le
+> classificateur du mode auto — troisième refus sur quatre poussées. Le bloc PowerShell à lancer,
+> et l'ordre des portes à rejouer derrière, sont en fin de la section « session 11 » ci-dessous.
+> Tant qu'elle n'est pas posée, un appelant anonyme reçoit toujours `changed_since_previous = 0`
+> aux Halles.
+
+## Clôture de la session 10 — l'état au 25 août 2026, 13 h 30 UTC
+
+Mesures de la clôture précédente, conservées telles quelles.
 
 | Mesure | Valeur |
 | --- | --- |
@@ -86,6 +104,188 @@ distante ne se fait pas sur un « probablement inutile ».
 > de la session 6 — les chargements, la table de fraîcheur, le 404 de SIRENE — le **25**. Les
 > dates écrites plus bas sont celles de la mesure, pas celles de la rédaction, et c'est la règle
 > de `CLAUDE.md` : un chiffre mesuré porte **sa** date.
+
+---
+
+## Le 25 août, session 11 : la règle de retenue est recensée — et l'énumération a condamné deux fonctions innocentées la veille
+
+**`w0-retenue` (#57) est écrit, éprouvé, et sa migration n'est pas posée** — voir « Ce qui reste »
+en fin de section, c'est la première chose à faire à la reprise. Le ticket disait qu'il ne
+s'agissait pas de corriger une cinquième fonction mais de faire en sorte qu'il n'y ait pas de
+sixième. Écrite, la règle en a convaincu **trois** : la cinquième attendue, plus les deux fonctions
+`_within` que `20260824000002` avait explicitement déclarées saines. Détail complet dans
+`docs/tickets/w0-retenue.md`, mesures dans `DIAGNOSTIC.md` §19, §21, §22, §23 et §24.
+
+### Le livrable : `I23` et `I24`, une règle plutôt qu'une cinquième réécriture
+
+- **`I23`** — depuis `pg_proc`, toute fonction `compass_*` dont le corps cite une table dont une
+  politique `SELECT` porte un prédicat autre que `true` doit être `SECURITY DEFINER` **et** porter
+  une colonne `withheld`. La population des *tables* vient du catalogue elle aussi : la prochaine
+  table restreinte sera couverte sans que personne y pense.
+- **`I24`** — même population, plus la vérification qu'au moins un invariant `-- @as anon`
+  **appelle** chaque fonction, commentaires retirés. Il échoue aussi si la population est **vide** :
+  un recensement qui ne trouve plus rien a cessé de fonctionner, et l'accepter serait le défaut du
+  point 9 appliqué à la porte elle-même.
+
+`I24` croise le catalogue avec `eval/invariants.sql`, ce qu'aucune requête SQL ne peut faire — le
+fichier est sur la machine du développeur, pas sur le serveur. D'où `scripts/eval/census.ts`, et
+d'où **`npm.cmd run eval:sabotage`**, qui crée une sixième fonction fautive dans une transaction
+annulée et vérifie que la porte passe au rouge. Le script importe le verdict que la porte utilise :
+une preuve qui rejoue une copie du contrôle ne prouve rien sur le contrôle.
+
+Mesuré avant la migration : `I23` rendait **3** lignes au propre et **4** sous sabotage ; `I24`
+recensait **6** fonctions et sortait `compass_sabotage_probe` comme non couverte, population à 7.
+
+> **`pg_depend` ne pouvait pas répondre, et le ticket le demandait.** Mesuré : pour ces fonctions,
+> `pg_depend` ne porte que le schéma, le langage et les types — **jamais les tables lues**.
+> Postgres n'enregistre les dépendances du corps d'une fonction que pour la syntaxe SQL standard
+> `BEGIN ATOMIC` (PG14+) ; avec un corps en chaîne, `plpgsql` comme `sql`, le corps est opaque au
+> catalogue. C'est `pg_proc.prosrc` qui répond, et c'est de là que vient la limite principale de
+> la règle : elle lit du texte, donc une table atteinte par une vue lui échapperait.
+
+### Ce que l'énumération a trouvé, et que le ticket ne demandait pas
+
+**L'exemption des deux fonctions `_within` était fausse, et écrite noir sur blanc.**
+`20260824000002` avait tranché : « elles n'ont pas de colonne `observed`, donc RLS leur coûte des
+lignes et non la vérité ». Mesuré le 25 août, Halles 800 m, millésime 2017, avec `set local role`
+pour que RLS s'applique vraiment :
+
+| Appelant | `compass_scoring_context_within` | `compass_premises_within` |
+| --- | --- | --- |
+| Privilégié | 4 773 locaux | 4 773 appariés |
+| Anonyme | 1 ligne `withheld` | 1 ligne `withheld` |
+| **Authentifié** | **0 ligne, aucun marqueur** | **0 ligne, aucun marqueur** |
+
+Zéro ligne sans marqueur, c'est-à-dire **le défaut §9 mot pour mot, vivant pour quiconque a créé
+un compte**. Corrigé par deux `alter function ... security definer` — les corps étaient justes,
+seul le mode ne l'était pas, et recopier une fonction de quarante colonnes pour changer un mot-clé
+est la manière dont deux versions commencent à diverger.
+
+**La leçon est la même que celle de la session 10, d'un cran plus haut.** La session 10 avait
+appris qu'une règle doit vivre là où le texte est produit. Celle-ci ajoute : **une exemption
+raisonnée est une règle, et elle doit être vérifiée comme telle.** Le raisonnement de
+`20260824000002` était écrit, argumenté, et il contredisait le point 9 sans le citer. Rien ne
+l'a relu pendant vingt-quatre heures parce que rien ne le *pouvait* — c'était de la prose.
+
+### Un sixième défaut, sur le chemin privilégié, sans licence
+
+`compass_street_rotation` rendait `changed_since_previous = 0` sur **2017**, le premier millésime
+de la série, pour tout le monde : `previous_code` y est nul partout, le filtre ne retient rien,
+`count(*)` rend 0. « Aucun changement d'activité en 2017 », dit d'une année qui n'a pas de
+prédécesseur. Vrai depuis `20260808000005`, donc depuis le premier jour du dépôt.
+
+Même famille que le §11 (`coalesce(is_vacant, false)`) : une absence rendue comme une mesure.
+Corrigé dans la même migration — `changed_since_previous` est **nul** dès que la comparaison est
+impossible, faute de prédécesseur ou parce que le prédécesseur est retenu. Un `0` de cette colonne
+redevient donc un zéro mesuré, ce qu'il n'avait jamais été.
+
+### Deux chiffres du ticket étaient faux, et le second est une leçon de méthode
+
+- **« 78 » n'est pas reproductible.** `DIAGNOSTIC.md` §19 annonçait 78 changements d'activité sur
+  2023 « aux Halles, rayon 300 m », sans nommer le point. Remesuré au centroïde du quartier
+  (48,86229 / 2,34490) : **81** sur 2023 et **76** sur 2020. Aucune variante essayée ne rend 78.
+  **La règle « un chiffre mesuré porte sa date » vaut aussi pour son lieu** : sans ses
+  coordonnées, un dénombrement géographique n'est pas vérifiable, seulement recopiable. C'est la
+  troisième clause de la règle de `CLAUDE.md`, et elle vient d'être payée.
+- **`eval/README.md` annonçait dix-huit invariants** alors que `I19` à `I22` existaient déjà. Un
+  compte recopié plutôt que remesuré, dans le fichier qui décrit la porte. Remesuré à **28** par
+  `grep -c '^-- @invariant '`, et la façon de le remesurer est écrite à côté du chiffre.
+
+### Les verdicts, aucune fonction laissée en silence
+
+**13 fonctions `compass_*`**, dont **6** lisent une table restreinte. Les trois « non examinées »
+du ticket n'en lisent aucune — et c'est le recensement qui le dit, pas une lecture :
+
+| Fonction | Verdict |
+| --- | --- |
+| `compass_bodacc_within` | hors périmètre — BODACC, `premise_location` : toutes en `using (true)` |
+| `compass_vintages` | hors périmètre — publie la **taille du fichier** (84 031 / 83 399), pas un agrégat, et c'est elle qui rend la retenue lisible |
+| `compass_source_freshness` | hors périmètre — `ingestion_run`, et son `bdcom: 228 275` est la somme de ce que `compass_vintages` publie déjà |
+
+Réponses mesurées **strictement identiques** pour les trois appelants sur les trois fonctions. Le
+point à retenir de la première : `premise_location` n'est pas restreinte non plus — **ce sont les
+relevés qui portent la licence, pas les locaux.**
+
+`compass_survival_by_trade` est la seule que le recensement a sortie sans défaut derrière : juste
+depuis son premier jet, mais jouée seulement en privilégié par `I21`. `I27`/`I28` la couvrent
+désormais en anonyme, et le bras D aussi.
+
+### Ce que la règle ne rattrape pas
+
+- **`I23` lit du texte.** Une table atteinte par une **vue**, par du SQL dynamique ou via une
+  autre fonction lui échappe. Aucune vue interposée aujourd'hui : c'est une mesure, pas une
+  garantie.
+- **`I24` vérifie qu'un test existe, pas qu'il teste.** Un invariant `@as anon` creux satisferait
+  la couverture. Limite de `I22` sous une autre forme.
+- **La doctrine `authenticated` n'est pas tranchée.** Un appelant connecté reçoit le contenu 2017 —
+  il le recevait déjà des trois fonctions `DEFINER`, mesuré. Que le rôle de *quiconque a créé un
+  compte* soit « privilégié » est une décision du 9 août (`20260809000010`) appliquée depuis à
+  quatre fonctions, notée dans `DIAGNOSTIC.md` §21 pour cesser d'être invisible, pas réglée ici.
+
+### Un défaut trouvé en chemin, consigné et non corrigé
+
+En sabotant `I28` : `compass_survival_by_trade` dérive le volet BDCom de **deux** millésimes et ne
+cite, sur la branche divulguée, que la licence de celui d'**arrivée**. Mesuré aux Halles, niv18 111,
+appelant privilégié : `86,5 %` sur **2017 → 2023**, `licence = ODbL-1.0` — alors que 2017 porte
+`custom` et `publicly_redistributable = false`, motif même de la retenue de la branche d'à côté.
+Famille du §13, variante *dérivation*. La règle manquante tient en une phrase : **une valeur dérivée
+de plusieurs millésimes porte la licence la plus restrictive.** `DIAGNOSTIC.md` §24. Un appelant
+anonyme ne voit jamais cette ligne — le défaut ne touche que ceux qui pourraient republier.
+
+### Portes
+
+`typecheck` ✓ · **122 tests** ✓ (inchangé — ce ticket ne touche pas `src/`) · `build` ✓ ·
+`build:dev` ✓ · `verify:mcp` **41 contrôles, 39 au vert, 0 en échec**, 2 suspendus sur panne des miroirs
+Overpass (429) — lancée bien que ni `src/core/` ni `mcp-server/` ne soient modifiés, parce que le
+serveur MCP appelle `compass_premises_within` et `compass_scoring_context_within`, dont le mode de
+sécurité change.
+
+**`eval` contre le distant, migration non posée — et son verdict est une preuve, pas un échec :**
+
+| | Résultat |
+| --- | --- |
+| `I1` à `I22` | **22 au vert** |
+| **`I23`** | **ÉCHOUE, 3 lignes** — `compass_premises_within`, `compass_scoring_context_within`, `compass_street_rotation`, toutes `security_definer = false` |
+| `I24` | au vert — 6 fonctions recensées, toutes couvertes |
+| `I25` | **ERREUR** — `column r.withheld does not exist` |
+
+C'est exactement la signature que `DIAGNOSTIC.md` §10 décrit pour `I14` jouée contre la fonction
+défectueuse encore en ligne. **Les invariants mordent contre la vraie base**, ce qu'aucune
+transaction annulée ne peut démontrer.
+
+**Ce que la transaction annulée démontre, elle**, jouée contre le distant, migration appliquée puis
+`rollback` : `I18`, `I23`, `I25`, `I26`, `I27`, `I28` **tous à zéro ligne**, `I24` à 6 fonctions
+couvertes. Plus les quatre sabotages, deux par paire, chacun dans son sens.
+
+### Ce qui reste, et c'est la première chose à faire à la reprise
+
+**`20260825000014_licence_withholding_rule.sql` n'est pas posée.** `--dry-run` confirme une seule
+migration en attente ; la commande elle-même a été **refusée par le classificateur du mode auto** —
+troisième refus sur quatre poussées, même cause que les précédentes. Elle se lance à la main :
+
+```powershell
+$raw = (Get-Content .env.local | Where-Object { $_ -like 'DATABASE_URL=*' } | Select-Object -First 1) -replace '^DATABASE_URL=','' -replace '^"','' -replace '"$',''
+if ($raw -match '^(postgresql://)([^:]+):(.*)@(.+)$') {
+  $enc = $Matches[1] + [uri]::EscapeDataString($Matches[2]) + ':' + [uri]::EscapeDataString($Matches[3]) + '@' + $Matches[4]
+  npx.cmd supabase db push --db-url $enc
+} else { "URL non reconnue dans .env.local" }
+```
+
+Puis, dans cet ordre : `npm.cmd run eval` (doit passer à 28/28), `npm.cmd run eval:sabotage` (doit
+rendre PASS, alors qu'il rend FAIL aujourd'hui sur « la porte est déjà rouge »), `npm.cmd run
+eval:anon` (deux nouveaux contrôles), et remesurer le ledger — **attendu à 41**, mesuré à **40** à
+la clôture de cette session.
+
+**L'issue [`#57`](https://github.com/IvandeMurard/paris-compass/issues/57) reste ouverte**, et doit
+le rester tant que la migration n'est pas posée : son critère 1 demande un appel **anonyme** qui ne
+rende plus `0` sans marqueur, et cet appel-là passe encore par la fonction défectueuse en ligne.
+Les critères 2 et 3 sont tenus au dépôt.
+
+**Le point 24 n'a pas d'issue.** À ouvrir si l'on veut le suivre ailleurs que dans `DIAGNOSTIC.md`.
+
+**Mesures à la clôture, remesurées, pas recopiées :** ledger distant **40** migrations, dernière
+`20260825000013` · **13 fonctions `compass_*`** · **28 invariants** (`grep -c '^-- @invariant '`) ·
+issues **40 ouvertes, 12 fermées**, inchangé.
 
 ---
 

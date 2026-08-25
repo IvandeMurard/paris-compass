@@ -649,6 +649,10 @@ l'UI, ou au moins cesser de la déballer dans l'adaptateur.
 >   pour `compass_address_timeline`, I12/I13 pour `compass_scoring_context_within`, I14/I15
 >   pour celle-ci. L'épinglage de `find_premises` à 2023 n'était pas le correctif et ne devient
 >   pas inutile : il tient sur la règle de licence, pas sur ce défaut.
+>
+>   *Vrai au 17 août, et « trois » n'est plus le compte.* Elles sont **six**, énumérées depuis
+>   `pg_proc` par `I23`/`I24` depuis le 25 août — c'est précisément parce que ce nombre était
+>   tenu à la main qu'une cinquième fonction est née fausse (`DIAGNOSTIC.md` §19 et §23).
 
 **4.2 — `llms.txt`** à la racine du site.
 
@@ -896,7 +900,10 @@ BODACC : une durée médiane avant revente n'est **pas** un taux de rotation.
 
 **6.3 — Agrégation par rue entière.** `street_segment.voie_id` regroupe les tronçons d'une
 même voie ; rien ne l'utilise. Et `compass_street_rotation`, seule fonction qui descend au
-tronçon, n'est appelée par personne — pas même par la porte.
+tronçon, n'a toujours aucun appelant produit — ni front ni MCP. ~~Pas même la porte.~~ **La porte
+l'appelle depuis le 25 août** : `I25`/`I26` et le bras D, ajoutés par `w0-retenue` (#57) après
+qu'elle a été trouvée en train d'affirmer `changed_since_previous = 0` à un appelant anonyme
+(`DIAGNOSTIC.md` §19). Une fonction que personne n'appelle répond quand même par PostgREST.
 
 **6.4 — Exposer les prix par activité.** Le prix médian par métier n'existe aujourd'hui que
 comme **baseline d'évaluation figée** ; aucune fonction ne le sert. Règle rappelée : grouper
