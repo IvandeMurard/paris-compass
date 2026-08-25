@@ -121,6 +121,7 @@ export type IngestionSource =
   | "plu"
   | "chantiers"
   | "terrasses"
+  | "sirene_stock"
 
 /**
  * Records a successful load.

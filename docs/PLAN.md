@@ -713,8 +713,28 @@ non chargés : ils ne servent à rien pour le fait d'exposition d'aujourd'hui, e
 `w7-etude-chantiers` §5.5, qui en aura besoin pour son étude rétrospective 2020→2023, les
 chargera quand ce chantier-là démarrera plutôt que par anticipation.
 
-**5.2 — Croiser SIRENE et BDCom.** Aucune source nouvelle, aucune licence nouvelle : les deux
-sont déjà ingérées.
+**5.2 — Croiser SIRENE et BDCom. Fait le 25 août 2026** — `w1-survie` (#14), qui redit cette
+section et §6.2 ; les trois sont clos ensemble.
+
+~~Aucune source nouvelle, aucune licence nouvelle : les deux sont déjà ingérées.~~ **Faux, et
+remesuré le 25 août contre la base :** `sirene_establishment` ne porte que siret, siren, geom et
+qualité de géocodage — **aucune date, aucun état administratif**. La migration `20260809000006`
+le disait déjà en le chargeant (« a different file and a different chantier ») ; cette ligne ne
+l'avait jamais recoupé. Le volet continu exige donc le fichier **StockEtablissement** de l'INSEE
+(parquet 2,20 Go, millésime 2026-08-01, **Licence Ouverte v2**), chargé par
+`scripts/ingest/sirene-stock.ts` — 371 511 établissements parisiens de pied de rue, dont 282 583
+rattachés à un quartier.
+
+**Le résultat, mesuré :** 86,5 % des locaux « Café et Restaurant » de 2017 en étaient encore un en
+2023 ; seules **52,5 %** des entreprises du même métier immatriculées entre 2017 et 2020 tenaient
+six ans. **Le local persiste, l'exploitant tourne** — et aucune des deux sources ne peut le dire
+seule. Les deux survies sont rendues comme **deux lignes** par `compass_survival_by_trade`, jamais
+fusionnées (§3.4). Le volet BDCom est retenu à l'anonyme, le volet SIRENE servi : c'est la
+première fois de ce corpus qu'un appelant anonyme reçoit un vrai taux.
+
+**Le grain est le quartier, pas le tronçon.** Mesuré : sur 6 338 tronçons portant un café ou un
+restaurant en 2017, **un seul** atteint un effectif de 30 ; les 80 quartiers l'atteignent tous.
+Détail complet dans `docs/tickets/w1-survie.md`.
 
 BDCom donne trois photos (2017, 2020, 2023). SIRENE porte les **dates de création et de
 cessation en continu**. Le croisement comble les années aveugles entre recensements et
@@ -864,7 +884,12 @@ par un `lag()` sur `(location_id, vintage_year)`. Aujourd'hui cette information 
 sous forme de **booléen** (`changed_from_previous`) : on sait qu'il y a eu changement, jamais
 vers quoi.
 
-**6.2 — Analyse de survie.** `first_seen_vintage_id` / `last_seen_vintage_id` plus les avis
+**6.2 — Analyse de survie. Fait le 25 août 2026**, avec §5.2 et `w1-survie` (#14) — voir §5.2
+pour la mesure et `docs/tickets/w1-survie.md` pour le détail. Ce qui suit reste vrai de la piste
+*par local*, que ce chantier n'a pas prise : il agrège par quartier et par métier, jamais par
+local, parce qu'un SIRET ne nomme pas un local.
+
+`first_seen_vintage_id` / `last_seen_vintage_id` plus les avis
 BODACC datés donnent une durée de tenure par local. L'ingrédient manquant — les **dates de
 cessation SIRENE** — est déjà identifié en §3.4. Rappel de prudence porté par la migration
 BODACC : une durée médiane avant revente n'est **pas** un taux de rotation.

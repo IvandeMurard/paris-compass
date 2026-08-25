@@ -180,6 +180,29 @@ utilisés**, après lecture de ce que dit exactement cette licence personnalisé
 
 ---
 
+## 7 bis. Le tronçon est trop fin pour une survie — mesuré le 25 août 2026
+
+Écrit en faisant `w1-survie` (#14), parce que le ticket demandait « taux par métier × tronçon »
+et que la mesure a dit non.
+
+Sur les **6 338 tronçons** portant au moins un local « Café et Restaurant » au millésime 2017 —
+le métier le plus nombreux du corpus, 14 587 locaux :
+
+| Effectif du tronçon | Tronçons concernés |
+| --- | --- |
+| n ≥ 10 | **95** sur 6 338 |
+| n ≥ 30 | **1** sur 6 338 |
+
+À titre de comparaison, **les 80 quartiers atteignent tous n ≥ 30**, et 78 atteignent n ≥ 50.
+
+**La conséquence vaut pour tout taux, pas seulement pour la survie.** Un tronçon parisien porte
+quelques unités d'un métier donné : n'importe quel pourcentage calculé dessus décrit le hasard
+d'échantillonnage autant que la rue. Le tronçon reste le bon grain pour un **fait** — ce local est
+à 40 m d'un chantier, ce linéaire est protégé par le PLU — et le mauvais grain pour un **taux**.
+
+C'est la raison pour laquelle `compass_survival_by_trade` agrège par quartier, et pourquoi
+`compass_street_rotation` rend des dénombrements bruts par tronçon plutôt que des proportions.
+
 ## 8. En résumé, pour le schéma
 
 - Ingestion **par l'API REST paginée**, pas par téléchargement de fichier. `outSR=4326` pour

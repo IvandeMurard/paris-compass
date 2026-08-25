@@ -1,4 +1,4 @@
-# Reprise — état au 25 août 2026, fin de session 9
+# Reprise — état au 25 août 2026, fin de session 10
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`
@@ -6,35 +6,36 @@ qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.m
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
 
-## Clôture de la session 9 — l'état exact au 25 août 2026, 10 h 16 UTC
+## Clôture de la session 10 — l'état exact au 25 août 2026, 13 h 30 UTC
 
 Tout est mesuré à la clôture, pas recopié. C'est le point de départ propre de la session
 suivante.
 
 | Mesure | Valeur |
 | --- | --- |
-| `main` local | arbre modifié, **pas encore poussé** — voir « Ce qui reste à faire » ci-dessous |
-| Ledger distant `dbefhvmyfmmhjeetdddu` | **37** migrations, dernière `20260825000010` |
-| Fonctions `compass_*` | **11**, compte inchangé — `compass_premises_within` a été étendue une troisième fois, pas ajoutée |
-| Issues | **40 ouvertes, 11 fermées** — remesuré par `gh`, inchangé : `#15` reste ouverte, sa fermeture est laissée à une décision explicite |
-| Portes | `typecheck` ✓ · **108 tests** ✓ (inchangé) · `eval` — 20/20 invariants, 8/8 cas dorés, sort avec le code 3 (`AVERTISSEMENT`, pas `ÉCHEC`) sur les dix mêmes écarts de baseline déjà notés · `build` et `build:dev` ✓ · `verify:mcp` non relancée (ni `src/core/` ni `mcp-server/` touchés) |
+| `main` local | arbre modifié — voir « Ce qui reste à faire » ci-dessous |
+| Ledger distant `dbefhvmyfmmhjeetdddu` | **40** migrations, dernière `20260825000013` |
+| Fonctions `compass_*` | **13** — `compass_survival_by_trade` et `compass_survival_min_cohort` ajoutées |
+| Sources dans `ingestion_run` | **8** — `sirene_stock` ajoutée : 371 511 lignes, millésime 2026-08-01 |
+| Issues | **40 ouvertes, 11 fermées** — remesuré par `gh` à la clôture. `#14` et `#15` restent ouvertes : leur fermeture est laissée à une décision explicite |
+| Portes | `typecheck` ✓ · **122 tests** ✓ (108 avant, +14 pour `survivalText`) · `build` et `build:dev` ✓ · `verify:mcp` non relancée (ni `src/core/` ni `mcp-server/` touchés) |
 
-**`w1-terrasses` (#15) est fait**, deuxième ticket de la vague 1 sur les trois de la file.
-Le suivant et dernier dans l'ordre de `docs/SESSIONS.md` est `w1-survie` (#14), Opus 5 — après
-lui, tous les tickets P0 non bloqués de la vague 1 seront faits (`w1-historique` reste hors
-file, suspendu à une réponse de l'APUR).
+**`w1-survie` (#14) est fait**, troisième et dernier ticket de la file de la vague 1. **Tous les
+tickets P0 non bloqués de la vague 1 sont désormais faits** — `w1-historique` reste hors file,
+suspendu à une réponse de l'APUR.
 
-### Les sept sources sont chargées, terrasses est la nouvelle
+### Les huit sources sont chargées, `sirene_stock` est la nouvelle
 
 ```
-source     cadence     source datée  chargé le   âge   lignes    par
-bdcom      triennial   2023-06       2026-08-25  0 j   228 275   manual
-bodacc     continuous  2026-08-23    2026-08-25  0 j   163 788   schedule
-chantiers  weekly      2026-08-25    2026-08-25  0 j       120   manual
-geography  rare        2026-08-25    2026-08-25  0 j    25 174   workflow-dispatch
-plu        rare        2024-11-20    2026-08-25  0 j     5 107   manual
-sirene     monthly     2026-08-21    2026-08-25  0 j    68 881   manual
-terrasses  rare        2026-08-25    2026-08-25  0 j    24 194   manual
+source        cadence     source datée  chargé le   âge   lignes    par
+bdcom         triennial   2023-06       2026-08-25  0 j   228 275   manual
+bodacc        continuous  2026-08-23    2026-08-25  0 j   163 788   schedule
+chantiers     weekly      2026-08-25    2026-08-25  0 j       120   manual
+geography     rare        2026-08-25    2026-08-25  0 j    25 174   workflow-dispatch
+plu           rare        2024-11-20    2026-08-25  0 j     5 107   manual
+sirene        monthly     2026-08-21    2026-08-25  0 j    68 881   manual
+sirene_stock  monthly     2026-08-01    2026-08-25  0 j   371 511   manual
+terrasses     rare        2026-08-25    2026-08-25  0 j    24 194   manual
 ```
 
 `terrasses` reste sur `rare` par défaut — le jeu ne publie aucune cadence, à la différence de
@@ -85,6 +86,137 @@ distante ne se fait pas sur un « probablement inutile ».
 > de la session 6 — les chargements, la table de fraîcheur, le 404 de SIRENE — le **25**. Les
 > dates écrites plus bas sont celles de la mesure, pas celles de la rédaction, et c'est la règle
 > de `CLAUDE.md` : un chiffre mesuré porte **sa** date.
+
+---
+
+## Le 25 août, session 10 : `w1-survie` est fait — et le local n'est pas l'exploitant
+
+**`w1-survie` (#14) est fait**, dernier ticket de la file de la vague 1. Démontré par appel
+anonyme réel sur les deux quartiers du critère : **Halles** rend 55,1 % de survie d'exploitant
+(102 sur 185, cohorte 2017-01 → 2020-08 censurée à six ans) et **Mail** 57,3 % (71 sur 124) — avec,
+à côté, un volet BDCom explicitement **retenu** et sa raison. Détail complet dans
+`docs/tickets/w1-survie.md`.
+
+**Ce ticket redit `docs/PLAN.md` §5.2 *et* §6.2** — deux sections d'un coup, c'est le premier dans
+ce cas. Les trois sont clos ensemble.
+
+### Le résultat qui valait le chantier : le local persiste, l'exploitant tourne
+
+| | Local (BDCom) | Exploitant (SIRENE) |
+| --- | --- | --- |
+| Paris entier, Café et Restaurant, 6 ans | **86,5 %** | **52,5 %** |
+| Halles | 86,5 % (268/310) | 55,1 % (102/185) |
+| Mail | 86,7 % (137/158) | 57,3 % (71/124) |
+| Belleville | 77,2 % (115/149) | 38,9 % (49/126) |
+| Bel-Air | 96,1 % (98/102) | 63,6 % (35/55) |
+
+Près de neuf locaux sur dix sont encore un café ou un restaurant six ans plus tard ; à peine une
+entreprise sur deux a tenu. **Aucune des deux sources ne peut le dire seule**, ce que `PLAN.md`
+§3.4 annonçait sans pouvoir le mesurer. Et les deux dimensions concordent sans être redondantes :
+Belleville est le plus dur sur les deux, Bel-Air le plus sûr sur les deux.
+
+**C'est aussi ce qui tue l'interdit doctrinal mieux qu'un avertissement.** Un lecteur à qui l'on
+montre un seul taux peut le lire comme une chance individuelle ; à qui l'on montre 86,5 % de
+locaux **et** 52,5 % d'exploitants, non — les deux nombres répondent visiblement à deux questions.
+La fonction rend donc **deux lignes**, jamais deux colonnes : la forme de la réponse porte la
+doctrine.
+
+### Quatre chiffres du ticket étaient faux, et le plus coûteux était sa prémisse
+
+- **« Aucune source nouvelle » était faux.** `sirene_establishment` porte quatre colonnes — siret,
+  siren, geom, qualité de géocodage — et **aucune date, aucun état administratif**. Mesuré en base
+  avant d'écrire quoi que ce soit. La migration `20260809000006` le disait déjà en toutes lettres
+  en chargeant cette tranche : « a different file and a different chantier ». Personne n'avait
+  recoupé le ticket contre la base. Le volet continu a donc exigé le fichier **StockEtablissement**
+  de l'INSEE — parquet 2,20 Go, millésime 2026-08-01, **Licence Ouverte v2**.
+- **« Par tronçon » est hors de portée.** Sur 6 338 tronçons portant un café ou un restaurant en
+  2017, **un seul** atteint un effectif de 30 ; les 80 quartiers l'atteignent tous. Consigné dans
+  `docs/BDCOM.md` §7 bis, parce que la conséquence dépasse ce ticket : le tronçon est le bon grain
+  pour un **fait**, le mauvais pour un **taux**.
+- **« Un café » au sens strict est trop petit** : n=36 aux Halles, n=18 au Mail. Le grain publiable
+  est le niveau 18, « Café et Restaurant ».
+- **Le couple Halles / Mail ne discriminait pas** côté BDCom : 86,5 contre 86,7, quand Paris entier
+  est à 86,5. Le critère aurait été tenu à la lettre en ne disant rien — ce que la règle fondatrice
+  du projet interdit. Belleville / Bel-Air est démontré **à côté**, pas à la place.
+
+### La licence, renversée pour une fois
+
+Toute cohorte de départ BDCom est en 2017 ou 2020, deux millésimes `publicly_redistributable =
+false`. Et ce projet retient déjà les **agrégats** qui en dérivent — `compass_scoring_context_within`
+rend 3 855 locaux au privilégié et 0 + `withheld` à l'anonyme. Un taux de survie doit énoncer son
+effectif pour être honnête, et énoncer « n = 310 en 2017 » publie un dénombrement de ce millésime.
+**Le volet BDCom est donc retenu.**
+
+SIRENE, elle, est en Licence Ouverte v2. **C'est la première fois de ce corpus qu'un appelant
+anonyme reçoit un vrai taux** plutôt qu'un marqueur de retenue.
+
+### Un défaut trouvé en chemin, et c'est lui qui a dicté la conception
+
+`compass_street_rotation` est `SECURITY INVOKER`. Mesuré aux Halles, 300 m : un appelant privilégié
+reçoit trois millésimes et **78** changements d'activité sur 2023 ; un appelant anonyme reçoit
+**2023 seul et `changed_since_previous = 0`**, sans aucun marqueur. Le `lag()` n'a plus de millésime
+antérieur à comparer, donc la fonction **affirme « aucun changement »** là où la vérité est 78.
+
+Cinquième variante de la famille §9/§12/§15/§16, et la plus difficile à voir : rien n'est nul,
+chaque colonne porte un nombre plausible. `DIAGNOSTIC.md` §19, **consigné et non corrigé** — hors
+périmètre, et la fonction n'a aucun appelant. `compass_survival_by_trade` est écrite en
+`SECURITY DEFINER` dès le premier jet **à cause de** ce défaut.
+
+> **L'invariant `I18` ne l'attrape pas, et c'est instructif.** Il vérifie qu'une fonction portant
+> une colonne `observed` est `SECURITY DEFINER`. `compass_street_rotation` n'expose que des
+> dénombrements, donc `I18` ne la regarde pas. La règle structurelle attrapait la *forme* du défaut
+> de l'époque, pas sa cause : **une fonction qui agrège des lignes soumises à RLS court le même
+> risque qu'une fonction qui les rend une par une.**
+
+### Une erreur commise et corrigée dans la même session
+
+Le pont BDCom ↔ NAF de `20260825000012` portait deux codes de niveau 18 **inventés** : `101`
+renvoyé vers l'alimentaire alors que 101 est « Grand magasin » — vivant et faux, il aurait répondu
+sur les grands magasins par la survie des épiciers — et `114` pour Santé-Beauté, qui n'existe pas
+(c'est `104`). Corrigé par `20260825000013`, contre la nomenclature elle-même.
+
+**`111` était juste, et c'est le seul qui avait été mesuré avant d'être écrit.** Les codes vérifiés
+étaient bons, les codes supposés étaient faux, dans la même table et le même commit. La règle du
+dépôt — remesurer plutôt que recopier — vaut pour un identifiant autant que pour un chiffre.
+
+### Trois pièges du fichier INSEE, pour la prochaine session qui y touchera
+
+- **`dateDebut` est la date de fermeture** quand `etatAdministratifEtablissement = 'F'`. Le nom de
+  la colonne dit l'inverse de ce que vaut la valeur. Une colonne générée, `date_fermeture`, fait
+  cette lecture une fois pour toutes.
+- **La censure n'est pas optionnelle.** Une entreprise créée en 2022 ne peut pas avoir survécu six
+  ans au 1ᵉʳ août 2026 ; laissée au dénominateur elle compte comme un échec et effondre le taux
+  pour une raison qui n'a rien à voir avec le métier. La fenêtre se ferme à (date du stock − N
+  années), et c'est **la fenêtre réellement utilisée** qui est rendue.
+- **Les deux cohortes ne se comparent pas terme à terme.** BDCom part d'un **stock** — tout local
+  exerçant au millésime, y compris installé depuis trente ans. SIRENE part d'un **flux** — les
+  immatriculations de la fenêtre, donc des entreprises jeunes, qui échouent davantage. Une part de
+  l'écart 86,5 / 52,5 tient à cette composition et non à la seule distinction local/exploitant.
+  Écrit dans l'`evidence` de chaque ligne SIRENE.
+
+### La garde anti-prévisionnel est un mécanisme, pas une intention
+
+`src/i18n/survivalText.ts`, tenu par 14 tests. Le sujet grammatical est toujours la cohorte passée,
+jamais le local consulté. `describeSurvival` **refuse** de rendre un taux sans son effectif et sa
+période — il n'existe aucun chemin de code produisant un pourcentage nu. Et `assertObservational`
+lève sur toute deuxième personne, tout futur et tout vocabulaire de probabilité **à la sortie**, pas
+seulement dans le test — **y compris sur le texte venu de la base**, puisque `evidence` est écrite
+en SQL et que c'est précisément là qu'un « votre » bien intentionné finirait par être tapé.
+
+### Portes
+
+`typecheck` ✓ · **122 tests** ✓ (108 avant) · `build` et `build:dev` ✓. `verify:mcp` non relancée :
+ni `src/core/` ni `mcp-server/` touchés.
+
+### Ce qui reste, et qui n'appartient pas à cette session
+
+- **L'issue #14 reste ouverte** — sa fermeture demande une décision explicite, comme #15.
+- **`StockEtablissementHistorique` n'est pas chargé** (0,87 Go) : le stock courant suffit à
+  création + fermeture.
+- **Le pont NAF est partiel** — 111, 102, 104. Un métier absent rend « aucune correspondance
+  posée », jamais un taux de zéro. L'hôtellerie n'a pas de volet SIRENE : NAF 55 n'est pas une
+  division de pied de rue.
+- **Le chargeur n'est pas câblé sur le cron**, et **l'écran reste à Lovable**.
 
 ---
 
