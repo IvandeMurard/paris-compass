@@ -20,22 +20,30 @@ Voir [`docs/PLAN-ACTION-VACANCE.md`](../PLAN-ACTION-VACANCE.md). Relit `docs/PLA
 
 ---
 
-## Le 25 août 2026 — la moitié posée, la moitié bloquée sur un secret
+## Fait le 25 août 2026 — le cron a tourné seul, issue fermée
 
 **Ce ticket redit `docs/PLAN.md` §2.2bis et §2.2ter mot pour mot.** Les deux sont clos ensemble
 et se citent l'un l'autre, plutôt que laissés diverger. §2.2bis posait la question « où tourne
 un job planifié à privilèges élevés », §2.2ter demandait « une table générique (source,
 dernière exécution réussie, nombre de lignes) » : ce sont les deux moitiés de ce ticket.
 
-**Le critère est en deux temps, et un seul est atteint.**
+**Le critère est en deux temps, et les deux sont atteints.**
 
 | « Fait quand » | État |
 | --- | --- |
 | `compass_*` expose `ingested_at` pour BDCom, géographie, BODACC et SIRENE | **fait** — `compass_source_freshness()`, migration `20260825000001`, ledger distant remesuré à **30** en fin de session |
-| Un cron a tourné au moins une fois sans intervention manuelle | **pas encore** — le secret est posé et le pipeline tourne en CI, mais aucun `schedule` ne s'est déclenché |
+| Un cron a tourné au moins une fois sans intervention manuelle | **fait** — run [32807455464](https://github.com/IvandeMurard/paris-compass/actions/runs/32807455464), événement `schedule`, `run_by = schedule` |
 
-L'issue reste donc **ouverte**. Elle se ferme au premier passage planifié, que
-`compass_source_freshness()` rendra visible en basculant `run_by` sur `schedule`.
+**Les deux moitiés sont remplies, issue fermée le 25 août.** Le cron BODACC s'est déclenché
+seul à 04:02 UTC pour une planification à 03:17 — le retard habituel de GitHub, sans
+conséquence. `run_by` vaut `schedule`, ni `manual` ni `workflow-dispatch`, et `run_ref` porte
+l'URL du run : l'affirmation se recoupe au lieu de se croire.
+
+**Et l'enchaînement s'est vérifié en conditions réelles.** `bodacc.ts` →
+`sirene.ts --confirm-only` a réévalué **84 255 avis**, et les confirmations sont intactes après
+un rechargement automatique — **82 371 confirmés, 1 884 infirmés**, les valeurs d'avant. Sans
+cette chaîne, ce passage aurait détruit les 3 147 niveaux `corrobore` et recommencé chaque nuit.
+Le défaut est vérifié corrigé par le mécanisme même qui l'aurait déclenché.
 
 **Ce qui est démontré en CI**, run
 [32798202890](https://github.com/IvandeMurard/paris-compass/actions/runs/32798202890) du

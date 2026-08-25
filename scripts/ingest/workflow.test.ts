@@ -115,9 +115,9 @@ describe("workflow d'ingestion", () => {
   })
 
   it("rejoue la confirmation SIRENE après BDCom, sans quoi le cron quotidien détruit les corroborations", () => {
-    // bodacc.ts reconstruit bodacc_announcement en entier, ce qui efface en cascade
-    // operator_confirmed. Sans cet enchaînement, le cron quotidien effacerait chaque nuit les
-    // 3 147 niveaux `corrobore` que SIRENE établit, et SIRENE ne repasse que tous les mois.
+    // bodacc.ts rebuilds bodacc_announcement wholesale, which cascades to operator_confirmed.
+    // Without this chain the daily cron would wipe, every night, the 3 147 `corrobore` levels
+    // SIRENE establishes — and SIRENE only runs monthly.
     const arm = /bodacc\)([\s\S]*?);;/.exec(structure)?.[1] ?? ""
     const bodaccAt = arm.indexOf("ingest/bodacc.ts")
     const confirmAt = arm.indexOf("--confirm-only")

@@ -108,7 +108,7 @@ hors de la file, pour qu'aucun ticket ne disparaisse en silence.
 | ~~3~~ | ~~`w0-provenance`~~ | [#10](https://github.com/IvandeMurard/paris-compass/issues/10) | **fait** | P0 | Opus 5 |
 | ~~4~~ | ~~`w0-fiche`~~ | [#8](https://github.com/IvandeMurard/paris-compass/issues/8) | **fait** | P0 | Opus 5 |
 | ~~5~~ | ~~`w0-mcp-verif`~~ | [#53](https://github.com/IvandeMurard/paris-compass/issues/53) | **fait** | P0 | Opus 5 |
-| 6 | `w0-cron` | [#6](https://github.com/IvandeMurard/paris-compass/issues/6) | ouvert | P0 | Opus 5 |
+| ~~6~~ | ~~`w0-cron`~~ | [#6](https://github.com/IvandeMurard/paris-compass/issues/6) | **fait** | P0 | Opus 5 |
 | 7 | `w0-plu` | [#9](https://github.com/IvandeMurard/paris-compass/issues/9) | ouvert | P0 | Sonnet 5 |
 | 8 | `w1-chantiers` | [#11](https://github.com/IvandeMurard/paris-compass/issues/11) | ouvert | P0 | Sonnet 5 |
 | 9 | `w1-terrasses` | [#15](https://github.com/IvandeMurard/paris-compass/issues/15) | ouvert | P0 | Sonnet 5 |
@@ -287,16 +287,21 @@ Ensuite seulement, le script npm a la racine, et la ligne dans SESSIONS.md qui
 demande de le lancer.
 ```
 
-## Session 6 — `w0-cron` (#6) · Opus 5 — **à moitié faite le 25 août, issue laissée ouverte**
+## Session 6 — `w0-cron` (#6) · Opus 5 — **faite le 25 août**
 
 Touche aux privilèges.
 
-> **Faite à moitié le 25 août, et l'issue reste ouverte à dessein.** Le « Fait quand » est en
-> deux temps : `compass_*` expose une date de fraîcheur pour les quatre sources — **fait**,
-> migration `20260825000001`, ledger distant à 28 — et un cron a tourné au moins une fois sans
-> intervention — **non**, le secret de dépôt `DATABASE_URL` restant à poser par une main
-> humaine. L'issue se ferme au premier passage planifié, que `run_by` rendra visible en
-> basculant de `manual` à `github-actions`.
+> **Faite le 25 août, issue fermée.** Les deux moitiés du « Fait quand » : `compass_*` expose
+> une date de fraîcheur pour les quatre sources — migration `20260825000001`, ledger distant à
+> **30** — et **un cron a tourné seul**, run
+> [32807455464](https://github.com/IvandeMurard/paris-compass/actions/runs/32807455464),
+> événement `schedule`, `run_by = schedule`. Déclenché à 04:02 UTC pour une planification à
+> 03:17, retard habituel de GitHub.
+>
+> **L'enchaînement s'est vérifié en conditions réelles** : `bodacc.ts` →
+> `sirene.ts --confirm-only`, 84 255 avis réévalués, confirmations intactes après un
+> rechargement automatique. Sans cette chaîne, ce passage aurait détruit les 3 147 niveaux
+> `corrobore` et recommencé chaque nuit.
 >
 > **Ce ticket redit `PLAN.md` §2.2bis et §2.2ter mot pour mot** ; les deux sont traités
 > ensemble et se citent l'un l'autre.

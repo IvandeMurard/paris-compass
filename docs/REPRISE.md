@@ -16,11 +16,18 @@ contrat d'évaluation).
 
 ## Le 25 août, session 6 : la fraîcheur est mesurable, le cron ne tourne pas encore
 
-**`w0-cron` (#6) est à moitié fait, et l'issue reste ouverte.** Le critère est en deux temps :
-`compass_*` expose une date de fraîcheur pour les quatre sources — **fait**, migration
-`20260825000001`, ledger distant à **28** — et un cron a tourné au moins une fois sans
-intervention — **non**, le secret de dépôt `DATABASE_URL` n'est pas posé, et ce n'est pas à une
-session de le poser.
+**`w0-cron` (#6) est fait, issue fermée.** Les deux moitiés du critère : `compass_*` expose une
+date de fraîcheur pour les quatre sources — migration `20260825000001`, ledger distant remesuré
+à **30** — et **un cron a tourné seul** le 25 août, run
+[32807455464](https://github.com/IvandeMurard/paris-compass/actions/runs/32807455464),
+`run_by = schedule`. Déclenché à 04:02 UTC pour une planification à 03:17 : GitHub est en retard
+sur les crons, sans conséquence ici.
+
+> **La chaîne anti-destruction s'est vérifiée dans la foulée.** Ce passage automatique a rejoué
+> `sirene.ts --confirm-only` derrière BODACC — 84 255 avis réévalués, **82 371 confirmés et
+> 1 884 infirmés**, les valeurs d'avant. Sans elle, le cron aurait détruit les 3 147 niveaux
+> `corrobore` cette nuit-là et chaque nuit suivante. Le correctif est vérifié par le mécanisme
+> même qui aurait déclenché le défaut.
 
 **Ce ticket redit `PLAN.md` §2.2bis et §2.2ter mot pour mot.** Les deux sont traités comme un
 seul chantier et se citent l'un l'autre.
@@ -103,13 +110,11 @@ le modèle de `withheld` ; la couche est retirée, `footfall` revient inconnu. *
 
 ### Trois choses à savoir pour la prochaine session
 
-- **Le secret est posé, et le premier lancement en CI a échoué sur sa valeur** — puis réussi
-  après ré-application depuis `.env.local`. La garde décrit maintenant la *forme* d'un secret
-  mal posé sans en révéler le contenu. **Le cron n'a pas encore tourné.**
-- **Le secret est la seule chose qui bloque la seconde moitié de #6.** Il se pose par
-  `gh secret set DATABASE_URL`, avec la valeur qui est déjà dans `.env.local` — la chaîne du
-  **pooler session, port 5432**. Ne pas prendre la connexion directe : `db.<ref>.supabase.co`
-  n'a qu'un enregistrement AAAA et les runners GitHub n'ont pas d'IPv6, même piège qu'en local.
+- **Le secret `DATABASE_URL` est posé et le cron tourne.** Le premier lancement avait échoué
+  sur la *valeur* du secret : la garde a refusé de démarrer, rien n'a été écrit. Le poser depuis
+  `.env.local` par un tube — jamais à la main — évite le préfixe et les guillemets. Toujours la
+  chaîne du **pooler session, port 5432** : `db.<ref>.supabase.co` n'a qu'un enregistrement AAAA
+  et les runners GitHub n'ont pas d'IPv6, même piège qu'en local, et la garde le nomme.
 - **`scripts/` est enfin typechecké et testé.** Ajouté à `tsconfig.node.json` et à
   `vitest.config.ts` — mesuré à **zéro erreur** en `strict` avant de l'inclure, ce qui ferme le
   trou que `w0-mcp-verif` avait trouvé sans le combler. `npm.cmd run test` : **107 tests**.
