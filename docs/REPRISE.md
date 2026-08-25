@@ -17,7 +17,7 @@ suivante.
 | Ledger distant `dbefhvmyfmmhjeetdddu` | **40** migrations, dernière `20260825000013` |
 | Fonctions `compass_*` | **13** — `compass_survival_by_trade` et `compass_survival_min_cohort` ajoutées |
 | Sources dans `ingestion_run` | **8** — `sirene_stock` ajoutée : 371 511 lignes, millésime 2026-08-01 |
-| Issues | **40 ouvertes, 11 fermées** — remesuré par `gh` à la clôture. `#14` et `#15` restent ouvertes : leur fermeture est laissée à une décision explicite |
+| Issues | **40 ouvertes, 12 fermées** — remesuré par `gh` après clôture de `#14` et ouverture de [`#57`](https://github.com/IvandeMurard/paris-compass/issues/57) (le défaut `DIAGNOSTIC.md` §19). Le total ouvert ne bouge pas : une fermée, une ouverte. `#15` reste ouverte |
 | Portes | `typecheck` ✓ · **122 tests** ✓ (108 avant, +14 pour `survivalText`) · `build` et `build:dev` ✓ · `verify:mcp` non relancée (ni `src/core/` ni `mcp-server/` touchés) |
 
 **`w1-survie` (#14) est fait**, troisième et dernier ticket de la file de la vague 1. **Tous les
@@ -207,7 +207,24 @@ dépôt — remesurer plutôt que recopier — vaut pour un identifiant autant q
   et 7 avaient chacune reçu un en-tête faux ; le recoupement reste le réflexe à garder, et il
   coûte trente secondes.
 
-### La garde anti-prévisionnel est un mécanisme, pas une intention
+### La garde anti-prévisionnel a d'abord été écrite au mauvais endroit
+
+Elle vivait dans `src/i18n/survivalText.ts` — le chemin du navigateur, c'est-à-dire **le seul
+consommateur qui n'existe pas encore**. Un agent appelant `compass_survival_by_trade` par
+PostgREST reçoit l'`evidence` directement et ne la rencontrait jamais : la règle protégeait le
+lecteur hypothétique et laissait passer l'appelant réel.
+
+Déplacée dans **`src/core/observational.ts`**, qui est pur par contrat (`CLAUDE.md` : « c'est ce
+qui permet de le tester et de l'exposer plus tard en MCP ») et partagé par le navigateur, le
+serveur MCP et la porte. Et **doublée en base par l'invariant `I21`**, parce qu'un garde
+TypeScript ne peut rien contre une phrase écrite en SQL — et `evidence` est écrite en SQL.
+160 phrases examinées (80 quartiers × deux volets), zéro infraction.
+
+> **La leçon se généralise, et c'est elle qui compte plus que la donnée chargée.** Un garde placé
+> sur le chemin de l'interface protège un lecteur futur et laisse passer l'appelant présent. Une
+> règle qui décide doit vivre **là où le texte est produit**, pas là où il est affiché — et si le
+> texte est produit à deux endroits, elle doit exister aux deux. Consigné aussi dans
+> `eval/FAILURE_MODES.md`.
 
 `src/i18n/survivalText.ts`, tenu par 14 tests. Le sujet grammatical est toujours la cohorte passée,
 jamais le local consulté. `describeSurvival` **refuse** de rendre un taux sans son effectif et sa
@@ -218,12 +235,23 @@ en SQL et que c'est précisément là qu'un « votre » bien intentionné finira
 
 ### Portes
 
-`typecheck` ✓ · **122 tests** ✓ (108 avant) · `build` et `build:dev` ✓. `verify:mcp` non relancée :
-ni `src/core/` ni `mcp-server/` touchés.
+`typecheck` ✓ · **122 tests** ✓ (108 avant) · `build` et `build:dev` ✓ · `verify:mcp` **41
+contrôles, 39 au vert, 0 en échec**, 2 suspendus sur panne des miroirs Overpass (429 et 504) —
+lancée parce que le déplacement de la garde touche `src/core/` · `eval` **21/21 invariants**,
+dont le nouveau `I21`, et 8/8 cas dorés ; dix écarts de baseline en avertissement, la dérive
+BODACC/SIRENE déjà notée aux clôtures précédentes.
 
 ### Ce qui reste, et qui n'appartient pas à cette session
 
-- **L'issue #14 reste ouverte** — sa fermeture demande une décision explicite, comme #15.
+- **L'issue [#14](https://github.com/IvandeMurard/paris-compass/issues/14) est fermée**, sur
+  autorisation explicite donnée au tour suivant, avec le tableau des deux quartiers en
+  commentaire — même geste que `w0-plu` et `w1-chantiers` avant elle.
+- **L'issue [#57](https://github.com/IvandeMurard/paris-compass/issues/57) est ouverte** pour le
+  défaut `DIAGNOSTIC.md` §19, avec son critère : un appel anonyme aux Halles rend soit les trois
+  millésimes, soit une ligne marquée — jamais `changed_since_previous = 0` là où un appelant
+  privilégié en compte 78. Et un invariant qui échoue si une fonction `compass_*` agrégeant
+  `premise_observation` est `SECURITY INVOKER`.
+- **`#15` reste ouverte** — sa fermeture demande une décision explicite.
 - **`StockEtablissementHistorique` n'est pas chargé** (0,87 Go) : le stock courant suffit à
   création + fermeture.
 - **Le pont NAF est partiel** — 111, 102, 104. Un métier absent rend « aucune correspondance

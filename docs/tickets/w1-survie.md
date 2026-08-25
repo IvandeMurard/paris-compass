@@ -136,8 +136,19 @@ du lecteur.
 
 ## Comment l'écran empêche la seconde lecture
 
-Le ticket pose l'interdit et s'arrête là. `src/i18n/survivalText.ts` en fait un mécanisme, et
-`survivalText.test.ts` le tient par **14 tests** :
+Le ticket pose l'interdit et s'arrête là. `src/core/observational.ts` en fait un mécanisme,
+`survivalText.test.ts` le tient par **14 tests**, et l'invariant **`I21`** l'applique en base :
+
+> **La garde a d'abord été écrite au mauvais endroit, et le déplacement est le point.** Elle
+> vivait dans `src/i18n/survivalText.ts` — le chemin du navigateur, c'est-à-dire le seul
+> consommateur qui n'existe pas encore. Un agent appelant `compass_survival_by_trade` par
+> PostgREST reçoit l'`evidence` directement et ne la rencontrait jamais : la règle protégeait le
+> lecteur hypothétique et laissait passer l'appelant réel. Déplacée dans `src/core/`, qui est pur
+> par contrat (`CLAUDE.md`) et partagé par le navigateur, le serveur MCP et la porte
+> d'évaluation. Et doublée en base par `I21`, parce qu'un garde TypeScript ne peut rien contre
+> une phrase écrite en SQL.
+
+
 
 1. **Le sujet grammatical est la cohorte passée.** « Sur les 310 locaux recensés « Café et
    Restaurant » Halles en 2017, 268 en étaient encore un en 2023. » Le local consulté n'est
@@ -187,8 +198,10 @@ La règle du dépôt s'applique à un identifiant comme à un chiffre.
 
 ## Portes
 
-`typecheck` ✓ · **122 tests** ✓ (108 avant, +14 pour `survivalText`) · `build` ✓ · `build:dev` ✓.
-`verify:mcp` non relancée : ce ticket ne touche ni `src/core/` ni `mcp-server/`.
+`typecheck` ✓ · **122 tests** ✓ (108 avant, +14 pour `survivalText`) · `build` ✓ · `build:dev` ✓ ·
+`verify:mcp` **41 contrôles, 39 au vert, 0 en échec**, 2 suspendus sur panne Overpass (429/504) ·
+`eval` **21/21 invariants** — dont le nouveau `I21` — et 8/8 cas dorés, avec les dix écarts de
+baseline déjà connus en avertissement.
 
 **Ledger distant remesuré à la clôture : 40 migrations**, dernière `20260825000013`.
 **13 fonctions `compass_*`** (11 avant). **8 sources** dans `ingestion_run`.

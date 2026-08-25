@@ -18,12 +18,24 @@
  *     includes text arriving from the database: `evidence` is written in SQL, and SQL is
  *     exactly where a well-meant "votre" would eventually be typed.
  *
+ * **The guard itself lives in `src/core/observational.ts`, not here**, and the move is the
+ * point. This file is the browser's path — the one consumer that does not exist yet. An agent
+ * calling `compass_survival_by_trade` over PostgREST never passes through it, so a guard
+ * defined here would have protected the hypothetical reader and let the real caller through.
+ * The core is shared by the browser, the MCP server and the evaluation gate; the database
+ * enforces the same rule independently as invariant `I21`.
+ *
  * Same reasoning as `timelineText.ts` and `figureText.ts`: the decision lives in a pure
  * function the node runner can test, and the component only puts the result on screen. The two
  * founding errors of PLAN.md §2.5 were both made in prose written by hand, not in the data.
  */
 
+import { assertObservational } from '@/core';
 import type { Locale } from '@/i18n/locale';
+
+// Re-exported so the browser path keeps one import, while the definition itself lives in
+// the pure core where the MCP server and the evaluation gate can reach it too.
+export { assertObservational, findForbiddenForm, FORBIDDEN_FORMS } from '@/core';
 
 export const SURVIVAL_COPY = {
   fr: {
@@ -43,51 +55,6 @@ export const SURVIVAL_COPY = {
     method: 'method',
   },
 } as const;
-
-/**
- * Forms that turn an observation into a forecast, and are refused on the way out.
- *
- * Explicit rather than a clever regex over verb endings: `-ra` would catch « opéra » and
- * « caméra », and a guard that fires on innocent words is a guard someone disables. Every
- * entry here is a word that only appears when a sentence has started addressing the reader or
- * predicting for them.
- */
-const FORBIDDEN: { pattern: RegExp; why: string }[] = [
-  {
-    pattern: /\b(votre|vos|vous|your|yours|you)\b/i,
-    why: "deuxième personne : la phrase s'adresse au lecteur au lieu de décrire une cohorte",
-  },
-  {
-    pattern: /\b(chance|chances|risque|risques|probabilit\w*|pr[ée]vision\w*|probability|odds|forecast\w*|likelihood)\b/i,
-    why: 'vocabulaire de probabilité : un taux observé est rendu comme une chance individuelle',
-  },
-  {
-    pattern:
-      /\b(tiendra|tiendront|durera|dureront|survivra|survivront|fermera|fermeront|restera|resteront|sera|seront|aura|auront|will|would|expect\w*)\b/i,
-    why: 'futur : une observation sur le passé est rendue comme une prédiction',
-  },
-];
-
-/**
- * Throws if a sentence has drifted from observation into forecast.
- *
- * Exported because the same check has to apply to `evidence`, which the database writes, and
- * to any sentence a future component assembles. Throwing rather than sanitising is deliberate:
- * silently stripping « votre » would leave a sentence that means something its author did not
- * intend, and the point is to stop the sentence from being written that way at all.
- */
-export function assertObservational(sentence: string, where = 'phrase de survie'): string {
-  for (const { pattern, why } of FORBIDDEN) {
-    const hit = pattern.exec(sentence);
-    if (hit) {
-      throw new Error(
-        `${where} — interdit doctrinal w1-survie : ${why}. Terme trouvé : « ${hit[0]} ». ` +
-          `Phrase : « ${sentence} »`,
-      );
-    }
-  }
-  return sentence;
-}
 
 /** One row of `compass_survival_by_trade`, as the browser receives it. */
 export interface SurvivalRow {

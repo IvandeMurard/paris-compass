@@ -413,3 +413,26 @@ from public.compass_scoring_context_within(
   48.828::double precision, 2.44::double precision, 400::double precision, 2023::smallint
 )
 limit 20;
+
+-- @invariant I21 :: une evidence de survie glisse de l'observation vers le previsionnel
+-- w1-survie (#14) pose un interdit doctrinal : « 72 % des cafés tiennent six ans » est une
+-- observation, « votre café a 72 % de chances » est un prévisionnel. Le garde TypeScript
+-- (src/core/observational.ts) tient le chemin navigateur et le serveur MCP — il ne peut rien
+-- contre une phrase écrite en SQL, et `evidence` est écrite en SQL. Cet invariant est la
+-- seconde moitié : la règle appliquée là où le texte est réellement produit.
+--
+-- Les 80 quartiers × les deux volets, soit 160 phrases examinées, mesuré à 0 infraction le
+-- 25 août 2026. La liste des formes est celle de FORBIDDEN_FORMS, tenue à l'identique des
+-- deux côtés — deuxième personne, vocabulaire de probabilité, futur. Le conditionnel est
+-- délibérément absent : « les publier reviendrait à redistribuer » décrit une conséquence
+-- logique, pas une prédiction sur un commerce.
+select q.name as quartier, s.source, left(s.evidence, 160) as evidence
+from public.quartier q
+cross join lateral public.compass_survival_by_trade(
+  ST_Y(ST_Centroid(q.geom::geometry)),
+  ST_X(ST_Centroid(q.geom::geometry)),
+  111::smallint
+) s
+where s.evidence ~* '\y(votre|vos|vous|chances?|risques?|probabilit\w*|pr[ée]vision\w*)\y'
+   or s.evidence ~* '\y(tiendra|tiendront|durera|dureront|survivra|survivront|fermera|fermeront|restera|resteront|sera|seront|aura|auront)\y'
+limit 20;

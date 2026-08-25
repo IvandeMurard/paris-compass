@@ -189,3 +189,21 @@ qu'on lui nomme. La première fois qu'il a été joué, il a trouvé que
 sur un local relevé (`DIAGNOSTIC.md` §10). Rien dans la porte ne dit *quelles*
 fonctions portent la règle de licence : cette liste est tenue à la main, et une
 fonction ajoutée sans y être inscrite ne sera pas couverte.
+
+
+## Une règle de doctrine tenue des deux côtés — `I21`, 25 août 2026
+
+`w1-survie` pose un interdit qui n'est pas une question de licence mais de **formulation** :
+« 72 % des cafés tiennent six ans » est une observation, « votre café a 72 % de chances » est un
+prévisionnel. C'est le premier interdit de ce genre que la porte vérifie.
+
+Il est tenu à **deux** endroits, et la raison mérite d'être écrite parce qu'elle se généralise.
+`src/core/observational.ts` couvre le navigateur, le serveur MCP et tout code TypeScript ; il ne
+peut rien contre une phrase écrite en SQL, et `evidence` est écrite en SQL. `I21` est cette
+seconde moitié : les 80 quartiers × les deux volets de `compass_survival_by_trade`, soit
+160 phrases, dont aucune ne doit porter de deuxième personne, de futur ni de vocabulaire de
+probabilité.
+
+**La leçon vaut au-delà de cet invariant.** Un garde placé sur le chemin de l'interface protège
+le consommateur qui n'existe pas encore et laisse passer celui qui appelle déjà — un agent, par
+PostgREST. Une règle qui compte doit vivre là où le texte est produit, pas là où il est affiché.
