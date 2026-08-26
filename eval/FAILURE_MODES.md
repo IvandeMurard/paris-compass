@@ -226,6 +226,28 @@ atteinte par une **vue**, par du SQL dynamique ou par une autre fonction lui
 d'utile. La règle rend impossible la fonction née sans règle, pas la fonction mal
 écrite — même limite que `I22`.
 
+> **Et la limite la plus nette n'a pas attendu qu'on la cherche : `w0-conclusion`
+> (#54) l'a trouvée le lendemain, dans un défaut que `I23`/`I24` regardaient sans
+> le voir.** `compass_address_timeline` était couverte — `I9`/`I10`, `I23` à zéro
+> ligne, `I24` la comptait parmi les six fonctions recensées — pendant qu'elle
+> affirmait un changement d'activité à partir d'un millésime retenu, dans sa
+> colonne `evidence`. Aucun invariant ne l'a signalé, parce qu'aucun ne lisait
+> cette colonne-là.
+>
+> **`I23` vérifie qu'une fonction *peut* annoncer sa retenue ; `I24`, qu'un test
+> anonyme *existe*. Ni l'un ni l'autre ne lit une phrase.** `I9`/`I10` et les
+> paires qui les imitent ne regardent que les colonnes d'une ligne retenue et la
+> retenue excessive — jamais l'`evidence` d'une ligne divulguée, qui peut trahir
+> ce qu'un millésime voisin contient sans jamais y toucher. **Une règle
+> structurelle vérifie qu'une fonction peut dire la vérité, jamais qu'elle la
+> dit.** C'est la phrase que ce document et `DIAGNOSTIC.md` §§ 20 et 23 tournaient
+> autour sans l'écrire ; `DIAGNOSTIC.md` § 15 le dit en toutes lettres.
+>
+> **I29–I31 sont la réponse** — le premier trio de ce dépôt à lire une prose plutôt
+> qu'une colonne, détaillé plus haut dans ce document et dans `DIAGNOSTIC.md` § 15.
+> Elles ne remplacent pas `I23`/`I24` : elles couvrent le défaut qu'aucune règle
+> structurelle ne peut voir, exactement comme le bras D ne remplace pas le bras A.
+
 
 ## Une règle de doctrine tenue des deux côtés — `I21`, 25 août 2026
 
