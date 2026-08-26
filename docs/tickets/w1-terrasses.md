@@ -143,10 +143,12 @@ précédente décrit une ingestion **posée le 25 août** — table, chargeur, q
 champs ». Or le « Fait quand » du ticket porte sur la fiche. C'est pour cela que `#15` est restée
 ouverte quand `#11` et `#14` se fermaient, et c'est ce qui se termine ici.
 
-**Rien n'a été rechargé.** Le prompt de session demandait d'écrire le chargeur ; il existait déjà,
-mesuré et posé. Le rejouer pour « démontrer » aurait réécrit les quatre colonnes terrasse des
-85 418 locaux sans rien apprendre. La vérification demandée a donc été faite **contre la source et
-contre la base**, pas contre une page qui en parle.
+**La couche n'a pas été rechargée pour démontrer quoi que ce soit.** Le prompt de session demandait
+d'écrire le chargeur ; il existait déjà, mesuré et posé. Le rejouer pour « démontrer » aurait
+réécrit les quatre colonnes terrasse des 85 418 locaux sans rien apprendre. La vérification
+demandée a donc été faite **contre la source et contre la base**, pas contre une page qui en
+parle. Un rechargement a bien eu lieu ensuite, mais pour une raison précise et à la demande : poser
+le correctif d'adresse décrit plus bas, avec la mesure prise avant et après.
 
 ### La source, revérifiée avant d'y toucher
 
@@ -258,22 +260,37 @@ local, ce qui se lit à l'écran « aucune autorisation enregistrée à cette ad
 parsing silencieux est devenu une réponse fausse à un lecteur. 23 cas, tirés de vraies chaînes de
 l'export ; remettre l'ancien motif en fait passer **10 au rouge**.
 
-**Le correctif ne change rien en base tant que la couche n'est pas rechargée** — `scripts/ingest/
-terrasses.ts` n'est pas câblé sur le cron. Les 14 adresses restent non rattachées jusqu'au
-prochain chargement manuel.
+### La couche a été rechargée, et l'écart est mesuré des deux côtés
 
-### L'état en base, remesuré le 26 août
+Un correctif de parsing ne change rien en base tant que la couche n'est pas rechargée, et
+`scripts/ingest/terrasses.ts` n'est pas câblé sur le cron. Le chargement a donc été relancé à la
+main le 26 août à 17 h 58 UTC — **une seule transaction**, comme le prévoit le chargeur, avec la
+mesure prise avant et après plutôt que déduite.
 
-Aucun rechargement : ces chiffres sont ceux du 25 août, relus, pas recopiés.
+| Mesure | Avant (chargement du 25 août) | Après (26 août, 17 h 58 UTC) |
+| --- | --- | --- |
+| `terrasse_autorisation` | 24 194 lignes | **24 189** — le millésime du jour, cinq de moins |
+| dont adressables (`street_key` et `house_number` non nuls) | 24 135 | **24 144** (+9) |
+| `premise_location` — `oui` | 4 295 | **4 297** |
+| `premise_location` — `inconnu` | 19 311 | **19 313** |
+| `premise_location` — `non` | 61 812 | **61 808** |
+| Types sur les `oui` | 2 777 permanente · 1 240 estivale · 908 étalage | 2 776 · **1 243** · 908 |
+| Types sur les `inconnu` | 12 045 permanente · 5 478 estivale · 6 685 étalage | **12 042** · **5 484** · 6 685 |
+| `ingestion_run` `source_as_of` | 2026-08-25 | **2026-08-26** |
+| Ledger distant `dbefhvmyfmmhjeetdddu` | 42 migrations | **42**, inchangé — ce ticket n'en pose aucune |
 
-| Mesure | Valeur |
-| --- | --- |
-| `terrasse_autorisation` | **24 194** lignes, dont 24 135 adressables (`street_key` et `house_number` non nuls) |
-| `premise_location` | **4 295** `oui`, **19 311** `inconnu`, **61 812** `non` |
-| Types sur les `oui` | 2 777 permanente · 1 240 estivale · 908 étalage |
-| Types sur les `inconnu` | 12 045 permanente · 5 478 estivale · 6 685 étalage |
-| `ingestion_run` `terrasses` | cadence `rare`, `row_count` 24 194, `source_as_of` **2026-08-25**, `last_success_at` 2026-08-25T10:04:48Z, `run_by` `manual` |
-| Ledger distant `dbefhvmyfmmhjeetdddu` | **42** migrations, dernière `20260826000001` — inchangé, ce ticket n'en pose aucune |
+**+9 adressables et non +14, et l'écart s'explique** : les 14 gagnées sont mesurées sur l'export
+du 26 contre lui-même, tandis que la base partait de l'export du 25, qui contenait cinq lignes
+depuis retirées — dont cinq adressables. Le solde est bien +14 sur le motif et −5 sur la source.
+
+**Quatre locaux parisiens répondent désormais autre chose que « non ».** C'est petit, c'est
+exactement ce que le correctif valait, et c'est mesuré plutôt qu'annoncé.
+
+**La date affichée suit, et c'est la preuve que la ligne de source est vivante.** Rejouée dans le
+navigateur après le rechargement, la fiche du 59 RUE GRENETA lit « état de la source au **26 août
+2026** » là où elle lisait « 25 août » une heure plus tôt — la chaîne complète
+`ingestion_run.source_as_of` → `compass_source_freshness` → `fetchSourceAsOf` → `describeTerrasse`
+→ écran, sans rien de figé en dur.
 
 ### Le recensement de `#57` : `compass_premises_within` y est, et elle passe
 
@@ -349,7 +366,9 @@ navigateur sait être. Fiche ouverte depuis une carte OpenStreetMap du quartier 
 Les trois portent la même ligne de source : « Terrasses et étalages autorisés · Ville de Paris,
 Direction de l'Urbanisme · ODbL · **état de la source au 25 août 2026** ». C'est
 `ingestion_run.source_as_of`, la fraîcheur de la **source**, jamais la date de chargement — deux
-faits différents, et `compass_source_freshness` existe précisément pour les tenir séparés.
+faits différents, et `compass_source_freshness` existe précisément pour les tenir séparés. *(Ces
+trois relevés sont d'avant le rechargement de 17 h 58 ; la même fiche lit « 26 août 2026 »
+depuis — voir plus haut.)*
 
 **Le badge `inconnu` est ambre et non gris.** Le mettre en gris à côté de `non` laisserait l'œil
 lire deux non-réponses là où il y a une trouvaille et un titulaire non publié : l'aplatissement
@@ -395,3 +414,7 @@ composition de fiabilité stable à 57,27 %. Sort en code 3 (`AVERTISSEMENT`) : 
 baseline sous le seuil bloquant, la dérive BODACC/SIRENE déjà connue, la plus large à 0,70 % ·
 **`eval:anon` PASS, 12 contrôles** · **`eval:sabotage` PASS** · `verify:mcp` non relancée : ni
 `src/core/` ni `mcp-server/` ne sont touchés.
+
+`eval` a été **rejouée après le rechargement** : mêmes 31/31, mêmes 8/8, mêmes dix écarts. Aucune
+baseline ne porte sur `terrasses` — `eval/baselines/ingestion.json` ne compte que BDCom, BODACC et
+SIRENE — donc le rechargement ne pouvait pas en bouger une, et le vérifier coûtait deux minutes.

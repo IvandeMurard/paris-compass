@@ -16,7 +16,7 @@ Tout est mesuré à la clôture et **après commit**, sur un arbre propre : les 
 | Ledger distant `dbefhvmyfmmhjeetdddu` | **42** migrations, dernière `20260826000001` — **inchangé, cette session n'en pose aucune** |
 | Fonctions `compass_*` | **13**, inchangé |
 | Invariants | **31**, inchangé — aucun ajouté, et c'est une décision, voir plus bas |
-| Sources dans `ingestion_run` | **8**, inchangé. `terrasses` reste à `source_as_of` 2026-08-25, 24 194 lignes, `run_by` `manual` — **rien n'a été rechargé** |
+| Sources dans `ingestion_run` | **8**, inchangé en nombre. `terrasses` **rechargée à 17 h 58 UTC** pour poser le correctif d'adresse : `source_as_of` **2026-08-26**, 24 189 lignes, `run_by` `manual`. Les sept autres n'ont pas bougé |
 | Issues | **39 ouvertes, 15 fermées** — remesuré par `gh` après fermeture de [`#15`](https://github.com/IvandeMurard/paris-compass/issues/15) |
 | Épic [`#42`](https://github.com/IvandeMurard/paris-compass/issues/42) (vague 1) | **ouverte**, **3 tickets cochés sur 7** — `#11`, `#14`, `#15` |
 | Portes | `typecheck` ✓ · **166 tests** ✓ (122 avant, +21 pour `terrasseText`, +23 pour `terrasseAddress`) · `build` et `build:dev` ✓ · **`eval` 31/31 invariants** ✓ et 8/8 cas dorés, dix écarts de baseline en avertissement (dérive BODACC/SIRENE connue, la plus large à 0,70 %) · **`eval:anon` PASS, 12 contrôles** · **`eval:sabotage` PASS** · `verify:mcp` non relancée, ni `src/core/` ni `mcp-server/` touchés |
@@ -99,6 +99,36 @@ dimension de terrasse.**
 - **Éprouvé plutôt que supposé** : replier `inconnu` sur `non` — le défaut que `DIAGNOSTIC.md`
   §9 à §16 recense cinq fois — fait passer **8 des 21 tests au rouge**.
 
+### Le motif d'adresse corrigé, et la couche rechargée pour le poser
+
+Quatorze adresses sur 24 199 ne se rattachaient à rien parce que la source colle un suffixe au
+numéro — `32BV RUE DES PLANTES`, `1P2 PLACE JEAN PRONTEAU`, `183P41 AVENUE DE CLICHY` — ou écrit
+une plage de trois numéros. `parseAddress` a déménagé dans `scripts/ingest/lib/terrasseAddress.ts`
+pour une raison mécanique : **tout chargeur de ce dossier appelle `main()` au niveau du module**,
+donc rien de ce qu'il contient n'est importable par un test. `lib/` est la moitié importable.
+
+> **Le suffixe doit être collé au numéro, et c'est ce qui dicte la forme du motif.** Autoriser une
+> espace avant un suffixe de plusieurs caractères laisserait la correspondance gloutonne avaler un
+> type de voie de trois lettres : « 12 RUE DES PLANTES » se lirait « numéro 12, type de voie DES,
+> nom PLANTES ». Élargir un motif est la façon habituelle de cesser silencieusement de lire ce qui
+> marchait — d'où une mesure adresse par adresse, ancien motif contre nouveau, sur l'export
+> complet : **24 154 parsées contre 24 140, 14 gagnées, 0 perdue, 0 parse changé**.
+
+**Rechargé à 17 h 58 UTC**, en une transaction, mesuré avant et après : `terrasse_autorisation`
+passe de 24 194 à **24 189** lignes (le millésime du jour, cinq de moins) mais de 24 135 à
+**24 144** adressables ; `premise_location` gagne 2 `oui` et 2 `inconnu`, et perd 4 `non`.
+**Quatre locaux parisiens répondent désormais autre chose que « non »** — c'est petit, c'est
+exactement ce que le correctif valait, et c'est mesuré. `source_as_of` avance au **2026-08-26**.
+
+`eval` rejouée après le rechargement : mêmes 31/31, mêmes 8/8, mêmes dix écarts —
+`eval/baselines/ingestion.json` ne compte que BDCom, BODACC et SIRENE, donc aucune baseline ne
+pouvait bouger, et le vérifier coûtait deux minutes.
+
+**Et la date affichée a suivi** : la fiche du 59 RUE GRENETA, rejouée dans le navigateur après le
+chargement, lit « état de la source au **26 août 2026** » là où elle lisait « 25 août » une heure
+plus tôt. La chaîne `ingestion_run.source_as_of` → `compass_source_freshness` → `fetchSourceAsOf`
+→ `describeTerrasse` → écran est vivante de bout en bout, sans rien de figé en dur.
+
 ### Ce qui reste, et qui n'appartient pas à cette session
 
 - **La note estivale n'a pas pu être montrée dans le navigateur.** Elle n'apparaît que sur une
@@ -107,15 +137,6 @@ dimension de terrasse.**
   compose pas d'images, donc les animations CSS de Leaflet ne s'achèvent jamais et `moveend` —
   le seul endroit d'où `MapView` recalcule sa fenêtre — ne se déclenche pas. Limite de
   l'environnement, pas du produit ; à savoir avant de déboguer une carte qui « ne bouge pas ».
-- **Le correctif des suffixes d'adresse est écrit mais pas chargé.** `parseAddress` a déménagé
-  dans `scripts/ingest/lib/terrasseAddress.ts` — un chargeur appelle `main()` au niveau du
-  module, donc rien de ce qu'il contient n'est importable par un test — et le motif y accepte
-  désormais les suffixes collés au numéro (`32BV`, `1P2`, `183P41`) et les plages à trois
-  numéros. Mesuré adresse par adresse sur l'export du 26 août : **24 154 parsées contre 24 140,
-  14 gagnées, 0 perdue, 0 parse changé**. **Rien n'a bougé en base** : la couche n'est pas câblée
-  sur le cron, donc les 14 adresses restent non rattachées jusqu'au prochain chargement manuel de
-  `scripts/ingest/terrasses.ts` — qui rechargera aussi le millésime du jour et fera avancer
-  `source_as_of`.
 - **Le tableau des sources de `PLAN-ACTION-VACANCE.md` est en retard sur lui-même** : PLU et
   chantiers y sont encore « planifiée » alors qu'ils sont ingérés depuis le 25 août. Seule la
   ligne terrasses a été corrigée ici — les deux autres appartiennent à leurs tickets.
