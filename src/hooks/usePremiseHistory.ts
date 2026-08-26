@@ -1,6 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { fetchPremiseCandidates, fetchPremiseTimeline } from '@/services/compass/premiseHistory';
+import {
+  fetchPremiseCandidates,
+  fetchPremiseTimeline,
+  fetchSourceAsOf,
+} from '@/services/compass/premiseHistory';
 
 /**
  * Both queries are only fired when the sheet is open.
@@ -21,6 +25,24 @@ export function usePremiseCandidates(
     enabled: enabled && point !== null,
     // A survey vintage does not change while a tab is open. Neither do notices published
     // in 2015. Nothing here is worth refetching on focus.
+    staleTime: 60 * 60 * 1000,
+    retry: 1,
+  });
+}
+
+/**
+ * How current one source is, for the line that carries a displayed fact.
+ *
+ * Its own query rather than a field of the candidate row: the freshness table is one row per
+ * dataset, so a failure here must degrade the source line to "date not read" and leave the
+ * premise itself on screen. Folding it into `usePremiseCandidates` would let a freshness
+ * lookup take the whole panel down with it.
+ */
+export function useSourceAsOf(source: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['compass', 'freshness', source],
+    queryFn: () => fetchSourceAsOf(source),
+    enabled,
     staleTime: 60 * 60 * 1000,
     retry: 1,
   });

@@ -170,6 +170,26 @@ export type Database = {
      * type error.
      */
     Functions: {
+      /**
+       * Freshness per dataset — `ingested_at` is when we last loaded, `source_as_of` is how
+       * current the data itself is, and rendering the first as the second tells a reader that
+       * a 2023 survey is from this morning. The browser reads `source_as_of` only.
+       */
+      compass_source_freshness: {
+        Args: Record<string, never>;
+        Returns: {
+          source: string;
+          label: string;
+          cadence: string;
+          cadence_note: string | null;
+          source_as_of: string | null;
+          ingested_at: string | null;
+          row_count: number | null;
+          run_by: string | null;
+          run_ref: string | null;
+          age_days: number | null;
+        }[];
+      };
       compass_address_timeline: {
         Args: { p_location_id: number };
         Returns: {

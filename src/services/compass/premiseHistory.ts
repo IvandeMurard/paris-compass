@@ -15,6 +15,7 @@
  */
 
 import { supabase } from '@/lib/supabase';
+import type { TerrasseStatus } from '@/i18n/terrasseText';
 import type { TimelineRow } from '@/i18n/timelineText';
 
 /**
@@ -66,6 +67,17 @@ export interface PremiseCandidate {
   sizeLabel: string | null;
   situationLabel: string | null;
   signName: string | null;
+  /**
+   * Whether a terrace or a display stall is authorised at this premise's street number
+   * (w1-terrasses, issue #15). Three values, never two: `'inconnu'` says an authorisation
+   * exists at the address and the source does not publish which of the co-located premises
+   * holds it. Relayed as it comes and read in `src/i18n/terrasseText.ts` — a fait
+   * administratif, never proof of a terrace standing today.
+   */
+  terrasseStatus: TerrasseStatus | null;
+  terrassePermanente: boolean;
+  terrasseEstivale: boolean;
+  terrasseEtalage: boolean;
 }
 
 export interface CandidateResult {
@@ -126,8 +138,33 @@ export async function fetchPremiseCandidates(
         sizeLabel: row.size_label,
         situationLabel: row.situation_label,
         signName: row.sign_name,
+        // No `?? 'non'` here, and that is the whole point: a column that arrives null must
+        // reach the screen as "no status returned", not as a negative answer. The default
+        // lives in the table (`not null default 'non'`), where it means something.
+        terrasseStatus: row.terrasse_status,
+        terrassePermanente: row.terrasse_permanente === true,
+        terrasseEstivale: row.terrasse_estivale === true,
+        terrasseEtalage: row.terrasse_etalage === true,
       })),
   };
+}
+
+/**
+ * How current one dataset is, as the source itself states it.
+ *
+ * Returns `source_as_of` and nothing else, deliberately. `compass_source_freshness` also
+ * carries `ingested_at` — when *we* last loaded — and a caller holding both will eventually
+ * render the wrong one, which is the defect the RPC's own comment exists to warn about. A
+ * terrace authorisation carries no expiry, so the source's date is the only thing that tells
+ * a reader how old the answer is.
+ *
+ * Throws like the two calls above: a failed lookup must not be indistinguishable from a
+ * source with no stated date. The panel turns the absence into a sentence of its own.
+ */
+export async function fetchSourceAsOf(source: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc('compass_source_freshness');
+  if (error) throw new Error(`compass_source_freshness: ${error.message}`);
+  return (data ?? []).find((row) => row.source === source)?.source_as_of ?? null;
 }
 
 /**

@@ -813,12 +813,12 @@ l'autre en France, et une échelle nationale uniforme exigerait une normalisatio
 invention. Paris n'a qu'un PPRI, dont les classes se reprennent **telles quelles**.
 
 **5.4 — Sources d'appoint.** À vérifier avant engagement ; **terrasses vérifiée et ingérée le
-25 août 2026** (`w1-terrasses`, issue #15, même chantier que ce paragraphe), les trois autres
-restent non confirmées.
+25 août 2026, affichée sur la fiche le 26** (`w1-terrasses`, issue #15, même chantier que ce
+paragraphe), les trois autres restent non confirmées.
 
 | Source | Producteur | Apport |
 | --- | --- | --- |
-| Terrasses et étalages ✅ | Ville de Paris | Signal de vitalité **et** réponse directe à « puis-je avoir une terrasse ici ? », décisive pour un restaurateur. `terrasse_status` ('oui'/'non'/'inconnu') exposé par `compass_premises_within` — 'inconnu' quand l'adresse est partagée par plusieurs locaux et que l'autorisation ne dit pas lequel. Détail dans `docs/tickets/w1-terrasses.md`. |
+| Terrasses et étalages ✅ | Ville de Paris | Signal de vitalité **et** réponse directe à « puis-je avoir une terrasse ici ? », décisive pour un restaurateur. `terrasse_status` ('oui'/'non'/'inconnu') exposé par `compass_premises_within` — 'inconnu' quand l'adresse est partagée par plusieurs locaux et que l'autorisation ne dit pas lequel. La fiche du local rend les trois états depuis le 26 août, avec le type, la réserve « une autorisation n'est pas une terrasse installée aujourd'hui » et la date de la source. Détail dans `docs/tickets/w1-terrasses.md`. |
 | Filosofi **carroyé 200 m** | INSEE | Revenus et population sur une maille de 200 m — satisfait la règle de granularité, contrairement à l'IRIS |
 | **BPE** | INSEE | Équipements recensés administrativement. Croisé avec OSM, il fait passer un comptage de *probable* à **corroboré** : deux sources indépendantes, la mécanique de §2.5 exactement |
 | Comptages vélo permanents | Ville de Paris | Pas des piétons, mais un rythme horaire **mesuré**, au tronçon, sur plusieurs années. Honnêtement étiqueté, meilleur que le proxy actuel |

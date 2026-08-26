@@ -16,6 +16,14 @@
  * one carrying its evidence, its confidence level and the rule that produced it. No row is
  * summarised, reordered or merged, and no absent value is filled in from a neighbour. What
  * a row may say is decided in `src/i18n/timelineText.ts`, where it is tested.
+ *
+ * **Step three, the terrace (w1-terrasses, issue #15).** A state rather than a chronology:
+ * whether a terrace or a display stall is authorised at this premise's street number. It sits
+ * above the chronology because it answers a different question — the café owner's binary one —
+ * and it is shown for every premise, not only for restaurants: an étalage is a fishmonger's
+ * and a florist's fact too, and the criterion asks for a fiche restauration, not for a fiche
+ * restauration *only*. Its wording, its three states and its reserve are decided in
+ * `src/i18n/terrasseText.ts`, where they are tested.
  */
 
 import { useState } from 'react';
@@ -31,8 +39,14 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
-import { usePremiseCandidates, usePremiseTimeline } from '@/hooks/usePremiseHistory';
+import { usePremiseCandidates, usePremiseTimeline, useSourceAsOf } from '@/hooks/usePremiseHistory';
 import { useLocale } from '@/i18n/locale';
+import {
+  describeTerrasse,
+  TERRASSE_COPY,
+  TERRASSE_RULES_URL,
+  type TerrasseState,
+} from '@/i18n/terrasseText';
 import {
   describeTimelineRow,
   licenceLabel,
@@ -128,6 +142,18 @@ const CONFIDENCE_TONE: Record<string, string> = {
   indetermine: 'bg-gray-100 text-gray-700',
 };
 
+/**
+ * Four tones for four answers. 'inconnu' is amber and not grey on purpose: it is a positive
+ * finding with an unresolved holder, and greying it next to 'non' would let the eye read the
+ * two as the same non-answer — the flattening this panel exists to prevent, done in CSS.
+ */
+const TERRASSE_TONE: Record<TerrasseState, string> = {
+  oui: 'bg-emerald-100 text-emerald-800',
+  inconnu: 'bg-amber-100 text-amber-800',
+  non: 'bg-gray-100 text-gray-700',
+  indisponible: 'bg-gray-100 text-gray-700',
+};
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -174,6 +200,96 @@ const CandidateRow = ({
         )}
       </button>
     </li>
+  );
+};
+
+/**
+ * The terrace answer for the selected premise — w1-terrasses' "Fait quand", on screen.
+ *
+ * The component decides nothing. Which of the four states applies, what each one may claim,
+ * the reserve that must travel with a positive answer and the source line all come out of
+ * `describeTerrasse`, which is tested. What is left here is where the pieces sit.
+ */
+const TerrasseSection = ({
+  candidate,
+  sourceAsOf,
+  locale,
+}: {
+  candidate: PremiseCandidate;
+  /** `ingestion_run.source_as_of`, or null when the freshness lookup did not answer. */
+  sourceAsOf: string | null;
+  locale: 'fr' | 'en';
+}) => {
+  const tc = TERRASSE_COPY[locale];
+  const reading = describeTerrasse(
+    {
+      status: candidate.terrasseStatus,
+      permanente: candidate.terrassePermanente,
+      estivale: candidate.terrasseEstivale,
+      etalage: candidate.terrasseEtalage,
+      sourceAsOf,
+    },
+    locale,
+  );
+  const colon = locale === 'fr' ? ' : ' : ': ';
+
+  return (
+    <div>
+      <h4 className="text-sm font-semibold">{tc.title}</h4>
+
+      <div className="mt-2 flex flex-wrap items-baseline gap-x-2">
+        <Badge variant="secondary" className={`font-normal ${TERRASSE_TONE[reading.state]}`}>
+          {tc.stateLabel[reading.state]}
+        </Badge>
+        <span className="text-sm font-medium">{reading.headline}</span>
+      </div>
+
+      <p className="mt-1 text-sm text-muted-foreground">{reading.detail}</p>
+
+      {reading.typesLabel && reading.typesText && (
+        <p className="mt-1 text-sm">
+          <span className="font-medium">
+            {reading.typesLabel}
+            {colon}
+          </span>
+          {reading.typesText}
+        </p>
+      )}
+
+      {reading.seasonNote && (
+        <p className="mt-1 text-xs text-muted-foreground">
+          {reading.seasonNote}{' '}
+          <a
+            href={TERRASSE_RULES_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="underline decoration-dotted hover:text-foreground"
+          >
+            {tc.rulesLink}
+            <ExternalLink size={11} className="ml-0.5 inline" />
+          </a>
+        </p>
+      )}
+
+      {/* Displayed, not documented: PLAN.md §2.5 — a caveat that lives in a document does
+          not travel with the figure. Here it is what keeps an authorisation on file from
+          being read as a terrace standing on the pavement today. */}
+      <p className="mt-2 text-xs text-muted-foreground">{reading.reserve}</p>
+
+      <p className="mt-1 text-[11px] text-muted-foreground">
+        {reading.source}
+        {' · '}
+        <a
+          href={reading.sourceUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="underline decoration-dotted hover:text-foreground"
+        >
+          {tc.sourceLink}
+          <ExternalLink size={11} className="ml-0.5 inline" />
+        </a>
+      </p>
+    </div>
   );
 };
 
@@ -250,6 +366,9 @@ const PremiseHistorySheet = ({ open, onOpenChange, point, originLabel }: Props) 
 
   const candidates = usePremiseCandidates(point, open);
   const timeline = usePremiseTimeline(selected?.locationId ?? null);
+  // Only once a premise is chosen: the terrace block is the only thing that reads it, and
+  // nothing on the candidate list needs a source date.
+  const terrasseSource = useSourceAsOf('terrasses', open && selected !== null);
 
   // A different card reuses the same panel: the previous choice must not survive it.
   const handleOpenChange = (next: boolean) => {
@@ -342,6 +461,15 @@ const PremiseHistorySheet = ({ open, onOpenChange, point, originLabel }: Props) 
                 {c.distance(Math.round(selected.distanceM))} — {c.spatialCaveat}
               </p>
             </div>
+
+            <TerrasseSection
+              candidate={selected}
+              // `?? null` and not a retry loop: a freshness lookup that failed becomes "date
+              // de la source non lue" in the source line, which is a true sentence, rather
+              // than an undated fact that reads as current.
+              sourceAsOf={terrasseSource.data ?? null}
+              locale={locale}
+            />
 
             <div>
               <h4 className="text-sm font-semibold">{c.timelineTitle}</h4>
