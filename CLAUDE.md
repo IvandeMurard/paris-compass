@@ -31,8 +31,27 @@ npm.cmd run test        # vitest
 npm.cmd run dev
 npm.cmd run build       # production
 npm.cmd run sessions    # regenere le tableau d'ordre de docs/SESSIONS.md depuis GitHub
+npm.cmd run sessions:check  # recoupe la table committee a l'etat GitHub, sort en 1 si elle a derive
 npm.cmd run build:dev   # mode development — seul chemin qui charge lovable-tagger
 ```
+
+**Si `vite` refuse de démarrer sur « Failed to load native binding ».** Windows Smart App Control
+bloque le binaire natif de `@swc/core` — mesuré le 26 août 2026, et il n'a **ni liste
+d'autorisation ni exception par fichier** : on ne peut pas lui faire accepter ce fichier-là, et
+le désactiver est irréversible sans réinstaller Windows. Un second chemin de build existe pour
+ça, sans SWC :
+
+```powershell
+npm.cmd run dev:local        # serveur de dev
+npm.cmd run build:local      # production
+npm.cmd run build:dev:local  # mode development
+```
+
+Ils lisent `vite.config.local.ts`, volontairement séparé de `vite.config.ts` que Lovable
+réécrit — même raison que `vitest.config.ts`. **Ils ne remplacent pas les portes d'origine** :
+le bundle diffère de celui produit par SWC, et `build:dev:local` ne couvre pas ce pour quoi
+`build:dev` existe (mesuré : `componentTagger()` ne change rien sur ce chemin). Les deux
+fichiers doivent rester en phase — un plugin ajouté à l'un appartient à l'autre.
 
 Après toute montée de `vite`, lancer **les deux** builds : `build` construit en mode production,
 où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lovable invisible.

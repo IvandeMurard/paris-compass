@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm.cmd",
       "runtimeArgs": ["run", "dev"],
       "port": 8080
+    },
+    {
+      "name": "paris-compass-dev-local",
+      "runtimeExecutable": "npm.cmd",
+      "runtimeArgs": ["run", "dev:local"],
+      "port": 8080
     }
   ]
 }

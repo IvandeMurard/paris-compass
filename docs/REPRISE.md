@@ -20,7 +20,7 @@ de travail ni sur l'état d'avant. La session 11 avait consigné pourquoi.
 | Sources dans `ingestion_run` | **8**, inchangé en nombre. `terrasses` **rechargée à 17 h 58 UTC** pour poser le correctif d'adresse : `source_as_of` **2026-08-26**, 24 189 lignes, `run_by` `manual`. Les sept autres n'ont pas bougé |
 | Issues | **39 ouvertes, 15 fermées** — remesuré par `gh` après fermeture de [`#15`](https://github.com/IvandeMurard/paris-compass/issues/15) |
 | Épic [`#42`](https://github.com/IvandeMurard/paris-compass/issues/42) (vague 1) | **ouverte**, **3 tickets cochés sur 7** — `#11`, `#14`, `#15` |
-| Portes | `typecheck` ✓ · **166 tests** ✓ (122 avant, +21 pour `terrasseText`, +23 pour `terrasseAddress`) · **`build` et `build:dev` EN PANNE** — Windows Application Control bloque le binaire natif de `@swc/core`, voir plus bas ; verts deux heures plus tôt à `ffa3b55` · **`eval` 31/31 invariants** ✓ et 8/8 cas dorés, dix écarts de baseline en avertissement (dérive BODACC/SIRENE connue, la plus large à 0,70 %) · **`eval:anon` PASS, 12 contrôles — mais rouge aux deux premiers passages**, voir plus bas · **`eval:sabotage` PASS** · **`sessions:check`** ✓ *(nouveau)* · `verify:mcp` non relancée, ni `src/core/` ni `mcp-server/` touchés |
+| Portes | `typecheck` ✓ · **166 tests** ✓ (122 avant, +21 pour `terrasseText`, +23 pour `terrasseAddress`) · **`build` et `build:dev` injouables ici** — Smart App Control bloque le binaire natif de `@swc/core` ; contournées par **`build:local` et `build:dev:local`** ✓, sans SWC et sans dépendance ajoutée, voir plus bas · **`eval` 31/31 invariants** ✓ et 8/8 cas dorés, dix écarts de baseline en avertissement (dérive BODACC/SIRENE connue, la plus large à 0,70 %) · **`eval:anon` PASS, 12 contrôles — mais rouge aux deux premiers passages**, voir plus bas · **`eval:sabotage` PASS** · **`sessions:check`** ✓ *(nouveau)* · `verify:mcp` non relancée, ni `src/core/` ni `mcp-server/` touchés |
 
 **`w1-terrasses` (#15) est fait et fermé.** La fiche d'un local rend les trois états — `oui`,
 `non`, `inconnu` — avec le type, la réserve doctrinale et la date de la source. Démontré dans le
@@ -196,7 +196,7 @@ régénérée avant la fermeture, donc fausse dès la fermeture. Le prompt donne
 qui tient — fermer, puis régénérer, puis `sessions:check` — et laisse explicitement l'autre choix
 ouvert, à condition de ne pas régénérer.
 
-### La porte `build` n'a pas pu être jouée, et ce n'est pas un rouge
+### La porte `build` n'a pas pu être jouée — panne d'OS, contournée sans y toucher
 
 Depuis la fin de cette session, `vite` ne démarre plus **du tout** sur cette machine — ni `build`,
 ni `build:dev`, ni `dev` :
@@ -223,16 +223,47 @@ deux heures plus tôt, à `ffa3b55` et `e105f17`.
 aucune ligne de code ne la corrige. Ce qui reste jouable l'a été et est au vert : `typecheck`
 (qui compile tout `src/`, `sources.ts` compris), **166 tests**, `sessions:check`.
 
-**Deux conséquences à connaître avant de reprendre :**
+### Contourné le soir même, sans toucher à la politique ni à la config de Lovable
 
-- **La page `/sources` n'a pas pu être vérifiée à l'écran.** Le correctif du §25 est couvert par
-  `tsc` — c'est un tableau de données, pas de la logique — mais personne ne l'a vu rendu.
-  À regarder au premier `npm.cmd run dev` qui redémarrera.
-- **Seul un humain peut lever la politique** : autoriser
-  `node_modules\@swc\core-win32-arm64-msvc\swc.win32-arm64-msvc.node` dans Windows Application
-  Control / Smart App Control, ou réinstaller la dépendance une fois la politique ajustée.
-  Rejouer ensuite `npm.cmd run build` **et** `npm.cmd run build:dev` — les deux, comme le veut
-  `CLAUDE.md`.
+**Il n'y avait pas de commande à donner, et c'est le cœur du sujet.** Smart App Control n'a **ni
+liste d'autorisation ni exception par fichier** : il est allumé ou éteint, et l'éteindre est
+irréversible — Microsoft ne permet de le rallumer qu'en réinstallant Windows. Autoriser « juste
+ce binaire » n'existe pas.
+
+**Ce qui a tranché, c'est une mesure** : le binaire de `@swc/core` est bloqué, mais
+`@rollup/rollup-win32-arm64-msvc` — le bundler de vite — **se charge très bien**, et
+`esbuild.exe` tourne. Smart App Control ne refuse donc pas les binaires natifs en général, il
+refuse celui-là (non signé, et rarissime : Windows sur ARM64). Le build pouvait donc cesser d'en
+avoir besoin plutôt que la machine être forcée de l'accepter.
+
+`vite.config.local.ts` : pas de plugin React du tout — vite transpile le TSX avec esbuild, et
+`jsx: "automatic"` remet le même runtime que le plugin aurait configuré. **Aucune dépendance
+ajoutée**, ce qui évite la question des avis que `CLAUDE.md` impose. Fichier séparé et non un
+correctif dans `vite.config.ts`, exactement pour la raison que `vitest.config.ts` écrit déjà :
+Lovable réécrit celui-là le 1ᵉʳ septembre.
+
+```powershell
+npm.cmd run dev:local · build:local · build:dev:local
+```
+
+Les deux builds passent. **La page `/sources` a donc pu être vérifiée à l'écran** après tout : les
+huit sources s'affichent, les trois ajoutées avec leurs licences, zéro erreur console. Le §25
+n'est plus seulement typé, il est vu.
+
+> **Ce que le contournement ne couvre pas, et il faut le lire avant de s'en servir comme d'une
+> porte.** Le bundle diffère de celui de SWC — 1 114,64 ko contre 1 112,62 ko sur le même arbre le
+> même jour. Et surtout : **`build:dev:local` ne couvre pas ce pour quoi `build:dev` existe.**
+> `CLAUDE.md` garde le second build parce que le mode production ne monte pas `lovable-tagger`.
+> Or, mesuré ici : construire `--mode development` avec `componentTagger()` et sans lui donne le
+> **même hash de bundle**, `index-CqoGBwpQ.js`. Le tagger ne produit rien sur ce chemin, donc une
+> panne du lien Lovable y resterait aussi invisible qu'en production. S'il produit quelque chose
+> sur le chemin SWC est **inconnu** — ce chemin ne tourne pas sur cette machine, et c'est
+> précisément pourquoi ce fichier existe.
+
+**Reste pour un humain, si tu veux les portes d'origine** : éteindre Smart App Control (Sécurité
+Windows → Contrôle des applications et du navigateur), en sachant que c'est sans retour. Rien ne
+l'exige : `build:local` et `build:dev:local` rendent l'arbre constructible ici, et Lovable
+construira avec SWC de son côté le 1ᵉʳ septembre.
 
 ### Ce qui reste, et qui n'appartient pas à cette session
 
