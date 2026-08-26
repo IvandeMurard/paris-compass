@@ -120,15 +120,19 @@ Le script crée `compass_sabotage_probe` — sixième fonction lisant `premise_o
 `scripts/eval/census.ts`, celui qu'utilise la porte : une preuve qui rejoue une copie du contrôle
 ne prouve rien sur le contrôle.
 
-Mesuré le 25 août, **avant** la migration :
+Mesuré des deux côtés de la migration, et les deux mesures disent des choses différentes :
 
 | | `I23` | `I24` |
 | --- | --- | --- |
-| Au propre | **3 lignes** — les trois fonctions `INVOKER` | 6 fonctions recensées, toutes couvertes |
-| Sous sabotage | **4 lignes** | **`compass_sabotage_probe` non couverte**, population à 7 |
-| Après `rollback` | 3 lignes | 6 fonctions, toutes couvertes |
+| **Avant** la migration, au propre | **3 lignes** — les trois fonctions `INVOKER` | 6 fonctions recensées, toutes couvertes |
+| **Avant**, sous sabotage | **4 lignes** | **`compass_sabotage_probe` non couverte**, population à 7 |
+| **Après** la migration, au propre | **0 ligne** | 6 fonctions, toutes couvertes |
+| **Après**, sous sabotage | **1 ligne** | **`compass_sabotage_probe` non couverte**, population à 7 |
+| Après `rollback` | 0 ligne | 6 fonctions, toutes couvertes |
 
-La fonction n'existe pas en base après coup — vérifié par `pg_proc` dans le script lui-même.
+La ligne « avant, au propre » vaut autant que les autres : la règle a été écrite contre une base où
+elle échouait, pas ajustée jusqu'à passer. Et la fonction n'existe pas en base après coup —
+vérifié par `pg_proc` dans le script lui-même, dernier contrôle du script.
 
 > **`pg_depend` ne pouvait pas répondre, et le ticket le demandait.** Mesuré le 25 août : pour ces
 > fonctions, `pg_depend` ne porte que le schéma, le langage et les types — **jamais les tables
@@ -280,38 +284,58 @@ et raison nommée. Le comportement est meilleur que l'annonce — c'est le comme
   créé un compte* soit « privilégié » est une décision du 9 août (`20260809000010`), notée dans
   `DIAGNOSTIC.md` §21 pour qu'elle cesse d'être invisible, pas réglée par ce ticket.
 
-## Portes, et la seule chose qui manque
+## Portes
 
 `typecheck` ✓ · **122 tests** ✓ (inchangé — ce ticket ne touche pas `src/`) · `build` ✓ ·
-`build:dev` ✓ · `verify:mcp` **41 contrôles, 39 au vert, 0 en échec**, 2 suspendus sur panne des miroirs
-Overpass (429) — lancée bien que ni `src/core/` ni `mcp-server/` ne soient modifiés, parce que le
-serveur MCP appelle `compass_premises_within` et `compass_scoring_context_within`, dont le mode de
-sécurité change.
+`build:dev` ✓ · `verify:mcp` **41 contrôles, 39 au vert, 0 en échec**, 2 suspendus sur panne des
+miroirs Overpass (429) — relancée après la poussée, le serveur MCP appelle deux des fonctions dont
+le mode de sécurité change.
 
-**`20260825000014_licence_withholding_rule.sql` n'est pas posée sur le distant.**
-`supabase db push` a été refusé par le classificateur du mode auto — troisième refus sur quatre
-poussées, cause déjà consignée dans `docs/REPRISE.md`. Le `--dry-run` confirme une seule migration
-en attente. Conséquence à écrire plutôt qu'à sous-entendre : **le critère 1 du ticket n'est démontré
-qu'en transaction annulée contre le distant, pas en ligne.** Un appelant anonyme reçoit toujours
-`changed_since_previous = 0` aux Halles aujourd'hui.
+**`20260825000014_licence_withholding_rule.sql` est posée**, ledger distant remesuré à **41**,
+dernière `20260825000014`. Les six fonctions lisant une table restreinte sont `SECURITY DEFINER`
+et portent une colonne `withheld` — remesuré en base, c'est exactement ce que `I23` vérifie.
 
-`npm.cmd run eval` contre la base non migrée, et son verdict vaut d'être lu :
-
-| | Résultat |
+| Porte | Résultat |
 | --- | --- |
-| `I1` à `I22` | **22 au vert** |
-| **`I23`** | **échoue, 3 lignes** — les trois fonctions `security_definer = false` |
-| `I24` | vert — 6 fonctions recensées, toutes couvertes |
-| `I25` | **erreur** — `column r.withheld does not exist` |
+| `eval` | **28/28 invariants**, 8/8 cas dorés, dix écarts de baseline en avertissement (dérive BODACC/SIRENE connue, la plus large à 0,70 %) |
+| `eval:anon` | **PASS, 11 contrôles** |
+| `eval:sabotage` | **PASS** — `I23` passe de 0 à 1 ligne sous sabotage, `I24` sort `compass_sabotage_probe`, rollback propre |
 
-Même signature que `I14` jouée contre la fonction défectueuse encore en ligne (`DIAGNOSTIC.md` §10).
-**Les invariants mordent contre la vraie base**, ce qu'aucune transaction annulée ne démontre.
+**Le critère 1, démontré par appel PostgREST réel avec la seule clé publiable** :
 
-Migration appliquée puis annulée, en revanche : `I18`, `I23`, `I25`, `I26`, `I27`, `I28` **tous à
-zéro ligne**, `I24` à 6 fonctions couvertes.
+```
+ok  street_rotation Halles 300 m — 2017/2020 marqués sans tronçon, 98 tronçons rendus
+    sur 2023 et changed_since_previous nul, jamais 0
+ok  survival_by_trade Halles, Café et Restaurant — BDCom retenu sans effectif,
+    SIRENE rendu 55.1 % sur 185 — le seul vrai taux public de ce corpus
+```
 
-**À la reprise**, dans cet ordre : poser la migration (bloc PowerShell dans `docs/REPRISE.md`),
-puis `npm.cmd run eval` (28/28 attendu), `npm.cmd run eval:sabotage` (PASS attendu, FAIL
-aujourd'hui), `npm.cmd run eval:anon` (deux contrôles de plus), et remesurer le ledger — **41**
-attendu, **40** mesuré à la clôture. L'issue [`#57`](https://github.com/IvandeMurard/paris-compass/issues/57)
-reste ouverte jusque-là.
+**Ce que la porte rendait contre la base non encore migrée, et qui vaut d'être gardé** : `I1` à
+`I22` au vert, **`I23` en échec sur 3 lignes** — les trois fonctions `security_definer = false` —
+et **`I25` en erreur**, `column r.withheld does not exist`. Même signature que `I14` jouée contre la
+fonction défectueuse encore en ligne (`DIAGNOSTIC.md` §10). Les invariants mordent contre la vraie
+base, ce qu'aucune transaction annulée ne démontre.
+
+### Deux échecs du bras D tranchés au passage
+
+`DIAGNOSTIC.md` §18 laissait trois échecs ouverts sur `eval:anon`, « à trancher ». Deux venaient de
+`expectWithheld`, qui exigeait que **toute** colonne soit nulle sur une ligne retenue et échouait
+donc sur `out_of_corpus: false` — un marqueur orthogonal à la licence, l'appartenance au corpus se
+lisant dans `quartier`, table que `anon` lit en entier. La sonde ne se contente pas de le tolérer :
+elle **vérifie** qu'il vaut `false`, parce que `20260825000003` fait passer le test de licence en
+premier et qu'un « hors zone » sur un millésime retenu divulguerait que la zone aurait répondu.
+
+Le troisième, un timeout RLS, **a disparu sans que personne y touche** — remesuré à 60 845 relevés
+visibles. Un défaut qui s'en va tout seul n'est pas un défaut corrigé, et §18 le dit ainsi.
+
+### Ce qui reste
+
+**L'issue [`#57`](https://github.com/IvandeMurard/paris-compass/issues/57) reste ouverte** : ses
+trois critères sont tenus et mesurés, mais la fermer demande une autorisation explicite, comme
+`#14`, `#9` et `#55` avant elle. Le point 24 n'a pas d'issue. La doctrine `authenticated` n'est pas
+tranchée (`DIAGNOSTIC.md` §21).
+
+> **Un piège de procédure, consigné dans `docs/REPRISE.md`** : `npx.cmd supabase` ne démarre plus
+> sur ce poste — une stratégie de contrôle d'application bloque le binaire livré par
+> `supabase@2.115.0`. Le CLI 2.98.2 déjà installé sur le `PATH` fonctionne, et c'est lui qui a posé
+> la migration. Mettre à jour le CLI ramènerait le binaire bloqué.

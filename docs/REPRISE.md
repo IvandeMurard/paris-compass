@@ -6,24 +6,27 @@ qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.m
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
 
-## Clôture de la session 11 — l'état exact au 25 août 2026, 19 h 30 UTC
+## Clôture de la session 11 — l'état exact au 25 août 2026, 20 h 30 UTC
 
-Tout est mesuré à la clôture, pas recopié.
+Tout est mesuré à la clôture, pas recopié. C'est le point de départ propre de la session suivante.
 
 | Mesure | Valeur |
 | --- | --- |
-| `main` local | arbre modifié, **non commité** — `w0-retenue` en entier |
-| Ledger distant `dbefhvmyfmmhjeetdddu` | **40** migrations, dernière `20260825000013` — **`20260825000014` est écrite et PAS posée**, voir ci-dessous |
-| Fonctions `compass_*` | **13**, inchangé — la migration en attente n'en ajoute aucune, elle en corrige trois |
+| Ledger distant `dbefhvmyfmmhjeetdddu` | **41** migrations, dernière `20260825000014` — **posée**, remesuré |
+| Fonctions `compass_*` | **13**, inchangé — la migration n'en ajoute aucune, elle en corrige trois |
+| Fonctions lisant une table restreinte | **6**, et les six sont `SECURITY DEFINER` avec une colonne `withheld` — remesuré en base, c'est ce que `I23` vérifie |
 | Invariants | **28** (`grep -c '^-- @invariant '`) — `I23` à `I28` ajoutés |
-| Issues | **40 ouvertes, 12 fermées**, inchangé. [`#57`](https://github.com/IvandeMurard/paris-compass/issues/57) **reste ouverte** : son critère 1 exige un appel anonyme réel, donc la migration posée |
-| Portes | `typecheck` ✓ · **122 tests** ✓ · `build` et `build:dev` ✓ · `verify:mcp` **41 contrôles, 39 au vert, 0 en échec**, 2 suspendus sur panne Overpass (429) · **`eval` : 22 au vert, `I23` échoue sur 3 lignes, `I25` erreur** — c'est la porte qui refuse la base non migrée, pas un défaut du travail |
+| Issues | **40 ouvertes, 12 fermées**. [`#57`](https://github.com/IvandeMurard/paris-compass/issues/57) **reste ouverte** — sa fermeture demande une autorisation explicite |
+| Portes | `typecheck` ✓ · **122 tests** ✓ · `build` et `build:dev` ✓ · **`eval` 28/28 invariants** ✓ et 8/8 cas dorés, dix écarts de baseline en avertissement (dérive BODACC/SIRENE déjà connue, la plus large à 0,70 %) · **`eval:anon` PASS, 11 contrôles** · **`eval:sabotage` PASS** · `verify:mcp` **41 contrôles, 39 au vert, 0 en échec**, 2 suspendus sur panne Overpass (429) |
 
-> **La seule chose qui manque est une commande.** `supabase db push` a été refusé par le
-> classificateur du mode auto — troisième refus sur quatre poussées. Le bloc PowerShell à lancer,
-> et l'ordre des portes à rejouer derrière, sont en fin de la section « session 11 » ci-dessous.
-> Tant qu'elle n'est pas posée, un appelant anonyme reçoit toujours `changed_since_previous = 0`
-> aux Halles.
+**`w0-retenue` (#57) est fait et posé.** Un appelant anonyme aux Halles ne reçoit plus
+`changed_since_previous = 0` : il reçoit deux lignes marquées pour 2017 et 2020, et **nul** — jamais
+zéro — sur 2023. Démontré par appel PostgREST réel avec la seule clé publiable.
+
+> **Les trois échecs du bras D (`DIAGNOSTIC.md` §18) sont clos**, et pas par la même cause : deux
+> venaient d'une sonde périmée, corrigée ici ; le troisième, un timeout RLS, **a disparu sans que
+> personne y touche**. Remesuré : 60 845 relevés visibles. Un défaut qui s'en va tout seul n'est
+> pas un défaut corrigé — voir §18.
 
 ## Clôture de la session 10 — l'état au 25 août 2026, 13 h 30 UTC
 
@@ -109,10 +112,9 @@ distante ne se fait pas sur un « probablement inutile ».
 
 ## Le 25 août, session 11 : la règle de retenue est recensée — et l'énumération a condamné deux fonctions innocentées la veille
 
-**`w0-retenue` (#57) est écrit, éprouvé, et sa migration n'est pas posée** — voir « Ce qui reste »
-en fin de section, c'est la première chose à faire à la reprise. Le ticket disait qu'il ne
-s'agissait pas de corriger une cinquième fonction mais de faire en sorte qu'il n'y ait pas de
-sixième. Écrite, la règle en a convaincu **trois** : la cinquième attendue, plus les deux fonctions
+**`w0-retenue` (#57) est fait**, `20260825000014` posée, ledger remesuré à **41**. Le ticket
+disait qu'il ne s'agissait pas de corriger une cinquième fonction mais de faire en sorte qu'il n'y
+ait pas de sixième. Écrite, la règle en a convaincu **trois** : la cinquième attendue, plus les deux fonctions
 `_within` que `20260824000002` avait explicitement déclarées saines. Détail complet dans
 `docs/tickets/w0-retenue.md`, mesures dans `DIAGNOSTIC.md` §19, §21, §22, §23 et §24.
 
@@ -133,8 +135,10 @@ d'où **`npm.cmd run eval:sabotage`**, qui crée une sixième fonction fautive d
 annulée et vérifie que la porte passe au rouge. Le script importe le verdict que la porte utilise :
 une preuve qui rejoue une copie du contrôle ne prouve rien sur le contrôle.
 
-Mesuré avant la migration : `I23` rendait **3** lignes au propre et **4** sous sabotage ; `I24`
-recensait **6** fonctions et sortait `compass_sabotage_probe` comme non couverte, population à 7.
+Mesuré des deux côtés de la poussée. **Avant** : `I23` rendait **3** lignes au propre — les trois
+fonctions `INVOKER` — et **4** sous sabotage. **Après** : **0** au propre, **1** sous sabotage,
+`I24` sortant `compass_sabotage_probe` comme non couverte dans les deux cas. La règle a donc été
+écrite contre une base où elle échouait, pas ajustée jusqu'à passer.
 
 > **`pg_depend` ne pouvait pas répondre, et le ticket le demandait.** Mesuré : pour ces fonctions,
 > `pg_depend` ne porte que le schéma, le langage et les types — **jamais les tables lues**.
@@ -235,57 +239,64 @@ anonyme ne voit jamais cette ligne — le défaut ne touche que ceux qui pourrai
 ### Portes
 
 `typecheck` ✓ · **122 tests** ✓ (inchangé — ce ticket ne touche pas `src/`) · `build` ✓ ·
-`build:dev` ✓ · `verify:mcp` **41 contrôles, 39 au vert, 0 en échec**, 2 suspendus sur panne des miroirs
-Overpass (429) — lancée bien que ni `src/core/` ni `mcp-server/` ne soient modifiés, parce que le
-serveur MCP appelle `compass_premises_within` et `compass_scoring_context_within`, dont le mode de
-sécurité change.
+`build:dev` ✓ · `verify:mcp` **41 contrôles, 39 au vert, 0 en échec**, 2 suspendus sur panne des
+miroirs Overpass (429) · **`eval` 28/28 invariants** et 8/8 cas dorés, dix écarts de baseline en
+avertissement · **`eval:anon` PASS, 11 contrôles** · **`eval:sabotage` PASS**.
 
-**`eval` contre le distant, migration non posée — et son verdict est une preuve, pas un échec :**
+**Ce que la porte a rendu contre la base *non encore migrée*, avant la poussée, vaut d'être gardé** :
+`I1` à `I22` au vert, **`I23` en échec sur 3 lignes** — les trois fonctions `security_definer =
+false` — et **`I25` en erreur**, `column r.withheld does not exist`. Même signature que `I14` jouée
+contre la fonction défectueuse encore en ligne (`DIAGNOSTIC.md` §10). **Les invariants mordent
+contre la vraie base**, ce qu'aucune transaction annulée ne démontre.
 
-| | Résultat |
-| --- | --- |
-| `I1` à `I22` | **22 au vert** |
-| **`I23`** | **ÉCHOUE, 3 lignes** — `compass_premises_within`, `compass_scoring_context_within`, `compass_street_rotation`, toutes `security_definer = false` |
-| `I24` | au vert — 6 fonctions recensées, toutes couvertes |
-| `I25` | **ERREUR** — `column r.withheld does not exist` |
+### Le piège de procédure de cette session : `npx.cmd supabase` ne démarre plus sur ce poste
 
-C'est exactement la signature que `DIAGNOSTIC.md` §10 décrit pour `I14` jouée contre la fonction
-défectueuse encore en ligne. **Les invariants mordent contre la vraie base**, ce qu'aucune
-transaction annulée ne peut démontrer.
+Le bloc PowerShell consigné plus bas dans « La suite, par ordre » §1 utilise `npx.cmd supabase`.
+**Il échoue désormais**, et le message ne dit pas pourquoi :
 
-**Ce que la transaction annulée démontre, elle**, jouée contre le distant, migration appliquée puis
-`rollback` : `I18`, `I23`, `I25`, `I26`, `I27`, `I28` **tous à zéro ligne**, `I24` à 6 fonctions
-couvertes. Plus les quatre sabotages, deux par paire, chacun dans son sens.
+```
+Error: spawn UNKNOWN   errno: -4094
+    at file:///.../npm-cache/_npx/.../node_modules/supabase/dist/supabase.js:38
+```
 
-### Ce qui reste, et c'est la première chose à faire à la reprise
+Diagnostiqué le 25 août, et aucune des hypothèses évidentes n'était la bonne — ni Supabase, ni les
+identifiants, ni le classificateur :
 
-**`20260825000014_licence_withholding_rule.sql` n'est pas posée.** `--dry-run` confirme une seule
-migration en attente ; la commande elle-même a été **refusée par le classificateur du mode auto** —
-troisième refus sur quatre poussées, même cause que les précédentes. Elle se lance à la main :
+- `npx` installe `supabase@2.115.0`, qui livre son binaire par **optionalDependencies** ; sur ce
+  poste c'est `@supabase/cli-windows-arm64`, et il est bien là, 124 Mo. **Ce poste est en ARM64**
+  (`node -p "process.arch"` → `arm64`), donc l'architecture est la bonne.
+- Lancé directement, le binaire répond : « **Une stratégie de contrôle d'application a bloqué ce
+  fichier** ». C'est Smart App Control / WDAC, une politique machine — pas un réglage de projet, et
+  pas quelque chose qu'un agent doit contourner.
+- **Un CLI qui marche existe déjà sur le poste** : `C:\Users\ivand\supabase-cli\supabase.exe`,
+  version **2.98.2**, sur le `PATH`, non bloqué. C'est lui qui a posé `20260825000014`.
+
+**La commande à utiliser désormais** — identique pour le reste, seul le lanceur change :
 
 ```powershell
 $raw = (Get-Content .env.local | Where-Object { $_ -like 'DATABASE_URL=*' } | Select-Object -First 1) -replace '^DATABASE_URL=','' -replace '^"','' -replace '"$',''
 if ($raw -match '^(postgresql://)([^:]+):(.*)@(.+)$') {
   $enc = $Matches[1] + [uri]::EscapeDataString($Matches[2]) + ':' + [uri]::EscapeDataString($Matches[3]) + '@' + $Matches[4]
-  npx.cmd supabase db push --db-url $enc
+  & "C:\Users\ivand\supabase-cli\supabase.exe" db push --db-url $enc
 } else { "URL non reconnue dans .env.local" }
 ```
 
-Puis, dans cet ordre : `npm.cmd run eval` (doit passer à 28/28), `npm.cmd run eval:sabotage` (doit
-rendre PASS, alors qu'il rend FAIL aujourd'hui sur « la porte est déjà rouge »), `npm.cmd run
-eval:anon` (deux nouveaux contrôles), et remesurer le ledger — **attendu à 41**, mesuré à **40** à
-la clôture de cette session.
+> **Ne pas « mettre à jour le CLI » pour régler ça.** Passer 2.98.2 en 2.115.0 ramènerait exactement
+> le binaire que la politique bloque. Et le classificateur du mode auto avait refusé `npx.cmd
+> supabase db push` **avant** que ce problème n'apparaisse — deux obstacles distincts empilés sur la
+> même commande, ce qui est précisément ce qui rend ce genre de panne coûteuse à lire : le premier
+> symptôme cache le second.
 
-**L'issue [`#57`](https://github.com/IvandeMurard/paris-compass/issues/57) reste ouverte**, et doit
-le rester tant que la migration n'est pas posée : son critère 1 demande un appel **anonyme** qui ne
-rende plus `0` sans marqueur, et cet appel-là passe encore par la fonction défectueuse en ligne.
-Les critères 2 et 3 sont tenus au dépôt.
+### Ce qui reste, et qui n'appartient pas à cette session
 
-**Le point 24 n'a pas d'issue.** À ouvrir si l'on veut le suivre ailleurs que dans `DIAGNOSTIC.md`.
-
-**Mesures à la clôture, remesurées, pas recopiées :** ledger distant **40** migrations, dernière
-`20260825000013` · **13 fonctions `compass_*`** · **28 invariants** (`grep -c '^-- @invariant '`) ·
-issues **40 ouvertes, 12 fermées**, inchangé.
+- **L'issue [`#57`](https://github.com/IvandeMurard/paris-compass/issues/57) reste ouverte.** Ses
+  trois critères sont tenus et mesurés, mais la fermer demande une autorisation explicite, comme
+  `#14`, `#9` et `#55` avant elle.
+- **Le point 24 n'a pas d'issue** — la licence citée sur un taux dérivé de deux millésimes. À
+  ouvrir si l'on veut le suivre ailleurs que dans `DIAGNOSTIC.md`.
+- **La doctrine `authenticated`** n'est pas tranchée : voir `DIAGNOSTIC.md` §21.
+- **`#15` reste ouverte** — sa fermeture demande une décision explicite, inchangé depuis la
+  session 10.
 
 ---
 

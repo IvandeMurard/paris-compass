@@ -1040,6 +1040,8 @@ rend **74** quel que soit l'ordre de chargement, et la valeur gelée n'a pas eu 
 
 ## 18. `npm.cmd run eval:anon` porte trois échecs non liés à `w0-plu` — trouvés en chemin, non corrigés
 
+~~**Non corrigés.**~~ **Les trois sont clos le 25 août**, par `w0-retenue` (#57) pour les deux premiers et par la mesure pour le troisième. Le bras D rend **PASS, 11 contrôles**, mesuré après la pose de `20260825000014`. Détail en fin de point.
+
 Trouvés le 25 août en faisant tourner la porte anonyme après le changement de signature de
 `compass_premises_within` pour `w0-plu` (#9) — pas dans le périmètre de ce ticket, et laissés
 ouverts plutôt que corrigés en silence, sur la règle du prompt commun de `SESSIONS.md` : « tout
@@ -1092,10 +1094,33 @@ est `compass_premises_within` — les quatre contrôles qui l'exercent (`premise
 tolérer `out_of_corpus` comme elle tolère déjà les autres colonnes nulles, et déterminer si le
 timeout RLS demande un index, une requête moins chère, ou un contournement de count.
 
+### Clos le 25 août, et les deux causes n'étaient pas la même
+
+**Les deux `scoring_context_within` : c'est la sonde qui était périmée, pas la fonction.**
+`expectWithheld` exigeait que **toute** colonne soit nulle sur une ligne retenue. `out_of_corpus`
+n'est pas du contenu : l'appartenance au corpus se lit dans `quartier`, table que `anon` lit en
+entier, et elle est orthogonale à la licence. La sonde tolère désormais les marqueurs orthogonaux —
+et, plutôt que de les tolérer, elle les **vérifie** : sur une ligne retenue `out_of_corpus` doit
+valoir exactement `false`. Le sens compte : `20260825000003` fait passer le test de licence en
+premier, donc répondre « hors zone » sur un millésime retenu divulguerait que la zone, elle, aurait
+répondu. `true` à cet endroit serait un vrai défaut, pas un détail.
+
+**Le timeout RLS a disparu sans que personne y touche.** Remesuré le 25 août, même requête, même
+projet, même clé publiable : `RLS premise_observation — 60845 relevés visibles = le seul millésime
+ODbL`. Plus de `NaN`, plus de `57014`. Rien dans `w0-retenue` ne touche `premise_observation`, sa
+politique ni ses index — c'est donc la fenêtre de timeout PostgREST ou la charge du projet qui a
+bougé, pas le produit. **Un défaut qui s'en va tout seul n'est pas un défaut corrigé** : il faut
+lire cette ligne comme « ne se reproduit pas aujourd'hui », pas comme « ne peut plus se produire ».
+Si le compte exact redevient trop cher, la piste reste celle du 25 août : un index, une requête
+moins chère, ou se passer du `count=exact`.
+
+---
+
 ## 19. Une retenue de licence rendue comme un fait chiffré — `compass_street_rotation`, le 25 août
 
 ~~Trouvé en écrivant `w1-survie` (#14) et **consigné plutôt que corrigé**.~~ **Corrigé le 25 août
-par `20260825000014_licence_withholding_rule.sql`**, ticket `w0-retenue` (#57). La fonction passe
+par `20260825000014_licence_withholding_rule.sql`**, ticket `w0-retenue` (#57), **posée sur le
+distant, ledger remesuré à 41**. La fonction passe
 `SECURITY DEFINER`, lit le claim, rend **une ligne marquée par millésime retenu** — jamais une par
 tronçon, ce qui divulguerait où le millésime retenu a des locaux — et pose
 `changed_since_previous` à **nul** dès que la comparaison est impossible. Couverte par `I25`/`I26`

@@ -79,13 +79,36 @@ async function rpc(fn: string, body: Record<string, unknown>): Promise<Row[]> {
   return JSON.parse(text) as Row[]
 }
 
-/** A withheld vintage: exactly one row, the marker set, and no content on it. */
+/**
+ * A withheld vintage: exactly one row, the marker set, and no content on it.
+ *
+ * `out_of_corpus` is not content and must not be read as a leak — DIAGNOSTIC.md §18,
+ * left open on 25 August and settled here. 20260825000003 gave
+ * compass_scoring_context_within a third answer, orthogonal to the licence: a point
+ * outside the BDCom corpus is outside it whether the vintage is withheld or not, and
+ * corpus membership comes from `quartier`, a table anon reads in full. This probe still
+ * expected EVERY column to be null and so failed on `out_of_corpus: false` while the
+ * function answered correctly.
+ *
+ * It is asserted rather than tolerated, and the direction matters: on a withheld row the
+ * value must be exactly `false`. The licence test runs first by design in that migration
+ * — answering "outside the zone" on a withheld vintage would disclose that the zone would
+ * otherwise have answered — so `true` here would be a real defect, not a detail.
+ */
+const ORTHOGONAL_MARKERS: Record<string, unknown> = { withheld: true, out_of_corpus: false }
+
 async function expectWithheld(fn: string, body: Record<string, unknown>, label: string) {
   const rows = await rpc(fn, body)
   if (rows.length === 0) return fail(label, "zéro ligne — la retenue est muette, le défaut est revenu")
   if (rows.length !== 1) return fail(label, `${rows.length} lignes, attendu 1`)
   if (rows[0].withheld !== true) return fail(label, `withheld = ${JSON.stringify(rows[0].withheld)}`)
-  const leaked = Object.entries(rows[0]).filter(([k, v]) => k !== "withheld" && v !== null)
+
+  const row = rows[0] as Record<string, unknown>
+  for (const [column, expected] of Object.entries(ORTHOGONAL_MARKERS)) {
+    if (column in row && row[column] !== expected)
+      return fail(label, `${column} = ${JSON.stringify(row[column])} sur une ligne retenue, attendu ${expected}`)
+  }
+  const leaked = Object.entries(row).filter(([k, v]) => !(k in ORTHOGONAL_MARKERS) && v !== null)
   if (leaked.length > 0) return fail(label, `contenu non nul sur une ligne retenue : ${JSON.stringify(leaked)}`)
   pass(label, "1 ligne, withheld = true, aucun contenu")
 }

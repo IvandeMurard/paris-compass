@@ -112,7 +112,7 @@ hors de la file, pour qu'aucun ticket ne disparaisse en silence.
 
 <!-- BEGIN sessions -- généré par `npm.cmd run sessions`, ne pas éditer à la main -->
 
-*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 25/08/2026.*
+*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 26/08/2026.*
 
 | # | Ticket | Issue | État | Prio | Modèle |
 | --- | --- | --- | --- | --- | --- |
