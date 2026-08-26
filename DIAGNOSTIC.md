@@ -1222,10 +1222,20 @@ juste en dessous. Le troisième passage de `eval:anon`, cache chaud, rend **PASS
 d'inactivité du projet n'est pas une régression : c'est un démarrage à froid. La distinction est
 lisible sans deviner — un défaut de produit échoue aussi au deuxième passage. Ce qui reste vrai,
 et c'est le vrai reproche : **une porte dont le verdict dépend de la température du cache est une
-porte qui apprendra un jour à être ignorée.** Les trois pistes du 25 août tiennent toujours — un
-index, une requête moins chère, ou se passer du `count=exact` — et la troisième est la moins
-chère : `limit=1` avec `count=planned` répondrait à la même question sans scanner 228 275 lignes,
-au prix d'une estimation là où le contrôle veut aujourd'hui une égalité exacte.
+porte qui apprendra un jour à être ignorée.** Des trois pistes du 25 août, **l'index est mort** :
+le plan est déjà un `Index Only Scan` avec `Heap Fetches: 0`, il n'y a rien à indexer. Restent une
+requête moins chère et se passer du `count=exact`.
+
+> **Ouvert en ticket le 26 août :
+> [`#61`](https://github.com/IvandeMurard/paris-compass/issues/61)**, avec les mesures ci-dessus.
+> La piste recommandée n'y est pas `count=planned` — qui rendrait une estimation là où le contrôle
+> veut une égalité, et tolérer un écart sur un contrôle de licence est exactement le mauvais
+> geste. C'est de **remplacer le compte par un contrôle négatif à coût constant** : demander à
+> `anon` une ligne d'un millésime retenu, qui doit rendre zéro. Recherche par index, insensible au
+> cache, et plus direct que le compte — la garantie est « aucune ligne retenue n'est visible », et
+> le total à 60 845 n'en est qu'un proxy. Ce que cette piste perd est écrit dans le ticket : le
+> compte exact attraperait une divulgation **partielle** de 2023, pas le contrôle négatif. Et la
+> recette exige un sabotage — un contrôle rendu bon marché qui ne mord plus n'est pas un progrès.
 
 ---
 

@@ -782,6 +782,7 @@ Q4 2026  →  meublés + ABF/SPR + PPRI zonage + vue « ce qui se libère »
 | #49 | `w1-historique` | P0 | bdcom20032020 : porter l'historique de six à vingt ans |
 | #59 | `w1-licence-derivee` | P1 | Un taux dérivé de deux millésimes ne peut pas citer la licence du plus permissif — **ouvert le 25 août** |
 | #60 | — | P2 | Le bundle part en un seul chunk de 1,1 Mo — **ouvert le 26 août**, mesuré en fermant `w1-terrasses`, sans fichier de ticket. Ni régression ni blocage |
+| #61 | — | P1 | La porte anonyme dépend de la température du cache — le `count=exact` de `eval:anon` — **ouvert le 26 août**, prolonge `DIAGNOSTIC.md` §18. Pas un défaut produit : la règle de licence tient, c'est la porte qui est fragile |
 | #13 | `w1-ppri` | P1 | PPRI en zonage, pas en booléen |
 | #14 | `w1-survie` | P0 | Courbes de survie SIRENE × BDCom |
 | #15 | `w1-terrasses` | P0 | Terrasses et étalages autorisés |

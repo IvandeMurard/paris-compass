@@ -18,7 +18,7 @@ de travail ni sur l'état d'avant. La session 11 avait consigné pourquoi.
 | Fonctions `compass_*` | **13**, inchangé |
 | Invariants | **31**, inchangé — aucun ajouté, et c'est une décision, voir plus bas |
 | Sources dans `ingestion_run` | **8**, inchangé en nombre. `terrasses` **rechargée à 17 h 58 UTC** pour poser le correctif d'adresse : `source_as_of` **2026-08-26**, 24 189 lignes, `run_by` `manual`. Les sept autres n'ont pas bougé |
-| Issues | **40 ouvertes, 15 fermées** — remesuré par `gh` à la toute fin : `#15` fermée, [`#60`](https://github.com/IvandeMurard/paris-compass/issues/60) ouverte (poids du bundle). Sans fichier de ticket, donc hors de la file de `SESSIONS.md`, comme `#55` avant elle |
+| Issues | **41 ouvertes, 15 fermées** — remesuré par `gh` à la toute fin : `#15` fermée, [`#60`](https://github.com/IvandeMurard/paris-compass/issues/60) (poids du bundle, P2) et [`#61`](https://github.com/IvandeMurard/paris-compass/issues/61) (le `count=exact` de la porte anonyme, P1) ouvertes. Ni l'une ni l'autre n'a de fichier de ticket, donc toutes deux hors de la file de `SESSIONS.md`, comme `#55` avant elles |
 | Épic [`#42`](https://github.com/IvandeMurard/paris-compass/issues/42) (vague 1) | **ouverte**, **3 tickets cochés sur 7** — `#11`, `#14`, `#15` |
 | Portes | `typecheck` ✓ · **166 tests** ✓ (122 avant, +21 pour `terrasseText`, +23 pour `terrasseAddress`) · **`build` et `build:dev` injouables ici** — Smart App Control bloque le binaire natif de `@swc/core` ; contournées par **`build:local` et `build:dev:local`** ✓, sans SWC et sans dépendance ajoutée, voir plus bas · **`eval` 31/31 invariants** ✓ et 8/8 cas dorés, dix écarts de baseline en avertissement (dérive BODACC/SIRENE connue, la plus large à 0,70 %) · **`eval:anon` PASS, 12 contrôles — mais rouge aux deux premiers passages**, voir plus bas · **`eval:sabotage` PASS** · **`sessions:check`** ✓ *(nouveau)* · `verify:mcp` non relancée, ni `src/core/` ni `mcp-server/` touchés |
 
@@ -279,12 +279,13 @@ construira avec SWC de son côté le 1ᵉʳ septembre.
 - **`periode_installation` n'est pas chargé** (97 % de nuls), et **l'éligibilité réglementaire de
   la terrasse annuelle** — paris.fr la restreint à une liste de métiers — n'est pas transcrite :
   c'est la couche 2 de `PLAN.md` §5.3, et elle mérite son propre ticket.
-- **Le `count=exact` de la porte anonyme reste à remplacer, et reste sans issue.** `DIAGNOSTIC.md`
-  §18 porte désormais le mécanisme mesuré ; la correction — `count=planned`, ou un contrôle qui ne
-  compte pas 228 275 lignes pour vérifier une égalité — n'appartient pas à `w1-terrasses`.
-  **À ouvrir avant qu'une session ne prenne l'habitude de relancer la porte jusqu'à ce qu'elle
-  passe**, ce qui est exactement la façon dont une porte cesse de protéger. Le seul écart de
-  cette session qui n'ait pas sa maison sur GitHub — délibérément, il n'a pas été demandé.
+- **Le `count=exact` de la porte anonyme reste à remplacer** :
+  [`#61`](https://github.com/IvandeMurard/paris-compass/issues/61), ouverte le 26 août avec le
+  mécanisme mesuré dedans. `DIAGNOSTIC.md` §18 en est le récit. La piste recommandée n'est pas de
+  rendre le compte moins cher mais de **le remplacer par un contrôle négatif à coût constant** —
+  « aucune ligne d'un millésime retenu n'est visible » est la garantie réelle, dont le total à
+  60 845 n'est qu'un proxy. Avec la contrainte que le ticket énonce : un contrôle rendu bon marché
+  qui ne mord plus n'est pas un progrès, donc sabotage exigé à la recette.
 - **Le poids du bundle a la sienne** : [`#60`](https://github.com/IvandeMurard/paris-compass/issues/60),
   ouverte le 26 août avec la mesure du jour dedans — 1 871 modules, un seul chunk JS de
   1 114,64 ko (332,60 ko compressé). Ni régression ni blocage : l'avertissement de vite existe
