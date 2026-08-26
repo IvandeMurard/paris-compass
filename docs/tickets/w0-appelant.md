@@ -54,6 +54,11 @@ personne. Le jour où l'inscription s'ouvre — le produit porte déjà `saved_p
 `saved_searches`, donc c'est l'intention — la même correction retire des données à des gens qui
 les avaient, et ça ne se fait plus sans discussion.
 
+> **Tranché le 26 août 2026 par Ivan : `authenticated` n'est PAS privilégié.**
+> La recommandation du point 1 est donc la décision. Consignée dans `docs/REPRISE.md`,
+> section « Décisions qui ne se déduisent pas du code », avec sa raison et sa condition
+> de révision — une réponse de l'APUR, et rien d'autre.
+
 ## Comment
 
 1. **Trancher, et écrire la décision.** La recommandation est `authenticated` **non privilégié**

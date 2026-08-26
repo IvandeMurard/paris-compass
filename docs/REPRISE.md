@@ -2187,6 +2187,25 @@ refaire sur tout nouveau projet avant `supabase db push`.
 
 ## Décisions qui ne se déduisent pas du code
 
+**`authenticated` n'est pas un appelant privilégié.** Tranché par Ivan le 26 août 2026,
+sur `w0-appelant` (#58). Le privilège reste au rôle de service et aux connexions directes
+— ceux qui *exploitent* Compass — jamais à un compte créé sur le site.
+
+La raison, et elle tient en une phrase : **créer un compte n'est pas une lecture de
+licence.** 2017 et 2020 portent `publicly_redistributable = false` parce que la licence
+APUR n'a pas été lue ; elle ne l'a pas été davantage pour un inscrit. Un partenaire sous
+accord n'est pas un inscrit, et le jour où il y en aura un, ce sera une autre décision,
+écrite comme celle-ci.
+
+Décidé pendant que c'était gratuit : `auth.users` comptait **0 utilisateur** le 25 août.
+Une fois l'inscription ouverte — le produit porte déjà `saved_properties` et
+`saved_searches`, donc c'est l'intention — la même décision retirerait des données à des
+gens qui les avaient.
+
+Révisable sur un seul événement : une réponse de l'APUR autorisant la redistribution.
+Rien d'autre ne la rouvre.
+
+
 **Quatre niveaux de fiabilité, calculés et jamais saisis** : `etabli`,
 `corrobore`, `probable`, `indetermine`. Pas de score sur 100 — un pourcentage de
 confiance serait le chiffre invérifiable que le produit refuse. La règle est dans
