@@ -21,7 +21,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview",
-    "sessions": "tsx scripts/sessions.ts"
+    "sessions": "tsx scripts/sessions.ts",
+    "sessions:check": "tsx scripts/sessions.ts --check"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

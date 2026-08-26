@@ -20,7 +20,7 @@ de travail ni sur l'état d'avant. La session 11 avait consigné pourquoi.
 | Sources dans `ingestion_run` | **8**, inchangé en nombre. `terrasses` **rechargée à 17 h 58 UTC** pour poser le correctif d'adresse : `source_as_of` **2026-08-26**, 24 189 lignes, `run_by` `manual`. Les sept autres n'ont pas bougé |
 | Issues | **39 ouvertes, 15 fermées** — remesuré par `gh` après fermeture de [`#15`](https://github.com/IvandeMurard/paris-compass/issues/15) |
 | Épic [`#42`](https://github.com/IvandeMurard/paris-compass/issues/42) (vague 1) | **ouverte**, **3 tickets cochés sur 7** — `#11`, `#14`, `#15` |
-| Portes | `typecheck` ✓ · **166 tests** ✓ (122 avant, +21 pour `terrasseText`, +23 pour `terrasseAddress`) · `build` et `build:dev` ✓ · **`eval` 31/31 invariants** ✓ et 8/8 cas dorés, dix écarts de baseline en avertissement (dérive BODACC/SIRENE connue, la plus large à 0,70 %) · **`eval:anon` PASS, 12 contrôles — mais rouge aux deux premiers passages**, voir plus bas · **`eval:sabotage` PASS** · `verify:mcp` non relancée, ni `src/core/` ni `mcp-server/` touchés |
+| Portes | `typecheck` ✓ · **166 tests** ✓ (122 avant, +21 pour `terrasseText`, +23 pour `terrasseAddress`) · **`build` et `build:dev` EN PANNE** — Windows Application Control bloque le binaire natif de `@swc/core`, voir plus bas ; verts deux heures plus tôt à `ffa3b55` · **`eval` 31/31 invariants** ✓ et 8/8 cas dorés, dix écarts de baseline en avertissement (dérive BODACC/SIRENE connue, la plus large à 0,70 %) · **`eval:anon` PASS, 12 contrôles — mais rouge aux deux premiers passages**, voir plus bas · **`eval:sabotage` PASS** · **`sessions:check`** ✓ *(nouveau)* · `verify:mcp` non relancée, ni `src/core/` ni `mcp-server/` touchés |
 
 **`w1-terrasses` (#15) est fait et fermé.** La fiche d'un local rend les trois états — `oui`,
 `non`, `inconnu` — avec le type, la réserve doctrinale et la date de la source. Démontré dans le
@@ -158,6 +158,81 @@ plus cher au premier appel, et la fenêtre de timeout de PostgREST est juste en 
 > après une période d'inactivité du projet est un démarrage à froid, pas un défaut de produit —
 > un vrai défaut échoue aussi au deuxième passage. Mais une porte dont le verdict dépend de la
 > température du cache est une porte qui apprendra un jour à être ignorée.
+
+### Le passage de fiabilité : ce qui était documenté faux, et ce qui l'empêchera de recommencer
+
+Fait à la clôture, après coup, sur la question « qu'est-ce qui est documenté et n'est plus vrai ? ».
+Trois résultats, dont un qui ne concerne pas du tout la table de sessions.
+
+**1. La page publique `/sources` omettait trois sources que l'interface affiche.** Le vrai défaut
+du lot, consigné en `DIAGNOSTIC.md` §25 : `DATA_SOURCES` se dit « every open dataset Compass
+queries » et n'y mettait ni **APUR BDCom** (à l'écran depuis le 24 août, ODbL-1.0 pour 2023), ni
+**BODACC** (idem, Licence Ouverte), ni **les terrasses** (depuis aujourd'hui, ODbL). La fiche
+attribuait correctement ligne par ligne ; c'est la page qui répond à « d'où ça vient ? » qui était
+incomplète, en se présentant comme complète — et deux des trois sont ODbL, dont la clause
+d'attribution ne se satisfait pas d'une mention enfouie. Corrigé, avec les URL **mesurées**
+(`bdcom_vintage.source_url`, l'hôte des liens BODACC déjà rendus) après en avoir écrit deux de
+mémoire, ce qui aurait été l'ironie complète dans ce fichier-là.
+
+> **La règle existait et n'a pas été rejouée.** Le fichier portait déjà, en commentaire à propos
+> de Sirene, la bonne règle : *une source entre dans la liste le jour où un écran la lit, pas le
+> jour où elle est chargée.* Elle était juste, respectée pour Sirene, et personne ne l'a
+> ré-appliquée quand `w0-fiche` a mis BDCom et BODACC à l'écran. **Un commentaire ne se déclenche
+> pas tout seul** — c'est le §20 sous une autre forme.
+
+**2. La table d'ordre, elle, disait vrai — mais rien ne le vérifiait.** Être dérivée prouve
+qu'elle a été vraie *une fois*, ce qui est exactement le piège du chiffre mesuré sans sa date.
+`npm.cmd run sessions:check` répond désormais à « est-ce que ce qui est committé est encore
+vrai ? » sans rien réécrire, en comparant **les affirmations** et non les octets — la ligne
+« régénérée le … » diffère tous les jours, et un contrôle qui rougirait dessus serait du bruit,
+qui est la façon dont un contrôle finit désactivé. Éprouvé en remettant `w1-terrasses` à
+« ouvert » alors que `#15` est fermée : rouge, avec le ticket nommé et les deux états. Vert sur
+l'état réel : *43 tickets, 12 fermés, recoupé à l'état GitHub.*
+
+**3. La contradiction du prompt commun est levée.** Il disait « ne me résume que ce que tu ne peux
+pas faire toi-même — l'état GitHub (fermer l'issue…) » **et** « lance `npm.cmd run sessions` », qui
+dérive de cet état. Les deux ensemble garantissent une fenêtre de fausseté : la table est
+régénérée avant la fermeture, donc fausse dès la fermeture. Le prompt donne maintenant l'ordre
+qui tient — fermer, puis régénérer, puis `sessions:check` — et laisse explicitement l'autre choix
+ouvert, à condition de ne pas régénérer.
+
+### La porte `build` n'a pas pu être jouée, et ce n'est pas un rouge
+
+Depuis la fin de cette session, `vite` ne démarre plus **du tout** sur cette machine — ni `build`,
+ni `build:dev`, ni `dev` :
+
+```
+Error: Failed to load native binding
+  node_modules/@swc/core/binding.js
+```
+
+Cause mesurée en chargeant le binaire à la main, et elle est sans ambiguïté :
+
+```
+An Application Control policy has blocked this file.
+\\?\...\node_modules\@swc\core-win32-arm64-msvc\swc.win32-arm64-msvc.node
+```
+
+**Le binaire est le bon** — la machine est `win32/arm64`, `@swc/core-win32-arm64-msvc` est bien
+installé, 21 Mo, daté du 16 août, inchangé. C'est **Windows Application Control** qui refuse de le
+charger, et cette politique a changé pendant la session : les mêmes commandes passaient au vert
+deux heures plus tôt, à `ffa3b55` et `e105f17`.
+
+**C'est une panne, pas un échec** — la distinction que `docs/SESSIONS.md` fait déjà pour
+`verify:mcp` quand un miroir Overpass est indisponible. Rien dans le dépôt n'en est la cause, et
+aucune ligne de code ne la corrige. Ce qui reste jouable l'a été et est au vert : `typecheck`
+(qui compile tout `src/`, `sources.ts` compris), **166 tests**, `sessions:check`.
+
+**Deux conséquences à connaître avant de reprendre :**
+
+- **La page `/sources` n'a pas pu être vérifiée à l'écran.** Le correctif du §25 est couvert par
+  `tsc` — c'est un tableau de données, pas de la logique — mais personne ne l'a vu rendu.
+  À regarder au premier `npm.cmd run dev` qui redémarrera.
+- **Seul un humain peut lever la politique** : autoriser
+  `node_modules\@swc\core-win32-arm64-msvc\swc.win32-arm64-msvc.node` dans Windows Application
+  Control / Smart App Control, ou réinstaller la dépendance une fois la politique ajustée.
+  Rejouer ensuite `npm.cmd run build` **et** `npm.cmd run build:dev` — les deux, comme le veut
+  `CLAUDE.md`.
 
 ### Ce qui reste, et qui n'appartient pas à cette session
 

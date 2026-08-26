@@ -1658,3 +1658,60 @@ texte, pas la licence).
 > est *meilleur* que celui annoncé — une absence nommée vaut mieux qu'une absence muette, c'est la
 > doctrine du point 9 — mais le commentaire décrit autre chose que le code, et c'est le
 > commentaire qui est faux.
+
+---
+
+## 25. La page publique des sources en omettait trois que l'interface affiche — le 26 août
+
+**Corrigé le 26 août** dans `src/services/opendata/sources.ts`. Trouvé en cherchant une table
+fausse ailleurs, ce qui est la façon habituelle de trouver celle-là.
+
+`DATA_SOURCES` se décrit lui-même comme « every open dataset Compass queries », et la page
+`/sources` l'affiche sous le titre « **Sources actuellement branchées** ». Au 26 août, la liste
+comptait cinq entrées : OpenStreetMap, Base Adresse Nationale, encadrement des loyers, CAMS
+Europe, Géorisques.
+
+**Trois manquaient, et la fiche du local les affiche :**
+
+| Source | Lue à l'écran depuis | Licence |
+| --- | --- | --- |
+| **APUR BDCom** | 24 août (`w0-fiche`, #8) — activité, enseigne, vacance | **ODbL-1.0** pour 2023 ; `custom` non redistribuable pour 2017 et 2020 |
+| **BODACC (DILA)** | 24 août (`w0-fiche`, #8) — cessions, jugements, prix publiés | **Licence Ouverte** |
+| **Terrasses et étalages** | 26 août (`w1-terrasses`, #15) — autorisation et type | **ODbL** |
+
+**Ce n'est pas un défaut d'attribution, c'en est un de déclaration — et la nuance compte.** La
+fiche attribue correctement, ligne par ligne : chaque événement porte sa source, sa licence et
+son lien (`PremiseHistorySheet`, `licenceLabel`). Ce qui était faux, c'est la **page qui répond à
+la question « d'où ça vient ? »** : elle taisait deux jeux ODbL sur trois, alors que la clause
+d'attribution d'ODbL ne se satisfait pas d'une mention par ligne enfouie dans un panneau
+latéral. Un lecteur qui voulait la liste recevait une liste incomplète, présentée comme complète.
+
+**La cause est un chaînon manquant, pas un oubli isolé.** Le fichier portait déjà la bonne règle,
+écrite en commentaire à propos de Sirene : *une source entre dans cette liste le jour où un écran
+la lit, pas le jour où elle est chargée.* La règle était juste et respectée pour Sirene ; personne
+ne l'a rejouée le jour où `w0-fiche` a mis BDCom et BODACC à l'écran. **Une règle écrite dans un
+commentaire ne se déclenche pas toute seule** — c'est le §20 sous une autre forme : un correctif
+qui n'a pas laissé de règle derrière lui.
+
+### Ce qui a été fait, et ce que ça ne rattrape pas
+
+Les trois entrées sont ajoutées, avec leurs URL **mesurées et non écrites de mémoire** :
+`bdcom_vintage.source_url` du millésime 2023 pour l'APUR — le même endpoint que la fiche met
+derrière « Consulter la source » — et l'hôte des liens par annonce déjà rendus pour le BODACC.
+Deux URL avaient d'abord été tapées de tête (`opendata.apur.org/datasets/bdcom-2023`,
+`data.gouv.fr/fr/datasets/bodacc/`) et remplacées après mesure : inventer une URL de source dans
+le fichier qui déclare les sources aurait été l'ironie complète.
+
+L'entrée APUR **dit aussi ce qui n'est pas montré** — 2023 seul, 2017 et 2020 retenus faute de
+licence lue — plutôt que de laisser croire que le recensement entier est publié.
+
+Le commentaire nomme désormais ce qui reste dehors **et pourquoi** : Sirene (chargé, aucun écran),
+PLU et chantiers (chargés, portés par `compass_premises_within`, mappés par aucun composant).
+Les deux derniers rejoindront la liste le jour où la fiche les rendra.
+
+**Ce que ça ne rattrape pas, et c'est la limite à énoncer** : rien ne *vérifie* la règle. Un
+prochain ticket qui met PLU à l'écran sans toucher `sources.ts` reproduira exactement ce défaut, et
+aucune porte ne le dira. La règle est passée du commentaire à la consigne de session
+(`docs/SESSIONS.md`, prompt commun), ce qui est mieux qu'un commentaire et moins qu'un contrôle.
+**Le contrôle mécanique reste à écrire** — il demanderait de relier un composant à la couche qu'il
+lit, ce qu'aucun outil du dépôt ne sait faire aujourd'hui.

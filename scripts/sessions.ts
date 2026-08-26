@@ -5,6 +5,18 @@
 //
 // The point is the rule CLAUDE.md carries: a document is not a measurement. A table
 // typed by hand goes stale the moment a session closes an issue; a derived one cannot.
+//
+// **A derived table still goes stale if nobody derives it.** Being generated proves the
+// table was true *once*, which is exactly the trap this repository keeps rediscovering: a
+// measured figure without its date becomes false in silence. Hence `--check`, which answers
+// "is what is committed still true?" without writing anything:
+//
+//   npm.cmd run sessions        regenerates and writes
+//   npm.cmd run sessions:check  compares and exits 1 if the committed table has drifted
+//
+// `--check` compares the **claims**, not the bytes: the "régénérée le …" line is expected to
+// differ every day and a check that failed on it would be noise, and noise is how a check
+// gets disabled. It reports which ticket moved, so the diff is readable without a diff.
 
 import { readFileSync, writeFileSync, readdirSync } from "fs"
 import { execFileSync } from "child_process"
@@ -141,6 +153,30 @@ function today(): string {
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`
 }
 
+/** The block without its regeneration date — what the table actually claims. */
+function claims(block: string): string[] {
+  return block
+    .split("\n")
+    .filter((line) => !/^\*Table dérivée de/.test(line.trim()))
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+}
+
+/**
+ * The rows a reader would compare by hand, keyed by ticket id.
+ *
+ * Used only to say *what* drifted. Reporting "the table differs" would send the next session
+ * to a diff; reporting "w1-terrasses: ouvert → fait" ends the question on the spot.
+ */
+function rowsById(block: string): Map<string, string> {
+  const out = new Map<string, string>()
+  for (const line of block.split("\n")) {
+    const m = line.match(/\|\s*~?~?\d+~?~?\s*\|\s*~*`?([\w-]+)`?~*\s*\|(.*)$/)
+    if (m) out.set(m[1], m[2].trim())
+  }
+  return out
+}
+
 function main() {
   const rows = readTickets()
   let issues: Issue[]
@@ -167,13 +203,41 @@ function main() {
     process.exit(1)
   }
 
-  const next = doc.slice(0, i) + build(rows) + doc.slice(j + END.length)
+  const expected = build(rows)
+  const committed = doc.slice(i, j + END.length)
+  const closed = rows.filter((r) => r.issue?.state === "CLOSED").length
+
+  if (process.argv.includes("--check")) {
+    const drifted = claims(committed).join("\n") !== claims(expected).join("\n")
+    if (!drifted) {
+      console.log(
+        `docs/SESSIONS.md — la table dit vrai : ${rows.length} tickets, ${closed} fermé(s), ` +
+          `recoupé à l'état GitHub.`,
+      )
+      return
+    }
+
+    const before = rowsById(committed)
+    const after = rowsById(expected)
+    console.error("docs/SESSIONS.md — la table committée ne dit plus l'état GitHub.")
+    for (const id of new Set([...before.keys(), ...after.keys()])) {
+      const b = before.get(id)
+      const a = after.get(id)
+      if (b === a) continue
+      if (b === undefined) console.error(`  + ${id} — absent de la table`)
+      else if (a === undefined) console.error(`  − ${id} — présent dans la table, plus dans la file`)
+      else console.error(`  ~ ${id}\n      committé : ${b}\n      réel     : ${a}`)
+    }
+    console.error("Corriger avec : npm.cmd run sessions")
+    process.exit(1)
+  }
+
+  const next = doc.slice(0, i) + expected + doc.slice(j + END.length)
   if (next === doc) {
     console.log("docs/SESSIONS.md — déjà à jour.")
     return
   }
   writeFileSync(DOC, next)
-  const closed = rows.filter((r) => r.issue?.state === "CLOSED").length
   console.log(`docs/SESSIONS.md — table régénérée : ${rows.length} tickets, ${closed} fermé(s).`)
 }
 

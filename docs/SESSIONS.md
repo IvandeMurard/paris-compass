@@ -52,8 +52,14 @@ plutôt que de livrer contre un critère périmé.
 Et écris-le dans le dépôt, pas seulement ici. Ce qui n'existe qu'au chat meurt
 avec la session : un défaut trouvé va dans DIAGNOSTIC.md, un chiffre remesuré
 dans le fichier qui le portait, un piège dans docs/REPRISE.md. Ne me résume que
-ce que tu ne peux pas faire toi-même — l'état GitHub (fermer l'issue, en ouvrir
-une), et ce qui demande une décision.
+ce que je ne peux pas lire dans le depot, et ce qui demande une decision.
+
+L'etat GitHub n'est pas de la prose : la table d'ordre en est DERIVEE. Donc
+ferme l'issue toi-meme quand le "Fait quand" est demontre, avec la demonstration
+en commentaire, PUIS regenere la table — dans cet ordre, sinon elle est fausse
+des ta fermeture. Dis-le moi dans le resume. Une issue que tu ouvres en passant
+suit la meme regle. Si tu prefères que je ferme moi-meme, ne regenere pas : dis
+"table a regenerer apres fermeture" et npm.cmd run sessions:check me le rappellera.
 
 CORRIGER UNE DONNÉE N'EST PAS CORRIGER UN DÉFAUT. Avant de dire qu'un défaut est
 réglé, réponds à deux questions et écris les réponses :
@@ -81,10 +87,16 @@ un miroir Overpass est indisponible — ça n'est pas un rouge. Il rend "défaut
 les défauts déjà consignés, et passe au ROUGE si l'un d'eux disparaît : c'est
 voulu, ça veut dire qu'il faut fermer l'issue et mettre à jour DIAGNOSTIC.md.
 
-Puis lance npm.cmd run sessions et commite ce qu'il change. Si tu as touché à
-l'ordre, au modèle ou aux consignes d'une session, c'est dans scripts/sessions.ts
-pour les deux premiers, dans docs/SESSIONS.md hors du bloc généré pour la
-troisième.
+Puis lance npm.cmd run sessions et commite ce qu'il change, et termine par
+npm.cmd run sessions:check : il recoupe la table committee a l'etat GitHub et
+sort en 1 si elle a derive. Si tu as touche a l'ordre, au modele ou aux
+consignes d'une session, c'est dans scripts/sessions.ts pour les deux premiers,
+dans docs/SESSIONS.md hors du bloc genere pour la troisieme.
+
+Une source de donnees rejoint src/services/opendata/sources.ts le jour ou un
+ECRAN la lit, pas le jour ou elle est chargee. Si ton ticket met une source a
+l'ecran, ajoute-la — sinon la page /sources annonce une provenance que le produit
+n'a pas, ou tait celle qu'il a. Trois sources y ont manque pendant deux jours.
 ```
 
 Inutile d'y rappeler `npm.cmd`, la pureté de `src/core/`, `Measured<T>` ou l'encadrement des
@@ -105,6 +117,21 @@ tapé à la main vieillit dès qu'une session ferme une issue — c'est arrivé 
 Le générateur **refuse de réécrire** s'il ne peut pas joindre GitHub : mieux vaut une table
 datée qu'une table devinée. Il signale aussi les tickets sans issue et compte ce qui reste
 hors de la file, pour qu'aucun ticket ne disparaisse en silence.
+
+**Une table dérivée vieillit aussi, si personne ne la dérive.** Être générée prouve qu'elle a
+été vraie *une fois* — exactement le piège que `CLAUDE.md` décrit pour un chiffre mesuré sans
+sa date. D'où une seconde commande, qui ne réécrit rien :
+
+```powershell
+npm.cmd run sessions:check   # « la table dit vrai », ou ce qui a bougé, et sort en 1
+```
+
+Elle compare **ce que la table affirme**, pas ses octets : la ligne « régénérée le … » diffère
+tous les jours, et un contrôle qui rougirait dessus serait du bruit — le bruit est la façon
+dont un contrôle finit désactivé. Quand elle est rouge, elle nomme le ticket qui a bougé et
+les deux états, pour qu'il n'y ait pas de `diff` à lire. Éprouvée le 26 août en remettant
+`w1-terrasses` à « ouvert » dans la table alors que `#15` était fermée : rouge, avec la ligne
+fautive.
 
 ---
 
