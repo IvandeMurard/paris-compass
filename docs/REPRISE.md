@@ -1,10 +1,110 @@
-# Reprise — état au 26 août 2026, fin de session 11
+# Reprise — état au 26 août 2026, fin de session 12
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`
 (backlog, décisions produit), `docs/PLAN-ACTION-VACANCE.md` (doctrine et backlog
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
+
+## Clôture de la session 12 — l'état exact au 26 août 2026, 11 h 16 UTC
+
+Tout est mesuré à la clôture, pas recopié, et **après commit** : la session 11 venait de consigner
+qu'une porte jouée sur une copie de travail sale n'est attribuable à rien. Les chiffres ci-dessous
+sont ceux de `a197358`, arbre propre.
+
+| Mesure | Valeur |
+| --- | --- |
+| Ledger distant `dbefhvmyfmmhjeetdddu` | **42** migrations, dernière `20260826000001` — posée, remesuré |
+| Fonctions `compass_*` | **13**, inchangé — cette migration n'en ajoute ni n'en retire aucune, elle change une phrase |
+| Invariants | **31** (`grep -c '^-- @invariant '`) — `I29` à `I31` ajoutés |
+| Fonctions exposant une colonne `evidence` | **2**, mesuré depuis `pg_proc.proargnames` — `compass_address_timeline` et `compass_survival_by_trade` |
+| Issues | **41 ouvertes, 13 fermées** avant fermeture de `#54` — remesuré par `gh`. [`#57`](https://github.com/IvandeMurard/paris-compass/issues/57) a été fermée à 11 h 06 par la session 11 |
+| Portes | `typecheck` ✓ · **122 tests** ✓ · `build` et `build:dev` ✓ · **`eval` 31/31 invariants** ✓ et 8/8 cas dorés, dix écarts de baseline en avertissement (dérive BODACC/SIRENE connue, la plus large à 0,70 %) · **`eval:anon` PASS, 12 contrôles** · **`eval:sabotage` PASS** · `verify:mcp` non relancée, ni `src/core/` ni `mcp-server/` touchés |
+
+**`w0-conclusion` (#54) est fait et posé.** Un appelant anonyme sur un local absent du millésime
+2023 ne reçoit plus de justification qui suppose un état antérieur retenu : il reçoit une phrase
+qui **nomme le périmètre de la couche et ne conclut rien**, la même que reçoit l'appelant
+privilégié. Démontré par appel PostgREST réel avec la seule clé publiable, local 54653.
+
+### Le recensement de `w0-retenue` ne couvrait pas ce cas, et ce n'est pas un trou
+
+C'est la première chose que ce ticket demandait de vérifier, et la réponse est non — **démontrée,
+pas supposée**. Joué le 26 août depuis `eval/invariants.sql` lui-même, défaut encore vivant :
+`I23` rendait **0 ligne** et `I24` recensait **6 fonctions toutes couvertes**, dont
+`compass_address_timeline`.
+
+> **La leçon, et elle prolonge les points 20 et 23 : une règle structurelle vérifie qu'une fonction
+> *peut* dire la vérité, jamais qu'elle la dit.** `I23` regarde le mode et les colonnes, `I24`
+> l'existence d'un test. `I9`/`I10` ne lisent que les lignes retenues et la retenue excessive —
+> jamais l'`evidence` d'une ligne divulguée. Aucun invariant de cette porte n'avait jamais lu une
+> phrase de `compass_address_timeline`.
+
+### La décision que l'issue laissait ouverte a été tranchée par une mesure
+
+L'issue demandait de choisir : phrase dépendante du privilège, ou réduite à ce qu'un lecteur peut
+recouper dans les deux cas. La mesure a rendu la première **impossible**. Sur les **24 573** locaux
+absents du millésime 2023 (sur 85 418), par dernier relevé connu :
+
+| Dernier état observé | Dans le périmètre commerce | n |
+| --- | --- | --- |
+| Autre local (`niv8` 7) | non | **12 367** |
+| Local vacant (`niv8` 6) | non | **6 280** |
+| les six postes de commerce | oui | 5 926 |
+
+**18 647 sur 24 573, soit 75,9 %**, n'étaient pas un commerce à leur dernier relevé. Un local
+relevé vacant en 2020 **n'a jamais été un commerce** : il ne peut pas avoir cessé de l'être. La
+phrase n'était donc pas seulement trop forte pour l'anonyme — elle était fausse pour trois lignes
+sur quatre **même quand les trois millésimes sont visibles**, c'est-à-dire pour ceux qui peuvent
+republier.
+
+> **Et `bdcom_vintage.licence_note` le disait depuis le 8 août, dans la colonne d'à côté** :
+> « Vacant premises (7 853 in 2017, 8 764 in 2020) and non-commercial ground-floor premises are
+> absent ». Rien n'avait recoupé la phrase contre elle. Même mode de défaillance que le §21 — un
+> raisonnement écrit que rien ne *pouvait* relire, parce que c'était de la prose.
+
+### La porte ne manquait pas le défaut : elle le tenait
+
+`eval/golden.jsonl`, `gold-perimetre-001`, exigeait `evidence_contains: "plus un commerce"`, joué
+sur le chemin privilégié. C'est là que la doctrine du 9 août avait été gelée, et c'est ce qui la
+rendait invisible : **un cas doré ressemble à une garantie, pas à une opinion.** Corriger le SQL
+sans le toucher aurait fait passer la porte au rouge — ce qui, cette fois, était le bon signal
+plutôt qu'une nuisance.
+
+La même affirmation vivait dans `docs/PLAN.md` et `docs/CONTEXTE.md` ; les deux sont corrigées.
+**Deux autres endroits n'ont pas bougé, et la distinction est tout le sujet** : `PLAN.md` §2.5 et
+`PLAN-ACTION-VACANCE.md` énoncent des *interdits d'affichage* — « non observé n'est ni vacant ni
+plus un commerce » — qui étaient justes depuis le début. Ce sont les deux **affirmations** qui
+étaient fausses, pas les deux interdits.
+
+### Les trois invariants, et la preuve qu'ils mordent
+
+`I29` (`@as anon`) tient le défaut du ticket. `I30` (privilégié) n'est pas un doublon : les 75,9 %
+le justifient, et il tient la ligne si quelqu'un rendait un jour cette prose dépendante de
+l'appelant. `I31` est le miroir, sur le patron de `I10`/`I13`/`I15`/`I17`/`I26` — la phrase doit
+continuer à **nommer ce que la couche ne publie pas**, sinon la vider satisferait les deux premiers.
+
+Joués **contre la vraie base avant la poussée**, comme `I23` en son temps : `I29` et `I30` en
+**échec** — 20 lignes chacun, le plafond de la requête — et `I31` au vert. Après la pose : **0
+ligne pour les trois**. La règle a été écrite contre une base où elle échouait, pas ajustée jusqu'à
+passer.
+
+La population n'est pas 400 locaux au hasard : 400 **tirés de ceux absents du millésime 2023**,
+donc 400 qui exercent réellement la branche.
+
+### Ce qui reste, et qui n'appartient pas à cette session
+
+- **`#41` reste ouverte, et `#54` n'était pas la dernière chose qui la bloquait.**
+  [`#58`](https://github.com/IvandeMurard/paris-compass/issues/58) `w0-appelant` a été ouverte le
+  26 août à 10 h 44 avec le libellé `vague-0`. Le « Fait quand » de l'épic autorise le report
+  explicite avec une note dans `PLAN-ACTION-VACANCE.md` ; la décision prise ici est de **ne pas**
+  l'exercer et de laisser `#41` ouverte jusqu'à ce que `#58` tombe.
+- **Pas de recensement sur `evidence`, et c'est une décision.** Deux fonctions seulement exposent
+  la colonne, mesuré au catalogue. Écrire l'énumération à la deuxième occurrence, quand
+  `w0-retenue` l'a écrite à la cinquième, serait de l'outillage sans population. **À rouvrir dès
+  qu'une troisième fonction expose `evidence`** — écrit dans `docs/tickets/w0-conclusion.md` pour
+  que ce soit une décision et non un oubli.
+- **Les trois invariants lisent une liste de formes**, donc une antériorité tournée autrement leur
+  échappe : la limite de `I21`, dont ils reprennent le patron.
 
 ## Clôture de la session 11 — l'état exact au 26 août 2026, 11 h 05 UTC
 
