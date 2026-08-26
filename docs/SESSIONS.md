@@ -26,13 +26,22 @@ La fenêtre change l'ordre : les tickets qui touchent `src/` passent devant, pas
 
 ## Le prompt commun
 
-À coller au début de chaque session, en remplaçant `<ID>` et `<NUM>`.
+**Ne le recopie pas à la main.** `npm.cmd run brief <ticket>` l'assemble : le prompt
+ci-dessous avec l'identifiant et le numéro d'issue déjà remplis, les consignes propres à
+la session s'il y en a, et la liste précise de ce qu'il faut lire.
+
+```powershell
+npm.cmd run brief w0-appelant     # ou brief appelant — le nom partiel suffit
+```
+
+Le texte source, pour référence :
 
 ```
 Ticket <ID> (issue #<NUM>).
 
-Lis d'abord docs/REPRISE.md, puis docs/tickets/<ID>.md, puis les sections de
-docs/PLAN.md et docs/PERIMETRE.md que le ticket cite. Le "Fait quand" du ticket
+La liste exacte de ce qu'il faut lire est en bas de ce message. Tiens-t'en à
+elle : docs/REPRISE.md fait un millier de lignes et docs/JOURNAL.md près de deux
+mille, les lire en entier coûte cher et n'apporte rien. Le "Fait quand" du ticket
 est le critère d'acceptation : ne me dis pas que c'est fini avant de l'avoir
 démontré, pas supposé.
 

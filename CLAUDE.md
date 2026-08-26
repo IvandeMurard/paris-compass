@@ -11,6 +11,7 @@ Volontairement **non importés** ici : ce fichier est chargé à chaque session,
 | Fichier | Quand le lire |
 | --- | --- |
 | `docs/SESSIONS.md` | **Avant de lancer une session de développement.** L'ordre des tickets, le prompt commun, les consignes propres à chacun, et quel modèle pour quelle classe de travail. |
+| `docs/JOURNAL.md` | Le récit des sessions passées. **Ne se lit pas en début de session** : sans autorité sur l'état courant, il ne sert qu'à retrouver *pourquoi* une décision a été prise. Jamais en entier. |
 | `docs/REPRISE.md` | **À lire en premier en début de session.** Où en est le travail, ce qui bloque, et les pièges qui ont déjà coûté du temps. Notamment : quel projet Supabase viser, et pourquoi il y en a eu trois. |
 | `docs/CONTEXTE.md` | Périmètre, persona, refus assumés, décisions d'architecture, état d'avancement. Avant toute modification du périmètre, des sources de données ou du noyau. |
 | `docs/PLAN.md` | Backlog ordonné : ce qui est fait, les phases 2 à 4 en détail, les sources à brancher et pourquoi. Avant de commencer un chantier. |
@@ -30,6 +31,7 @@ npm.cmd run typecheck   # tsc --build
 npm.cmd run test        # vitest
 npm.cmd run dev
 npm.cmd run build       # production
+npm.cmd run brief <ticket>  # assemble le prompt d'une session et ce qu'elle doit lire
 npm.cmd run sessions    # regenere le tableau d'ordre de docs/SESSIONS.md depuis GitHub
 npm.cmd run sessions:check  # recoupe la table committee a l'etat GitHub, sort en 1 si elle a derive
 npm.cmd run build:dev   # mode development — seul chemin qui charge lovable-tagger
