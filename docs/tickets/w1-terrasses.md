@@ -253,6 +253,25 @@ mécanique** : tout chargeur de ce dossier appelle `main()` au niveau du module,
 lance une ingestion. Un test qui aurait importé `terrasses.ts` pour atteindre la fonction aurait
 ouvert une connexion et rechargé la couche. `lib/` est la moitié importable du dossier.
 
+**Les deux questions de `docs/SESSIONS.md`, répondues plutôt que sautées.**
+
+1. **Est-ce que ça survit à un rechargement ?** *Oui, et c'est la forme la plus forte du oui* :
+   le correctif **est** dans le chargeur. Il n'y a pas de ligne réparée à la main qu'un import
+   pourrait réintroduire fautive — chaque chargement futur refait le parsing avec le motif
+   corrigé. C'est aussi pourquoi la couche a été rechargée : sans cela, le correctif n'existait
+   que dans le code.
+2. **Est-ce que ça protège un consommateur qui n'existe pas encore ?** *Oui.* Le parsing a lieu à
+   l'ingestion, pas à l'affichage : le rattachement corrigé est dans `premise_location`, donc le
+   navigateur, un agent qui appelle PostgREST en direct et le serveur MCP reçoivent tous les
+   trois la même réponse. Une garde écrite dans `terrasseText.ts` n'aurait protégé que l'écran.
+
+**Ce que la règle ne rattrape pas, et elle a une limite.** Le test fige treize suffixes réels et
+une plage ; il ne dit rien d'un suffixe que la source inventerait demain, ni d'un type de voie
+qu'elle écrirait autrement. Il vérifie que le motif lit **ce qui existait le 26 août 2026**, pas
+qu'il lira ce qui viendra. Et 37 chaînes restent non parsées : elles ne s'attachent à rien, ce qui
+se lit « aucune autorisation à cette adresse » — la façon bornée dont un `non` peut être faux,
+énoncée dans la réserve du `non` sur la fiche plutôt que tue.
+
 **Et cette fois le test se justifie**, là où la section du 25 août avait décidé le contraire : à
 l'époque, rien ne lisait le résultat — les quatre colonnes terrasse n'avaient aucun consommateur.
 Depuis aujourd'hui la fiche les affiche, et une adresse qui ne se parse pas ne s'attache à aucun

@@ -1105,7 +1105,7 @@ rend **74** quel que soit l'ordre de chargement, et la valeur gelée n'a pas eu 
 
 ## 18. `npm.cmd run eval:anon` porte trois échecs non liés à `w0-plu` — trouvés en chemin, non corrigés
 
-~~**Non corrigés.**~~ **Les trois sont clos le 26 août**, par `w0-retenue` (#57) pour les deux premiers et par la mesure pour le troisième. Le bras D rend **PASS, 11 contrôles**, mesuré après la pose de `20260825000014`. Détail en fin de point.
+~~**Non corrigés.**~~ **Les deux premiers sont corrigés le 26 août** par `w0-retenue` (#57). **Le troisième — le timeout RLS — n'est pas corrigé** : il avait disparu de lui-même le 26 au matin, il s'est reproduit le 26 au soir, et son mécanisme est désormais mesuré (cache froid, 3 230 ms contre 117 ms). Le bras D rend **PASS, 12 contrôles**, cache chaud. Détail en fin de point, dans les deux dernières sections.
 
 Trouvés le 25 août en faisant tourner la porte anonyme après le changement de signature de
 `compass_premises_within` pour `w0-plu` (#9) — pas dans le périmètre de ce ticket, et laissés
@@ -1178,6 +1178,54 @@ bougé, pas le produit. **Un défaut qui s'en va tout seul n'est pas un défaut 
 lire cette ligne comme « ne se reproduit pas aujourd'hui », pas comme « ne peut plus se produire ».
 Si le compte exact redevient trop cher, la piste reste celle du 25 août : un index, une requête
 moins chère, ou se passer du `count=exact`.
+
+### Il s'est reproduit le 26 août, et cette fois le mécanisme est mesuré
+
+La ligne ci-dessus disait de la lire comme « ne se reproduit pas aujourd'hui ». **Elle s'est
+reproduite le soir même**, à la clôture de la session 13, deux fois de suite et sur deux contrôles
+différents :
+
+```
+ERREUR — HTTP 500 — {"code":"57014", "message":"canceling statement due to statement timeout"}
+        (sur premises_within 2023, premier appel qui lit vraiment des lignes)
+FAIL   RLS premise_observation — NaN relevés visibles, attendu 60845
+```
+
+**Ce n'est pas le rechargement des terrasses**, bien qu'il ait eu lieu vingt minutes plus tôt.
+Mesuré plutôt que supposé, dans `pg_stat_user_tables` :
+
+| Table | `n_dead_tup` | Dernier autovacuum | Dernier autoanalyze |
+| --- | --- | --- | --- |
+| `premise_location` | **0** | 2026-08-26 17:59:03 | 2026-08-26 17:59:04 |
+| `terrasse_autorisation` | **0** | 2026-08-26 17:59:02 | 2026-08-26 17:59:03 |
+| `premise_observation` | **0** | 2026-08-25 01:09:45 | 2026-08-25 01:09:46 |
+
+L'autovacuum a nettoyé les deux tables rechargées **trente secondes après le chargement**, soit
+vingt minutes avant la porte. Et `premise_observation` — la table du contrôle qui échoue — n'a
+été touchée ni par le rechargement, ni par quoi que ce soit depuis le 25 août.
+
+**La cause est un cache froid, et elle se chronomètre.** Le même comptage, joué trois fois de
+suite depuis le pooler avec `set local role anon` :
+
+```
+essai 1 : 60845 lignes en 3 230 ms
+essai 2 : 60845 lignes en   117 ms
+essai 3 : 60845 lignes en   117 ms
+```
+
+Le plan est sain — `Parallel Index Only Scan using premise_observation_vintage_idx`, `Heap
+Fetches: 0`, 348 ms en rôle `postgres`. **Vingt-sept fois plus cher au premier appel qu'aux
+suivants** : les pages de l'index ne sont pas en cache, et la fenêtre de timeout de PostgREST est
+juste en dessous. Le troisième passage de `eval:anon`, cache chaud, rend **PASS, 12 contrôles**.
+
+**Ce que ça change pour qui lit cette porte.** Un `eval:anon` rouge sur `57014` après une période
+d'inactivité du projet n'est pas une régression : c'est un démarrage à froid. La distinction est
+lisible sans deviner — un défaut de produit échoue aussi au deuxième passage. Ce qui reste vrai,
+et c'est le vrai reproche : **une porte dont le verdict dépend de la température du cache est une
+porte qui apprendra un jour à être ignorée.** Les trois pistes du 25 août tiennent toujours — un
+index, une requête moins chère, ou se passer du `count=exact` — et la troisième est la moins
+chère : `limit=1` avec `count=planned` répondrait à la même question sans scanner 228 275 lignes,
+au prix d'une estimation là où le contrôle veut aujourd'hui une égalité exacte.
 
 ---
 

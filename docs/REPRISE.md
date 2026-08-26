@@ -6,10 +6,11 @@ qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.m
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
 
-## Clôture de la session 13 — l'état exact au 26 août 2026, 17 h 45 UTC
+## Clôture de la session 13 — l'état exact au 26 août 2026, 18 h 25 UTC
 
-Tout est mesuré à la clôture et **après commit**, sur un arbre propre : les portes sont jouées à
-`ffa3b55`, pas sur la copie de travail. La session 11 avait consigné pourquoi.
+Tout est mesuré à la clôture et **après commit**, sur un arbre propre : les portes sont rejouées à
+`e105f17`, contre la base **telle qu'elle est après le rechargement de 17 h 58**, pas sur la copie
+de travail ni sur l'état d'avant. La session 11 avait consigné pourquoi.
 
 | Mesure | Valeur |
 | --- | --- |
@@ -19,7 +20,7 @@ Tout est mesuré à la clôture et **après commit**, sur un arbre propre : les 
 | Sources dans `ingestion_run` | **8**, inchangé en nombre. `terrasses` **rechargée à 17 h 58 UTC** pour poser le correctif d'adresse : `source_as_of` **2026-08-26**, 24 189 lignes, `run_by` `manual`. Les sept autres n'ont pas bougé |
 | Issues | **39 ouvertes, 15 fermées** — remesuré par `gh` après fermeture de [`#15`](https://github.com/IvandeMurard/paris-compass/issues/15) |
 | Épic [`#42`](https://github.com/IvandeMurard/paris-compass/issues/42) (vague 1) | **ouverte**, **3 tickets cochés sur 7** — `#11`, `#14`, `#15` |
-| Portes | `typecheck` ✓ · **166 tests** ✓ (122 avant, +21 pour `terrasseText`, +23 pour `terrasseAddress`) · `build` et `build:dev` ✓ · **`eval` 31/31 invariants** ✓ et 8/8 cas dorés, dix écarts de baseline en avertissement (dérive BODACC/SIRENE connue, la plus large à 0,70 %) · **`eval:anon` PASS, 12 contrôles** · **`eval:sabotage` PASS** · `verify:mcp` non relancée, ni `src/core/` ni `mcp-server/` touchés |
+| Portes | `typecheck` ✓ · **166 tests** ✓ (122 avant, +21 pour `terrasseText`, +23 pour `terrasseAddress`) · `build` et `build:dev` ✓ · **`eval` 31/31 invariants** ✓ et 8/8 cas dorés, dix écarts de baseline en avertissement (dérive BODACC/SIRENE connue, la plus large à 0,70 %) · **`eval:anon` PASS, 12 contrôles — mais rouge aux deux premiers passages**, voir plus bas · **`eval:sabotage` PASS** · `verify:mcp` non relancée, ni `src/core/` ni `mcp-server/` touchés |
 
 **`w1-terrasses` (#15) est fait et fermé.** La fiche d'un local rend les trois états — `oui`,
 `non`, `inconnu` — avec le type, la réserve doctrinale et la date de la source. Démontré dans le
@@ -129,6 +130,35 @@ chargement, lit « état de la source au **26 août 2026** » là où elle lisai
 plus tôt. La chaîne `ingestion_run.source_as_of` → `compass_source_freshness` → `fetchSourceAsOf`
 → `describeTerrasse` → écran est vivante de bout en bout, sans rien de figé en dur.
 
+### La porte anonyme est passée au rouge deux fois avant de passer — et ce n'est pas le rechargement
+
+À la clôture, `eval:anon` a rendu **`ERREUR — HTTP 500`, code Postgres `57014`** (`canceling
+statement due to statement timeout`) au premier passage, puis **`FAIL — RLS premise_observation
+— NaN relevés visibles`** au deuxième, sur un contrôle différent. Le troisième rend **PASS,
+12 contrôles**.
+
+**Le rechargement des terrasses était le suspect évident, et il est innocenté par la mesure**, pas
+par le raisonnement. Dans `pg_stat_user_tables` : `premise_location` et `terrasse_autorisation`
+portent **0 tuple mort**, autovacuumées et autoanalysées à **17 h 59 03**, soit trente secondes
+après le chargement et vingt minutes avant la porte. Et `premise_observation` — la table du
+contrôle qui échoue — n'a été touchée ni par le rechargement ni par rien depuis le 25 août.
+
+**La cause est un cache froid, et elle se chronomètre.** Le même comptage, trois fois de suite
+depuis le pooler avec `set local role anon` : **3 230 ms, puis 117 ms, puis 117 ms**. Le plan est
+sain (`Parallel Index Only Scan`, `Heap Fetches: 0`, 348 ms en rôle `postgres`). Vingt-sept fois
+plus cher au premier appel, et la fenêtre de timeout de PostgREST est juste en dessous.
+
+> **C'est la récidive de `DIAGNOSTIC.md` §18**, qui écrivait le 26 au matin : « un défaut qui s'en
+> va tout seul n'est pas un défaut corrigé — lire cette ligne comme *ne se reproduit pas
+> aujourd'hui* ». Il s'est reproduit le soir même. Le point §18 porte maintenant le mécanisme
+> mesuré et la piste la moins chère : `count=planned` au lieu de `count=exact`, au prix d'une
+> estimation là où le contrôle veut une égalité exacte.
+>
+> **Ce qu'il faut en retenir avant de crier à la régression** : un `57014` au premier passage
+> après une période d'inactivité du projet est un démarrage à froid, pas un défaut de produit —
+> un vrai défaut échoue aussi au deuxième passage. Mais une porte dont le verdict dépend de la
+> température du cache est une porte qui apprendra un jour à être ignorée.
+
 ### Ce qui reste, et qui n'appartient pas à cette session
 
 - **La note estivale n'a pas pu être montrée dans le navigateur.** Elle n'apparaît que sur une
@@ -143,6 +173,11 @@ plus tôt. La chaîne `ingestion_run.source_as_of` → `compass_source_freshness
 - **`periode_installation` n'est pas chargé** (97 % de nuls), et **l'éligibilité réglementaire de
   la terrasse annuelle** — paris.fr la restreint à une liste de métiers — n'est pas transcrite :
   c'est la couche 2 de `PLAN.md` §5.3, et elle mérite son propre ticket.
+- **Le `count=exact` de la porte anonyme reste à remplacer.** `DIAGNOSTIC.md` §18 porte désormais
+  le mécanisme mesuré ; la correction — `count=planned`, ou un contrôle qui ne compte pas
+  228 275 lignes pour vérifier une égalité — n'appartient pas à `w1-terrasses` et n'a pas d'issue.
+  **À ouvrir avant qu'une session ne prenne l'habitude de relancer la porte jusqu'à ce qu'elle
+  passe**, ce qui est exactement la façon dont une porte cesse de protéger.
 
 ## Clôture de la session 12 — l'état exact au 26 août 2026, 16 h 47 UTC
 
