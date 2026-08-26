@@ -16,6 +16,9 @@
 // already settled on for exactly this failure mode. See the migration header
 // (20260825000009_terrasse_autorisation.sql) for the full measurement.
 //
+// The address parser itself lives in ./lib/terrasseAddress.ts, where a test can reach it:
+// importing this file would run main().
+//
 // Run after scripts/ingest/geography.ts — premise_location.street_key needs the attachment
 // geography.ts computes. Re-running is safe: the reference table is rebuilt and the
 // attachment recomputed from scratch, exactly like plu.ts and chantiers.ts.
@@ -24,6 +27,7 @@ import type { Client } from "pg"
 
 import { assertPrivileged, connect, inTransaction, log, recordRun } from "./lib/db"
 import { datasetModified, exportJson } from "./lib/parisOpendata"
+import { parseAddress } from "./lib/terrasseAddress"
 
 const DATASET = "terrasses-autorisations"
 
@@ -41,30 +45,6 @@ function categorie(typologie: string | null): "permanente" | "estivale" | "etala
   if (upper.includes("ESTIVALE")) return "estivale"
   if (upper.includes("TALAGE")) return "etalage"
   return "permanente"
-}
-
-interface ParsedAddress {
-  houseNumber: number
-  wayType: string
-  wayName: string
-}
-
-/**
- * The source gives one free-text address ("125 AVENUE DE CHOISY"), unlike BODACC's
- * already-split numeroVoie/typeVoie/nomVoie. Measured 25 August 2026 against the full
- * export: this pattern parses 24 145 of 24 204 addresses (99.8 %); the remainder are
- * addresses with no house number at all ("RUE FERDINAND DUVAL"), source-side garbage (an
- * email address in the field), or a handful of malformed suffixes ("1P2 PLACE…"). Left
- * unparsed rather than guessed at — they simply attach to nothing.
- */
-function parseAddress(raw: string | null): ParsedAddress | null {
-  if (!raw) return null
-  const trimmed = raw.trim().toUpperCase()
-  const match = /^(\d+)\s*[A-Z]?(?:\s*(?:BIS|TER|QUATER)\b)?(?:\s*[/-]\s*\d+\s*[A-Z]?)?\s+(\S+)\s+(.+)$/.exec(
-    trimmed,
-  )
-  if (!match) return null
-  return { houseNumber: Number(match[1]), wayType: match[2], wayName: match[3] }
 }
 
 interface Feature {

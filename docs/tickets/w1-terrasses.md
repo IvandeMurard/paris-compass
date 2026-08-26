@@ -207,13 +207,60 @@ le lien. La page a changé d'URL depuis celle que la description du jeu donne en
 
 **Les 59 adresses non parsées, ventilées.** La section du 25 août les décrit comme « sans numéro
 du tout ou franchement corrompu (une adresse électronique trouvée dans le champ adresse) ». Au
-26 août, aucune adresse électronique dans le champ : 8 adresses nulles, **36 sans numéro en tête**
-(« RUE FERDINAND DUVAL », « BOULEVARD FLANDRIN NORD ») et **15 avec un numéro que le motif
-refuse**, dont 11 portent un suffixe alphanumérique que `[A-Z]?` n'absorbe pas — `32BV RUE DES
-PLANTES`, `2P2 PLACE JEAN PRONTEAU`, `4U2 AVENUE PIERRE MENDES FRANCE`. **Non corrigé, et c'est un
-arrêt délibéré** : le correctif vaut 11 lignes sur 24 199 (0,05 %) et exigerait un rechargement
-complet. Consigné ici pour que la prochaine session qui touche au chargeur le prenne en passant,
-plutôt que redécouvert.
+26 août : 8 adresses nulles, **36 sans numéro en tête** (« RUE FERDINAND DUVAL », « BOULEVARD
+FLANDRIN NORD ») et **15 avec un numéro que le motif refuse**, dont 13 portent un suffixe
+alphanumérique que `[A-Z]?` n'absorbe pas — `32BV RUE DES PLANTES`, `1P2 PLACE JEAN PRONTEAU`,
+`14U2 AVENUE PIERRE MENDES FRANCE` — et une porte une plage de trois numéros (`1/3/5 PLACE JEAN
+MARAIS`) là où le motif n'en acceptait qu'une. **L'adresse électronique, elle, est toujours là**
+(`GOUROLMDA@YAHOO.FR`) : ce paragraphe a d'abord écrit le contraire, sur un échantillon de douze
+lignes pris pour l'ensemble, et c'est corrigé ici — voir la section suivante.
+
+### Les suffixes collés au numéro sont corrigés, et la mesure dit ce que ça change
+
+Le motif d'origine acceptait une lettre unique (`22B AVENUE RAPP`), `BIS`/`TER`/`QUATER` et une
+plage à deux numéros. Il ne connaissait pas les suffixes que la source colle au numéro — `32BV`,
+`1P2`, `14U2`, `1Z1`, `183P41` — ni les plages à trois numéros.
+
+**Le piège, et c'est lui qui dicte la forme du correctif : le suffixe doit être collé.** Autoriser
+une espace avant un suffixe de plusieurs caractères laisserait la correspondance gloutonne avaler
+un type de voie de trois lettres, et `12 RUE DES PLANTES` se lirait « numéro 12, type de voie DES,
+nom PLANTES ». La lettre écrite à part (`10 B RUE DE LA PAIX`) reste donc traitée séparément, et
+bornée à un caractère par un `\b` qui l'empêche de mordre sur le `R` de `RUE`.
+
+**Mesuré sur l'export complet du 26 août 2026, ancien motif contre nouveau, adresse par adresse :**
+
+| | Ancien | Nouveau |
+| --- | --- | --- |
+| Adresses parsées sur 24 199 | 24 140 (99,76 %) | **24 154 (99,81 %)** |
+| Gagnées | — | **14** |
+| Perdues | — | **0** |
+| Parse différent | — | **0** |
+
+Zéro perdue et zéro parse changé : c'est la moitié de la mesure qui compte. Élargir un motif est
+la façon habituelle de cesser silencieusement de lire ce qui marchait, et le piège ci-dessus en
+est un exemple vivant.
+
+**Ce qui reste non parsé, et délibérément : 8 adresses nulles et 37 chaînes** — une trentaine de
+voies sans aucun numéro, quatre portant une lettre de lot **avant** le numéro (`A - 26 RUE
+CUSTINE` : le numéro est-il 26, ou « A » en fait-il partie ? la source ne le dit pas), une adresse
+électronique, un `SSSS` et un SIRET nu. Deviner ici attacherait une autorisation à un local qui ne
+la porte pas.
+
+**`parseAddress` a déménagé dans `scripts/ingest/lib/terrasseAddress.ts`, et pour une raison
+mécanique** : tout chargeur de ce dossier appelle `main()` au niveau du module, donc l'importer
+lance une ingestion. Un test qui aurait importé `terrasses.ts` pour atteindre la fonction aurait
+ouvert une connexion et rechargé la couche. `lib/` est la moitié importable du dossier.
+
+**Et cette fois le test se justifie**, là où la section du 25 août avait décidé le contraire : à
+l'époque, rien ne lisait le résultat — les quatre colonnes terrasse n'avaient aucun consommateur.
+Depuis aujourd'hui la fiche les affiche, et une adresse qui ne se parse pas ne s'attache à aucun
+local, ce qui se lit à l'écran « aucune autorisation enregistrée à cette adresse ». Un échec de
+parsing silencieux est devenu une réponse fausse à un lecteur. 23 cas, tirés de vraies chaînes de
+l'export ; remettre l'ancien motif en fait passer **10 au rouge**.
+
+**Le correctif ne change rien en base tant que la couche n'est pas rechargée** — `scripts/ingest/
+terrasses.ts` n'est pas câblé sur le cron. Les 14 adresses restent non rattachées jusqu'au
+prochain chargement manuel.
 
 ### L'état en base, remesuré le 26 août
 
@@ -262,6 +309,9 @@ Joué le 26 août contre le distant, **depuis `eval/invariants.sql` lui-même** 
 | `src/hooks/usePremiseHistory.ts` | `useSourceAsOf` — requête séparée, pour qu'un échec de fraîcheur ne fasse pas tomber la fiche |
 | `src/components/PremiseHistorySheet.tsx` | `TerrasseSection`, entre l'en-tête du local et la chronologie |
 | `src/types/database.ts` | Signature de `compass_source_freshness`, qui a maintenant un consommateur |
+| `scripts/ingest/lib/terrasseAddress.ts` | **Nouveau.** `parseAddress`, déplacé hors du chargeur pour être importable, avec le motif corrigé des suffixes collés |
+| `scripts/ingest/lib/terrasseAddress.test.ts` | **Nouveau.** 23 cas, tirés de l'export : ce qui marchait, les quatorze gagnées, ce qui doit rester non parsé |
+| `scripts/ingest/terrasses.ts` | Importe `parseAddress` au lieu de le définir |
 
 **Trois choix qui sont des mécanismes, pas des intentions.**
 
@@ -338,7 +388,8 @@ types démontrés (`permanente`, `étalage`), et il est couvert par les tests.
 
 Toutes jouées le 26 août 2026 contre `dbefhvmyfmmhjeetdddu` :
 
-`typecheck` ✓ · **143 tests** ✓ (122 avant, +21 pour `terrasseText`) · `build` et `build:dev` ✓ ·
+`typecheck` ✓ · **166 tests** ✓ (122 avant, +21 pour `terrasseText`, +23 pour `terrasseAddress`) ·
+`build` et `build:dev` ✓ ·
 `eval` — **31/31 invariants**, `I24` recense 6 fonctions toutes couvertes, **8/8 cas dorés**,
 composition de fiabilité stable à 57,27 %. Sort en code 3 (`AVERTISSEMENT`) : dix écarts de
 baseline sous le seuil bloquant, la dérive BODACC/SIRENE déjà connue, la plus large à 0,70 % ·
