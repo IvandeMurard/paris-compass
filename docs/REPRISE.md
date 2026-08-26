@@ -6,11 +6,18 @@ qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.m
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
 
-## Clôture de la session 12 — l'état exact au 26 août 2026, 11 h 16 UTC
+## Clôture de la session 12 — l'état exact au 26 août 2026, 16 h 47 UTC
 
 Tout est mesuré à la clôture, pas recopié, et **après commit** : la session 11 venait de consigner
-qu'une porte jouée sur une copie de travail sale n'est attribuable à rien. Les chiffres ci-dessous
-sont ceux de `a197358`, arbre propre.
+qu'une porte jouée sur une copie de travail sale n'est attribuable à rien.
+
+> **Les portes et les comptes n'ont pas la même date, et c'est délibéré.** `eval`, `eval:anon` et
+> `eval:sabotage` sont mesurés à **`a197358`** ; `typecheck` et les tests ont été rejoués à
+> **`c937564`**, l'état final. Entre les deux, quatre commits qui ne touchent que des `.md` —
+> `REPRISE`, la table de `SESSIONS`, la prose de `FAILURE_MODES` — et **aucun n'est lu par
+> `scripts/eval/run.ts`**, qui n'ouvre que `invariants.sql`, `baselines/ingestion.json` et
+> `golden.jsonl`. Le verdict de `a197358` vaut donc exactement à `c937564`. Le dire coûte trois
+> lignes ; ne pas le dire aurait laissé un chiffre juste devenir faux en silence.
 
 | Mesure | Valeur |
 | --- | --- |
@@ -18,7 +25,8 @@ sont ceux de `a197358`, arbre propre.
 | Fonctions `compass_*` | **13**, inchangé — cette migration n'en ajoute ni n'en retire aucune, elle change une phrase |
 | Invariants | **31** (`grep -c '^-- @invariant '`) — `I29` à `I31` ajoutés |
 | Fonctions exposant une colonne `evidence` | **2**, mesuré depuis `pg_proc.proargnames` — `compass_address_timeline` et `compass_survival_by_trade` |
-| Issues | **41 ouvertes, 13 fermées** avant fermeture de `#54` — remesuré par `gh`. [`#57`](https://github.com/IvandeMurard/paris-compass/issues/57) a été fermée à 11 h 06 par la session 11 |
+| Issues | **40 ouvertes, 14 fermées** — remesuré par `gh` à la clôture, après fermeture de [`#54`](https://github.com/IvandeMurard/paris-compass/issues/54) à 11 h 18. [`#57`](https://github.com/IvandeMurard/paris-compass/issues/57) avait été fermée à 11 h 06 par la session 11 |
+| Épic [`#41`](https://github.com/IvandeMurard/paris-compass/issues/41) | **ouverte**, **8 tickets cochés sur 9**. Elle n'en listait que sept jusqu'ici : la session 11 y a ajouté `#57` et `#58`, celle-ci `#54` — que rien ne rattachait, faute d'identifiant de ticket dans son titre |
 | Portes | `typecheck` ✓ · **122 tests** ✓ · `build` et `build:dev` ✓ · **`eval` 31/31 invariants** ✓ et 8/8 cas dorés, dix écarts de baseline en avertissement (dérive BODACC/SIRENE connue, la plus large à 0,70 %) · **`eval:anon` PASS, 12 contrôles** · **`eval:sabotage` PASS** · `verify:mcp` non relancée, ni `src/core/` ni `mcp-server/` touchés |
 
 **`w0-conclusion` (#54) est fait et posé.** Un appelant anonyme sur un local absent du millésime
@@ -90,6 +98,15 @@ passer.
 
 La population n'est pas 400 locaux au hasard : 400 **tirés de ceux absents du millésime 2023**,
 donc 400 qui exercent réellement la branche.
+
+### Ce que la session 11 a écrit dans le contrat après coup
+
+`c937564`, dernier commit de la journée et **de l'autre session** : `eval/FAILURE_MODES.md` porte
+désormais la limite que ce ticket a trouvée, en face de la section qui décrit `I23`/`I24` — une
+règle structurelle vérifie qu'une fonction *peut* dire la vérité, jamais qu'elle la dit. Relu :
+il complète le §15 sans le contredire. Le contrat d'évaluation dit donc lui-même pourquoi son
+recensement ne pouvait pas voir ce défaut, ce qui était le manque le plus coûteux à laisser
+implicite.
 
 ### Ce qui reste, et qui n'appartient pas à cette session
 
