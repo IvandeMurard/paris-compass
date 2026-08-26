@@ -1,4 +1,4 @@
-# Reprise — état au 25 août 2026, fin de session 11
+# Reprise — état au 26 août 2026, fin de session 11
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`
@@ -6,17 +6,24 @@ qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.m
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
 
-## Clôture de la session 11 — l'état exact au 25 août 2026, 20 h 30 UTC
+## Clôture de la session 11 — l'état exact au 26 août 2026, 11 h 05 UTC
 
-Tout est mesuré à la clôture, pas recopié. C'est le point de départ propre de la session suivante.
+Tout est mesuré à la clôture, pas recopié.
+
+> **La session est à cheval sur minuit, et l'en-tête de cette page a d'abord porté la mauvaise
+> date.** `git log --date=iso` fait foi : `4ccaa68` est du **25 août à 21 h 30**, `bdfc2eb` et
+> `1d7a38e` du **26 à 12 h 32 et 12 h 48**. Donc : le recensement, les mesures des Halles, les
+> quatre sabotages et le premier `eval` sont du **25** ; la pose de la migration, les portes
+> rejouées, la correction du bras D et l'ouverture de `#58`/`#59` sont du **26**. Corrigé à la
+> fermeture, après vérification — précédent identique aux sessions 5 et 6.
 
 | Mesure | Valeur |
 | --- | --- |
-| Ledger distant `dbefhvmyfmmhjeetdddu` | **41** migrations, dernière `20260825000014` — **posée**, remesuré |
+| Ledger distant `dbefhvmyfmmhjeetdddu` | **42** migrations, dernière `20260826000001` — remesuré à 11 h 05. `20260825000014` (celle-ci) a porté le ledger à **41** ; **la 42ᵉ n'appartient pas à cette session**, voir plus bas |
 | Fonctions `compass_*` | **13**, inchangé — la migration n'en ajoute aucune, elle en corrige trois |
 | Fonctions lisant une table restreinte | **6**, et les six sont `SECURITY DEFINER` avec une colonne `withheld` — remesuré en base, c'est ce que `I23` vérifie |
 | Invariants | **28** (`grep -c '^-- @invariant '`) — `I23` à `I28` ajoutés |
-| Issues | **42 ouvertes, 12 fermées** — remesuré par `gh` après ouverture de [`#58`](https://github.com/IvandeMurard/paris-compass/issues/58) et [`#59`](https://github.com/IvandeMurard/paris-compass/issues/59). [`#57`](https://github.com/IvandeMurard/paris-compass/issues/57) **reste ouverte** — sa fermeture demande une autorisation explicite |
+| Issues | **41 ouvertes, 13 fermées** — remesuré par `gh` à la fermeture : deux ouvertes ([`#58`](https://github.com/IvandeMurard/paris-compass/issues/58), [`#59`](https://github.com/IvandeMurard/paris-compass/issues/59)), une fermée ([`#57`](https://github.com/IvandeMurard/paris-compass/issues/57)), et l'épic [`#41`](https://github.com/IvandeMurard/paris-compass/issues/41) cochée |
 | Portes | `typecheck` ✓ · **122 tests** ✓ · `build` et `build:dev` ✓ · **`eval` 28/28 invariants** ✓ et 8/8 cas dorés, dix écarts de baseline en avertissement (dérive BODACC/SIRENE déjà connue, la plus large à 0,70 %) · **`eval:anon` PASS, 11 contrôles** · **`eval:sabotage` PASS** · `verify:mcp` **41 contrôles, 39 au vert, 0 en échec**, 2 suspendus sur panne Overpass (429) |
 
 **`w0-retenue` (#57) est fait et posé.** Un appelant anonyme aux Halles ne reçoit plus
@@ -27,6 +34,29 @@ zéro — sur 2023. Démontré par appel PostgREST réel avec la seule clé publ
 > venaient d'une sonde périmée, corrigée ici ; le troisième, un timeout RLS, **a disparu sans que
 > personne y touche**. Remesuré : 60 845 relevés visibles. Un défaut qui s'en va tout seul n'est
 > pas un défaut corrigé — voir §18.
+
+### Une seconde session tournait dans le même arbre, et c'est un piège à connaître
+
+À la fermeture, `w0-conclusion` (#54) travaillait **en parallèle sur le même dépôt** : sa migration
+`20260826000001_timeline_scope_evidence.sql` était déjà **posée sur le distant** — d'où le ledger à
+42 — pendant que son fichier était encore non commité, avec `eval/invariants.sql`,
+`eval/FAILURE_MODES.md`, `scripts/eval/anon-http.ts`, `docs/PLAN.md`, `docs/CONTEXTE.md`,
+`docs/SESSIONS.md` et `docs/PLAN-ACTION-VACANCE.md`.
+
+**Trois conséquences, et la première est une règle de méthode.**
+
+- **Une porte jouée sur la copie de travail n'est plus attribuable.** Rejouer `npm.cmd run eval`
+  aurait exécuté `I29`–`I31`, en cours d'écriture par l'autre session, et son verdict n'aurait rien
+  dit de `#57`. Les invariants de ce ticket ont donc été rejoués depuis `git show
+  HEAD:eval/invariants.sql`, c'est-à-dire **la version committée**. Résultat : `I18`, `I23` à `I28`
+  à zéro ligne contre le distant à 42 migrations. `eval:anon` et `eval:sabotage`, dont les scripts
+  n'étaient pas encore modifiés au moment de la mesure, rendent **PASS** tous les deux.
+- **Rien n'a été commité qui ne soit à cette session.** Pas de `git add -A` à l'aveugle : le travail
+  en cours d'un autre agent aurait été embarqué dans un commit qui ne le décrit pas.
+- **`CLAUDE.md` dit déjà « ne pas éditer les mêmes fichiers des deux côtés dans une même session »
+  à propos de Lovable. C'est le même danger entre deux sessions Claude**, et il n'est écrit nulle
+  part. `DIAGNOSTIC.md` a été édité des deux côtés le 26 août — sur des sections différentes, donc
+  sans perte, mais par chance plutôt que par précaution.
 
 ## Clôture de la session 10 — l'état au 25 août 2026, 13 h 30 UTC
 
@@ -110,7 +140,7 @@ distante ne se fait pas sur un « probablement inutile ».
 
 ---
 
-## Le 25 août, session 11 : la règle de retenue est recensée — et l'énumération a condamné deux fonctions innocentées la veille
+## Les 25 et 26 août, session 11 : la règle de retenue est recensée — et l'énumération a condamné deux fonctions innocentées la veille
 
 **`w0-retenue` (#57) est fait**, `20260825000014` posée, ledger remesuré à **41**. Le ticket
 disait qu'il ne s'agissait pas de corriger une cinquième fonction mais de faire en sorte qu'il n'y
@@ -289,10 +319,11 @@ if ($raw -match '^(postgresql://)([^:]+):(.*)@(.+)$') {
 
 ### Ce qui reste, et qui n'appartient pas à cette session
 
-- **L'issue [`#57`](https://github.com/IvandeMurard/paris-compass/issues/57) reste ouverte.** Ses
-  trois critères sont tenus et mesurés, mais la fermer demande une autorisation explicite, comme
-  `#14`, `#9` et `#55` avant elle.
-- **Deux issues ouvertes le 25 août**, sur les deux points que `w0-retenue` a laissés derrière lui.
+- **L'issue [`#57`](https://github.com/IvandeMurard/paris-compass/issues/57) est fermée**, sur
+  autorisation explicite, avec ses trois critères remesurés en commentaire — même geste que `#14`,
+  `#9` et `#55` avant elle. L'épic `#41` la coche : **la vague 0 n'a plus qu'un ticket ouvert**,
+  `#58`, et il est en P1.
+- **Deux issues ouvertes le 26 août**, sur les deux points que `w0-retenue` a laissés derrière lui.
   Recommandation d'ordre : **`#58` avant `#59`**, et le raisonnement compte plus que l'ordre.
 
   | Issue | Ticket | Ce qu'elle tranche |
@@ -305,7 +336,7 @@ if ($raw -match '^(postgresql://)([^:]+):(.*)@(.+)$') {
   connaissent déjà la licence de 2017. `#59` reste à corriger, mais cesse d'être une fausse
   déclaration servie à un tiers. L'inverse n'est pas vrai.
 
-  **Et `#58` est gratuite aujourd'hui** : `auth.users` compte **0 utilisateur**, mesuré le 25 août.
+  **Et `#58` est gratuite aujourd'hui** : `auth.users` compte **0 utilisateur**, mesuré le 26 août.
   Le jour où l'inscription s'ouvre — le produit porte déjà `saved_properties` et `saved_searches`,
   donc c'est l'intention — la même correction retire des données à des gens qui les avaient.
 - **`#15` reste ouverte** — sa fermeture demande une décision explicite, inchangé depuis la

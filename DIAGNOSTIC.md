@@ -1040,7 +1040,7 @@ rend **74** quel que soit l'ordre de chargement, et la valeur gelée n'a pas eu 
 
 ## 18. `npm.cmd run eval:anon` porte trois échecs non liés à `w0-plu` — trouvés en chemin, non corrigés
 
-~~**Non corrigés.**~~ **Les trois sont clos le 25 août**, par `w0-retenue` (#57) pour les deux premiers et par la mesure pour le troisième. Le bras D rend **PASS, 11 contrôles**, mesuré après la pose de `20260825000014`. Détail en fin de point.
+~~**Non corrigés.**~~ **Les trois sont clos le 26 août**, par `w0-retenue` (#57) pour les deux premiers et par la mesure pour le troisième. Le bras D rend **PASS, 11 contrôles**, mesuré après la pose de `20260825000014`. Détail en fin de point.
 
 Trouvés le 25 août en faisant tourner la porte anonyme après le changement de signature de
 `compass_premises_within` pour `w0-plu` (#9) — pas dans le périmètre de ce ticket, et laissés
@@ -1105,7 +1105,7 @@ valoir exactement `false`. Le sens compte : `20260825000003` fait passer le test
 premier, donc répondre « hors zone » sur un millésime retenu divulguerait que la zone, elle, aurait
 répondu. `true` à cet endroit serait un vrai défaut, pas un détail.
 
-**Le timeout RLS a disparu sans que personne y touche.** Remesuré le 25 août, même requête, même
+**Le timeout RLS a disparu sans que personne y touche.** Remesuré le 26 août, même requête, même
 projet, même clé publiable : `RLS premise_observation — 60845 relevés visibles = le seul millésime
 ODbL`. Plus de `NaN`, plus de `57014`. Rien dans `w0-retenue` ne touche `premise_observation`, sa
 politique ni ses index — c'est donc la fenêtre de timeout PostgREST ou la charge du projet qui a
@@ -1118,9 +1118,10 @@ moins chère, ou se passer du `count=exact`.
 
 ## 19. Une retenue de licence rendue comme un fait chiffré — `compass_street_rotation`, le 25 août
 
-~~Trouvé en écrivant `w1-survie` (#14) et **consigné plutôt que corrigé**.~~ **Corrigé le 25 août
-par `20260825000014_licence_withholding_rule.sql`**, ticket `w0-retenue` (#57), **posée sur le
-distant, ledger remesuré à 41**. La fonction passe
+~~Trouvé en écrivant `w1-survie` (#14) et **consigné plutôt que corrigé**.~~ **Corrigé par `20260825000014_licence_withholding_rule.sql`**, ticket `w0-retenue` (#57) — écrite
+et éprouvée le **25 août**, **posée sur le distant le 26 août**, ledger remesuré à **41** juste
+après la pose. Cette session est à cheval sur minuit : les mesures ci-dessous sont du 25, la pose
+et les portes qui la suivent du 26. La fonction passe
 `SECURITY DEFINER`, lit le claim, rend **une ligne marquée par millésime retenu** — jamais une par
 tronçon, ce qui divulguerait où le millésime retenu a des locaux — et pose
 `changed_since_previous` à **nul** dès que la comparaison est impossible. Couverte par `I25`/`I26`
@@ -1323,9 +1324,9 @@ recevait déjà de `compass_address_timeline`, `compass_premise_history` et
 `observed = true, is_vacant = true, Locaux Vacants`. La question de fond — **`authenticated` doit-il
 être privilégié, alors que c'est le rôle de quiconque a créé un compte ?** — est une décision de
 doctrine posée le 9 août par `20260809000010`, appliquée depuis à quatre fonctions, et elle
-n'appartient pas à ce ticket. **Ouverte le 25 août en
+n'appartient pas à ce ticket. **Ouverte le 26 août en
 [`#58`](https://github.com/IvandeMurard/paris-compass/issues/58)**, `w0-appelant`, avec la mesure
-qui décide de sa priorité : `auth.users` compte **0 utilisateur**, donc la trancher aujourd'hui ne
+qui décide de sa priorité : `auth.users` compte **0 utilisateur**, mesuré le 26 août, donc la trancher aujourd'hui ne
 retire rien à personne.
 
 > **Et il faut dire ce que ce correctif a élargi.** Avant, `compass_premises_within(…, 2017)`
@@ -1521,7 +1522,7 @@ que le plus permissif des deux.** Un consommateur privilégié qui republie « 8
 attache une licence ouverte à un résultat dont la moitié vient d'un millésime dont la licence n'a
 pas été lue.
 
-**Ouvert le 25 août en [`#59`](https://github.com/IvandeMurard/paris-compass/issues/59)**,
+**Ouvert le 26 août en [`#59`](https://github.com/IvandeMurard/paris-compass/issues/59)**,
 `w1-licence-derivee`.
 
 **Famille du point 13** — « une licence affirmée sur des données qui n'en relèvent pas » — dans sa

@@ -83,7 +83,9 @@ occurrences précédentes.
 
 ---
 
-# Fait le 25 août 2026 — session 11
+# Fait les 25 et 26 août 2026 — session 11
+
+> **La session est à cheval sur minuit, et les dates écrites ici sont celles de la *mesure*, pas de la rédaction** — même règle que les sessions 5 et 6 dans `docs/REPRISE.md`. Tout ce qui est daté du **25** a été mesuré avant la pose : le recensement, les mesures des Halles, les quatre sabotages, le premier `eval`. Ce qui relève du **26** : la pose de la migration, les portes rejouées derrière, la correction du bras D, et l'ouverture de `#58` et `#59`. Vérifiable par `git log --date=iso` : `4ccaa68` est du 25 à 21 h 30, les deux suivants du 26.
 
 **Ce ticket n'a pas produit une cinquième correction, il en a produit trois — et c'est
 l'énumération qui a trouvé les deux autres.** L'ordre du ticket était le bon : écrire la règle
@@ -291,9 +293,16 @@ et raison nommée. Le comportement est meilleur que l'annonce — c'est le comme
 miroirs Overpass (429) — relancée après la poussée, le serveur MCP appelle deux des fonctions dont
 le mode de sécurité change.
 
-**`20260825000014_licence_withholding_rule.sql` est posée**, ledger distant remesuré à **41**,
-dernière `20260825000014`. Les six fonctions lisant une table restreinte sont `SECURITY DEFINER`
-et portent une colonne `withheld` — remesuré en base, c'est exactement ce que `I23` vérifie.
+**`20260825000014_licence_withholding_rule.sql` est posée le 26 août**, ledger distant remesuré
+à **41** juste après la pose. Les six fonctions lisant une table restreinte sont `SECURITY
+DEFINER` et portent une colonne `withheld` — remesuré en base, c'est exactement ce que `I23`
+vérifie.
+
+> **Et le ledger est déjà à 42**, remesuré à la fermeture du ticket : `w0-conclusion` (#54) a posé
+> `20260826000001` dans la même journée, depuis une autre session. Les invariants de ce ticket ont
+> été rejoués contre cet état-là — `I18`, `I23` à `I28` à zéro ligne, bras D **PASS** — en lisant
+> `eval/invariants.sql` **tel que committé à `HEAD`** et non la copie de travail, que l'autre
+> session était en train d'éditer. Ce qu'on mesure doit être attribuable.
 
 | Porte | Résultat |
 | --- | --- |
