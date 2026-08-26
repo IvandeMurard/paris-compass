@@ -1323,7 +1323,19 @@ recevait déjà de `compass_address_timeline`, `compass_premise_history` et
 `observed = true, is_vacant = true, Locaux Vacants`. La question de fond — **`authenticated` doit-il
 être privilégié, alors que c'est le rôle de quiconque a créé un compte ?** — est une décision de
 doctrine posée le 9 août par `20260809000010`, appliquée depuis à quatre fonctions, et elle
-n'appartient pas à ce ticket. Elle est notée ici pour qu'elle cesse d'être invisible.
+n'appartient pas à ce ticket. **Ouverte le 25 août en
+[`#58`](https://github.com/IvandeMurard/paris-compass/issues/58)**, `w0-appelant`, avec la mesure
+qui décide de sa priorité : `auth.users` compte **0 utilisateur**, donc la trancher aujourd'hui ne
+retire rien à personne.
+
+> **Et il faut dire ce que ce correctif a élargi.** Avant, `compass_premises_within(…, 2017)`
+> rendait **0 ligne** à un appelant `authenticated` — RLS les retirait, silencieusement : c'était
+> le défaut ci-dessus. Après, elle en rend **4 773**. Les *faits* accessibles n'ont pas changé, le
+> même appelant les obtenait déjà local par local via `compass_premise_history` ; la *facilité
+> d'extraction*, si — de 85 418 appels à un seul. Sur une licence non lue, c'est une différence de
+> nature. Le correctif a rendu l'exposition explicite et intentionnelle là où elle était
+> accidentelle et restrictive, ce qui est le bon sens de marche, mais il rend `#58` plus pressante,
+> pas moins.
 
 ---
 
@@ -1508,6 +1520,9 @@ la retenue de la branche d'à côté. **Le chiffre dérive des deux millésimes 
 que le plus permissif des deux.** Un consommateur privilégié qui republie « 86,5 %, ODbL-1.0 »
 attache une licence ouverte à un résultat dont la moitié vient d'un millésime dont la licence n'a
 pas été lue.
+
+**Ouvert le 25 août en [`#59`](https://github.com/IvandeMurard/paris-compass/issues/59)**,
+`w1-licence-derivee`.
 
 **Famille du point 13** — « une licence affirmée sur des données qui n'en relèvent pas » — dans sa
 variante *dérivation* : là où `scoreLocation` estampillait une couche entière, celle-ci estampille

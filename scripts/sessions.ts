@@ -29,6 +29,15 @@ const ORDER = [
   "w1-chantiers",
   "w1-terrasses",
   "w1-survie",
+  // Both opened 25 August by w0-retenue, which found them without looking for them.
+  // w0-appelant first, and the order is the recommendation rather than a preference:
+  // it decides w1-licence-derivee's blast radius. If `authenticated` stops being
+  // privileged, the mislabelled licence is only ever seen by the service role — the
+  // people who operate Compass and already know 2017's licence. The reverse is not
+  // true. And w0-appelant is free today: auth.users holds 0 accounts (measured
+  // 25 August); once signup opens, the same fix takes data away from people who had it.
+  "w0-appelant",
+  "w1-licence-derivee",
 ]
 
 /** Which model for which class of work — also a judgement, not a measurement. */

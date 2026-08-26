@@ -742,7 +742,7 @@ Q4 2026  →  meublés + ABF/SPR + PPRI zonage + vue « ce qui se libère »
 
 ## Tickets GitHub
 
-**Les 43 issues sont ouvertes** sur [IvandeMurard/paris-compass](https://github.com/IvandeMurard/paris-compass/issues) le 23 aout 2026, et les 13 labels crees. Le corps de chaque issue vit aussi dans [`tickets/`](./tickets/) : les deux doivent bouger ensemble, ou aucun des deux.
+**Les 43 issues d'origine sont ouvertes** sur [IvandeMurard/paris-compass](https://github.com/IvandeMurard/paris-compass/issues) le 23 aout 2026, et les 13 labels crees. **Ce tableau est un instantané, et il avait cessé d'être vrai** : #53, #55 et #57, ouverts après coup, n'y figuraient pas — remesuré et complété le 25 août, en même temps que l'ajout de #58 et #59. Le compte fait foi côté GitHub, pas ici : `gh issue list` le donne, ce tableau ne le devine pas. Le corps de chaque issue vit aussi dans [`tickets/`](./tickets/) : les deux doivent bouger ensemble, ou aucun des deux.
 
 > Les versions anterieures de cette page portaient 43 liens *creer une issue* preremplis. Ils ont ete retires : les issues existent, les rouvrir en creerait des doublons.
 
@@ -767,11 +767,16 @@ Q4 2026  →  meublés + ABF/SPR + PPRI zonage + vue « ce qui se libère »
 | #7 | `w0-deploy` | P0 | Déployer le corpus sur la base hébergée — **fait le 24 août** |
 | #8 | `w0-fiche` | P0 | Fiche locale + timeline dans l'interface |
 | #51 | `w0-history` | P0 | `compass_premise_history` : une retenue de licence rendue comme un fait |
+| #58 | `w0-appelant` | P1 | `authenticated` est-il privilégié ? Trancher pendant que c'est gratuit — **ouvert le 25 août** |
+| #53 | `w0-mcp-verif` | P0 | Le serveur MCP n'a aucune vérification automatique — **fait le 24 août** |
 | #9 | `w0-plu` | P0 | Ingérer le PLU plub_protcom |
 | #10 | `w0-provenance` | P0 | Provenance par champ, pas un Origin unique OSM |
+| #57 | `w0-retenue` | P0 | La règle de retenue, rendue mécanique — et `compass_street_rotation`, sa 5ᵉ victime — **fait le 25 août** |
+| #55 | — | P1 | Un point hors corpus rendu comme un quartier sans commerces — **fait le 25 août**, ouvert depuis `DIAGNOSTIC.md` §16 et sans fichier de ticket |
 | #11 | `w1-chantiers` | P0 | Chantiers de voirie (fait d'exposition) |
 | #12 | `w1-dia` | P1 | Droit de préemption / DIA — vérifier l'open data |
 | #49 | `w1-historique` | P0 | bdcom20032020 : porter l'historique de six à vingt ans |
+| #59 | `w1-licence-derivee` | P1 | Un taux dérivé de deux millésimes ne peut pas citer la licence du plus permissif — **ouvert le 25 août** |
 | #13 | `w1-ppri` | P1 | PPRI en zonage, pas en booléen |
 | #14 | `w1-survie` | P0 | Courbes de survie SIRENE × BDCom |
 | #15 | `w1-terrasses` | P0 | Terrasses et étalages autorisés |

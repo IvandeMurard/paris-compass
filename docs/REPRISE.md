@@ -16,7 +16,7 @@ Tout est mesuré à la clôture, pas recopié. C'est le point de départ propre 
 | Fonctions `compass_*` | **13**, inchangé — la migration n'en ajoute aucune, elle en corrige trois |
 | Fonctions lisant une table restreinte | **6**, et les six sont `SECURITY DEFINER` avec une colonne `withheld` — remesuré en base, c'est ce que `I23` vérifie |
 | Invariants | **28** (`grep -c '^-- @invariant '`) — `I23` à `I28` ajoutés |
-| Issues | **40 ouvertes, 12 fermées**. [`#57`](https://github.com/IvandeMurard/paris-compass/issues/57) **reste ouverte** — sa fermeture demande une autorisation explicite |
+| Issues | **42 ouvertes, 12 fermées** — remesuré par `gh` après ouverture de [`#58`](https://github.com/IvandeMurard/paris-compass/issues/58) et [`#59`](https://github.com/IvandeMurard/paris-compass/issues/59). [`#57`](https://github.com/IvandeMurard/paris-compass/issues/57) **reste ouverte** — sa fermeture demande une autorisation explicite |
 | Portes | `typecheck` ✓ · **122 tests** ✓ · `build` et `build:dev` ✓ · **`eval` 28/28 invariants** ✓ et 8/8 cas dorés, dix écarts de baseline en avertissement (dérive BODACC/SIRENE déjà connue, la plus large à 0,70 %) · **`eval:anon` PASS, 11 contrôles** · **`eval:sabotage` PASS** · `verify:mcp` **41 contrôles, 39 au vert, 0 en échec**, 2 suspendus sur panne Overpass (429) |
 
 **`w0-retenue` (#57) est fait et posé.** Un appelant anonyme aux Halles ne reçoit plus
@@ -292,9 +292,22 @@ if ($raw -match '^(postgresql://)([^:]+):(.*)@(.+)$') {
 - **L'issue [`#57`](https://github.com/IvandeMurard/paris-compass/issues/57) reste ouverte.** Ses
   trois critères sont tenus et mesurés, mais la fermer demande une autorisation explicite, comme
   `#14`, `#9` et `#55` avant elle.
-- **Le point 24 n'a pas d'issue** — la licence citée sur un taux dérivé de deux millésimes. À
-  ouvrir si l'on veut le suivre ailleurs que dans `DIAGNOSTIC.md`.
-- **La doctrine `authenticated`** n'est pas tranchée : voir `DIAGNOSTIC.md` §21.
+- **Deux issues ouvertes le 25 août**, sur les deux points que `w0-retenue` a laissés derrière lui.
+  Recommandation d'ordre : **`#58` avant `#59`**, et le raisonnement compte plus que l'ordre.
+
+  | Issue | Ticket | Ce qu'elle tranche |
+  | --- | --- | --- |
+  | [`#58`](https://github.com/IvandeMurard/paris-compass/issues/58) | `w0-appelant`, P1, vague 0 | `authenticated` est-il privilégié ? `DIAGNOSTIC.md` §21 |
+  | [`#59`](https://github.com/IvandeMurard/paris-compass/issues/59) | `w1-licence-derivee`, P1, vague 1 | Un taux dérivé de deux millésimes cite la licence du plus permissif. §24 |
+
+  **`#58` décide de la portée de `#59`.** Si `authenticated` cesse d'être privilégié, la ligne mal
+  étiquetée de `#59` n'est plus vue que par le rôle de service — ceux qui exploitent Compass et
+  connaissent déjà la licence de 2017. `#59` reste à corriger, mais cesse d'être une fausse
+  déclaration servie à un tiers. L'inverse n'est pas vrai.
+
+  **Et `#58` est gratuite aujourd'hui** : `auth.users` compte **0 utilisateur**, mesuré le 25 août.
+  Le jour où l'inscription s'ouvre — le produit porte déjà `saved_properties` et `saved_searches`,
+  donc c'est l'intention — la même correction retire des données à des gens qui les avaient.
 - **`#15` reste ouverte** — sa fermeture demande une décision explicite, inchangé depuis la
   session 10.
 
