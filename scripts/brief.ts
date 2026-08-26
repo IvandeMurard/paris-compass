@@ -19,6 +19,9 @@ const TICKETS = resolve("docs/tickets")
  *  The same `\r` broke the priority parse in sessions.ts on 24 August. */
 const lire = (p: string) => readFileSync(p, "utf8").replace(/\r\n/g, "\n")
 
+/** Above this, the common prompt is told to shed a clause rather than keep accreting. */
+const SEUIL_PROMPT = 75
+
 /** Sections of docs/REPRISE.md that carry state or rules. The rest is history. */
 const REPRISE_UTILE = [
   "Ce qui existe et fonctionne",
@@ -123,6 +126,18 @@ function main() {
   console.log(`\n=== ${id} · issue #${num} — à coller tel quel ===\n`)
   console.log(parts.join("\n\n"))
   console.log()
+
+  // The common prompt grows the way docs/REPRISE.md did: a clause per session that got
+  // something wrong, none ever removed. Nothing bounds it, so say when it crosses a line
+  // rather than hope someone notices — 70 lines on 26 August, seven standing clauses.
+  const n = promptCommun(doc).split("\n").length
+  if (n > SEUIL_PROMPT) {
+    console.error(
+      `[note] Le prompt commun fait ${n} lignes (seuil ${SEUIL_PROMPT}). Il grossit d'une\n` +
+        `       clause par session. Regarde s'il en porte une que CLAUDE.md dit déjà —\n` +
+        `       CLAUDE.md est chargé tout seul, le prompt se paie à chaque session.\n`,
+    )
+  }
 }
 
 main()
