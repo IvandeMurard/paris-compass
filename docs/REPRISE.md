@@ -9,7 +9,7 @@ contrat d'évaluation).
 ## Clôture de la session 13 — l'état exact au 26 août 2026, 17 h 45 UTC
 
 Tout est mesuré à la clôture et **après commit**, sur un arbre propre : les portes sont jouées à
-`2cc54a7`, pas sur la copie de travail. La session 11 avait consigné pourquoi.
+`ffa3b55`, pas sur la copie de travail. La session 11 avait consigné pourquoi.
 
 | Mesure | Valeur |
 | --- | --- |
@@ -19,7 +19,7 @@ Tout est mesuré à la clôture et **après commit**, sur un arbre propre : les 
 | Sources dans `ingestion_run` | **8**, inchangé. `terrasses` reste à `source_as_of` 2026-08-25, 24 194 lignes, `run_by` `manual` — **rien n'a été rechargé** |
 | Issues | **39 ouvertes, 15 fermées** — remesuré par `gh` après fermeture de [`#15`](https://github.com/IvandeMurard/paris-compass/issues/15) |
 | Épic [`#42`](https://github.com/IvandeMurard/paris-compass/issues/42) (vague 1) | **ouverte**, **3 tickets cochés sur 7** — `#11`, `#14`, `#15` |
-| Portes | `typecheck` ✓ · **143 tests** ✓ (122 avant, +21 pour `terrasseText`) · `build` et `build:dev` ✓ · **`eval` 31/31 invariants** ✓ et 8/8 cas dorés, dix écarts de baseline en avertissement (dérive BODACC/SIRENE connue, la plus large à 0,70 %) · **`eval:anon` PASS, 12 contrôles** · **`eval:sabotage` PASS** · `verify:mcp` non relancée, ni `src/core/` ni `mcp-server/` touchés |
+| Portes | `typecheck` ✓ · **166 tests** ✓ (122 avant, +21 pour `terrasseText`, +23 pour `terrasseAddress`) · `build` et `build:dev` ✓ · **`eval` 31/31 invariants** ✓ et 8/8 cas dorés, dix écarts de baseline en avertissement (dérive BODACC/SIRENE connue, la plus large à 0,70 %) · **`eval:anon` PASS, 12 contrôles** · **`eval:sabotage` PASS** · `verify:mcp` non relancée, ni `src/core/` ni `mcp-server/` touchés |
 
 **`w1-terrasses` (#15) est fait et fermé.** La fiche d'un local rend les trois états — `oui`,
 `non`, `inconnu` — avec le type, la réserve doctrinale et la date de la source. Démontré dans le
@@ -107,10 +107,15 @@ dimension de terrasse.**
   compose pas d'images, donc les animations CSS de Leaflet ne s'achèvent jamais et `moveend` —
   le seul endroit d'où `MapView` recalcule sa fenêtre — ne se déclenche pas. Limite de
   l'environnement, pas du produit ; à savoir avant de déboguer une carte qui « ne bouge pas ».
-- **11 adresses sur 24 199 ne se parsent pas pour un suffixe alphanumérique** (`32BV RUE DES
-  PLANTES`, `2P2 PLACE JEAN PRONTEAU`) que `[A-Z]?` n'absorbe pas. 0,05 %, et le correctif
-  exigerait un rechargement complet : à prendre en passant par la prochaine session qui touche
-  `scripts/ingest/terrasses.ts`, pas à provoquer.
+- **Le correctif des suffixes d'adresse est écrit mais pas chargé.** `parseAddress` a déménagé
+  dans `scripts/ingest/lib/terrasseAddress.ts` — un chargeur appelle `main()` au niveau du
+  module, donc rien de ce qu'il contient n'est importable par un test — et le motif y accepte
+  désormais les suffixes collés au numéro (`32BV`, `1P2`, `183P41`) et les plages à trois
+  numéros. Mesuré adresse par adresse sur l'export du 26 août : **24 154 parsées contre 24 140,
+  14 gagnées, 0 perdue, 0 parse changé**. **Rien n'a bougé en base** : la couche n'est pas câblée
+  sur le cron, donc les 14 adresses restent non rattachées jusqu'au prochain chargement manuel de
+  `scripts/ingest/terrasses.ts` — qui rechargera aussi le millésime du jour et fera avancer
+  `source_as_of`.
 - **Le tableau des sources de `PLAN-ACTION-VACANCE.md` est en retard sur lui-même** : PLU et
   chantiers y sont encore « planifiée » alors qu'ils sont ingérés depuis le 25 août. Seule la
   ligne terrasses a été corrigée ici — les deux autres appartiennent à leurs tickets.
