@@ -54,7 +54,7 @@ ligne fait échouer la porte.
 | **I9** | Un appelant **anonyme** voit quoi que ce soit d'un millésime non redistribuable — contenu, absence, ou simple existence | La licence de 2017 et 2020 n'est pas lue. Trois migrations ont été nécessaires : retenir le contenu laissait fuiter l'absence, ce qui révélait l'existence |
 | **I10** | Un millésime redistribuable revient retenu par erreur | Le miroir de I9. **Sur-restreindre est aussi une faute** : retenir de l'ODbL prive sans raison et masque un défaut de logique |
 
-> **Dix-huit invariants ont été ajoutés depuis** : I11 (une fonction `compass_*`
+> **Vingt et un invariants ont été ajoutés depuis** : I11 (une fonction `compass_*`
 > non exécutable par `anon`), puis cinq paires — I12/I13 pour
 > `compass_scoring_context_within`, I14/I15 pour `compass_premises_within`,
 > I16/I17 pour `compass_premise_history`, I25/I26 pour `compass_street_rotation`,
@@ -62,6 +62,12 @@ ligne fait échouer la porte.
 > s'annonce *et* qu'un vide réel reste muet. Puis I18, I19/I20, I21, I22, et enfin
 > **I23/I24, qui ne portent sur aucune fonction en particulier : ils énumèrent
 > celles auxquelles la règle s'applique** (voir « Ce qui n'est pas couvert »).
+> Enfin **I29, I30 et I31**, la première règle de ce dépôt qui porte sur la
+> **prose** d'une chronologie et non sur ses colonnes : une ligne est un millésime,
+> et un millésime n'atteste aucun changement — donc aucune `evidence` ne peut
+> affirmer un état antérieur, ni pour l'anonyme à qui il est retenu, ni pour le
+> privilégié à qui il est visible et le contredit (I31 étant le miroir : ne pas
+> corriger l'affirmation en devenant muet). `w0-conclusion` (#54).
 > Le tableau ci-dessus s'arrête à I10 ; `invariants.sql` fait foi.
 >
 > **I9, I10 et leurs suivantes prennent l'identité d'`anon` par le *claim*, pas par le
@@ -154,7 +160,7 @@ par catégorie ; les deux premiers sont les fautes réellement commises.
 | `siege_social` | Un siège confirmé par SIRENE sort en `corrobore` ; infirmé, il reste `probable` |
 | `adresse_partagee` | Plusieurs locaux au même numéro : `probable`, quoi qu'en dise toute corroboration |
 | `identifiant_reattribue` | Un `ordre` réutilisé sort en `probable` |
-| `perimetre_2023` | Une absence en 2023 dit « plus un commerce », jamais « vacant » |
+| `perimetre_2023` | Une absence en 2023 nomme le périmètre de la couche et ne conclut rien — ni « vacant », ni « plus un commerce » |
 
 **Dette assumée : il manque la septième catégorie.** `millesime_retenu` — le comportement
 que verrouillent I9 et I10 — n'a **aucun cas doré**, alors qu'une migration a affirmé le

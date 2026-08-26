@@ -69,7 +69,7 @@ const notSurveyed2023: TimelineRow = {
   label: null,
   detail: null,
   evidence:
-    'Millésime restreint aux commerces : une absence signifie « plus un commerce », pas « vacant ».',
+    "Millésime restreint aux commerces : le local n'y figure pas. Cette couche ne publie que les commerces — ni locaux vacants, ni locaux non commerciaux — donc l'absence ne permet aucune conclusion sur l'état du local.",
   confidence: 'indetermine',
   confidence_rule: 'not_observed',
   confidence_reason: 'observed = false',

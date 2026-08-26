@@ -301,9 +301,15 @@ qui est **disponible** — et à ce jour la liste est complète, pas illustrativ
   en faire.
 - **L'enseigne n'existe qu'en 2023.** Les couches publiées de 2017 et 2020 ne portent aucun champ
   de nom. On peut dire « c'était un fleuriste », jamais « c'était Au Nom de la Rose ».
-- **Une disparition en 2023 signifie « ce n'est plus un commerce »**, jamais « c'est vacant ». Le
-  local a pu fermer, ou devenir un cabinet dentaire : la couche ne distingue pas les deux, donc la
-  base répond « je ne sais pas » plutôt que d'inventer un changement.
+- **Une disparition en 2023 ne signifie rien par elle-même** — ni « c'est vacant », ni « ce n'est
+  plus un commerce ». Cette seconde lecture a été écrite ici le 9 août et **mesurée fausse le
+  26 août** : sur les 24 573 locaux absents du millésime 2023, **18 647 — 75,9 %** — n'étaient déjà
+  pas un commerce à leur dernier relevé (12 367 « Autre local », 6 280 « Local vacant »). Un local
+  relevé vacant en 2020 n'a jamais été un commerce : il ne peut pas avoir cessé de l'être. La
+  couche 2023 ne publie ni les vacants ni les locaux non commerciaux, donc son silence recouvre
+  trois cas — fermé, transformé, ou jamais commercial — et la base répond « je ne sais pas »
+  plutôt que d'en choisir un. `DIAGNOSTIC.md` §15, ticket `w0-conclusion` (#54), invariants I29
+  à I31.
 - **74 identifiants sur 85 344 sont réattribués** à un autre local d'un millésime à l'autre,
   soit moins de 0,1 % — chiffre mesuré au chargement, pas estimé. L'`ordre` 4231 est au 13 rue
   Vivienne dans le 2ᵉ en 2017 et 2020, et au 88 avenue Kléber dans le 16ᵉ en 2023.

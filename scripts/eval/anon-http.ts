@@ -17,7 +17,8 @@
 // compass_premises_within, compass_scoring_context_within (both since
 // 2026-08-24) and compass_premise_history (since 20260824000001, which this arm
 // is what found), plus compass_street_rotation and compass_survival_by_trade
-// since 20260825000014. compass_address_timeline is covered by I9/I10.
+// since 20260825000014, and compass_address_timeline since 20260826000001 —
+// which is also where this arm started reading a SENTENCE and not only a column.
 //
 // The list is no longer the thing that decides what is covered: I24 in
 // eval/invariants.sql enumerates the population from pg_proc and fails if a
@@ -296,6 +297,80 @@ async function expectSurvival(label: string) {
   )
 }
 
+interface TimelineRow {
+  occurred_on: string
+  kind: string
+  observed: boolean | null
+  withheld: boolean
+  evidence: string | null
+  [column: string]: unknown
+}
+
+/**
+ * Anteriority, as prose. The same list I29/I30 hold in SQL, kept short on purpose:
+ * marks of transition, never the past tense — the withholding sentence says
+ * "sa licence n'a pas été lue", and a list that caught that would be a list
+ * someone disarms the first time it bites.
+ */
+const ANTERIORITY = [
+  "plus un",
+  "plus une",
+  "n'est plus",
+  "ne sont plus",
+  "devenu",
+  "redevenu",
+  "auparavant",
+  "autrefois",
+  "anciennement",
+  "jusqu'alors",
+  "désormais",
+]
+
+/**
+ * The seventh probe, and the ticket that made this arm read a SENTENCE rather
+ * than a column — w0-conclusion (#54), DIAGNOSTIC.md §15.
+ *
+ * On the retail-only vintage this function used to justify an absence by « une
+ * absence signifie « plus un commerce », pas « vacant » ». That claims a
+ * transition, so a prior state — which this same answer withholds from this very
+ * caller: 2017 and 2020 come back withheld, « ni son contenu ni son existence ».
+ * The disclosure mechanism was right; the prose went further than what it let
+ * anyone see.
+ *
+ * Arm A now holds the rule over the corpus (I29 to I31). This probe is the
+ * demonstration the issue asked for in its own words — an anonymous call, on a
+ * premise absent from 2023, over the publishable key and nothing else.
+ *
+ * The counter-test is inside the same call, and it is the half that would catch a
+ * lazy fix: the sentence must still NAME what the layer does not publish. Deleting
+ * it would satisfy every check above and lose the only fact that makes the absence
+ * uninformative.
+ */
+async function expectTimeline(locationId: number, label: string) {
+  const rows = (await rpc("compass_address_timeline", { p_location_id: locationId })) as unknown as TimelineRow[]
+  const survey = rows.filter((r) => r.kind === "survey")
+  if (survey.length !== 3) return fail(label, `${survey.length} ligne(s) de relevé, attendu 3 — une par millésime`)
+
+  for (const row of survey) {
+    const year = Number(row.occurred_on.slice(0, 4))
+    if (!row.evidence || row.evidence.trim() === "")
+      return fail(label, `${year} : aucune justification — la ligne ne dit pas d'où elle vient`)
+    if (row.withheld) continue
+    const found = ANTERIORITY.filter((form) => row.evidence!.toLowerCase().includes(form))
+    if (found.length > 0)
+      return fail(label, `${year} : une ligne divulguée affirme un état antérieur (${found.join(", ")})`)
+  }
+
+  const odbl = survey.find((r) => r.occurred_on.startsWith("2023"))
+  if (!odbl) return fail(label, "millésime 2023 absent de la réponse")
+  if (odbl.withheld !== false) return fail(label, `2023 : withheld = ${JSON.stringify(odbl.withheld)}, attendu false`)
+  if (odbl.observed !== false)
+    return fail(label, `2023 : observed = ${JSON.stringify(odbl.observed)} — ce local est absent du millésime`)
+  if (!odbl.evidence!.toLowerCase().includes("vacant"))
+    return fail(label, "2023 : la phrase ne nomme plus ce que la couche ne publie pas — sur-correction")
+
+  pass(label, "2017/2020 retenus, 2023 non relevé : le périmètre est nommé et aucune conclusion n'en est tirée")
+}
 async function main(): Promise<void> {
   if (!BASE || !KEY) {
     out("ERREUR — VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY absents de .env.local")
@@ -341,6 +416,11 @@ async function main(): Promise<void> {
   // the quartier w1-survie published its survival figures for.
   await expectRotation("street_rotation Halles 300 m")
   await expectSurvival("survival_by_trade Halles, Café et Restaurant")
+
+  // 54653 — the premise DIAGNOSTIC.md §15 measured the defect on, absent from the
+  // 2023 retail-only vintage. The privileged path is not probed here: the sentence
+  // is a constant of its CASE branch, and I30 is what holds it for that caller.
+  await expectTimeline(54653, "address_timeline 54653, absent de 2023")
 
   // RLS itself, which arm A cannot reach: the anon role reading the table
   // directly must see the ODbL vintage and nothing else. A count, not a sample —

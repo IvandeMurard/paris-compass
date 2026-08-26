@@ -734,3 +734,128 @@ where s.source is null
    or s.period_end is null
    or s.evidence is null or btrim(s.evidence) = ''
 limit 20;
+
+-- ===========================================================================
+-- w0-conclusion (#54) — une conclusion ne se pose pas par-dessus une retenue
+-- ===========================================================================
+-- I23 et I24 passaient au vert pendant que le défaut vivait, et ce n'est pas un
+-- oubli : I23 vérifie qu'une fonction PEUT annoncer sa retenue, I24 qu'un test
+-- anonyme EXISTE. Ni l'un ni l'autre ne lit une phrase. Mesuré le 26 août 2026 :
+-- I23 rendait 0 ligne et I24 recensait 6 fonctions toutes couvertes, alors que
+-- compass_address_timeline justifiait encore une absence 2023 par « une absence
+-- signifie « plus un commerce », pas « vacant » ». DIAGNOSTIC.md §15.
+--
+-- La règle que ces trois blocs écrivent tient en une phrase : UNE LIGNE EST UN
+-- MILLÉSIME, ET UN MILLÉSIME N'ATTESTE AUCUN CHANGEMENT. Une phrase attachée à
+-- une ligne ne peut donc affirmer un état antérieur — ni pour l'appelant anonyme,
+-- à qui les millésimes antérieurs sont retenus, ni pour l'appelant privilégié, à
+-- qui ils sont visibles et le contredisent. Le changement se compare ailleurs :
+-- compass_premise_history.changed_from_previous, qui s'annule quand la
+-- comparaison est impossible (points 10 et 19).
+--
+-- RESTRICTION DE POPULATION, saine et non un échantillon : kind = 'survey'. Les
+-- lignes sale/proceeding relaient bodacc_establishment.origin_raw — la phrase de
+-- la source, que src/i18n/timelineText.ts interdit de réécrire parce qu'elle est
+-- la pièce. Même raisonnement que la restriction de I7.
+--
+-- LES FORMES INTERDITES, et l'absence de certaines est délibérée. Sont visées les
+-- marques d'antériorité et de transition, pas le passé : la phrase de retenue dit
+-- « sa licence n'a pas été lue », et une liste qui attraperait le passé composé
+-- serait une liste qu'on désarmerait le jour où elle mord. « avant » seul est
+-- écarté pour la même raison — « avant tout » est innocent. Même arbitrage que
+-- I21, qui écarte le conditionnel et dit pourquoi.
+
+-- @invariant I29 :: une evidence divulguée affirme un état antérieur que la même réponse retient
+-- @as anon
+-- Le défaut du ticket. Pour cet appelant, 2017 et 2020 reviennent withheld =
+-- true / observed = null : aucune antériorité n'est recoupable, PAR CONSTRUCTION.
+-- Toute phrase qui en affirme une conclut donc à partir de ce que la même réponse
+-- vient de refuser de dire.
+--
+-- La population est tirée des locaux absents du millésime 2023, pas de 400 locaux
+-- au hasard : c'est la branche à exercer, et un tirage aveugle la manquerait la
+-- plupart du temps. 24 573 locaux sur 85 418 sont dans ce cas, mesuré le 26 août.
+with absent_2023 as (
+  select l.id
+  from public.premise_location l
+  where not exists (
+    select 1 from public.premise_observation o
+     where o.location_id = l.id and o.vintage_id = 2023)
+  order by l.id
+  limit 400
+)
+select a.id as location_id, t.occurred_on, left(t.evidence, 160) as evidence
+from absent_2023 a
+cross join lateral public.compass_address_timeline(a.id) t
+where t.kind = 'survey'
+  and not t.withheld
+  and (t.evidence ~* '\y(plus une?|n''est plus|ne sont plus|redevenue?s?|devenue?s?|auparavant|autrefois|anciennement|jusqu''alors|désormais)\y'
+       or t.confidence_reason ~* '\y(plus une?|n''est plus|ne sont plus|redevenue?s?|devenue?s?|auparavant|autrefois|anciennement|jusqu''alors|désormais)\y')
+limit 20;
+
+-- @invariant I30 :: la même affirmation, sur le chemin privilégié qui voit tout
+-- Pas un doublon de I29, et la mesure le prouve. Le 26 août 2026, sur les 24 573
+-- locaux absents du millésime 2023, répartis par leur dernier relevé connu :
+--
+--   Autre local        niv8 7   hors périmètre commerce   12 367
+--   Local vacant       niv8 6   hors périmètre commerce    6 280
+--   les six postes de commerce restants                    5 926
+--
+-- 18 647 sur 24 573, soit 75,9 %, n'étaient pas un commerce à leur dernier relevé.
+-- Un local relevé vacant en 2020 n'a jamais été un commerce : il ne peut pas avoir
+-- cessé de l'être. « Plus un commerce » était donc faux pour trois lignes sur
+-- quatre même quand les trois millésimes sont visibles — ce qui a écarté la
+-- correction dépendante du privilège et imposé la réduction uniforme.
+--
+-- Ce bloc tient aussi la ligne si quelqu'un rendait un jour cette prose dépendante
+-- de l'appelant : I29 seul passerait alors au vert sur une base fausse.
+with absent_2023 as (
+  select l.id
+  from public.premise_location l
+  where not exists (
+    select 1 from public.premise_observation o
+     where o.location_id = l.id and o.vintage_id = 2023)
+  order by l.id
+  limit 400
+)
+select a.id as location_id, t.occurred_on, left(t.evidence, 160) as evidence
+from absent_2023 a
+cross join lateral public.compass_address_timeline(a.id) t
+where t.kind = 'survey'
+  and not t.withheld
+  and (t.evidence ~* '\y(plus une?|n''est plus|ne sont plus|redevenue?s?|devenue?s?|auparavant|autrefois|anciennement|jusqu''alors|désormais)\y'
+       or t.confidence_reason ~* '\y(plus une?|n''est plus|ne sont plus|redevenue?s?|devenue?s?|auparavant|autrefois|anciennement|jusqu''alors|désormais)\y')
+limit 20;
+
+-- @invariant I31 :: une absence de millésime restreint cesse de dire pourquoi elle n'apprend rien
+-- @as anon
+-- Le miroir, sur le patron de I10, I13, I15, I17 et I26 : la sur-correction est
+-- une faute au même titre que l'affirmation. Retirer la phrase, ou la remplacer
+-- par la formule générique du millésime au périmètre complet, satisferait I29 et
+-- I30 en faisant perdre au lecteur le seul fait qui rend l'absence inexploitable —
+-- que cette couche NE PUBLIE PAS les locaux vacants (7 853 en 2017, 8 764 en 2020,
+-- bdcom_vintage.licence_note du millésime 2023).
+--
+-- D'où l'ancrage sur « vacant » : la phrase doit nommer ce que la couche ne publie
+-- pas. Ce n'est pas en contradiction avec I29/I30, qui interdisent l'antériorité
+-- et non le mot.
+with absent_2023 as (
+  select l.id
+  from public.premise_location l
+  where not exists (
+    select 1 from public.premise_observation o
+     where o.location_id = l.id and o.vintage_id = 2023)
+  order by l.id
+  limit 400
+)
+select a.id as location_id, t.occurred_on, t.evidence
+from absent_2023 a
+cross join lateral public.compass_address_timeline(a.id) t
+join public.bdcom_vintage v
+  on t.kind = 'survey' and make_date(v.year, 1, 1) = t.occurred_on
+where v.scope = 'retail_only'
+  and t.observed = false
+  and not t.withheld
+  and (t.evidence is null or btrim(t.evidence) = ''
+       or t.evidence !~* '\yvacants?\y')
+limit 20;

@@ -137,8 +137,10 @@ index spatial et 21 tests ; dépendances assainies (`react-leaflet` retiré car 
 
    Deux réserves qui font partie de la promesse, pas de ses notes de bas de page. La **vacance
    n'est mesurable que sur 2017 et 2020** — 7 853 puis 8 764 locaux vides ; le millésime 2023
-   publié ne contient que les commerces, donc un local qui en disparaît n'est pas « vacant », il
-   n'est « plus un commerce ». Et les **licences diffèrent** : ODbL pour 2023, licence
+   publié ne contient que les commerces, donc un local qui en disparaît n'est ni « vacant » ni
+   « plus un commerce » : les deux sont des conclusions, et la couche n'en porte aucune — 75,9 %
+   de ces locaux n'étaient déjà pas un commerce à leur dernier relevé, mesuré le 26 août 2026
+   (`DIAGNOSTIC.md` §15). Et les **licences diffèrent** : ODbL pour 2023, licence
    personnalisée à lire pour 2017 et 2020, ce qui interdit d'annoncer ODbL pour BDCom en bloc.
 4. Puis **Mobiliscope** (CNRS, ODbL) — population présente heure par heure par secteur ;
    **BODACC** (DILA, API libre) — prix des fonds de commerce et procédures collectives ;

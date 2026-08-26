@@ -122,13 +122,14 @@ hors de la file, pour qu'aucun ticket ne disparaisse en silence.
 | ~~4~~ | ~~`w0-fiche`~~ | [#8](https://github.com/IvandeMurard/paris-compass/issues/8) | **fait** | P0 | Opus 5 |
 | ~~5~~ | ~~`w0-mcp-verif`~~ | [#53](https://github.com/IvandeMurard/paris-compass/issues/53) | **fait** | P0 | Opus 5 |
 | ~~6~~ | ~~`w0-cron`~~ | [#6](https://github.com/IvandeMurard/paris-compass/issues/6) | **fait** | P0 | Opus 5 |
-| 7 | `w0-retenue` | [#57](https://github.com/IvandeMurard/paris-compass/issues/57) | ouvert | P0 | Opus 5 |
+| ~~7~~ | ~~`w0-retenue`~~ | [#57](https://github.com/IvandeMurard/paris-compass/issues/57) | **fait** | P0 | Opus 5 |
 | ~~8~~ | ~~`w0-plu`~~ | [#9](https://github.com/IvandeMurard/paris-compass/issues/9) | **fait** | P0 | Sonnet 5 |
 | ~~9~~ | ~~`w1-chantiers`~~ | [#11](https://github.com/IvandeMurard/paris-compass/issues/11) | **fait** | P0 | Sonnet 5 |
 | 10 | `w1-terrasses` | [#15](https://github.com/IvandeMurard/paris-compass/issues/15) | ouvert | P0 | Sonnet 5 |
 | ~~11~~ | ~~`w1-survie`~~ | [#14](https://github.com/IvandeMurard/paris-compass/issues/14) | **fait** | P0 | Opus 5 |
-| 12 | `w0-appelant` | [#58](https://github.com/IvandeMurard/paris-compass/issues/58) | ouvert | P1 | Opus 5 |
-| 13 | `w1-licence-derivee` | [#59](https://github.com/IvandeMurard/paris-compass/issues/59) | ouvert | P1 | Opus 5 |
+| 12 | `w0-conclusion` | [#54](https://github.com/IvandeMurard/paris-compass/issues/54) | ouvert | P1 | Opus 5 |
+| 13 | `w0-appelant` | [#58](https://github.com/IvandeMurard/paris-compass/issues/58) | ouvert | P1 | Opus 5 |
+| 14 | `w1-licence-derivee` | [#59](https://github.com/IvandeMurard/paris-compass/issues/59) | ouvert | P1 | Opus 5 |
 
 **Hors de cette file : 29 tickets ouverts**, à prendre après la vague 0 — 
 le détail par vague est dans [`PLAN-ACTION-VACANCE.md`](./PLAN-ACTION-VACANCE.md).
@@ -232,11 +233,12 @@ le correctif de `#51`, la fiche afficherait « non observé, non vacant » sur u
 > **Deux choses en sont sorties.** Le rattachement OpenStreetMap ↔ BDCom n'a **pas de clé** :
 > mesuré, un rayon de 25 m contient une médiane de 5 locaux candidats et le plus proche est
 > souvent le mauvais commerce — la fiche les liste et laisse le lecteur trancher. Et
-> [**#54**](https://github.com/IvandeMurard/paris-compass/issues/54) / `DIAGNOSTIC.md` **§15**,
-> ouverte : `compass_address_timeline` conclut « plus un commerce » à
-> partir de millésimes qu'elle retient dans la même réponse. **Correctif SQL, et il demande une
-> décision** — la même phrase est dans `PLAN.md`, corriger l'un sans l'autre ferait diverger
-> la doctrine et la base.
+> [**#54**](https://github.com/IvandeMurard/paris-compass/issues/54) / `DIAGNOSTIC.md` **§15** :
+> `compass_address_timeline` concluait « plus un commerce » à partir de millésimes qu'elle
+> retient dans la même réponse. **Fermée le 26 août** par `w0-conclusion` — et la décision que
+> le ticket demandait a été tranchée par une mesure : la phrase était fausse pour l'appelant
+> privilégié aussi, sur **18 647 des 24 573** locaux absents du millésime 2023. `PLAN.md` et
+> `CONTEXTE.md` portaient la même affirmation et ont été corrigés avec la base.
 >
 > Reste ouvert et volontairement laissé de côté : le panneau ne s'ouvre que depuis la vue
 > liste, les popups Leaflet étant des chaînes HTML brutes ; et les quatre chantiers que

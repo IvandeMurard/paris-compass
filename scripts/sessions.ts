@@ -29,6 +29,12 @@ const ORDER = [
   "w1-chantiers",
   "w1-terrasses",
   "w1-survie",
+  // Opened 24 August by w0-fiche and left to sit for two days: the fix was SQL, the
+  // ticket was interface. It comes after w0-retenue rather than before because the
+  // census w0-retenue posed is what makes it demonstrable that this case escapes it —
+  // I23 and I24 are green while the defect is alive, and that is their definition
+  // rather than a hole in them.
+  "w0-conclusion",
   // Both opened 25 August by w0-retenue, which found them without looking for them.
   // w0-appelant first, and the order is the recommendation rather than a preference:
   // it decides w1-licence-derivee's blast radius. If `authenticated` stops being

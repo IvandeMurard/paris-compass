@@ -788,12 +788,23 @@ temps, pas le 406 : le diagnostic était perdu à chaque fois que les trois miro
 
 ---
 
-## 15. Une conclusion affirmée à partir de millésimes retenus — `compass_address_timeline`, le 24 août
+## 15. Une conclusion affirmée à partir de millésimes retenus — `compass_address_timeline`, **corrigé le 26 août**
 
-**Ouvert**, issue [#54](https://github.com/IvandeMurard/paris-compass/issues/54), le 24 août.
-Trouvé en branchant la fiche locale (`w0-fiche`, #8), et **hors du périmètre de ce ticket** :
-le correctif est dans le SQL, la fiche est de l'interface. Consigné ici plutôt que corrigé à
-la volée.
+~~**Ouvert**, issue [#54](https://github.com/IvandeMurard/paris-compass/issues/54), le 24 août.~~
+**Corrigé le 26 août par `20260826000001_timeline_scope_evidence.sql`**, ticket `w0-conclusion`
+(#54), **posée sur le distant, ledger remesuré à 42**. Trouvé en branchant la fiche locale
+(`w0-fiche`, #8), et hors du périmètre de ce ticket-là : le correctif est dans le SQL, la fiche
+est de l'interface. Consigné puis corrigé deux jours plus tard.
+
+**Le recensement de `w0-retenue` ne pouvait pas l'attraper, et ce n'est pas un trou : c'est sa
+définition.** Mesuré le 26 août avant d'écrire quoi que ce soit, en jouant `I23` et `I24` depuis
+`eval/invariants.sql` : `I23` rendait **0 ligne**, `I24` recensait **6 fonctions, toutes
+couvertes**, dont `compass_address_timeline` par `I9`/`I10` — pendant que le défaut vivait.
+`I23` vérifie qu'une fonction **peut** annoncer sa retenue ; `I24`, qu'un test anonyme
+**existe**. Ni l'un ni l'autre ne lit une phrase, et `I9`/`I10` ne regardent que les lignes
+retenues et la retenue excessive — jamais l'`evidence` d'une ligne divulguée. **Une règle
+structurelle vérifie qu'une fonction peut dire la vérité, jamais qu'elle la dit.** C'est la
+phrase que les points 20 et 23 tournaient autour sans l'écrire.
 
 Sur un millésime au périmètre `retail_only` — c'est le cas de 2023 — une ligne
 `observed = false` porte cette justification, écrite dans `20260809000011` :
@@ -824,10 +835,64 @@ testé. `evidence` reste affiché **tel quel**, sous l'étiquette « Justificati
 c'est la pièce, et la réécrire serait le geste qui a produit les deux erreurs de `PLAN.md`
 §2.5. L'interface ne conclut donc pas ; elle montre que la source conclut.
 
-**Ce qu'il faudrait trancher**, et qui demande une décision plutôt qu'un correctif mécanique :
-la phrase doit-elle dépendre du privilège de l'appelant, comme les autres colonnes de cette
-fonction, ou faut-il la réduire à ce qu'un lecteur peut recouper dans les deux cas ? Le second
-choix est le plus simple et le plus proche de la règle uniforme retenue en `20260809000011`.
+**La décision que le ticket demandait a été tranchée par une mesure, pas par un goût.** Le choix
+était : phrase dépendante du privilège, ou réduite à ce qu'un lecteur peut recouper dans les
+deux cas. Mesuré le 26 août sur le distant — les **24 573** locaux absents du millésime 2023
+(sur 85 418), classés par leur **dernier relevé connu** :
+
+| Dernier état observé | `niv8` | Dans le périmètre commerce | n |
+| --- | --- | --- | --- |
+| Autre local | 7 | non | **12 367** |
+| Local vacant | 6 | non | **6 280** |
+| Non Alimentaire | 3 | oui | 2 281 |
+| Service commercial | 4 | oui | 1 739 |
+| Restauration | 5 | oui | 1 247 |
+| Alimentaire | 2 | oui | 542 |
+| Hôtel | 8 | oui | 115 |
+| Grand magasin | 1 | oui | 2 |
+
+**18 647 sur 24 573, soit 75,9 %**, n'étaient pas un commerce à leur dernier relevé. Un local
+relevé vacant en 2020 **n'a jamais été un commerce** : il ne peut pas avoir cessé de l'être. La
+phrase n'était donc pas seulement trop forte pour l'anonyme — elle était **fausse pour trois
+lignes sur quatre même quand les trois millésimes sont visibles**. Cela élimine la première
+option, qui aurait laissé une affirmation mesurée fausse sur le chemin privilégié, et impose la
+réduction uniforme — celle de `20260809000011`.
+
+Et `bdcom_vintage.licence_note` le disait depuis `20260808000003`, dans la colonne d'à côté :
+« Vacant premises (7 853 in 2017, 8 764 in 2020) and non-commercial ground-floor premises are
+absent ». Rien n'avait recoupé la phrase contre elle. Même mode de défaillance que le §21 : un
+raisonnement écrit que rien ne pouvait relire, parce que c'était de la prose.
+
+**La phrase désormais rendue**, identique pour les trois appelants, vérifié le 26 août sur le
+local 54653 :
+
+> Millésime restreint aux commerces : le local n'y figure pas. Cette couche ne publie que les
+> commerces — ni locaux vacants, ni locaux non commerciaux — donc l'absence ne permet aucune
+> conclusion sur l'état du local.
+
+Elle ne nomme **ni** « vacant » **ni** « plus un commerce », et pas seulement par élégance :
+`I29` et `I30` interdisent les formes d'antériorité dans cette colonne, et une phrase corrective
+qui citerait la conclusion qu'elle interdit déclencherait sa propre règle — ou forcerait à
+écrire la règle assez lâche pour être inutile.
+
+**Les trois invariants, et pourquoi trois.** `I29` (`@as anon`) tient le défaut du ticket : pour
+cet appelant, aucune antériorité n'est recoupable, par construction. `I30` (privilégié) n'est
+pas un doublon — c'est la mesure des 75,9 % qui le justifie, et il tient la ligne si quelqu'un
+rendait un jour cette prose dépendante de l'appelant. `I31` est le miroir, sur le patron de
+`I10`/`I13`/`I15`/`I17`/`I26` : la phrase doit continuer à **nommer ce que la couche ne publie
+pas**, sans quoi la corriger en devenant muet satisferait les deux premiers.
+
+**Éprouvés contre la vraie base avant la poussée**, comme `I23` en son temps : `I29` et `I30`
+**en échec** sur la phrase alors en ligne — 20 lignes chacun, le plafond de la requête, sur une
+population de 400 locaux tous absents de 2023 — et `I31` au vert. Après la poussée : **0 ligne
+pour les trois**. La règle a été écrite contre une base où elle échouait, pas ajustée jusqu'à
+passer.
+
+**Ce que ces trois invariants ne rattrapent pas.** Ils lisent une liste de formes, donc une
+affirmation d'antériorité tournée autrement leur échappe — la limite de `I21`, dont ils
+reprennent le patron. Et `I31` vérifie que la phrase nomme la vacance, pas qu'elle la nomme
+**bien**. Aucune règle ne remplace le fait d'avoir regardé : c'est déjà ce que disaient les
+points 20 et 23.
 
 > **Elle est aussi dans `PLAN.md`**, §« Changement d'activité n'est pas changement de
 > propriétaire » : « Une disparition en 2023 signifie « ce n'est plus un commerce », jamais
