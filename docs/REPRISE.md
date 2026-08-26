@@ -1,10 +1,122 @@
-# Reprise — état au 26 août 2026, fin de session 12
+# Reprise — état au 26 août 2026, fin de session 13
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`
 (backlog, décisions produit), `docs/PLAN-ACTION-VACANCE.md` (doctrine et backlog
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
+
+## Clôture de la session 13 — l'état exact au 26 août 2026, 17 h 45 UTC
+
+Tout est mesuré à la clôture et **après commit**, sur un arbre propre : les portes sont jouées à
+`2cc54a7`, pas sur la copie de travail. La session 11 avait consigné pourquoi.
+
+| Mesure | Valeur |
+| --- | --- |
+| Ledger distant `dbefhvmyfmmhjeetdddu` | **42** migrations, dernière `20260826000001` — **inchangé, cette session n'en pose aucune** |
+| Fonctions `compass_*` | **13**, inchangé |
+| Invariants | **31**, inchangé — aucun ajouté, et c'est une décision, voir plus bas |
+| Sources dans `ingestion_run` | **8**, inchangé. `terrasses` reste à `source_as_of` 2026-08-25, 24 194 lignes, `run_by` `manual` — **rien n'a été rechargé** |
+| Issues | **39 ouvertes, 15 fermées** — remesuré par `gh` après fermeture de [`#15`](https://github.com/IvandeMurard/paris-compass/issues/15) |
+| Épic [`#42`](https://github.com/IvandeMurard/paris-compass/issues/42) (vague 1) | **ouverte**, **3 tickets cochés sur 7** — `#11`, `#14`, `#15` |
+| Portes | `typecheck` ✓ · **143 tests** ✓ (122 avant, +21 pour `terrasseText`) · `build` et `build:dev` ✓ · **`eval` 31/31 invariants** ✓ et 8/8 cas dorés, dix écarts de baseline en avertissement (dérive BODACC/SIRENE connue, la plus large à 0,70 %) · **`eval:anon` PASS, 12 contrôles** · **`eval:sabotage` PASS** · `verify:mcp` non relancée, ni `src/core/` ni `mcp-server/` touchés |
+
+**`w1-terrasses` (#15) est fait et fermé.** La fiche d'un local rend les trois états — `oui`,
+`non`, `inconnu` — avec le type, la réserve doctrinale et la date de la source. Démontré dans le
+navigateur avec la seule clé publiable, sur trois locaux voisins du quartier Bonne-Nouvelle.
+
+### Le ticket était fait à moitié depuis le 25 août, et c'est la moitié invisible qui manquait
+
+Le prompt de session demandait d'écrire le chargeur. **Il existait déjà**, posé le 25 août :
+table, chargeur idempotent, quatre colonnes sur `compass_premises_within`, et 24 194 lignes en
+base. Ce qui manquait était le « Fait quand » du ticket, qui porte sur *la fiche* — et
+`docs/tickets/w1-terrasses.md` le disait lui-même en toutes lettres : « le front-end ne consomme
+aucun des nouveaux champs ». C'est pour cela que `#15` est restée ouverte pendant que `#11` et
+`#14`, du même lot, se fermaient.
+
+> **La leçon vaut au-delà de ce ticket.** Un ticket dont le critère porte sur l'écran n'est pas
+> fait quand la donnée est en base, même si tout le reste est démontré. Trois tickets de la
+> vague 1 se sont arrêtés au même endroit — PLU, chantiers, terrasses — et deux le sont encore.
+> `src/i18n/survivalText.ts` est dans le même cas : 14 tests, aucun composant ne l'appelle.
+
+### Ce que la revérification de la source a corrigé, et pourquoi il fallait la faire
+
+Le prompt demandait de vérifier le jeu **avant** d'écrire le chargeur. Le chargeur existait, mais
+la vérification, elle, a été refaite — contre le portail, jamais contre la section du 25 août,
+qui est de la prose. Deux phrases du 25 sont fausses ou trop fortes, et sont corrigées **datées**
+plutôt que réécrites par-dessus :
+
+- **Le jeu bouge : 24 199 lignes le 26 août contre 24 204 le 25**, et `metas.default.modified`
+  avance au jour le jour. Deux points ne font pas une cadence, et 5 lignes sur 24 199 en un jour
+  reste une usure lente — `cadence` et `cadence_note` n'ont donc **pas** été touchées. Mais cela
+  tranche une question d'affichage : la date de la source n'est pas décorative sur cette couche,
+  et c'est pourquoi la fiche la porte.
+- **« Aucun champ de date ou de statut » était faux.** `periode_installation` existe : nul sur
+  23 474 lignes (97 %), « Toute l'année » sur 717, une fenêtre datée sur 8. La conclusion tenait,
+  la description du schéma non. Et le champ **corrobore** la dérivation `categorie` : les 717
+  « Toute l'année » sont 435 `permanente` et 282 `etalage`, **zéro `estivale`** — deux signaux
+  indépendants d'accord sur 717 lignes, ce qui n'était pas acquis pour une catégorie tirée d'un
+  texte libre sans table de codes.
+
+### Le recensement de `#57` couvrait bien cette fonction, et elle passe
+
+`compass_premises_within` lit `premise_observation` et a été étendue le 25 août, **la veille** de
+la pose de `I23`/`I24`. Joué le 26 contre le distant, depuis `eval/invariants.sql` : `I23` rend
+**0 ligne** — la fonction est `SECURITY DEFINER` avec colonne `withheld`, corrigée par
+`20260825000014` — et `I24` recense **6 fonctions**, dont celle-ci, **toutes couvertes** par un
+invariant `@as anon` (`I14`, `I15`).
+
+> **Un piège de méthode neuf, et il imite parfaitement une panne.** Le premier essai, écrit à la
+> main dans un script temporaire, rendait **0 fonction** au lieu de 6. Le SQL était bon : le
+> heredoc du shell avait mangé un antislash, `'\\y'` devenant `'\y'`, puis, dans un gabarit
+> JavaScript, un simple `y`. La jointure cherchait `ypremise_observationy` et ne trouvait rien —
+> ce qui ressemble trait pour trait à un recensement cassé. **Rejouer un invariant depuis le
+> fichier committé plutôt que de le retaper** n'est pas une élégance de style ; c'est ce qui
+> sépare un verdict d'une coquille de shell.
+
+### Aucun invariant ajouté, et c'est une décision
+
+La doctrine du ticket — « on n'en déduit aucun CA terrasse » — n'avait aucun mécanisme. Elle en a
+un, et il n'est pas dans `eval/` : **`longueur` et `largeur` restent dans
+`terrasse_autorisation`**, et `compass_premises_within` n'expose que quatre drapeaux. Le module
+d'affichage ne reçoit aucun nombre : il n'existe aucun chemin de code, navigateur ou PostgREST,
+d'où une longueur puisse être multipliée par une largeur. Un invariant garderait une porte que la
+forme du schéma ferme déjà — même arbitrage que « pas de recensement sur `evidence` » dans
+`docs/tickets/w0-conclusion.md`. **À rouvrir le jour où une fonction `compass_*` exposera une
+dimension de terrasse.**
+
+### Ce que la doctrine est devenue, en code plutôt qu'en prose
+
+`src/i18n/terrasseText.ts`, 21 tests, sur le patron de `timelineText.ts` et `survivalText.ts` :
+
+- **La réserve est un champ obligatoire du type de retour.** Aucun chemin de code ne rend « oui »
+  sans « une autorisation n'est pas une terrasse installée aujourd'hui : la source ne publie ni
+  date de délivrance, ni date d'expiration, ni statut ».
+- **La ligne de source aussi**, et elle porte `ingestion_run.source_as_of` — la fraîcheur de la
+  source, jamais la date de chargement. `compass_source_freshness` existait depuis le 25 août et
+  n'avait aucun consommateur ; elle en a un.
+- **Une colonne nulle devient `indisponible`, jamais `non`** — pas de `?? 'non'` au décodage.
+- **Éprouvé plutôt que supposé** : replier `inconnu` sur `non` — le défaut que `DIAGNOSTIC.md`
+  §9 à §16 recense cinq fois — fait passer **8 des 21 tests au rouge**.
+
+### Ce qui reste, et qui n'appartient pas à cette session
+
+- **La note estivale n'a pas pu être montrée dans le navigateur.** Elle n'apparaît que sur une
+  autorisation estivale, et aucune n'était atteignable depuis les points OpenStreetMap de la vue
+  par défaut. **La carte n'a pas pu être déplacée** : le volet navigateur de cette session ne
+  compose pas d'images, donc les animations CSS de Leaflet ne s'achèvent jamais et `moveend` —
+  le seul endroit d'où `MapView` recalcule sa fenêtre — ne se déclenche pas. Limite de
+  l'environnement, pas du produit ; à savoir avant de déboguer une carte qui « ne bouge pas ».
+- **11 adresses sur 24 199 ne se parsent pas pour un suffixe alphanumérique** (`32BV RUE DES
+  PLANTES`, `2P2 PLACE JEAN PRONTEAU`) que `[A-Z]?` n'absorbe pas. 0,05 %, et le correctif
+  exigerait un rechargement complet : à prendre en passant par la prochaine session qui touche
+  `scripts/ingest/terrasses.ts`, pas à provoquer.
+- **Le tableau des sources de `PLAN-ACTION-VACANCE.md` est en retard sur lui-même** : PLU et
+  chantiers y sont encore « planifiée » alors qu'ils sont ingérés depuis le 25 août. Seule la
+  ligne terrasses a été corrigée ici — les deux autres appartiennent à leurs tickets.
+- **`periode_installation` n'est pas chargé** (97 % de nuls), et **l'éligibilité réglementaire de
+  la terrasse annuelle** — paris.fr la restreint à une liste de métiers — n'est pas transcrite :
+  c'est la couche 2 de `PLAN.md` §5.3, et elle mérite son propre ticket.
 
 ## Clôture de la session 12 — l'état exact au 26 août 2026, 16 h 47 UTC
 
