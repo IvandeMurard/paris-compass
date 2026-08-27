@@ -166,8 +166,10 @@ fautive.
 | ~~12~~ | ~~`w0-conclusion`~~ | [#54](https://github.com/IvandeMurard/paris-compass/issues/54) | **fait** | P1 | Opus 5 |
 | ~~13~~ | ~~`w0-appelant`~~ | [#58](https://github.com/IvandeMurard/paris-compass/issues/58) | **fait** | P1 | Opus 5 |
 | 14 | `w1-licence-derivee` | [#59](https://github.com/IvandeMurard/paris-compass/issues/59) | ouvert | P1 | Opus 5 |
+| 15 | `w1-ppri` | [#13](https://github.com/IvandeMurard/paris-compass/issues/13) | ouvert | P1 | Opus 5 |
+| 16 | `w1-dia` | [#12](https://github.com/IvandeMurard/paris-compass/issues/12) | ouvert | P1 | Opus 5 |
 
-**Hors de cette file : 29 tickets ouverts**, à prendre après la vague 0 — 
+**Hors de cette file : 27 tickets ouverts**, à prendre après la vague 0 — 
 le détail par vague est dans [`PLAN-ACTION-VACANCE.md`](./PLAN-ACTION-VACANCE.md).
 
 <!-- END sessions -->

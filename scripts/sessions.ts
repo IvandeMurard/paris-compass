@@ -56,6 +56,8 @@ const ORDER = [
   // 25 August); once signup opens, the same fix takes data away from people who had it.
   "w0-appelant",
   "w1-licence-derivee",
+  "w1-ppri",
+  "w1-dia",
 ]
 
 /** Which model for which class of work — also a judgement, not a measurement. */
