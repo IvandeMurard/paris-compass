@@ -616,8 +616,13 @@ filtre, ou rediriger vers `$null` et lire `$LASTEXITCODE`.
 Le dépôt exige une pull request ; le compte d'Ivan a le droit de passer outre,
 donc `git push origin main` réussit et GitHub se contente d'une ligne —
 `Bypassed rule violations for refs/heads/main`. Facile à manquer dans la sortie.
-Les PR #2 et #3 montrent que le mode de travail voulu est la PR : le push direct
-est une exception à demander, pas un défaut.
+
+> **Et c'est le mode voulu, tranché par Ivan le 27 août 2026 : pousser sur
+> `main`.** Les versions antérieures de cette page disaient l'inverse, en
+> s'appuyant sur les PR #2 et #3 — mais aucune PR n'avait été ouverte pour un
+> ticket depuis le 25 août, et la question a été posée en clôturant `#61` : la
+> réponse est le push direct. Ne pas ouvrir de PR pour un ticket sans qu'on la
+> demande.
 
 **Ne jamais relire un corps d'issue GitHub dans une variable PowerShell pour le
 réécrire.** Le 24 août, la commande `$b = gh issue view 41 --json body -q .body`
