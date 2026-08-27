@@ -6,22 +6,22 @@ qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.m
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
 
-## L'état mesuré le plus récent — 26 août 2026 le soir, portes rejouées le 27 à 08 h 18 UTC
+## L'état mesuré le plus récent — 27 août 2026 le soir, clôture de `#61`
 
 **Le tableau de la section suivante date du 24 août** et n'a pas été remesuré depuis ; celui-ci
-l'a été, contre `dbefhvmyfmmhjeetdddu`, à la clôture de la session `w0-appelant`. Quand les deux
+l'a été, contre `dbefhvmyfmmhjeetdddu`, à la clôture de `#61`. Quand les deux
 se contredisent, c'est le plus daté des deux qui a tort — et la règle de `CLAUDE.md` s'applique
 d'abord ici : **remesurer avant de recopier.**
 
-| Mesure | Valeur, mesurée le 26 août 2026 à 21 h 45 UTC et recoupée le 27 à 08 h 18 |
+| Mesure | Valeur, mesurée le 26 août 2026 à 21 h 45 UTC, recoupée le 27 à 08 h 18 puis à 19 h 30 |
 | --- | --- |
 | Ledger distant `supabase_migrations` | **43** migrations, dernière `20260826000002` |
 | Fonctions `compass_*` | **14** — `compass_caller_is_privileged` ajoutée |
 | Invariants | **34** — `I32`, `I33`, `I34` ajoutés |
 | `auth.users` | **0** — aucun compte, ce qui rend la décision de `w0-appelant` gratuite aujourd'hui et coûteuse plus tard |
-| Issues | **39 ouvertes, 17 fermées** — remesuré par `gh` après fermeture de [`#58`](https://github.com/IvandeMurard/paris-compass/issues/58) et de l'épic [`#41`](https://github.com/IvandeMurard/paris-compass/issues/41) |
+| Issues | **40 ouvertes, 17 fermées** — remesuré par `gh` le 27 août à 19 h 35 UTC, [`#61`](https://github.com/IvandeMurard/paris-compass/issues/61) encore ouverte à cet instant et [`#62`](https://github.com/IvandeMurard/paris-compass/issues/62) ouverte le jour même. Le compte bouge dans l'heure qui suit : remesurer |
 | Épic [`#41`](https://github.com/IvandeMurard/paris-compass/issues/41) (vague 0) | **FERMÉE le 27 août**, dix tickets sur dix, aucun report. La prochaine est [`#42`](https://github.com/IvandeMurard/paris-compass/issues/42), vague 1, **3 cochés sur 7** |
-| Portes | `typecheck` ✓ · **166 tests** ✓ · `eval` **34/34** et 8/8 cas dorés, dix écarts de baseline en avertissement (dérive BODACC/SIRENE connue, la plus large à 0,70 %) · `eval:anon` **PASS, 12 contrôles** · `eval:sabotage` **PASS, trois actes** · `verify:mcp` **40 au vert, 0 en échec, 1 suspendu** (E12, Overpass en 429) · `sessions:check` ✓ · `build` et `build:dev` **injouables ici**, contournées par `build:local` ✓ et `build:dev:local` ✓ |
+| Portes | `typecheck` ✓ · **179 tests** ✓ (166 avant, +12 pour `#61`) · `eval` **34/34** et 8/8 cas dorés, **onze** écarts de baseline en avertissement (dérive BODACC/SIRENE connue, la plus large à 0,70 %) — **mort une première fois sur son propre `statement_timeout` de 2 min**, voir « Pièges » · `eval:anon` **PASS, 15 contrôles**, trois passages · `eval:sabotage` **PASS, quatre actes** · `verify:mcp` non relancée, ni `src/core/` ni `mcp-server/` touchés · `sessions:check` ✓ · **`build` ✓ et `build:dev` ✓ le 27 août** — jouables cette fois, le blocage `@swc/core` de Smart App Control n'a pas mordu |
 
 Les six corps de fonction déployés sont **identiques aux fichiers versionnés**, revérifié après la
 poussée, fins de ligne normalisées. Ils ne l'étaient pas tous avant : voir `DIAGNOSTIC.md` §26.
@@ -479,6 +479,16 @@ base ; la retenue n'est pas qu'une politesse de la fonction. C'est un décompte
 et non un échantillon, précisément parce qu'un échantillon passerait au vert
 alors qu'une seule ligne 2017 fuirait.
 
+> **Depuis `#61` le décompte est clefé par millésime** : trois comptes exacts
+> (2017 → 0, 2020 → 0, 2023 → 60 845) au lieu d'un total unique. **471 pages au
+> lieu de 9 033**, parce que `vintage_id` mène `premise_observation_vintage_idx`
+> et que chaque compte devient un parcours d'index seul. L'égalité exacte est
+> gardée — c'était la crainte du ticket — et elle dit désormais *quel* millésime a
+> bougé. Le verdict vit dans `scripts/eval/licence-counts.ts`, importé par
+> `eval:sabotage` plutôt que recopié : son acte 4 élargit la politique RLS dans
+> une transaction annulée et les comptes passent au rouge sur 2017 et 2020, quand
+> I23 et I32 restent verts.
+
 **Le bras a été éprouvé contre un vrai négatif**, comme I12/I13 en leur temps :
 ses assertions ont été pointées sur `compass_premise_history`, dont on sait
 maintenant qu'elle n'annonce rien — elles échouent. Il n'est donc pas vide.
@@ -499,10 +509,22 @@ code Postgres `57014`.** `canceling statement due to statement timeout`, sur un
 invariant différent à chaque fois, puis vert au passage suivant sans que rien
 n'ait changé. Mesuré sur `eval:anon` le 26 août — deux passages rouges puis un
 vert — et sur **`eval`** le 27 août à 08 h 11 UTC, premier appel de la matinée :
-mort dans le bras A, repassé intégralement au vert à 08 h 18. **Rejouer avant de
-diagnostiquer**, et ne conclure à une régression qu'au deuxième rouge. Le premier
-appel matinal paie le réveil de l'instance et la reconstruction des caches ; c'est
-la latence, pas la donnée.
+mort dans le bras A, repassé intégralement au vert à 08 h 18. Le premier appel
+matinal paie le réveil de l'instance et la reconstruction des caches ; c'est la
+latence, pas la donnée.
+
+> **La fenêtre a un chiffre depuis le 27 août** : `anon` porte
+> `statement_timeout = 3s`, `authenticated` et `authenticator` 8 s, relevés dans
+> `pg_roles.rolconfig`. Ce n'est pas une valeur PostgREST à deviner, c'est une
+> option de rôle qu'on peut lire.
+
+**`eval:anon` ne rend plus ce faux rouge — les autres portes, si.** Depuis `#61`,
+elle classe un `57014` en **« suspendu — panne amont »** et sort en **3** : ni
+vert, ni rouge, et le mot « INDÉTERMINÉ » est écrit en toutes lettres. Rejouer une
+sortie 3 est légitime ; rejouer un **FAIL** ne l'est pas, et c'est toute la
+différence que ce ticket a achetée. `eval` (bras A) et `verify:mcp` n'ont pas
+cette distinction pour le timeout : là, **rejouer avant de diagnostiquer** reste
+la règle, et ne conclure à une régression qu'au deuxième rouge.
 
 **Deux sessions dans le même arbre de travail se commitent l'une l'autre.** Le
 26 août au soir, deux sessions ont tourné en parallèle sur ce dépôt : l'une

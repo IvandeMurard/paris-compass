@@ -17,6 +17,73 @@ Les sections sont dans l'ordre où elles étaient, la plus récente d'abord.
 
 ---
 
+## `#61` — la porte anonyme et la température du cache — 27 août 2026, soirée
+
+**Le ticket nommait un mécanisme et un coupable. Le mécanisme était juste, le coupable non.**
+
+### Ce qui ne se déduit ni du code ni du ticket
+
+**La fenêtre n'était pas une valeur PostgREST à deviner : c'est une option de rôle.** `anon`
+porte `statement_timeout = 3s`, lisible dans `pg_roles.rolconfig`. §18 et le ticket parlaient
+tous deux d'une « fenêtre de timeout de PostgREST » sans jamais la relever, et raisonnaient donc
+sur une borne inconnue. Les 3 230 ms du 26 août tombaient à 230 ms au-dessus. `authenticated` et
+`authenticator` ont 8 s — la porte anonyme est celle qui a le moins de marge, ce qui est le bon
+sens et méritait d'être su.
+
+**Le compte n'était pas la requête la plus chère de la porte.** `premises_within 2023, 800 m`
+touche **34 729 pages** contre **9 033** au `count=exact` global — 3,8 fois plus. Et c'est,
+littéralement dans le ticket, « le premier appel qui lit vraiment des lignes » : celui qui est
+mort en premier le 26 au soir. La conséquence est celle qui compte : **corriger le compte seul
+n'aurait pas fait ce que le ticket promettait**, la porte serait retombée au même endroit au
+prochain démarrage à froid. C'est pour ça que le livrable a basculé sur la classification.
+
+**La piste recommandée par le ticket était la plus chère des deux qu'il gardait.** Le contrôle
+négatif `?vintage_id=eq.2017&limit=1` n'est pas à coût constant : demander `id` fait perdre le
+parcours d'index seul, RLS filtre les 84 031 lignes une à une, **1 725 pages** — douze fois le
+compte clefé, pour une garantie plus faible. Mesuré quatre fois, stable au nombre de page près.
+La bonne réponse n'était pas de remplacer le compte exact mais de le **clefer** : 143 + 141 + 187
+pages, et il dit en plus *quel* millésime a bougé.
+
+> Le ticket avait donc trois pistes et la mesure en a désigné une quatrième, moins chère que
+> toutes et strictement plus forte. La leçon n'est pas que le ticket avait tort — il a nommé le
+> bon mécanisme — mais qu'**une piste écrite avant la mesure reste une hypothèse**, y compris
+> quand elle est recommandée par la page qui porte les chiffres.
+
+**Deux défauts trouvés en chemin, tous deux dans la porte elle-même.**
+
+- **`process.exit()` remplaçait le verdict par un plantage.** Avec des sockets `fetch` encore
+  ouvertes, Node s'interrompt sous Windows (`Assertion failed: !(handle->flags &
+  UV_HANDLE_CLOSING)`) et rend **3 221 226 505** au lieu du code demandé. Trouvé en écrivant le
+  test de bout en bout du chemin « suspendu » : le texte était bon, le code de sortie non. Une
+  porte qui veut dire 3 et dit 3 221 226 505 n'a rien gagné. `run.ts` et `verify.ts` utilisaient
+  déjà `process.exitCode` ; la porte anonyme était la seule à ne pas le faire.
+- **`NaN` était imprimé comme un nombre de relevés.** Un `content-range` absent devenait
+  `Number(undefined)`. C'est ce `NaN` qui a donné à la panne du 26 août l'apparence exacte d'une
+  fuite — « NaN relevés visibles, attendu 60845 ».
+
+**La démonstration devait être un sabotage, et il fallait qu'il ne touche aucune fonction.** Les
+trois actes existants créent ou modifient des fonctions ; le quatrième ajoute **une politique RLS
+permissive de plus**, celle qu'on écrit quand « la carte ne lit pas les locaux ». Les politiques
+permissives se cumulent en OU : `anon` voit alors 84 031 lignes de 2017 et 83 399 de 2020, les
+comptes passent au rouge — et **I23 comme I32 restent verts**, puisque aucun corps de fonction n'a
+bougé. C'est la seule forme de fuite que rien d'autre dans ce dépôt ne voit, et donc la seule qui
+justifie que ces comptes restent une égalité exacte après être devenus bon marché.
+
+**Ce que la règle ne rattrape pas, et c'est écrit dans `DIAGNOSTIC.md` §18.** La porte reste
+sensible au cache pour `premises_within 2023`. Au rayon maximal du produit — 2 000 m — le même
+appel anonyme mesure **2 116 ms à chaud, 70 % du budget**. Ce n'est plus la porte qui est exposée
+mais la carte, et c'est le ticket #62.
+
+> **Un effet de bord mesuré pendant la session, qui illustre le sujet mieux que le sujet.**
+> Les mesures elles-mêmes — des `explain (analyze)` répétés sur la requête à 34 729 pages — ont
+> déplacé le contenu du cache partagé. `npm.cmd run eval` (bras A, chemin privilégié) est mort
+> ensuite sur son propre `statement_timeout` de 2 min, puis a mis **86 s sur I1** et **68 s sur
+> I2** au passage suivant, contre quelques secondes d'ordinaire. La température du cache n'est pas
+> une propriété d'une porte : c'est une ressource partagée, et mesurer une requête chère
+> refroidit les autres.
+
+---
+
 ## `w0-appelant` (#58) — 26 août 2026, soirée
 
 **Le dernier ticket de la vague 0.** La décision était prise la veille par Ivan ; la session

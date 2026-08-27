@@ -9,7 +9,7 @@
 // 20260824000002. The rules below deserve the same treatment, and they need a
 // sharper one: their whole claim is about a function that does not exist yet.
 //
-// Three acts, each inside a transaction that is always rolled back:
+// Four acts, each inside a transaction that is always rolled back:
 //
 //   1. THE SIXTH FUNCTION — a compass_* reading premise_observation, SECURITY
 //      INVOKER, no `withheld` column, no anonymous test. I23 and I24 must turn
@@ -21,6 +21,10 @@
 //   3. THE DECISION REVERTED — compass_caller_is_privileged() put back to
 //      `<> 'anon'`, which makes `authenticated` privileged again. I33 must turn
 //      red and I34 must stay green, because a decision nobody plays is prose.
+//   4. THE POLICY LOOSENED — one extra permissive SELECT policy on
+//      premise_observation, the kind somebody adds to "let the map read premises".
+//      Permissive policies are ORed, so `anon` starts seeing 2017 and 2020. The
+//      licence counts of eval:anon must turn red on both. (#61)
 //
 // Then it rolls back and re-runs everything clean, to show the red came from the
 // sabotage and not from a broken query.
@@ -38,6 +42,7 @@ import type { Client } from "pg"
 
 import { connect, connectionTarget, log } from "../ingest/lib/db"
 import { anonymousCoverage, censusVerdict, readInvariants } from "./census"
+import { licenceVerdict, type VintageFact } from "./licence-counts"
 
 let failures = 0
 const out = (s: string): void => void process.stdout.write(s + "\n")
@@ -121,6 +126,63 @@ as $sabotage$
 $sabotage$;
 `
 
+/**
+ * The fourth sabotage, and the only one that leaves every function untouched — #61.
+ *
+ * Nothing here is a strawman: an extra permissive SELECT policy is what somebody adds
+ * when the map "cannot read premises", and PostgreSQL ORs permissive policies together,
+ * so this single line hands `anon` all 228 275 rows. No compass_* function changes, no
+ * claim changes, no invariant of arm A has anything to object to — I23, I24 and I32 all
+ * stay green through it. The licence counts of eval:anon are the only thing that sees it,
+ * which is exactly why they had to stay an exact equality when #61 made them cheap.
+ */
+const SABOTAGE_POLICY = `
+create policy "sabotage lecture large" on public.premise_observation
+  for select to anon using (true);
+`
+
+/**
+ * The counts as `anon` actually gets them: the RLS policy decides, nothing else. Keyed by
+ * vintage, which is the shape #61 gave the gate — an Index Only Scan on
+ * premise_observation_vintage_idx rather than one unkeyed pass over the table.
+ *
+ * `set local role` is undone whatever happens — by a savepoint inside a sabotage
+ * transaction, by the transaction itself when this runs clean. Without that, everything
+ * measured afterwards would still be running as `anon`. Same shape as playOne above.
+ */
+async function licenceCounts(client: Client, inTransaction = false): Promise<VintageFact[]> {
+  await client.query(inTransaction ? "savepoint licence_counts" : "begin")
+  try {
+    await client.query("set local role anon")
+    const result = await client.query<{
+      year: number
+      publicly_redistributable: boolean
+      record_count: number
+      visible: string
+    }>(
+      `select v.year, v.publicly_redistributable, v.record_count,
+              (select count(*) from public.premise_observation o where o.vintage_id = v.id) as visible
+         from public.bdcom_vintage v
+        order by v.year`,
+    )
+    return result.rows.map((r) => ({
+      year: r.year,
+      publiclyRedistributable: r.publicly_redistributable,
+      recordCount: r.record_count,
+      visible: Number(r.visible),
+    }))
+  } finally {
+    await client.query(inTransaction ? "rollback to savepoint licence_counts" : "rollback")
+  }
+}
+
+/** The years whose verdict is red, each with the reason the gate would print. */
+function licenceReds(facts: VintageFact[]): { year: number; detail: string }[] {
+  return licenceVerdict(facts)
+    .filter((v) => !v.ok)
+    .map((v) => ({ year: v.year, detail: v.detail }))
+}
+
 interface Outcome {
   structural: number
   censusUncovered: string[]
@@ -187,7 +249,7 @@ async function sabotaged<T>(client: Client, ddl: string, work: () => Promise<T>)
 async function main(): Promise<void> {
   const target = connectionTarget()
   log("CIBLE", target)
-  out("Sabotage des règles de retenue — trois actes, tous dans des transactions annulées\n")
+  out("Sabotage des règles de retenue — quatre actes, tous dans des transactions annulées\n")
 
   const client = await connect()
   try {
@@ -205,6 +267,19 @@ async function main(): Promise<void> {
       fail("I24 avant sabotage", `déjà ${before.censusUncovered.length} non couverte(s) : ${before.censusUncovered.join(", ")}`)
     if (callerBefore.length === 0) pass("I32 avant sabotage", "le test d'appelant n'a qu'une expression")
     else fail("I32 avant sabotage", `${callerBefore.length} ligne(s) — déjà rouge : ${JSON.stringify(callerBefore)}`)
+
+    const licenceBefore = await licenceCounts(client)
+    const redsBefore = licenceReds(licenceBefore)
+    if (redsBefore.length === 0)
+      pass(
+        "comptes de licence avant sabotage",
+        licenceBefore.map((f) => `${f.year} : ${f.visible}`).join(", ") + " — la porte est verte, le sabotage portera",
+      )
+    else
+      fail(
+        "comptes de licence avant sabotage",
+        `déjà rouge sur ${redsBefore.map((r) => r.year).join(", ")} — le sabotage ne prouverait rien`,
+      )
 
     // -----------------------------------------------------------------------
     // 1. La sixième fonction — w0-retenue (#57)
@@ -281,35 +356,83 @@ async function main(): Promise<void> {
       )
 
     // -----------------------------------------------------------------------
-    // 4. Clean again: the red has to come from the sabotage, not from drift.
+    // 4. La politique élargie — #61
+    // -----------------------------------------------------------------------
+    out("\nActe 4 — une politique de lecture permissive de plus sur premise_observation")
+    const loosened = await sabotaged(client, SABOTAGE_POLICY, async () => ({
+      facts: await licenceCounts(client, true),
+      structural: (await play(client)).structural,
+      caller: await playOne(client, "I32", true),
+    }))
+
+    const reds = licenceReds(loosened.facts)
+    const withheldSeen = reds.filter((r) => r.year === 2017 || r.year === 2020).map((r) => r.year)
+    if (withheldSeen.length === 2)
+      pass(
+        "comptes de licence sous sabotage",
+        reds.map((r) => `${r.year} : ${r.detail}`).join(" ; "),
+      )
+    else
+      fail(
+        "comptes de licence sous sabotage",
+        `2017 et 2020 devaient tourner au rouge, seuls [${withheldSeen.join(", ") || "aucun"}] l'ont fait — ` +
+          `comptes vus : ${loosened.facts.map((f) => `${f.year} : ${f.visible}`).join(", ")}`,
+      )
+
+    // The half that says what this act is for. An extra permissive policy touches no
+    // function body and no claim, so everything arm A holds stays green through it — the
+    // licence counts are the only thing in this repository that sees it.
+    if (loosened.structural === 0 && loosened.caller.length === 0)
+      pass(
+        "I23 et I32 sous le même sabotage",
+        "restent au vert — une politique élargie ne touche aucun corps de fonction, et c'est ce que les comptes voient seuls",
+      )
+    else
+      fail(
+        "I23 et I32 sous le même sabotage",
+        `I23 ${loosened.structural} · I32 ${loosened.caller.length} — le sabotage a bougé autre chose que la politique`,
+      )
+
+    // -----------------------------------------------------------------------
+    // 5. Clean again: the red has to come from the sabotage, not from drift.
     // -----------------------------------------------------------------------
     out("")
     const after = await play(client)
     const callerAfter = await playOne(client, "I32")
     const authAfter = await playOne(client, "I33")
     const serviceAfter = await playOne(client, "I34")
+    const licenceAfter = licenceReds(await licenceCounts(client))
     if (
       after.structural === 0 &&
       after.censusUncovered.length === 0 &&
       callerAfter.length === 0 &&
       authAfter.length === 0 &&
-      serviceAfter.length === 0
+      serviceAfter.length === 0 &&
+      licenceAfter.length === 0
     )
       pass(
         "après rollback",
-        `I23, I24, I32, I33 et I34 au vert, ${after.censusPopulation.length} fonction(s) recensée(s)`,
+        `I23, I24, I32, I33, I34 et les comptes de licence au vert, ${after.censusPopulation.length} fonction(s) recensée(s)`,
       )
     else
       fail(
         "après rollback",
         `I23 ${after.structural} · I24 ${after.censusUncovered.length} · I32 ${callerAfter.length} · ` +
-          `I33 ${authAfter.length} · I34 ${serviceAfter.length} — une transaction a laissé quelque chose`,
+          `I33 ${authAfter.length} · I34 ${serviceAfter.length} · licence ${licenceAfter.length} — ` +
+          `une transaction a laissé quelque chose`,
       )
 
     const stillThere = await client.query(
       `select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
         where n.nspname = 'public' and p.proname in ('compass_sabotage_probe', 'compass_sabotage_claim')`,
     )
+    const policyLeft = await client.query(
+      `select polname from pg_policy where polrelid = 'public.premise_observation'::regclass
+         and polname = 'sabotage lecture large'`,
+    )
+    if (policyLeft.rowCount === 0) pass("nettoyage", "aucune politique de sabotage sur premise_observation")
+    else fail("nettoyage", "la politique « sabotage lecture large » a survécu au rollback")
+
     if (stillThere.rowCount === 0) pass("nettoyage", "aucune fonction de sabotage en base")
     else
       fail(
@@ -334,8 +457,8 @@ async function main(): Promise<void> {
 
   out(
     failures === 0
-      ? `\nPASS — une fonction sans test de retenue, une qui le recopie, et la décision annulée : ` +
-          `les trois font passer la porte au rouge — ${target}`
+      ? `\nPASS — une fonction sans test de retenue, une qui le recopie, la décision annulée et ` +
+          `une politique élargie : les quatre font passer la porte au rouge — ${target}`
       : `\nFAIL — ${failures} contrôle(s) en échec — ${target}`,
   )
   process.exit(failures === 0 ? 0 : 1)
