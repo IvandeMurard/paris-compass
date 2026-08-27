@@ -254,7 +254,7 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 | ID | Vague | Horizon | Action | Fait quand |
 | --- | --- | --- | --- | --- |
 | `w1-ppri` | 1 | Q3 2026 | PPRI en zonage, pas en booléen | Un local berge (zone bleue) et un local du 20e (hors zone) ne reçoivent plus le même verdict. |
-| `w1-dia` | 1 | Q3 2026 | Droit de préemption / DIA — vérifier l'open data | Soit une couche DIA sourcée sur le périmètre, soit une note publique « non publié, piste close ». |
+| `w1-dia` | 1 | Q3 2026 | Droit de préemption / DIA — vérifier l'open data | **Fait le 27 août 2026 : non publié, piste close** — voir §5.6. |
 | `w2-idfm` | 2 | Q4 2026 | Validations IDFM horaires | Deux locaux à 800 m de deux stations au profil midi vs soir reçoivent deux rythmes distincts, étiquetés station. |
 | `w2-mobiliscope` | 2 | Q4 2026 | Mobiliscope — présence heure par heure | La fiche oppose midi et soir sur le même local, avec le secteur Mobiliscope nommé. |
 | `w2-filosofi` | 2 | Q4 2026 | Filosofi carroyé 200 m | Deux locaux à 300 m l'un de l'autre, carreaux différents, montrent deux médianes. |
@@ -383,14 +383,16 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 - **Doctrine.** Transcrire les classes du régulateur. Ne pas fondre PPRI + nappe + CatNat en un « risque 3/4 ».
 - **Fait quand.** Un local berge (zone bleue) et un local du 20e (hors zone) ne reçoivent plus le même verdict.
 
-#### w1-dia — Droit de préemption / DIA — vérifier l'open data
+#### w1-dia — Droit de préemption / DIA — vérifier l'open data — **NON PUBLIÉ, PISTE CLOSE le 27 août 2026**
 
 - Priorité **P1** · vague 1 · Q3 2026
 - Dépend de : `w0-fiche`
-- **Pourquoi.** Équivalent ouvert et amont de l'annonce, sur 5e, 6e et partie du 7e depuis août 2024.
+- **Pourquoi.** Équivalent ouvert et amont de l'annonce, sur 5e, 6e et partie du 7e depuis la délibération 2024 DAE 26 du Conseil de Paris (6-9 février 2024), qui institue le droit de préemption sur les baux commerciaux, fonds de commerce et fonds artisanaux sur ce périmètre.
 - **Comment.** Vérifier si les déclarations d'intention d'aliéner fonds/baux sont publiées. Si oui, les ingérer comme signal « place qui se libère ». Si non, l'écrire et s'arrêter. Ne pas négocier un flux privé.
 - **Doctrine.** Si ce n'est pas public, la piste s'arrête. Compass ne devient pas un greffe parallèle.
 - **Fait quand.** Soit une couche DIA sourcée sur le périmètre, soit une note publique « non publié, piste close ».
+- **Constat, mesuré le 27 août 2026.** Le catalogue Paris Data (`opendata.paris.fr`) ne publie aucune DIA individuelle — ni fonds de commerce, ni bail commercial, ni mutation immobilière. L'API v2 du catalogue (`api/v2/catalog/datasets`) rend `total_count: 0` sur les recherches `"préemption commerce artisanat"` et `"aliéné"`. Le seul jeu de données trouvé qui touche au sujet est `plu-annexes-droit-de-preemption-urbain-renforce` (« PLU - Annexes - Droit de Préemption Urbain Renforcé ») : il liste les **parcelles soumises au droit**, pas les déclarations elles-mêmes — c'est le périmètre où le droit s'exerce, pas le flux de qui vend quoi et quand. Aucun champ transactionnel, aucune adresse de local en train de changer de mains. `data.gouv.fr/datasets/dia/` existe mais couvre la Communauté de communes Cœur Côte Fleurie (Deauville, Trouville-sur-Mer, Touques), sans rapport avec Paris, et ne compte que des dénombrements annuels agrégés — jamais un fonds ou un bail nommé.
+- **Ce que ça ferme.** Le canal de dépôt dématérialisé `dia.paris.fr` existe pour le déposant (le vendeur ou son notaire) et pour la Ville qui instruit le droit de préemption ; ce n'est pas un flux public, et le ticket interdit explicitement de le négocier comme tel. La piste est donc close pour de bon, pas seulement pour cette session — rouverte uniquement si Paris Data publie un jour un jeu de données recensant les DIA elles-mêmes (et pas leur seul périmètre d'application).
 
 #### w2-idfm — Validations IDFM horaires
 
@@ -641,7 +643,7 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 | PLU linéaires protégés (plub_protcom) | Ville de Paris | planifiée | Open data Paris | linéaire de façade | Sur ce linéaire, le RDC ne peut pas changer de destination. | Informatif, sans valeur réglementaire. Pas encore ingéré. |
 | Chantiers de voirie | Ville de Paris | planifiée | Open data Paris | polygone + dates | 40 m d'un chantier perturbant, sept. 2026 → mars 2027. | Fait d'exposition, jamais une prévision d'impact sur le CA. |
 | Terrasses et étalages | Ville de Paris | ingérée · affichée | ODbL (mesuré le 26/08) | autorisation géolocalisée, rattachée par numéro de rue | Une terrasse permanente est déjà autorisée sur cette façade — trois états, `inconnu` quand plusieurs locaux partagent le numéro. | Autorisation ≠ terrasse installée aujourd'hui : ni date de délivrance, ni expiration, ni statut dans la source. |
-| DIA / droit de préemption commercial | Ville de Paris | nouvelle | à vérifier — peut ne pas être ouverte | fonds ou bail, périmètre 5e–6e–7e | Déclaration d'intention d'aliéner : le local est en train de changer de mains. | Si ce n'est pas publié, la piste s'arrête. Ne pas négocier un flux privé. |
+| DIA / droit de préemption commercial | Ville de Paris | **écartée — non publiée, vérifié le 27/08** | aucune — seul le périmètre d'application est en open data | — | — | Les DIA elles-mêmes ne sont pas publiées ; seules les parcelles soumises au droit le sont (`plu-annexes-droit-de-preemption-urbain-renforce`). Piste close, `w1-dia`. |
 | Validations transport IDFM | Île-de-France Mobilités | planifiée | Open data IDFM | station, horaire, depuis 2015 | Entrées comptées à la station la plus proche, profil horaire. | Ce n'est pas le trottoir de la vitrine. |
 | Mobiliscope | CNRS | planifiée | ODbL | secteur, heure, âge, CSP | Population réellement présente à 12h vs 20h. | Présence de secteur, pas passage devant la porte. |
 | Filosofi carroyé 200 m | INSEE | planifiée | Licence Ouverte | carreau 200 m | Revenu et population sur une maille qui sépare deux rues. | L'IRIS est trop large — ne pas s'en contenter. |
