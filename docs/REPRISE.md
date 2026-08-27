@@ -19,8 +19,8 @@ d'abord ici : **remesurer avant de recopier.**
 | Fonctions `compass_*` | **14** — `compass_caller_is_privileged` ajoutée |
 | Invariants | **34** — `I32`, `I33`, `I34` ajoutés |
 | `auth.users` | **0** — aucun compte, ce qui rend la décision de `w0-appelant` gratuite aujourd'hui et coûteuse plus tard |
-| Issues | **40 ouvertes, 16 fermées** — remesuré par `gh` après fermeture de [`#58`](https://github.com/IvandeMurard/paris-compass/issues/58) |
-| Épic [`#41`](https://github.com/IvandeMurard/paris-compass/issues/41) (vague 0) | **10 tickets cochés sur 10**, et **toujours ouverte** — sa fermeture revient à Ivan |
+| Issues | **39 ouvertes, 17 fermées** — remesuré par `gh` après fermeture de [`#58`](https://github.com/IvandeMurard/paris-compass/issues/58) et de l'épic [`#41`](https://github.com/IvandeMurard/paris-compass/issues/41) |
+| Épic [`#41`](https://github.com/IvandeMurard/paris-compass/issues/41) (vague 0) | **FERMÉE le 27 août**, dix tickets sur dix, aucun report. La prochaine est [`#42`](https://github.com/IvandeMurard/paris-compass/issues/42), vague 1, **3 cochés sur 7** |
 | Portes | `typecheck` ✓ · **166 tests** ✓ · `eval` **34/34** et 8/8 cas dorés, dix écarts de baseline en avertissement (dérive BODACC/SIRENE connue, la plus large à 0,70 %) · `eval:anon` **PASS, 12 contrôles** · `eval:sabotage` **PASS, trois actes** · `verify:mcp` **40 au vert, 0 en échec, 1 suspendu** (E12, Overpass en 429) · `sessions:check` ✓ · `build` et `build:dev` **injouables ici**, contournées par `build:local` ✓ et `build:dev:local` ✓ |
 
 Les six corps de fonction déployés sont **identiques aux fichiers versionnés**, revérifié après la

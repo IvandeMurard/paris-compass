@@ -201,6 +201,8 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 
 *Q3 2026.* Sans ça, le reste ne se voit pas. Déployer le corpus, montrer la timeline, dire la fraîcheur, ingérer le PLU, scinder la provenance.
 
+> **Close le 27 août 2026**, épic [#41](https://github.com/IvandeMurard/paris-compass/issues/41), **dix tickets sur dix et aucun report**. Le fil qui l'a traversée n'était pas au programme : la **retenue de licence**, touchée par sept des dix tickets, huit défauts de la même famille corrigés (`DIAGNOSTIC.md` §9 à §12, §15, §19, §21, §24, §26), et la règle rendue mécanique plutôt que corrigée une fois de plus — la porte passe de 17 invariants le 24 août à **34** le 27, dont vingt et un sur cette seule règle. La décision de doctrine qui restait ouverte est tranchée : `authenticated` n'est pas un appelant privilégié (`docs/CONTEXTE.md`). Le bilan complet est en commentaire de clôture sur l'épic.
+
 ### Vague 1 — Décision cette semaine
 
 *Q3 2026.* Sources déjà identifiées dans PLAN.md, réordonnées : chantiers, survie SIRENE×BDCom, terrasses, PPRI zoné, DIA si ouverte.
@@ -754,7 +756,7 @@ Q4 2026  →  meublés + ABF/SPR + PPRI zonage + vue « ce qui se libère »
 
 | Issue | Vague |
 | --- | --- |
-| #41 | vague 0 |
+| #41 | vague 0 — **close le 27 août 2026** |
 | #42 | vague 1 |
 | #43 | vague 2 |
 | #44 | vague 3 |
