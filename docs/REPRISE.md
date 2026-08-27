@@ -1,4 +1,4 @@
-# Reprise — état au 27 août 2026, fin de session 14
+# Reprise — état au 27 août 2026, fin de session 15
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`
@@ -6,22 +6,36 @@ qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.m
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
 
-## L'état mesuré le plus récent — 27 août 2026 le soir, clôture de `#59`
+## `w1-dia` — clos par un refus, pas par une ingestion — 27 août 2026
+
+**Le ticket prévoyait ce dénouement** : « Fait quand » acceptait une note « non publié, piste
+close » à égalité avec une couche sourcée. C'est la première branche qui s'est vérifiée.
+Le catalogue Paris Data ne publie aucune DIA — ni fonds de commerce, ni bail commercial —
+seulement les **parcelles soumises** au droit de préemption (`plu-annexes-droit-de-preemption-urbain-renforce`),
+qui est le périmètre où le droit s'exerce, pas le flux des déclarations elles-mêmes. Vérifié via
+l'API du catalogue (`api/v2/catalog/datasets`, `total_count: 0` sur « préemption commerce
+artisanat » et « aliéné »). `data.gouv.fr/datasets/dia/` existe mais couvre une intercommunalité
+normande, sans rapport avec Paris. Détail dans `docs/PLAN-ACTION-VACANCE.md` §5.6. **Issue
+[`#12`](https://github.com/IvandeMurard/paris-compass/issues/12) fermée** (« not planned »),
+table de `docs/SESSIONS.md` régénérée, `sessions:check` ✓. Rien dans `src/`, donc pas de portes
+à rejouer.
+
+## L'état mesuré le plus récent — 27 août 2026 le soir, après clôture de `#12`
 
 **Le tableau de la section suivante date du 24 août** et n'a pas été remesuré depuis ; celui-ci
-l'a été, contre `dbefhvmyfmmhjeetdddu`, à la clôture de `#59`. Quand les deux
+l'a été, contre `dbefhvmyfmmhjeetdddu`, après la fermeture de `#12`. Quand les deux
 se contredisent, c'est le plus daté des deux qui a tort — et la règle de `CLAUDE.md` s'applique
 d'abord ici : **remesurer avant de recopier.**
 
-| Mesure | Valeur, mesurée le 27 août 2026 à 20 h 32 UTC, après la poussée de `20260827000001` |
+| Mesure | Valeur, mesurée le 27 août 2026, après clôture de `#12` |
 | --- | --- |
-| Ledger distant `supabase_migrations` | **44** migrations, dernière `20260827000001` |
-| Fonctions `compass_*` | **15** — `compass_derived_licence` ajoutée |
-| Invariants | **37** — `I35`, `I36`, `I37` ajoutés |
+| Ledger distant `supabase_migrations` | **44** migrations, dernière `20260827000001` — inchangé, `w1-dia` ne touche pas la base |
+| Fonctions `compass_*` | **15** — inchangé |
+| Invariants | **37** — inchangé |
 | `auth.users` | **0** — aucun compte, ce qui rend la décision de `w0-appelant` gratuite aujourd'hui et coûteuse plus tard |
-| Issues | **38 ouvertes, 19 fermées** — remesuré par `gh` le 27 août à 20 h 45 UTC, après fermeture de [`#59`](https://github.com/IvandeMurard/paris-compass/issues/59). Il valait 39/18 une heure plus tôt et 40/17 le matin : **remesurer avant de recopier** |
-| Épic [`#41`](https://github.com/IvandeMurard/paris-compass/issues/41) (vague 0) | **FERMÉE le 27 août**, dix tickets sur dix, aucun report. La prochaine est [`#42`](https://github.com/IvandeMurard/paris-compass/issues/42), vague 1, **4 cochés sur 7** depuis `#59` |
-| Portes | `eval` **37/37** et 8/8 cas dorés, **onze** écarts de baseline en avertissement (dérive BODACC/SIRENE connue, la plus large à 0,70 %) · `eval:anon` **PASS, 15 contrôles** · `eval:sabotage` **PASS, quatre actes** · `typecheck`, `test`, `build` et `verify:mcp` **non relancés le 27 au soir** : aucun TypeScript touché par `#59`, qui est une migration et trois invariants · `sessions:check` ✓ |
+| Issues | **37 ouvertes, 20 fermées** — remesuré par `gh issue list --jq length`, après fermeture de [`#12`](https://github.com/IvandeMurard/paris-compass/issues/12). Il valait 38/19 la veille au soir : **remesurer avant de recopier** |
+| Épic [`#41`](https://github.com/IvandeMurard/paris-compass/issues/41) (vague 0) | **FERMÉE le 27 août**, dix tickets sur dix, aucun report. La prochaine est [`#42`](https://github.com/IvandeMurard/paris-compass/issues/42), vague 1, **5 cochés sur 7** depuis `#12` |
+| Portes | `eval`, `eval:anon`, `eval:sabotage`, `typecheck`, `test`, `build` et `verify:mcp` **non relancés** : `w1-dia` n'a touché ni base ni TypeScript, seulement `docs/` · `sessions:check` ✓ |
 
 Les corps de fonction déployés sont **identiques aux fichiers versionnés**, revérifié après la
 poussée de `20260827000001` — `compass_derived_licence` et `compass_survival_by_trade` comprises,
