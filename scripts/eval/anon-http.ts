@@ -26,10 +26,37 @@
 // stronger half of that coverage where it exists, because it is the only one
 // running behind a real RLS policy.
 //
-// Exit codes follow the runner's convention: 0 PASS, 1 FAIL, 2 ERROR.
+// Exit codes follow the runner's convention: 0 PASS, 1 FAIL, 2 ERROR, 3 not green and not
+// a failure — scripts/eval/run.ts already uses 3 for a deviation below the blocking
+// threshold, and #61 is what gave this arm one.
+//
+// #61 — why a red run is no longer proof of anything by itself. `anon` runs under
+// `statement_timeout = 3s` (measured 2026-08-27 in pg_roles.rolconfig on
+// dbefhvmyfmmhjeetdddu; DIAGNOSTIC.md §18 inferred that window without naming it). On a
+// cold instance a control can exceed it, Postgres cancels with `57014`, PostgREST answers
+// 500, and until this ticket that arrived as `ERREUR` or as `NaN relevés visibles` — the
+// exact shape a licence leak would take. It happened on 25 August, cleared itself on the
+// 26th, and came back the same evening. A cancellation is now recorded as *suspendu*, and
+// the run exits 3: a leak has never announced itself by taking too long.
+//
+// Two things were done, and only one of them is the fix:
+//
+//   1. The RLS control was keyed by vintage. One unkeyed count over 228 275 rows
+//      (9 033 buffers, 1 605 ms on a session's first call) became three Index Only Scans
+//      of 143 + 141 + 187 buffers. The exact equality is kept — see licence-counts.ts.
+//   2. Cancellations are classified rather than reported as failures. This is the part
+//      that matters, because measurement says the count was never the worst statement
+//      here: `premises_within 2023, 800 m` costs 34 729 buffers, 3.8× the old count, and
+//      it is the control that died FIRST on 26 August. No rewriting of the licence
+//      controls can make the gate cold-proof while it must read a real radius over real
+//      data — so the gate stops pretending it can decide when the database would not
+//      answer.
 
 import { existsSync } from "fs"
 import { resolve } from "path"
+
+import { expectationHolds, licenceVerdict, type VintageFact } from "./licence-counts"
+import { ANON_STATEMENT_TIMEOUT_MS, classify, QUERY_CANCELED, UpstreamTimeout } from "./upstream"
 
 const ENV_FILE = resolve(import.meta.dirname, "../../.env.local")
 if (existsSync(ENV_FILE)) process.loadEnvFile(ENV_FILE)
@@ -42,11 +69,55 @@ const LAT = 48.8566
 const LNG = 2.3522
 
 let failures = 0
+let greens = 0
+const suspended: string[] = []
+
+/**
+ * The most expensive SINGLE request of the run, which is the number that matters: the
+ * budget of #61 is a per-statement timeout, so summing a control that makes four calls
+ * would overstate how close the gate is standing to the edge.
+ */
+let slowest = { what: "—", ms: 0 }
+
 const out = (s: string): void => void process.stdout.write(s + "\n")
-const pass = (what: string, detail: string): void => out(`  ok    ${what} — ${detail}`)
+const pass = (what: string, detail: string): void => {
+  greens += 1
+  out(`  ok    ${what} — ${detail}`)
+}
 const fail = (what: string, detail: string): void => {
   failures += 1
   out(`  FAIL  ${what} — ${detail}`)
+}
+const suspend = (what: string, detail: string): void => {
+  suspended.push(what)
+  out(`  ....  ${what} — suspendu : ${detail}`)
+}
+
+/**
+ * Runs one control, catching the cancellation and nothing else.
+ *
+ * A suspended control is neither green nor red and never counts as either. Anything else
+ * thrown still ends the run at exit 2 — a gate that swallowed unknown errors would be the
+ * mistake #61 is about, one layer further in.
+ */
+async function control(label: string, body: (label: string) => Promise<void>): Promise<void> {
+  try {
+    await body(label)
+  } catch (error) {
+    if (!(error instanceof UpstreamTimeout)) throw error
+    suspend(label, error.message)
+  }
+}
+
+/** One HTTP call, timed. Every request of this arm goes through here. */
+async function request(path: string, what: string, init?: RequestInit): Promise<Response> {
+  const started = performance.now()
+  try {
+    return await fetch(`${BASE}/rest/v1/${path}`, init)
+  } finally {
+    const ms = performance.now() - started
+    if (ms > slowest.ms) slowest = { what, ms }
+  }
 }
 
 interface Row {
@@ -66,7 +137,7 @@ interface HistoryRow {
 }
 
 async function rpc(fn: string, body: Record<string, unknown>): Promise<Row[]> {
-  const response = await fetch(`${BASE}/rest/v1/rpc/${fn}`, {
+  const response = await request(`rpc/${fn}`, fn, {
     method: "POST",
     headers: {
       apikey: KEY as string,
@@ -76,8 +147,44 @@ async function rpc(fn: string, body: Record<string, unknown>): Promise<Row[]> {
     body: JSON.stringify(body),
   })
   const text = await response.text()
-  if (!response.ok) throw new Error(`HTTP ${response.status} — ${text.slice(0, 200)}`)
+  if (!response.ok) throw classify(response.status, text, fn)
   return JSON.parse(text) as Row[]
+}
+
+/** A plain table read over the publishable key. Same classification as every other call. */
+async function rpcGet(path: string, what: string): Promise<unknown[]> {
+  const response = await request(path, what, {
+    headers: { apikey: KEY as string, Authorization: `Bearer ${KEY as string}` },
+  })
+  const text = await response.text()
+  if (!response.ok) throw classify(response.status, text, what)
+  return JSON.parse(text) as unknown[]
+}
+
+/**
+ * A direct table read, the only way to reach the RLS policy itself: every RPC above runs
+ * SECURITY DEFINER and so answers on the function's own test, not on the policy. Returns
+ * the exact count PostgREST puts in `content-range`.
+ *
+ * A missing `content-range` used to become `NaN` and be printed as a number of rows — the
+ * 26 August run said "NaN relevés visibles, attendu 60845", which reads exactly like a
+ * leak. An absent header is now an error, never a count.
+ */
+async function countExact(path: string, what: string): Promise<number> {
+  const response = await request(path, what, {
+    headers: {
+      apikey: KEY as string,
+      Authorization: `Bearer ${KEY as string}`,
+      Prefer: "count=exact",
+    },
+  })
+  const text = await response.text()
+  if (!response.ok) throw classify(response.status, text, what)
+  const range = response.headers.get("content-range")
+  const total = Number(range?.split("/")[1])
+  if (!range || !Number.isFinite(total))
+    throw new Error(`${what} : réponse ${response.status} sans content-range exploitable (${range ?? "en-tête absent"})`)
+  return total
 }
 
 /**
@@ -371,36 +478,108 @@ async function expectTimeline(locationId: number, label: string) {
 
   pass(label, "2017/2020 retenus, 2023 non relevé : le périmètre est nommé et aucune conclusion n'en est tirée")
 }
+/**
+ * The RLS policy itself, keyed by vintage — #61.
+ *
+ * Arm A cannot reach this: every RPC above is SECURITY DEFINER and answers on its own test
+ * of the claim, so the policy underneath was assumed until this arm existed. It is read as
+ * an exact count and never as a sample, because a sample passes while a single 2017 row
+ * leaks.
+ *
+ * What changed is the key, not the exactness. `premise_observation_vintage_idx` leads on
+ * `vintage_id`, so one count per vintage is an Index Only Scan with `Heap Fetches: 0` —
+ * 143 + 141 + 187 buffers, against 9 033 for the unkeyed count it replaces (measured
+ * 2026-08-27, role anon, claim anon, warm). It also reads better: three per-vintage
+ * equalities say which vintage moved, where one grand total only said that something did.
+ *
+ * The expectation comes from bdcom_vintage, which is the table the policy keys on, and the
+ * verdict lives in licence-counts.ts so that eval:sabotage can prove it bites without
+ * running a copy of it.
+ */
+async function expectLicenceCounts(label: string): Promise<void> {
+  const vintages = (await rpcGet(
+    "bdcom_vintage?select=id,year,publicly_redistributable,record_count&order=year",
+    label,
+  )) as { id: number; year: number; publicly_redistributable: boolean; record_count: number }[]
+
+  const facts: VintageFact[] = []
+  for (const v of vintages) {
+    facts.push({
+      year: v.year,
+      publiclyRedistributable: v.publicly_redistributable,
+      recordCount: v.record_count,
+      visible: await countExact(
+        `premise_observation?select=vintage_id&vintage_id=eq.${v.id}&limit=1`,
+        `${label} ${v.year}`,
+      ),
+    })
+  }
+
+  const population = expectationHolds(facts)
+  if (population.ok) pass(population.what, population.detail)
+  else fail(population.what, population.detail)
+
+  for (const verdict of licenceVerdict(facts)) {
+    if (verdict.ok) pass(verdict.what, verdict.detail)
+    else fail(verdict.what, verdict.detail)
+  }
+}
+
+/**
+ * Sets `process.exitCode` and returns rather than calling `process.exit()`, which is also
+ * what run.ts and mcp-server/src/verify.ts do. Not a style preference: `process.exit()`
+ * with fetch keep-alive sockets still open aborts Node on Windows
+ * (`Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)`), and the abort REPLACES the
+ * exit code with 0xC0000409. A gate that means to say 3 and says 3 221 226 505 has lost
+ * the only thing #61 gave it.
+ */
 async function main(): Promise<void> {
   if (!BASE || !KEY) {
     out("ERREUR — VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY absents de .env.local")
-    process.exit(2)
+    process.exitCode = 2
+    return
   }
   // Says which project answered, never the key — same rule as connectionTarget().
   out(`CIBLE — ${new URL(BASE).host}, clé publiable, aucune chaîne DATABASE_URL`)
-  out("D — porte anonyme — appels PostgREST réels, sans identifiants de base\n")
+  out(
+    `D — porte anonyme — appels PostgREST réels, sans identifiants de base ` +
+      `(budget anon : ${ANON_STATEMENT_TIMEOUT_MS} ms par requête)` + "\n",
+  )
 
   for (const year of [2017, 2020] as const) {
-    await expectWithheld(
-      "compass_premises_within",
-      { p_lat: LAT, p_lng: LNG, p_radius_m: 800, p_vintage_year: year, p_limit: 5 },
-      `premises_within ${year}`,
+    await control(`premises_within ${year}`, (label) =>
+      expectWithheld(
+        "compass_premises_within",
+        { p_lat: LAT, p_lng: LNG, p_radius_m: 800, p_vintage_year: year, p_limit: 5 },
+        label,
+      ),
     )
-    await expectWithheld(
-      "compass_scoring_context_within",
-      { p_lat: LAT, p_lng: LNG, p_radius_m: 800, p_vintage_year: year },
-      `scoring_context_within ${year}`,
+    await control(`scoring_context_within ${year}`, (label) =>
+      expectWithheld(
+        "compass_scoring_context_within",
+        { p_lat: LAT, p_lng: LNG, p_radius_m: 800, p_vintage_year: year },
+        label,
+      ),
     )
   }
-  await expectContent(
-    "compass_premises_within",
-    { p_lat: LAT, p_lng: LNG, p_radius_m: 800, p_vintage_year: 2023, p_limit: 5 },
-    "premises_within 2023",
+  // The most expensive statement of the whole arm: 34 729 buffers, 3.8× the count #61 was
+  // opened about, and the control that died first on 26 August. It stays at 800 m — an
+  // 800 m radius over Chatelet is what makes `total_matched` mean anything, and a control
+  // made cheap by asking less is not a control. Its cost is the product's own map query;
+  // reducing it is a separate ticket.
+  await control("premises_within 2023", (label) =>
+    expectContent(
+      "compass_premises_within",
+      { p_lat: LAT, p_lng: LNG, p_radius_m: 800, p_vintage_year: 2023, p_limit: 5 },
+      label,
+    ),
   )
-  await expectSilence(
-    "compass_premises_within",
-    { p_lat: LAT, p_lng: LNG, p_radius_m: 1, p_vintage_year: 2023, p_limit: 5 },
-    "premises_within 2023, rayon 1 m",
+  await control("premises_within 2023, rayon 1 m", (label) =>
+    expectSilence(
+      "compass_premises_within",
+      { p_lat: LAT, p_lng: LNG, p_radius_m: 1, p_vintage_year: 2023, p_limit: 5 },
+      label,
+    ),
   )
 
   // 54652 — `60 QU ORFEVRES`, surveyed vacant in 2017, the premise this arm was
@@ -408,42 +587,56 @@ async function main(): Promise<void> {
   // from the 2023 retail-only vintage: the counter-test, since a fix that stamps
   // the marker too eagerly would destroy the absence this function exists to
   // report. Both measured on the remote 2026-08-24.
-  await expectHistory(54652, "premise_history 54652", true)
-  await expectHistory(5, "premise_history 5, absent de 2023", false)
+  await control("premise_history 54652", (label) => expectHistory(54652, label, true))
+  await control("premise_history 5, absent de 2023", (label) => expectHistory(5, label, false))
 
   // The two functions the census of w0-retenue (#57) surfaced. Halles rather
   // than Chatelet: it is the point DIAGNOSTIC.md §19 measured the defect at, and
   // the quartier w1-survie published its survival figures for.
-  await expectRotation("street_rotation Halles 300 m")
-  await expectSurvival("survival_by_trade Halles, Café et Restaurant")
+  await control("street_rotation Halles 300 m", (label) => expectRotation(label))
+  await control("survival_by_trade Halles, Café et Restaurant", (label) => expectSurvival(label))
 
   // 54653 — the premise DIAGNOSTIC.md §15 measured the defect on, absent from the
   // 2023 retail-only vintage. The privileged path is not probed here: the sentence
   // is a constant of its CASE branch, and I30 is what holds it for that caller.
-  await expectTimeline(54653, "address_timeline 54653, absent de 2023")
+  await control("address_timeline 54653, absent de 2023", (label) => expectTimeline(54653, label))
 
-  // RLS itself, which arm A cannot reach: the anon role reading the table
-  // directly must see the ODbL vintage and nothing else. A count, not a sample —
-  // a sample would pass while a single 2017 row leaked.
-  const response = await fetch(
-    `${BASE}/rest/v1/premise_observation?select=vintage_id&limit=1`,
-    { headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, Prefer: "count=exact" } },
-  )
-  const total = Number(response.headers.get("content-range")?.split("/")[1] ?? NaN)
-  const odbl = await rpc("compass_vintages", {}) as unknown as { vintage_year: number; record_count: number }[]
-  const expected = odbl.find((v) => v.vintage_year === 2023)?.record_count ?? NaN
-  if (total === expected) pass("RLS premise_observation", `${total} relevés visibles = le seul millésime ODbL`)
-  else fail("RLS premise_observation", `${total} relevés visibles, attendu ${expected} (le millésime ODbL seul)`)
+  await control("RLS premise_observation", (label) => expectLicenceCounts(label))
 
+  // Printed on every run, green or not. #61 is a cliff nobody saw approaching because
+  // nothing ever said how close the gate was standing to it.
   out(
-    failures === 0
-      ? `\nPASS — la règle de licence tient pour un visiteur sans clé — ${new URL(BASE).host}`
-      : `\nFAIL — ${failures} contrôle(s) en échec — ${new URL(BASE).host}`,
+    `\n  requête la plus coûteuse : ${slowest.what} — ${Math.round(slowest.ms)} ms aller-retour, ` +
+      `budget serveur ${ANON_STATEMENT_TIMEOUT_MS} ms par requête`,
   )
-  process.exit(failures === 0 ? 0 : 1)
+
+  const host = new URL(BASE).host
+  if (failures > 0) {
+    out(
+      `\nFAIL — ${failures} contrôle(s) en échec` +
+        (suspended.length > 0 ? `, ${suspended.length} suspendu(s)` : "") +
+        ` — ${host}`,
+    )
+    process.exitCode = 1
+    return
+  }
+  if (suspended.length > 0) {
+    // Not green and not red, and it must not be readable as either. A cancellation says
+    // the database would not finish in the time anon is given; it says nothing at all
+    // about the licence rule, which is the only thing this arm is here to decide.
+    out(
+      `\nINDÉTERMINÉ — ${suspended.length} contrôle(s) suspendu(s) sur panne amont ` +
+        `(${QUERY_CANCELED} query_canceled) : ${suspended.join(", ")}\n` +
+        `Aucun défaut constaté sur les ${greens} assertions qui ont abouti. Rejouer ne ` +
+        `vaut verdict que si tout répond — ${host}`,
+    )
+    process.exitCode = 3
+    return
+  }
+  out(`\nPASS — la règle de licence tient pour un visiteur sans clé, ${greens} contrôles — ${host}`)
 }
 
 main().catch((error: unknown) => {
   out(`ERREUR — ${error instanceof Error ? error.message : String(error)}`)
-  process.exit(2)
+  process.exitCode = 2
 })

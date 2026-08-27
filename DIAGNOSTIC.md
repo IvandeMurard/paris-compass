@@ -1105,7 +1105,7 @@ rend **74** quel que soit l'ordre de chargement, et la valeur gelée n'a pas eu 
 
 ## 18. `npm.cmd run eval:anon` porte trois échecs non liés à `w0-plu` — trouvés en chemin, non corrigés
 
-~~**Non corrigés.**~~ **Les deux premiers sont corrigés le 26 août** par `w0-retenue` (#57). **Le troisième — le timeout RLS — n'est pas corrigé** : il avait disparu de lui-même le 26 au matin, il s'est reproduit le 26 au soir, et son mécanisme est désormais mesuré (cache froid, 3 230 ms contre 117 ms). Le bras D rend **PASS, 12 contrôles**, cache chaud. Détail en fin de point, dans les deux dernières sections.
+~~**Non corrigés.**~~ **Les deux premiers sont corrigés le 26 août** par `w0-retenue` (#57). **Le troisième — le timeout RLS — est corrigé le 27 août** par `#61`, mais pas de la façon que ce point annonçait : la fenêtre est `statement_timeout = 3s` sur `anon`, et la requête la plus exposée n'était pas le compte. Le bras D rend **PASS, 15 contrôles**. Détail en fin de point, dans les trois dernières sections — la dernière est celle qui fait foi.
 
 Trouvés le 25 août en faisant tourner la porte anonyme après le changement de signature de
 `compass_premises_within` pour `w0-plu` (#9) — pas dans le périmètre de ce ticket, et laissés
@@ -1236,6 +1236,85 @@ requête moins chère et se passer du `count=exact`.
 > le total à 60 845 n'en est qu'un proxy. Ce que cette piste perd est écrit dans le ticket : le
 > compte exact attraperait une divulgation **partielle** de 2023, pas le contrôle négatif. Et la
 > recette exige un sabotage — un contrôle rendu bon marché qui ne mord plus n'est pas un progrès.
+
+### Clos le 27 août — et le compte n'était pas le premier coupable
+
+**La fenêtre a enfin un nom et un chiffre.** `anon` porte `statement_timeout = 3s`, relevé le
+27 août dans `pg_roles.rolconfig` sur `dbefhvmyfmmhjeetdddu`. Les 3 230 ms mesurés le 26 tombaient
+juste au-dessus ; les 117 ms des passages suivants, très en dessous. Le mécanisme supposé est
+donc confirmé — mais **la mesure a désigné un autre coupable que celui du ticket**.
+
+**Ce que coûte chaque contrôle, en pages touchées.** Mesuré le 27 août, `set local role anon` et
+claim `anon` posés tous les deux, `explain (analyze, buffers)` joué deux fois et la seconde
+retenue. Les pages touchées ne dépendent pas de la température du cache : c'est le travail à
+faire, et le cache ne décide que du prix de chaque page.
+
+| Contrôle | Pages | ms à chaud |
+| --- | --- | --- |
+| `premises_within 2023, 800 m` | **34 729** | 131 |
+| `street_rotation` Halles 300 m | 5 627 | 29 |
+| **`count=exact` global — le contrôle que #61 vise** | **9 033** | 47 |
+| `survival_by_trade` Halles | 669 | 1,8 |
+| `address_timeline` 54653 | 81 | 4,2 |
+| `premise_history` 54652 | 31 | 1,4 |
+| `premises_within` / `scoring_context_within` 2017 et 2020 | 2 | 0,3 |
+
+**Le compte n'était pas la requête la plus chère de la porte : `premises_within 2023` l'est, et
+de 3,8 fois.** C'est aussi, mot pour mot dans le ticket, « le premier appel qui lit vraiment des
+lignes » — celui qui est mort en premier le 26 au soir. Corriger le compte seul aurait retiré
+9 033 pages d'une porte dont la pire requête en touche 34 729, et laissé la panne se reproduire
+au même endroit. **§18 avait raison sur le mécanisme et se trompait sur la requête.**
+
+**Le compte exact n'a pas eu besoin d'être abandonné : il fallait le clef.** `count(*)` sans
+prédicat ne peut pas se servir de `premise_observation_vintage_idx` et parcourt la table
+(9 033 pages). Le même compte exact, un par millésime, devient un `Index Only Scan` avec
+`Heap Fetches: 0` : **143 + 141 + 187 = 471 pages**, dix-neuf fois moins, chacun dans sa propre
+fenêtre de 3 s. Et il en dit plus : trois égalités par millésime là où un total n'annonçait que
+« quelque chose a bougé ».
+
+> **La piste recommandée par le ticket était la moins bonne des trois.** Le contrôle négatif
+> `?vintage_id=eq.2017&limit=1` n'est **pas** à coût constant : demander la colonne `id` fait
+> perdre le parcours d'index seul, la ligne est filtrée par RLS une à une, et
+> `Rows Removed by Filter: 84031` — **1 725 pages**, douze fois le compte clefé, pour une garantie
+> plus faible. Mesuré, pas supposé. Ce que le ticket craignait de perdre — la divulgation
+> partielle de 2023 — est gardé sans rien payer.
+
+**Ce que la règle ne rattrape pas, et il faut le lire.** Rien de tout cela ne rend la porte
+insensible au cache. `premises_within 2023` reste à 34 729 pages parce qu'il lit un vrai rayon de
+800 m sur de vraies données, et un contrôle rendu bon marché en demandant moins n'est plus un
+contrôle. Au rayon maximal que le produit autorise — 2 000 m — le même appel anonyme a mesuré
+**2 116 ms à chaud le 27 août, soit 70 % du budget de 3 s** : ce n'est plus seulement la porte qui
+est exposée, c'est la requête de carte du produit. Ouvert en ticket à part.
+
+**Donc la porte a cessé de prétendre trancher quand la base ne répond pas.** Un `57014` est
+désormais classé *suspendu — panne amont*, jamais `FAIL`, et la sortie vaut **3** : ni vert, ni
+rouge. Même distinction que `verify:mcp` fait depuis le 24 août pour Overpass. Trois autres
+choses ont été réparées en chemin :
+
+- **`NaN` ne peut plus être imprimé comme un nombre de relevés.** Un `content-range` absent est
+  une erreur, plus un compte. C'est ce `NaN` qui a donné à la panne du 26 août l'apparence exacte
+  d'une fuite.
+- **`process.exit()` remplaçait le verdict par un plantage.** Appelé avec des sockets `fetch`
+  encore ouvertes, Node s'interrompt sous Windows sur
+  `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` et rend **3 221 226 505**. Une porte
+  qui veut dire 3 et dit 3 221 226 505 n'a rien gagné. `process.exitCode`, comme `run.ts` et
+  `verify.ts` le faisaient déjà.
+- **La classification est testée là où elle décide**, `scripts/eval/upstream.ts`, parce qu'elle
+  est le seul endroit du dépôt dont le métier est de faire *cesser* un échec. Un test vérifie
+  qu'un corps qui se contente de citer « 57014 » reste un échec.
+
+**Éprouvé par sabotage, acte 4 de `eval:sabotage`** : une politique `for select to anon using
+(true)` de plus sur `premise_observation` — celle qu'on ajoute quand « la carte ne lit pas les
+locaux » —, dans une transaction annulée. Les politiques permissives se cumulent en OU : `anon`
+voit alors **84 031 lignes de 2017 et 83 399 de 2020**, les comptes clefés passent au rouge sur
+les deux, et **I23 comme I32 restent au vert** — aucun corps de fonction n'a bougé. C'est
+exactement pourquoi ces comptes devaient rester une égalité exacte en devenant bon marché.
+
+> **Ce qui reste vrai du reproche d'origine.** « Une porte dont le verdict dépend de la
+> température du cache est une porte qui apprendra un jour à être ignorée. » Elle en dépend
+> toujours pour `premises_within 2023` — mais elle le **dit** : chaque passage imprime la requête
+> la plus coûteuse et son budget, et une annulation ne se déguise plus en défaut. Ce qui a
+> disparu, c'est la confusion entre les deux, pas le coût.
 
 ---
 
