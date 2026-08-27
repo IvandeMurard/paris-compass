@@ -165,7 +165,7 @@ fautive.
 | ~~11~~ | ~~`w1-survie`~~ | [#14](https://github.com/IvandeMurard/paris-compass/issues/14) | **fait** | P0 | Opus 5 |
 | ~~12~~ | ~~`w0-conclusion`~~ | [#54](https://github.com/IvandeMurard/paris-compass/issues/54) | **fait** | P1 | Opus 5 |
 | ~~13~~ | ~~`w0-appelant`~~ | [#58](https://github.com/IvandeMurard/paris-compass/issues/58) | **fait** | P1 | Opus 5 |
-| 14 | `w1-licence-derivee` | [#59](https://github.com/IvandeMurard/paris-compass/issues/59) | ouvert | P1 | Opus 5 |
+| ~~14~~ | ~~`w1-licence-derivee`~~ | [#59](https://github.com/IvandeMurard/paris-compass/issues/59) | **fait** | P1 | Opus 5 |
 | 15 | `w1-ppri` | [#13](https://github.com/IvandeMurard/paris-compass/issues/13) | ouvert | P1 | Opus 5 |
 | 16 | `w1-dia` | [#12](https://github.com/IvandeMurard/paris-compass/issues/12) | ouvert | P1 | Opus 5 |
 

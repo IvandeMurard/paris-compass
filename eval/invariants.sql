@@ -992,3 +992,133 @@ select 'compass_caller_is_privileged' as ou,
        'privilège retiré au rôle de service' as defaut
 where not public.compass_caller_is_privileged()
 limit 20;
+
+-- ===========================================================================
+-- w1-licence-derivee (#59) — la licence d'un chiffre dérivé de deux millésimes
+-- ===========================================================================
+-- I23 et I24 ont rendu la RETENUE mécanique : la règle est énumérée depuis le
+-- catalogue au lieu d'être réécrite par fonction. Ces trois blocs font la même
+-- chose pour l'ÉTIQUETTE — la question voisine, et restée une habitude : quand un
+-- chiffre dérive de N sources de licences différentes, laquelle porte-t-il ?
+--
+-- La réponse est la plus restrictive, et elle ne demande aucun ordre entre
+-- licences : le schéma porte déjà `publicly_redistributable`. Si l'un des
+-- millésimes dont le chiffre dérive n'est pas redistribuable, c'est lui qui
+-- gouverne. Voir 20260827000001.
+--
+-- CE QUE « DÉRIVE DE » VEUT DIRE ICI, et la précision compte. Le taux BDCom lit
+-- exactement DEUX millésimes : la cohorte et celui où la survie est constatée.
+-- Une période 2017 -> 2023 *enjambe* 2020 sans le lire — 2020 n'entre dans aucun
+-- dénombrement, et sa licence n'a donc pas à être citée. Les blocs se règlent sur
+-- les deux bornes, pas sur l'intervalle : citer 2020 serait une sur-correction du
+-- même genre que celles que I10, I13 et I31 interdisent ailleurs.
+
+-- @invariant I35 :: un taux dérivé de deux millésimes cite la licence du plus permissif
+-- Le défaut du ticket, et il vivait sur le chemin privilégié — donc ce bloc n'est
+-- PAS `@as anon`. Pour l'appelant anonyme la ligne est retenue, et la branche de
+-- retenue citait déjà la bonne licence ; c'est la branche divulguée qui se
+-- trompait. Mesuré le 27 août 2026 sur `dbefhvmyfmmhjeetdddu`, Halles, niv18 111,
+-- appelant privilégié : 310 · 268 · 86,5 % étiqueté `ODbL-1.0`, alors que la
+-- cohorte 2017 porte `custom` et `publicly_redistributable = false`.
+--
+-- La règle est RECALCULÉE ICI depuis `bdcom_vintage`, jamais en appelant
+-- `compass_derived_licence` : un invariant qui interroge la fonction qu'il
+-- surveille passe au vert avec elle quand elle se trompe. Même raison que I23,
+-- qui lit le catalogue plutôt que la liste que la fonction tient d'elle-même.
+--
+-- Balayage des 80 quartiers × les trois métiers du pont NAF : 240 appels. Pas un
+-- échantillon — la population entière des lignes BDCom que cette fonction sait
+-- produire aujourd'hui. Coût mesuré le 27 août 2026 : 9,2 s à froid, 1,9 s dans
+-- la porte, cache chaud. C'est le second chiffre qui décrit son coût réel.
+with lignes as (
+  select q.id as quartier_id, t.niv18, s.period_start, s.period_end, s.licence, s.withheld
+  from public.quartier q
+  cross join (values (111::smallint), (102::smallint), (104::smallint)) as t(niv18)
+  cross join lateral public.compass_survival_by_trade(
+    ST_Y(ST_PointOnSurface(q.geom::geometry))::double precision,
+    ST_X(ST_PointOnSurface(q.geom::geometry))::double precision,
+    t.niv18) s
+  where s.source = 'APUR BDCom'
+),
+gouvernante as (
+  select l.*,
+         (select string_agg(distinct v.licence, ' + ' order by v.licence)
+            from public.bdcom_vintage v
+           where v.year in (extract(year from l.period_start)::smallint,
+                            extract(year from l.period_end)::smallint)
+             and not v.publicly_redistributable) as retenue
+  from lignes l
+)
+select quartier_id, niv18, period_start, period_end, licence, retenue
+from gouvernante
+where retenue is not null and licence is distinct from retenue
+limit 20;
+
+-- @invariant I36 :: la règle de licence dérivée étiquette tout au plus restrictif
+-- Le miroir, sur le patron de I10, I13, I15, I17, I26, I31 et I34 : la
+-- sur-correction est une faute au même titre que le défaut. Une correction qui
+-- renverrait `custom` sans regarder — ou qui citerait la cohorte par principe —
+-- satisferait I35 en étiquetant « non redistribuable » des chiffres qui ne le sont
+-- pas, et fermerait la porte à la seule couche ouverte du corpus.
+--
+-- POURQUOI CE BLOC NE PASSE PAS PAR LA FONCTION DE SURVIE. Le contre-test que le
+-- ticket demande — « une ligne dont les deux millésimes sont redistribuables cite
+-- toujours la bonne licence » — est INEXPRIMABLE sur les données réelles : un seul
+-- millésime sur trois est redistribuable (2023), et un taux exige deux bornes
+-- distinctes. Il n'existe donc aucune paire redistribuable à interroger. Le
+-- contre-test se pose ici sur le millésime seul, qui est réel, et la paire est
+-- éprouvée par sabotage : le 27 août 2026, 2020 passé à
+-- `publicly_redistributable = true, licence = 'ODbL-1.0'` dans une transaction
+-- annulée, la cohorte 2020 -> 2023 rend 323 · 91,6 % étiqueté **`ODbL-1.0`** et
+-- non `custom`. Dire ce que la règle ne rattrape pas vaut mieux qu'un bloc vert
+-- sur une population vide.
+select v.year, v.licence as sienne,
+       public.compass_derived_licence(array[v.id]) as derivee
+from public.bdcom_vintage v
+where v.publicly_redistributable
+  and public.compass_derived_licence(array[v.id]) is distinct from v.licence
+limit 20;
+
+-- @invariant I37 :: une fonction qui compose deux millésimes choisit sa licence à la main
+-- La moitié structurelle, sur le patron de I32 : I35 et I36 vérifient la fonction
+-- qui existe, celui-ci vise la SUIVANTE. Une fonction née demain qui composerait
+-- deux millésimes et rechercherait sa licence par un `select v.licence` à elle
+-- repartirait du même défaut, et I35 ne la regarderait pas — il ne connaît que
+-- `compass_survival_by_trade`.
+--
+-- LA POPULATION EST TIRÉE DES ARGUMENTS, pas du corps : une fonction qui prend
+-- **deux** paramètres de millésime compose deux millésimes, c'est ce que la
+-- signature veut dire. `compass_vintages` en prend zéro et rend une ligne PAR
+-- millésime — chaque licence y est la sienne, aucune dérivation, exempte à juste
+-- titre. `compass_address_timeline` rend `source_licence` par ligne et par
+-- millésime, même raison, et c'est pourquoi la colonne cherchée ici est reconnue
+-- au suffixe `licence` plutôt qu'au nom exact.
+--
+-- CE QUE I37 NE RATTRAPE PAS : il lit `prosrc`, comme I23 et I32. Une fonction qui
+-- composerait deux millésimes reçus autrement que par deux paramètres nommés — un
+-- tableau, une plage de dates — n'est pas vue. Le faux négatif coûte un défaut, le
+-- faux positif une lecture : le critère est volontairement large côté colonne
+-- (tout nom finissant par `licence`) et étroit côté signature, faute de pouvoir
+-- lire une dérivation dans du texte.
+with fonction as (
+  select p.proname,
+         p.prosrc,
+         -- pg_proc.proargnames PORTE LES DEUX : les `pronargs` premiers noms sont
+         -- les paramètres, le reste sont les colonnes de sortie d'un `returns
+         -- table`. Mesuré le 27 août 2026 — sans la coupe, `compass_vintages`
+         -- était convoquée à tort par ses colonnes `vintage_year` et
+         -- `vintage_scope`, alors qu'elle ne prend aucun paramètre. Un piège de
+         -- catalogue, et le genre de faux positif qu'on désarme au lieu de lire.
+         coalesce(p.proargnames[1:p.pronargs], '{}') as entrees,
+         coalesce(p.proargnames[p.pronargs + 1:], '{}') as sorties
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and p.proname like 'compass\_%'
+)
+select f.proname,
+       (select count(*) from unnest(f.entrees) a where a like '%vintage%') as args_millesime
+from fonction f
+where exists (select 1 from unnest(f.sorties) a where a like '%licence')
+  and (select count(*) from unnest(f.entrees) a where a like '%vintage%') >= 2
+  and f.prosrc !~ 'compass_derived_licence'
+limit 20;

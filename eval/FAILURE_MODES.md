@@ -295,3 +295,47 @@ probabilité.
 **La leçon vaut au-delà de cet invariant.** Un garde placé sur le chemin de l'interface protège
 le consommateur qui n'existe pas encore et laisse passer celui qui appelle déjà — un agent, par
 PostgREST. Une règle qui compte doit vivre là où le texte est produit, pas là où il est affiché.
+
+
+## La licence d'un chiffre dérivé — `I35` à `I37`, 27 août 2026
+
+`I23` et `I24` ont rendu la **retenue** mécanique : la règle est énumérée depuis le catalogue au
+lieu d'être réécrite fonction par fonction. La question voisine était restée une habitude —
+**quand une valeur dérive de N sources de licences différentes, laquelle porte-t-elle ?**
+
+La réponse est la plus restrictive, et elle n'exige **aucun ordre entre licences** : le schéma
+porte déjà `publicly_redistributable`. Si l'un des millésimes dont le chiffre dérive n'est pas
+redistribuable, c'est lui qui gouverne. `w1-licence-derivee` (#59) en fait une fonction,
+`public.compass_derived_licence()`, appelée par les **deux** branches de
+`compass_survival_by_trade` — celle qui retient comme celle qui divulgue, la première étant
+pourtant déjà juste : deux réponses faites à la main à une seule question, c'était la forme du
+défaut.
+
+- **`I35`**, comportemental, sur le chemin **privilégié** — pas `@as anon`, parce que c'est là que
+  le défaut vivait : l'appelant anonyme reçoit une ligne retenue, dont l'étiquette était correcte.
+  80 quartiers × 3 métiers, 240 appels, la population entière et non un échantillon. La licence
+  gouvernante y est **recalculée depuis `bdcom_vintage`**, jamais en appelant la fonction
+  surveillée : un invariant qui interroge ce qu'il surveille passe au vert avec lui. Même raison
+  que `I23`, qui lit le catalogue plutôt que la liste que la fonction tient d'elle-même.
+- **`I36`**, le miroir, famille de `I10`, `I13`, `I15`, `I17`, `I26`, `I31` et `I34` : une
+  correction qui étiquetterait tout `custom` satisferait `I35` en fermant la porte à la seule
+  couche ouverte du corpus.
+- **`I37`**, structurel, patron de `I32` : il vise la fonction **suivante**, celle qui composerait
+  deux millésimes et rechercherait sa licence à la main. La population est tirée de la
+  **signature** — deux paramètres de millésime — et non du corps.
+
+**Ce que ces trois blocs ne rattrapent pas**, et une limite ici est un livrable :
+
+- **Le contre-test complet est inexprimable sur les données réelles.** « Une ligne dont les deux
+  millésimes sont redistribuables cite la bonne licence » exige une paire redistribuable ; il n'en
+  existe aucune, un seul millésime sur trois l'étant et un taux exigeant deux bornes distinctes.
+  `I36` porte donc sur le millésime seul, et la paire est éprouvée par **sabotage** dans une
+  transaction annulée. Un bloc vert sur une population vide aurait été pire que la limite écrite.
+- **`I37` lit `prosrc` et la signature**, comme `I23` et `I32`. Une fonction qui recevrait ses
+  millésimes autrement — un tableau, une plage de dates — ne serait pas vue.
+- **`pg_proc.proargnames` porte les paramètres ET les colonnes de sortie** d'un `returns table`,
+  les `pronargs` premiers étant les paramètres. Mesuré en écrivant `I37` : sans la coupe,
+  `compass_vintages` était convoquée à tort par ses colonnes `vintage_year` et `vintage_scope`
+  alors qu'elle ne prend aucun paramètre. Le genre de faux positif qu'on finit par désarmer.
+
+Détail et mesures dans `DIAGNOSTIC.md` § 24.

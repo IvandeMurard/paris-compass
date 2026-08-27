@@ -782,7 +782,7 @@ Q4 2026  →  meublés + ABF/SPR + PPRI zonage + vue « ce qui se libère »
 | #11 | `w1-chantiers` | P0 | Chantiers de voirie (fait d'exposition) |
 | #12 | `w1-dia` | P1 | Droit de préemption / DIA — vérifier l'open data |
 | #49 | `w1-historique` | P0 | bdcom20032020 : porter l'historique de six à vingt ans |
-| #59 | `w1-licence-derivee` | P1 | Un taux dérivé de deux millésimes ne peut pas citer la licence du plus permissif — **ouvert le 25 août** |
+| #59 | `w1-licence-derivee` | P1 | Un taux dérivé de deux millésimes ne peut pas citer la licence du plus permissif — **ouvert le 25 août**, **fait le 27 août** : `compass_derived_licence()` rend la règle mécanique, les deux branches l'appellent, `I35`/`I36`/`I37` la tiennent. Halles niv18 111 cite `custom`, mesuré après poussée. L'écart de documentation du pont NAF est corrigé avec. Détail dans `DIAGNOSTIC.md` §24 |
 | #60 | — | P2 | Le bundle part en un seul chunk de 1,1 Mo — **ouvert le 26 août**, mesuré en fermant `w1-terrasses`, sans fichier de ticket. Ni régression ni blocage |
 | #61 | — | P1 | La porte anonyme dépend de la température du cache — le `count=exact` de `eval:anon` — **ouvert le 26 août**, **fait le 27 août** : un `57014` est classé « panne amont », sortie 3, et le compte exact a été **clefé par millésime** (471 pages contre 9 033) plutôt qu'abandonné. La mesure a désigné une autre requête que celle du ticket — voir #62. Détail dans `DIAGNOSTIC.md` §18, sans fichier de ticket |
 | #62 | — | P1 | `compass_premises_within` consomme 70 % du budget `anon` de 3 s au rayon maximal — **ouvert le 27 août** en mesurant #61, hors de son périmètre. Ce n'est plus la porte qui est exposée mais la carte |

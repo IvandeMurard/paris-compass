@@ -1703,8 +1703,14 @@ d'avoir regardé — c'est déjà ce que disait le point 20.
 
 ## 24. Un taux dérivé de deux millésimes qui ne cite que la licence du plus permissif — `compass_survival_by_trade`, le 25 août
 
-**Trouvé en sabotant `I28`, et consigné plutôt que corrigé** : hors du périmètre de `w0-retenue`,
-qui portait sur la retenue et non sur l'étiquetage de licence.
+**Corrigé le 27 août** par `20260827000001_licence_derivee.sql`, ledger à **44** migrations. Le volet
+BDCom des Halles, niv18 111, appelant privilégié, cite désormais `custom` : 310 · 268 · 86,5 %
+étiqueté de la licence de la cohorte 2017, la plus restrictive des deux. Mesuré sur le distant
+après poussée, pas supposé. Le détail de la règle et de ses limites est plus bas, après le constat
+d'origine qui est laissé tel quel.
+
+**Trouvé en sabotant `I28`, et consigné plutôt que corrigé sur le moment** : hors du périmètre de
+`w0-retenue`, qui portait sur la retenue et non sur l'étiquetage de licence.
 
 `compass_survival_by_trade` calcule le volet BDCom sur **deux** millésimes — la cohorte de départ
 et le millésime d'arrivée. Sur la branche retenue, elle cite la licence de la **cohorte**, ce qui
@@ -1751,6 +1757,58 @@ texte, pas la licence).
 > est *meilleur* que celui annoncé — une absence nommée vaut mieux qu'une absence muette, c'est la
 > doctrine du point 9 — mais le commentaire décrit autre chose que le code, et c'est le
 > commentaire qui est faux.
+
+### Ce qui a été fait le 27 août, et ce que ça ne rattrape pas
+
+La règle a été rendue **mécanique** plutôt que réécrite fonction par fonction, sur le patron de
+`I23`/`I24` pour la retenue et de `#58` pour le test d'appelant :
+`public.compass_derived_licence(ids de millésimes)` rend la licence gouvernante, et **les deux
+branches** de `compass_survival_by_trade` — celle qui retient comme celle qui divulgue — font
+désormais le même appel. La branche retenue était pourtant déjà juste : la réécrire supprime deux
+réponses faites à la main à une seule question, ce qui était la forme du défaut.
+
+**Aucun ordre entre licences n'a été inventé**, et le ticket l'excluait. La règle s'appuie sur le
+booléen que le schéma porte déjà : si l'un des millésimes dont le chiffre dérive n'est pas
+`publicly_redistributable`, c'est lui qui gouverne. Quand plusieurs gouvernent sous des licences
+différentes, elles sont **toutes** rendues, jointes par `" + "` : un chiffre dérivé est lié par
+chacune de ses sources, et en choisir une serait le classement que le schéma refuse de tenir.
+
+Trois invariants, mesurés le 27 août dans une transaction annulée — **rouges avant, verts après,
+rouges à nouveau quand le corps d'avant est reposé** :
+
+| Invariant | Ce qu'il tient |
+| --- | --- |
+| `I35` | comportemental, chemin privilégié : 80 quartiers × 3 métiers, 240 appels. La licence gouvernante y est **recalculée depuis `bdcom_vintage`**, jamais en appelant la fonction surveillée — un invariant qui interroge ce qu'il surveille passe au vert avec lui. 20 lignes avant la migration, 0 après. |
+| `I36` | le miroir : la correction n'étiquette pas tout au plus restrictif. 2023, redistribuable, dérive toujours `ODbL-1.0`. |
+| `I37` | structurel, patron de `I32` : vise la fonction **suivante** qui composerait deux millésimes sans appeler la règle. |
+
+**Ce que ça ne rattrape pas**, et les limites valent la règle :
+
+- **Le contre-test que le ticket demandait est inexprimable sur les données réelles.** « Une ligne
+  dont les deux millésimes sont redistribuables cite la bonne licence » exige une paire
+  redistribuable ; il n'y en a **aucune** — un seul millésime sur trois l'est, et un taux exige
+  deux bornes distinctes. `I36` pose donc le contre-test sur le millésime seul, et la paire est
+  éprouvée par sabotage : 2020 passé à `publicly_redistributable = true, licence = 'ODbL-1.0'`
+  dans une transaction annulée, la cohorte 2020 → 2023 rend 323 · 91,6 % étiqueté **`ODbL-1.0`**.
+- **La branche « plusieurs licences ouvertes différentes » est morte aujourd'hui.** Prouvée par
+  sabotage seulement (`custom + ODbL-1.0`), faute de données qui l'atteignent.
+- **`I37` lit `prosrc` et la signature**, comme `I23` et `I32`. Une fonction qui composerait deux
+  millésimes reçus autrement que par deux paramètres nommés — un tableau, une plage de dates —
+  n'est pas vue.
+- **Un piège de catalogue, mesuré en écrivant `I37`** : `pg_proc.proargnames` porte **les
+  paramètres et les colonnes de sortie** d'un `returns table`, les `pronargs` premiers étant les
+  paramètres. Sans la coupe, `compass_vintages` était convoquée à tort par ses colonnes
+  `vintage_year` et `vintage_scope` alors qu'elle ne prend aucun paramètre — et c'est le genre de
+  faux positif qu'on désarme au lieu de lire.
+- **La portée avait déjà rétréci avant la correction.** `#58` ayant retiré le privilège à
+  `authenticated`, l'étiquette fautive n'était plus vue que par le rôle de service et les
+  connexions directes — les exploitants de Compass, qui savent ce que porte 2017. Le défaut
+  restait à corriger ; il avait cessé d'être une fausse déclaration servie à un tiers.
+
+**L'écart de documentation ci-dessus est corrigé avec**, dans la même migration : une migration
+posée ne se réécrit pas, mais le commentaire de table est un objet vivant. Mesuré le 27 août
+**sans sabotage** — niv18 101 « Grand magasin » est absent du pont depuis `20260825000013`, et sa
+ligne SIRENE sort bel et bien, chiffres nuls et `evidence` explicite.
 
 ---
 
