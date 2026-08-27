@@ -51,3 +51,9 @@ mcp-server/.build/
 *.njsproj
 *.sln
 *.sw?
+
+# Dumps de corps de fonctions produits en comparant la base au depot. Artefact de
+# travail, jamais du source : les huit fichiers ont ete commites par megarde le
+# 26 aout, puis retires. La regle est ici pour que ca ne se reproduise pas, meme si
+# l'outil qui les produisait a ete supprime depuis.
+.fn-dump/
