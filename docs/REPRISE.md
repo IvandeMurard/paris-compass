@@ -1,4 +1,4 @@
-# Reprise — état au 26 août 2026, fin de session 13
+# Reprise — état au 27 août 2026, fin de session 14
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`

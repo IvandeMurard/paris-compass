@@ -17,6 +17,67 @@ Les sections sont dans l'ordre où elles étaient, la plus récente d'abord.
 
 ---
 
+## `w1-licence-derivee` (#59) — 27 août 2026, soirée
+
+**Le ticket avait raison sur le défaut, à la ligne près. Ce qui ne se déduisait pas de lui, c'est
+que l'un de ses trois critères d'acceptation est impossible à satisfaire sur les données réelles.**
+
+### Ce qui ne se déduit ni du code ni du ticket
+
+**Le contre-test demandé n'existe pas.** Le critère 2 exigeait qu'« une ligne dont les deux
+millésimes sont redistribuables cite toujours la bonne licence ». Il n'y a **aucune paire
+redistribuable** : un seul millésime sur trois l'est (2023), et un taux exige deux bornes
+distinctes. Le critère était donc invérifiable tel qu'écrit — non pas difficile, mais vide. `I36`
+le pose sur le millésime seul, qui est réel, et la paire est éprouvée par sabotage : 2020 passé à
+`publicly_redistributable = true, licence = 'ODbL-1.0'`, la cohorte 2020 → 2023 rend 323 · 91,6 %
+étiqueté `ODbL-1.0`. **Un bloc vert sur une population vide aurait satisfait le critère sans rien
+garantir**, et c'est la forme d'échec que ce dépôt cherche justement à rendre visible.
+
+**Le corps vivant de la fonction n'était pas dans la migration qui la crée.** `20260825000012` la
+pose, mais `20260826000002` (`w0-appelant`) l'a réécrite par `create or replace`. Patcher depuis
+la « migration d'origine » aurait reposé un corps sans `compass_caller_is_privileged()` et annulé
+`#58` en silence — les portes l'auraient vu, mais après coup. Le corps a donc été **extrait de la
+base et de la dernière migration**, pas retapé.
+
+**`pg_proc.proargnames` porte les paramètres ET les colonnes de sortie** d'un `returns table`, les
+`pronargs` premiers étant les paramètres. Mesuré en écrivant `I37` : sans la coupe,
+`compass_vintages` était convoquée à tort par ses colonnes `vintage_year` et `vintage_scope` alors
+qu'elle ne prend **aucun** paramètre. Un invariant qui accuse une fonction innocente est un
+invariant qu'on finit par désarmer — même famille de risque que les exemptions écrites de `#57`.
+
+**L'écart de documentation était atteignable sans sabotage.** Le ticket l'avait mesuré en retirant
+le métier 111 du pont dans une transaction annulée. Inutile : `20260825000013` a corrigé le pont,
+qui ne porte plus que 102, 104 et 111 — **niv18 101 « Grand magasin » en est réellement absent**, et
+sa ligne SIRENE sort en production, chiffres nuls et `evidence` explicite. Le comportement est
+meilleur que l'annonce ; c'est le commentaire qui était faux.
+
+### La décision de fond : un ensemble, pas un classement
+
+Le ticket excluait d'« inventer un ordre entre licences », et la règle n'en a pas besoin — elle
+s'appuie sur `publicly_redistributable`, booléen que le schéma porte déjà. Restait le cas où
+**plusieurs sources gouvernent sous des licences différentes**. Y choisir serait précisément le
+classement interdit ; y répondre `null` reviendrait à effacer une source. `compass_derived_licence`
+les rend donc **toutes**, jointes par `" + "` : un chiffre dérivé est lié par chacune de ses
+sources, et l'ordre alphabétique n'y sert qu'au déterminisme, pas au rang. La branche est morte sur
+les données d'aujourd'hui et n'est prouvée que par sabotage (`custom + ODbL-1.0`) — écrit tel quel
+plutôt que présenté comme couvert.
+
+**Les deux branches appellent la même expression, y compris celle qui était déjà juste.** La
+branche de retenue citait la licence de la cohorte, ce qui était correct ; la réécrire ne corrige
+rien et supprime tout de même quelque chose — deux réponses faites à la main à une seule question.
+C'était la forme du défaut avant d'en être le contenu, exactement le reproche que `#58` faisait aux
+six copies du test d'appelant.
+
+### Ce que `w0-appelant` avait déjà changé
+
+`authenticated` n'étant plus privilégié, l'étiquette fautive n'était plus vue que par le rôle de
+service et les connexions directes — les exploitants de Compass, qui savent ce que porte 2017.
+Aucun consommateur expédié ne lit la colonne non plus. **L'urgence avait baissé, la fausseté non**,
+et c'est la seule des deux qui décide : une licence fausse autorise une redistribution que personne
+n'a accordée, et les appelants de demain ne sont pas ceux d'aujourd'hui.
+
+---
+
 ## `#61` — la porte anonyme et la température du cache — 27 août 2026, soirée
 
 **Le ticket nommait un mécanisme et un coupable. Le mécanisme était juste, le coupable non.**
