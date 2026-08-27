@@ -249,6 +249,36 @@ d'utile. La règle rend impossible la fonction née sans règle, pas la fonction
 > structurelle ne peut voir, exactement comme le bras D ne remplace pas le bras A.
 
 
+## Qui est privilégié : une expression, et la décision jouée — `I32` à `I34`, 26 août 2026
+
+`I23` et `I24` recensent les fonctions qui **doivent** retenir. Ni l'un ni l'autre ne
+regardait **comment** chacune décide qui est privilégié — et la réponse était recopiée à
+l'identique dans les six, sous un commentaire disant « copié verbatim pour qu'elles ne divergent
+pas ». Une intention, là où `I23` avait mis une garantie : `DIAGNOSTIC.md` § 20 en miniature.
+
+`w0-appelant` (#58) extrait `public.compass_caller_is_privileged()` et pose trois règles :
+
+- **`I32`**, deux volets comme `I23`. Aucune autre fonction `compass_*` ne lit
+  `request.jwt.claims` **et** toute fonction de la population de `I23` appelle celle-là.
+  Interdire la copie ne force pas l'appel : une septième fonction pourrait ne tester personne.
+- **`I33`**, `@as authenticated`. La décision du 26 août — un compte créé sur le site n'est pas
+  un appelant privilégié — jouée sur le verdict **et** sur ce que l'appelant reçoit réellement
+  des Halles en 2017 : une ligne marquée, là où il en recevait 4 773.
+- **`I34`**, `@as service_role`. Le contre-test. Corriger un appelant en retirant le privilège à
+  ceux qui exploitent Compass serait pire que le défaut.
+
+**Ce que `I32` ne rattrape pas** : `prosrc` est du texte, donc une décision rejouée autrement —
+`current_user`, un GUC applicatif, une table de rôles — lui échappe ; elle ne juge pas l'usage,
+un test appelé et inversé passe ; et elle ne dit rien du **contenu** de la décision, que seuls
+`I33` et `I34` portent. Même famille de limite que `I22` et `I23` : la règle rend impossible la
+fonction née sans règle, pas la fonction mal écrite. Détail dans `DIAGNOSTIC.md` § 26.
+
+`npm.cmd run eval:sabotage` en fait la démonstration plutôt que l'affirmation, en trois actes
+dans des transactions annulées. Le deuxième est celui qui compte ici : la fonction sabotée est
+`SECURITY DEFINER` avec colonne `withheld`, donc **irréprochable pour `I23`**, qui reste au vert
+pendant que `I32` la voit.
+
+
 ## Une règle de doctrine tenue des deux côtés — `I21`, 25 août 2026
 
 `w1-survie` pose un interdit qui n'est pas une question de licence mais de **formulation** :

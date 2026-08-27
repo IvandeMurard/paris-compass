@@ -6,6 +6,26 @@ qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.m
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
 
+## L'état mesuré le plus récent — 26 août 2026 le soir, portes rejouées le 27 à 08 h 18 UTC
+
+**Le tableau de la section suivante date du 24 août** et n'a pas été remesuré depuis ; celui-ci
+l'a été, contre `dbefhvmyfmmhjeetdddu`, à la clôture de la session `w0-appelant`. Quand les deux
+se contredisent, c'est le plus daté des deux qui a tort — et la règle de `CLAUDE.md` s'applique
+d'abord ici : **remesurer avant de recopier.**
+
+| Mesure | Valeur, mesurée le 26 août 2026 à 21 h 45 UTC et recoupée le 27 à 08 h 18 |
+| --- | --- |
+| Ledger distant `supabase_migrations` | **43** migrations, dernière `20260826000002` |
+| Fonctions `compass_*` | **14** — `compass_caller_is_privileged` ajoutée |
+| Invariants | **34** — `I32`, `I33`, `I34` ajoutés |
+| `auth.users` | **0** — aucun compte, ce qui rend la décision de `w0-appelant` gratuite aujourd'hui et coûteuse plus tard |
+| Issues | **41 ouvertes, 15 fermées** — avant fermeture de [`#58`](https://github.com/IvandeMurard/paris-compass/issues/58) |
+| Épic [`#41`](https://github.com/IvandeMurard/paris-compass/issues/41) (vague 0) | **9 tickets cochés sur 10** — `#58` est le dernier |
+| Portes | `typecheck` ✓ · **166 tests** ✓ · `eval` **34/34** et 8/8 cas dorés, dix écarts de baseline en avertissement (dérive BODACC/SIRENE connue, la plus large à 0,70 %) · `eval:anon` **PASS, 12 contrôles** · `eval:sabotage` **PASS, trois actes** · `verify:mcp` **40 au vert, 0 en échec, 1 suspendu** (E12, Overpass en 429) · `sessions:check` ✓ · `build` et `build:dev` **injouables ici**, contournées par `build:local` ✓ et `build:dev:local` ✓ |
+
+Les six corps de fonction déployés sont **identiques aux fichiers versionnés**, revérifié après la
+poussée, fins de ligne normalisées. Ils ne l'étaient pas tous avant : voir `DIAGNOSTIC.md` §26.
+
 ## Ce qui existe et fonctionne — en local **et sur le distant**
 
 **Le distant est chargé depuis le 15 août.** C'est le changement le plus important
@@ -368,6 +388,18 @@ gens qui les avaient.
 Révisable sur un seul événement : une réponse de l'APUR autorisant la redistribution.
 Rien d'autre ne la rouvre.
 
+**Appliquée le 26 août par `20260826000002`**, et elle n'est plus seulement écrite :
+`public.compass_caller_is_privileged()` est la **seule** expression du test, appelée par
+les six fonctions qui retiennent — il en existait six copies. Le test est un
+**laissez-passer nominatif** (`= 'service_role'`) et non une liste noire (`<> 'anon'`) :
+le prochain rôle de claim est retenu par défaut plutôt que privilégié par oubli, ce qui
+est précisément la mécanique du désaccord ayant produit `DIAGNOSTIC.md` §12 puis §21.
+Gardée par `I32` (une seule expression), `I33` (`@as authenticated`) et `I34`
+(`@as service_role`, le contre-test), et démontrée par `npm.cmd run eval:sabotage`, dont
+le troisième acte remet la décision à son état d'avant et vérifie que la porte rougit.
+Le détail, la mesure avant/après et **ce que la règle ne rattrape pas** : `DIAGNOSTIC.md`
+§26 et `docs/CONTEXTE.md`.
+
 
 **Quatre niveaux de fiabilité, calculés et jamais saisis** : `etabli`,
 `corrobore`, `probable`, `indetermine`. Pas de score sur 100 — un pourcentage de
@@ -461,6 +493,35 @@ privilégié `observed = true, is_vacant = true, « Locaux Vacants »` ; anonyme
 ---
 
 ## Pièges qui ont coûté du temps aujourd'hui
+
+**Les portes qui interrogent le distant rendent un faux rouge sur une base froide,
+code Postgres `57014`.** `canceling statement due to statement timeout`, sur un
+invariant différent à chaque fois, puis vert au passage suivant sans que rien
+n'ait changé. Mesuré sur `eval:anon` le 26 août — deux passages rouges puis un
+vert — et sur **`eval`** le 27 août à 08 h 11 UTC, premier appel de la matinée :
+mort dans le bras A, repassé intégralement au vert à 08 h 18. **Rejouer avant de
+diagnostiquer**, et ne conclure à une régression qu'au deuxième rouge. Le premier
+appel matinal paie le réveil de l'instance et la reconstruction des caches ; c'est
+la latence, pas la donnée.
+
+**Deux sessions dans le même arbre de travail se commitent l'une l'autre.** Le
+26 août au soir, deux sessions ont tourné en parallèle sur ce dépôt : l'une
+scindait `REPRISE.md` vers `JOURNAL.md`, l'autre posait `w0-appelant`. La
+première a fait `git add -A` et **emporté dans son commit** (`c861bac`, poussé)
+les fichiers de travail temporaires de la seconde — `.fn-dump/`, quatre scripts
+`scripts/eval/_*.ts` — **et sa migration**, `20260826000002`, sous un message qui
+parle de tout autre chose. Rien n'est perdu et rien n'est cassé ; l'historique,
+lui, ment sur qui a fait quoi. Les fichiers temporaires sont retirés par le commit
+suivant, en marche avant : réécrire un historique déjà poussé coûterait plus cher
+que l'écart qu'il corrige.
+
+> **Ce n'est pas un cas de la règle Lovable de `CLAUDE.md`** — qui parle de deux
+> *outils* éditant le dépôt — mais elle a la même cause et la même parade. Une
+> session qui commite doit regarder ce qu'elle met dans son commit : `git add -A`
+> dans un arbre partagé n'ajoute pas « mes fichiers », il ajoute *tout ce qui
+> traîne*. Et une session qui écrit des fichiers de travail doit les nommer de
+> façon à ce qu'ils soient ignorés, ou les tenir hors du dépôt : le répertoire de
+> travail temporaire de l'agent existe pour ça.
 
 **Comparer un corps de fonction en base à son fichier exige de normaliser les
 fins de ligne.** `core.autocrlf=true` donne un arbre de travail en CRLF, et

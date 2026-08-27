@@ -52,6 +52,37 @@ Détail et contrepartie de chaque refus : section « What it does not do » du R
 
 ---
 
+## Un compte n'ouvre aucune donnée — tranché le 26 août 2026
+
+**`authenticated` n'est pas un appelant privilégié.** Décidé par Ivan le 26 août 2026, sur
+`w0-appelant` ([#58](https://github.com/IvandeMurard/paris-compass/issues/58)). Le privilège
+reste au **rôle de service** et aux **connexions directes** — ceux qui *exploitent* Compass —
+jamais à un compte créé sur le site.
+
+La raison tient en une phrase : **créer un compte n'est pas une lecture de licence.** Les
+millésimes BDCom 2017 et 2020 portent `publicly_redistributable = false` parce que la licence
+APUR n'a pas été lue ; elle ne l'a pas été davantage pour un inscrit. Un partenaire sous accord
+n'est pas un inscrit, et le jour où il y en aura un, ce sera une autre décision, écrite comme
+celle-ci.
+
+Décidée pendant qu'elle était gratuite : `auth.users` comptait **0 utilisateur**, mesuré le
+26 août 2026 sur `dbefhvmyfmmhjeetdddu`. Le produit porte déjà `saved_properties` et
+`saved_searches`, donc l'inscription est l'intention ; une fois ouverte, la même décision
+retirerait des données à des gens qui les avaient.
+
+**Révisable sur un seul événement** : une réponse de l'APUR autorisant la redistribution
+([#49](https://github.com/IvandeMurard/paris-compass/issues/49)). Rien d'autre ne la rouvre.
+
+Appliquée le 26 août par la migration `20260826000002`, qui est aussi la seule expression du
+test : `public.compass_caller_is_privileged()`, appelée par les six fonctions qui retiennent.
+Gardée par trois invariants — `I32` (le test n'existe qu'une fois), `I33` (un compte du site
+n'est pas privilégié), `I34` (le rôle de service ne cesse pas de l'être) — et démontrée par
+sabotage, `npm.cmd run eval:sabotage`. Le test est un **laissez-passer nominatif** et non une
+liste noire : `= 'service_role'`, jamais `<> 'anon'`, pour que le prochain rôle de claim soit
+retenu par défaut plutôt que privilégié par oubli.
+
+---
+
 ## Le piège à ne jamais refaire
 
 L'encadrement des loyers parisien **ne concerne que le logement** et exclut explicitement les

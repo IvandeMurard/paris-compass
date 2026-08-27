@@ -771,7 +771,7 @@ Q4 2026  →  meublés + ABF/SPR + PPRI zonage + vue « ce qui se libère »
 | #7 | `w0-deploy` | P0 | Déployer le corpus sur la base hébergée — **fait le 24 août** |
 | #8 | `w0-fiche` | P0 | Fiche locale + timeline dans l'interface |
 | #51 | `w0-history` | P0 | `compass_premise_history` : une retenue de licence rendue comme un fait |
-| #58 | `w0-appelant` | P1 | `authenticated` est-il privilégié ? Trancher pendant que c'est gratuit — **ouvert le 25 août** |
+| #58 | `w0-appelant` | P1 | `authenticated` est-il privilégié ? Trancher pendant que c'est gratuit — **tranché et fait le 26 août** : non privilégié, migration `20260826000002`, invariants I32 à I34 |
 | #53 | `w0-mcp-verif` | P0 | Le serveur MCP n'a aucune vérification automatique — **fait le 24 août** |
 | #9 | `w0-plu` | P0 | Ingérer le PLU plub_protcom |
 | #10 | `w0-provenance` | P0 | Provenance par champ, pas un Origin unique OSM |

@@ -148,7 +148,7 @@ fautive.
 
 <!-- BEGIN sessions -- généré par `npm.cmd run sessions`, ne pas éditer à la main -->
 
-*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 26/08/2026.*
+*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 27/08/2026.*
 
 | # | Ticket | Issue | État | Prio | Modèle |
 | --- | --- | --- | --- | --- | --- |
@@ -164,7 +164,7 @@ fautive.
 | ~~10~~ | ~~`w1-terrasses`~~ | [#15](https://github.com/IvandeMurard/paris-compass/issues/15) | **fait** | P0 | Sonnet 5 |
 | ~~11~~ | ~~`w1-survie`~~ | [#14](https://github.com/IvandeMurard/paris-compass/issues/14) | **fait** | P0 | Opus 5 |
 | ~~12~~ | ~~`w0-conclusion`~~ | [#54](https://github.com/IvandeMurard/paris-compass/issues/54) | **fait** | P1 | Opus 5 |
-| 13 | `w0-appelant` | [#58](https://github.com/IvandeMurard/paris-compass/issues/58) | ouvert | P1 | Opus 5 |
+| ~~13~~ | ~~`w0-appelant`~~ | [#58](https://github.com/IvandeMurard/paris-compass/issues/58) | **fait** | P1 | Opus 5 |
 | 14 | `w1-licence-derivee` | [#59](https://github.com/IvandeMurard/paris-compass/issues/59) | ouvert | P1 | Opus 5 |
 
 **Hors de cette file : 29 tickets ouverts**, à prendre après la vague 0 — 

@@ -17,6 +17,63 @@ Les sections sont dans l'ordre où elles étaient, la plus récente d'abord.
 
 ---
 
+## `w0-appelant` (#58) — 26 août 2026, soirée
+
+**Le dernier ticket de la vague 0.** La décision était prise la veille par Ivan ; la session
+l'applique, et c'est la règle derrière qui était le livrable.
+
+### Ce qui ne se déduit ni du code ni du ticket
+
+**Le test d'appelant est devenu un laissez-passer nominatif, et ce n'était pas écrit dans le
+ticket.** `= 'service_role'` plutôt que `<> 'anon' and <> 'authenticated'`. Les deux formes
+s'accordent sur tous les rôles qui existent aujourd'hui et se séparent sur ceux qui n'existent pas
+encore : une liste noire privilégie par défaut la prochaine valeur de claim — un rôle ajouté par
+une version de Supabase, un claim inventé pour un partenaire — et le fait en silence. C'est
+exactement la mécanique du désaccord de `20260809000008` avec `20260809000010`, celle qui a produit
+`DIAGNOSTIC.md` §12 puis §21. Le choix est donc doctrinal et pas cosmétique : **la retenue échoue
+fermé.**
+
+**Trois invariants et non un.** Le ticket en demandait un — interdire la copie du test. Deux
+manques sont apparus en l'écrivant. Interdire la copie ne force pas l'appel : une septième
+fonction pourrait ne tester personne et rendre `withheld = false` en dur, d'où le second volet de
+`I32`. Et une règle sur la *forme* du test ne dit rien de son *contenu* : la décision elle-même —
+un compte du site n'est pas privilégié — serait restée de la prose, d'où `I33` et son contre-test
+`I34`. Le patron est celui de `I23`, qui a lui aussi deux exigences dans une seule requête.
+
+**L'acte 2 du sabotage est le seul qui prouve quelque chose de neuf.** La fonction fabriquée est
+`SECURITY DEFINER`, porte une colonne `withheld`, retient correctement — donc **irréprochable pour
+`I23`**, qui reste au vert pendant que `I32` la voit. Une démonstration où la fonction sabotée
+échoue aussi `I23` n'aurait rien dit de `I32`.
+
+### La méthode, parce qu'elle sera à refaire
+
+Postgres ne sait pas modifier le corps d'une fonction : réécrire le test dans six fonctions
+imposait de les restituer en entier, ce qui est la manière habituelle d'en faire diverger deux —
+`20260825000014` le disait en toutes lettres à propos d'un simple mot-clé. Les corps ont donc été
+**relevés depuis `pg_proc`**, comparés au fichier versionné qui les définit en dernier, puis
+réécrits par substitution de chaîne exacte, avec refus du générateur si une substitution était
+introuvable ou ambiguë. Diff mesuré ensuite, corps par corps : **un seul écart par fonction**.
+
+C'est ce détour qui a trouvé l'écart de `compass_scoring_context_within` — un commentaire en
+français en base, sa traduction anglaise dans le fichier. Personne ne le cherchait, et **aucune
+porte ne pouvait le voir** : rien dans le dépôt ne compare `prosrc` aux fichiers. Partir du fichier
+plutôt que de la base aurait fonctionné et n'aurait rien appris.
+
+Deux des six fonctions se déclarent `security invoker` dans leur propre fichier et avaient été
+passées `definer` par une migration ultérieure. Restituer le fichier tel quel les aurait renvoyées
+en `invoker` — c'est-à-dire aurait rouvert `DIAGNOSTIC.md` §21 — sans qu'aucune porte ne le dise,
+puisque `I23` était le seul à regarder et qu'il aurait rougi *après* la poussée. Le mode a été relu
+en base, pas déduit du fichier.
+
+### Ce qui a coûté du temps
+
+Une seconde session tournait en parallèle dans le même arbre de travail et a emporté dans son
+commit les fichiers temporaires de celle-ci, plus sa migration. Consigné dans `REPRISE.md`,
+« Pièges qui ont coûté du temps », parce que c'est un piège vivant et pas une anecdote.
+
+
+---
+
 ## Clôture de la session 13 — l'état exact au 26 août 2026, 18 h 25 UTC
 
 Tout est mesuré à la clôture et **après commit**, sur un arbre propre : les portes sont rejouées à

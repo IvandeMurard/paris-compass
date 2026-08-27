@@ -1452,6 +1452,10 @@ n'appartient pas à ce ticket. **Ouverte le 26 août en
 qui décide de sa priorité : `auth.users` compte **0 utilisateur**, mesuré le 26 août, donc la trancher aujourd'hui ne
 retire rien à personne.
 
+> **Tranchée et appliquée le 26 août** : `authenticated` n'est **pas** privilégié, et les 4 773
+> locaux que cette section lui voyait recevoir sont redevenus une ligne marquée. Décision, mesure
+> avant/après et règle mécanique au point 26.
+
 > **Et il faut dire ce que ce correctif a élargi.** Avant, `compass_premises_within(…, 2017)`
 > rendait **0 ligne** à un appelant `authenticated` — RLS les retirait, silencieusement : c'était
 > le défaut ci-dessus. Après, elle en rend **4 773**. Les *faits* accessibles n'ont pas changé, le
@@ -1725,3 +1729,136 @@ aucune porte ne le dira. La règle est passée du commentaire à la consigne de 
 (`docs/SESSIONS.md`, prompt commun), ce qui est mieux qu'un commentaire et moins qu'un contrôle.
 **Le contrôle mécanique reste à écrire** — il demanderait de relier un composant à la couche qu'il
 lit, ce qu'aucun outil du dépôt ne sait faire aujourd'hui.
+
+---
+
+## 26. Le test d'appelant existait en six exemplaires, et il donnait la mauvaise réponse — corrigé le 26 août
+
+**Corrigé le 26 août par `20260826000002_caller_is_privileged.sql`**, ledger distant remesuré à
+**43**, fonctions `compass_*` à **14**. Deux défauts distincts dans le même endroit, et le second
+n'était visible que parce que le premier a été nommé.
+
+### Le défaut de fond : `authenticated` voyait ce qu'aucune licence n'autorise
+
+`20260809000010` a posé, sans que ce soit sa question, une définition du privilège :
+**tout ce qui n'est pas `anon` est privilégié**. Le rôle `authenticated` — celui de quiconque
+crée un compte sur le site — tombait donc du côté privilégié. Tant que les fonctions étaient
+`SECURITY INVOKER`, RLS retirait les lignes en dessous et le désaccord produisait un défaut de
+*silence* : §12, puis §21. `w0-retenue` a passé les six fonctions en `SECURITY DEFINER`, ce qui
+était juste, et a du même coup rendu l'exposition **explicite** : RLS ne protège plus rien, le
+test de claim est la seule porte, et il disait oui.
+
+**Mesuré le 26 août 2026 sur `dbefhvmyfmmhjeetdddu`**, local 54652 (`60 QU ORFEVRES`) sur le
+millésime 2017, et les deux fonctions `_within` aux Halles (48,86229 / 2,34490), rayon 800 m,
+millésime 2017. `authenticated` joué avec le claim **et** `set local role`, pour que RLS
+s'applique vraiment — même protocole que §21 :
+
+| Fonction | `anon` | `authenticated` **avant** | `authenticated` **après** | privilégié |
+| --- | --- | --- | --- | --- |
+| `compass_premise_history` | retenu | `observed = true`, `Locaux Vacants` | **retenu** | `observed = true` |
+| `compass_address_timeline` | retenu | idem | **retenu** | idem |
+| `compass_survival_by_trade` | retenu | 310 / 268 / **86,5 %** | **retenu** | 310 / 268 / 86,5 % |
+| `compass_premises_within` | 1 ligne marquée | **4 773 locaux** | **1 ligne marquée** | 4 773 |
+| `compass_scoring_context_within` | 1 ligne marquée | **4 773** | **1 ligne marquée** | 4 773 |
+| `compass_street_rotation` (300 m) | 2 marqueurs | 98 tronçons × 3 millésimes | **2 marqueurs** | 98 × 3 |
+
+**4 773, remesuré et non recopié.** Le ticket portait le même nombre depuis le 25 août ; il tenait
+encore le 26. Les colonnes `anon` et `privilégié` sont identiques avant et après : corriger un
+appelant en cassant les deux autres aurait été pire que le défaut, et c'est mesuré, pas supposé.
+
+**La décision n'appartenait pas au code.** Tranchée par Ivan le 26 août : `authenticated` n'est pas
+privilégié, parce que **créer un compte n'est pas une lecture de licence**. Écrite avec sa raison
+et sa condition de révision — une réponse de l'APUR ([#49](https://github.com/IvandeMurard/paris-compass/issues/49)),
+et rien d'autre — dans `docs/CONTEXTE.md` et `docs/REPRISE.md`. `auth.users` comptait **0
+utilisateur** le 26 août : la correction ne retire rien à personne, ce qui ne sera plus vrai le
+jour où l'inscription s'ouvrira.
+
+### Le défaut de forme : une intention là où il fallait une garantie
+
+Le test était **recopié à l'identique dans les six fonctions**, sous un commentaire disant « copié
+verbatim pour qu'elles ne divergent pas ». C'est §20 en miniature, et la conséquence est double :
+la décision ci-dessus aurait dû être appliquée six fois, à la main, sans rien pour dire qu'on en
+avait oublié une — et la septième fonction aurait hérité de l'ancien test par copier-coller, ce
+qui est exactement la naissance de `compass_street_rotation` (§19).
+
+Une seule expression, `public.compass_caller_is_privileged()`, `stable`, appelée par les six.
+
+**Le test est un laissez-passer nominatif, pas une liste noire.** `= 'service_role'`, jamais
+`<> 'anon'` ni `not in ('anon', 'authenticated')`. Les deux formes s'accordent sur tous les rôles
+qui existent aujourd'hui et se séparent sur ceux qui n'existent pas encore : une liste noire
+privilégie **par défaut** la prochaine valeur de claim — un rôle ajouté par une version de
+Supabase, un claim inventé pour un partenaire — et le fait en silence. C'est la mécanique même du
+désaccord qui a produit §12 puis §21. Le laissez-passer échoue fermé.
+
+### La règle derrière — `I32`, et ce qu'elle ne rattrape pas
+
+Sur le patron de `I23`, et avec ses deux exigences :
+
+- **aucune copie** — une fonction `compass_*` autre que `compass_caller_is_privileged` qui lit
+  `request.jwt.claims` dans son corps ;
+- **et l'appel** — toute fonction de la population de `I23`, c'est-à-dire lisant une table dont
+  RLS peut retirer des lignes, doit appeler la fonction d'appelant. Interdire la copie ne force
+  pas l'appel : une septième fonction pourrait ne tester personne et rendre `withheld = false` en
+  dur.
+
+`I33` et `I34` jouent la décision elle-même, dans les deux sens : un appelant `authenticated`
+n'est pas privilégié **et** reçoit bien une ligne marquée des Halles 2017 ; le rôle de service
+reste privilégié. Le second est le contre-test, même famille que `I10`, `I13`, `I15`, `I17`, `I26`
+et `I31` — la sur-correction est une faute au même titre que l'affirmation.
+
+**Éprouvés par sabotage**, `npm.cmd run eval:sabotage`, trois actes dans des transactions annulées :
+
+| Acte | Ce qui est fabriqué | Verdict attendu |
+| --- | --- | --- |
+| 1 (existant) | une sixième fonction `INVOKER` sans marqueur | `I23` **rouge**, `I24` **rouge** |
+| 2 | une septième fonction `DEFINER`, colonne `withheld`, test **recopié** | `I32` **rouge**, `I23` **vert** |
+| 3 | `compass_caller_is_privileged` remise à `<> 'anon'` | `I33` **rouge**, `I34` **vert** |
+
+L'acte 2 est celui qui justifie `I32` : la fonction sabotée est irréprochable pour `I23`, qui reste
+au vert pendant que `I32` la voit. L'acte 3 rend à l'appelant `authenticated` les **500 lignes**
+(la limite passée) de 2017, sans marqueur. Après rollback, les cinq invariants repassent au vert et
+la base ne porte plus rien — vérifié aussi sur le **corps** de la fonction d'appelant, pas seulement
+sur son nom : un acte 3 survivant l'aurait laissée en place avec le mauvais test dedans.
+
+**Ce que `I32` ne rattrape pas, et il faut le dire :**
+
+- **`prosrc` est du texte.** Une fonction qui rejouerait la décision autrement — `current_user`,
+  `session_user`, un GUC applicatif, une table de rôles — n'est pas vue. La règle interdit la
+  copie, pas la réinvention.
+- **Elle ne juge pas l'usage.** `not (privilégié or redistribuable)` inversé appelle bien la
+  fonction et retient exactement à l'envers ; ce sont les paires de comportement et `I33` qui
+  l'attrapent.
+- **Elle ne dit rien du contenu de la décision.** Le jour où le privilège changerait de
+  définition, `I32` resterait vert. C'est `I33`/`I34` qui portent la décision.
+- **Elle ne survit pas à un renommage.** Population `public.compass\_%`, comme `I23` et `I24` :
+  une fonction posée ailleurs, ou nommée autrement, en sort.
+- **Elle ne dit rien de ce qui ne passe pas par une fonction.** Un accès direct à
+  `premise_observation` par PostgREST reste gouverné par RLS seule, et `I32` n'a aucune vue
+  dessus — c'est le bras D de `eval:anon` qui le mesure, 60 845 relevés visibles.
+
+**Et deux questions que rien ici ne tranche.** Le jour où l'APUR répond, il faudra basculer une
+ligne de `bdcom_vintage.publicly_redistributable`, pas toucher à cette fonction. Et le jour où un
+partenaire sous accord existera, il lui faudra un rôle de claim nommé, ajouté ici **à la main et
+avec sa raison** — le laissez-passer est fait pour que cet ajout soit un acte, pas un effet de
+bord.
+
+### Trouvé en chemin : le corps déployé d'une fonction n'était pas celui du fichier
+
+En relevant les six corps depuis `pg_proc` — pour que la migration parte de ce qui est réellement
+en base et non d'un fichier qui aurait pu dériver — cinq étaient identiques au fichier versionné,
+octet pour octet, fins de ligne normalisées. **Le sixième non.** `compass_scoring_context_within`
+portait **en base** un commentaire en français là où `20260825000003` porte sa traduction anglaise :
+un corps poussé depuis un brouillon avant que le commentaire ne soit repassé à la convention de
+`CLAUDE.md`.
+
+Aucun comportement n'y était attaché, et **aucune porte ne pouvait le voir** : rien dans le dépôt ne
+compare `prosrc` au fichier. La divergence est sans gravité ; ce qu'elle démontre ne l'est pas. Le
+fichier versionné n'est une mesure de ce qui tourne que tant que personne ne pousse un brouillon.
+`20260826000002` remet les deux en phase — les six corps sont désormais identiques au fichier,
+revérifiés après la poussée.
+
+**Ce que ça laisse ouvert.** Un invariant comparant `prosrc` aux fichiers de `supabase/migrations/`
+serait la règle derrière ce constat, et il n'est pas écrit : il demande de savoir *quelle* migration
+définit une fonction en dernier, ce qui se déduit du nom des fichiers et non du catalogue. Le piège
+des fins de ligne (`docs/REPRISE.md`, « Pièges qui ont coûté du temps ») est le premier obstacle, et
+il est déjà documenté.

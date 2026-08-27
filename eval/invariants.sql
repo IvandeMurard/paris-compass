@@ -859,3 +859,136 @@ where v.scope = 'retail_only'
   and (t.evidence is null or btrim(t.evidence) = ''
        or t.evidence !~* '\yvacants?\y')
 limit 20;
+
+-- ===========================================================================
+-- w0-appelant (#58) — le test d'appelant, une seule expression et une décision
+-- ===========================================================================
+-- I23 et I24 recensent les fonctions qui *doivent* retenir. Ils ne disent rien
+-- de *comment* chacune décide qui est privilégié — et la réponse était recopiée
+-- à l'identique dans les six, sous un commentaire disant « copié verbatim pour
+-- qu'elles ne divergent pas ». Une intention, là où I23 avait mis une garantie.
+--
+-- I32 fait de l'unicité une règle. I33 et I34 jouent la décision du 26 août
+-- 2026 dans les deux sens : un compte créé sur le site n'est pas privilégié, et
+-- le rôle de service ne cesse pas de l'être.
+
+-- @invariant I32 :: le test d'appelant est recopié dans une fonction au lieu d'être appelé
+-- Deux exigences, et il faut les deux — même forme que I23.
+--
+--   AUCUNE COPIE. Une fonction compass_* autre que compass_caller_is_privileged
+--     qui lit `request.jwt.claims` dans son corps a réécrit la décision au lieu
+--     de l'appeler. C'est ce qui a rendu DIAGNOSTIC.md §12 puis §21 possibles :
+--     la même règle en six exemplaires, dont deux appliquées à une fonction
+--     `SECURITY INVOKER` où elle ne pouvait pas tenir. La septième fonction
+--     naîtra par copier-coller de la sixième — compass_street_rotation est née
+--     comme ça (§19) — et c'est ce chemin-là qui est fermé ici.
+--
+--   ET L'APPEL. Interdire la copie ne force pas l'appel : une septième fonction
+--     pourrait ne tester personne du tout et rendre `withheld = false` en dur.
+--     Le second volet exige donc que toute fonction de la population de I23 —
+--     celles qui lisent une table dont RLS peut retirer des lignes — appelle
+--     compass_caller_is_privileged(). La population est dérivée du catalogue,
+--     comme celle de I23, et non d'une liste que quelqu'un doit penser à tenir.
+--
+-- CE QUE I32 NE RATTRAPE PAS, et la limite compte autant que la règle :
+--   — `prosrc` est du texte. Une fonction qui rejouerait la décision autrement
+--     — `current_user`, `session_user`, un GUC applicatif, une table de rôles —
+--     n'est pas vue. La règle interdit la copie, pas la réinvention.
+--   — Elle ne juge pas l'usage. `not (privilégié or redistribuable)` inversé
+--     appelle bien la fonction et retient exactement à l'envers. Ce sont les
+--     paires de comportement (I9/I10 … I27/I28) et I33 qui l'attrapent.
+--   — Elle ne dit rien du contenu de la décision. Un jour où le privilège
+--     changerait de définition, I32 resterait vert : c'est I33 et I34 qui
+--     portent la décision elle-même.
+--   — Elle ne couvre que le schéma `public` et le préfixe `compass_`. Une
+--     fonction posée ailleurs, ou nommée autrement, sort de la population — même
+--     angle mort que I23 et I24, et pour la même raison : la population est le
+--     périmètre exposé à PostgREST.
+--
+-- Mesuré le 26 août 2026 sur le distant, après 20260826000002 : zéro ligne, six
+-- fonctions dans la population du second volet, toutes appelantes. Éprouvé par
+-- sabotage — `npm.cmd run eval:sabotage` crée une septième fonction qui recopie
+-- le test, dans une transaction annulée, et cet invariant passe au rouge quand
+-- I23, lui, reste vert : c'est précisément ce que I23 ne pouvait pas voir.
+with restricted as (
+  select c.relname
+  from pg_class c
+  join pg_namespace n on n.oid = c.relnamespace
+  where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity
+    and exists (
+      select 1 from pg_policy p
+       where p.polrelid = c.oid
+         and p.polcmd in ('r', '*')
+         and coalesce(pg_get_expr(p.polqual, p.polrelid), '') <> 'true')
+)
+select p.proname, 'recopie le test : lit request.jwt.claims dans son corps' as raison
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.proname like 'compass\_%'
+  and p.proname <> 'compass_caller_is_privileged'
+  and p.prosrc ~ 'request\.jwt\.claim'
+union all
+select distinct p.proname,
+       'lit ' || r.relname || ' sans appeler compass_caller_is_privileged()' as raison
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+join restricted r on p.prosrc ~ ('\y' || r.relname || '\y')
+where n.nspname = 'public'
+  and p.proname like 'compass\_%'
+  and p.prosrc !~ 'compass_caller_is_privileged'
+limit 20;
+
+-- @invariant I33 :: un compte créé sur le site est traité comme un appelant privilégié
+-- @as authenticated
+-- La décision du 26 août 2026, jouée : `authenticated` n'est PAS privilégié.
+-- Créer un compte n'est pas une lecture de licence — 2017 et 2020 portent
+-- `publicly_redistributable = false` parce que la licence APUR n'a pas été lue,
+-- et elle ne l'a pas été davantage pour un inscrit. Révisable sur un seul
+-- événement, une réponse de l'APUR (#49). Voir docs/CONTEXTE.md.
+--
+-- Deux volets, et le second est ce qui empêche la décision de rester une
+-- déclaration : le premier lit le verdict, le second lit ce que l'appelant
+-- reçoit réellement. Un `not (privilégié or redistribuable)` inversé passerait
+-- le premier et pas le second.
+--
+-- Halles (48,86229 / 2,34490), 800 m, millésime 2017 : une ligne, marquée. Avant
+-- 20260826000002 le même appelant en recevait **4 773**, mesuré le 26 août 2026
+-- sur le distant — et zéro avant 20260825000014, qui est le défaut §21.
+--
+-- Le lanceur pose le claim et n'émet pas `set local role` : c'est donc bien le
+-- test de claim qui est éprouvé, jamais RLS en dessous. Les six fonctions sont
+-- `SECURITY DEFINER`, RLS ne les protège plus, et ce test est la seule porte.
+select 'compass_caller_is_privileged' as ou,
+       'privilège accordé à un compte créé sur le site' as defaut
+where public.compass_caller_is_privileged()
+union all
+select 'compass_premises_within',
+       'millésime retenu : ' || t.lignes || ' ligne(s), ' || t.marquees || ' marquée(s), attendu 1 et 1'
+from (
+  select count(*) as lignes, count(*) filter (where withheld) as marquees
+  from public.compass_premises_within(
+    48.86229::double precision, 2.34490::double precision,
+    800::double precision, 2017::smallint, 500::integer)
+) t
+where t.lignes <> 1 or t.marquees <> 1
+limit 20;
+
+-- @invariant I34 :: le rôle de service perd le privilège
+-- @as service_role
+-- Le contre-test, et la moitié qui se saute. Corriger l'appelant `authenticated`
+-- en retirant aussi le privilège à ceux qui *exploitent* Compass serait pire que
+-- le défaut : les chargeurs, la porte elle-même et le serveur MCP lisent tous
+-- les trois millésimes, et un `withheld` posé là passerait pour une base vide.
+--
+-- Même famille que I10, I13, I15, I17, I26 et I31 : la sur-correction est une
+-- faute au même titre que l'affirmation.
+--
+-- Ce test couvre le claim `service_role`, celui que PostgREST pose avec la clé
+-- de service. La connexion directe, elle, ne porte aucun claim et retombe sur le
+-- `coalesce` — chemin exercé par tous les autres invariants, qui échoueraient en
+-- masse s'il basculait.
+select 'compass_caller_is_privileged' as ou,
+       'privilège retiré au rôle de service' as defaut
+where not public.compass_caller_is_privileged()
+limit 20;
