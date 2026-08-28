@@ -1,7 +1,8 @@
 {
   "measured_on": "2026-08-28",
   "target": "dbefhvmyfmmhjeetdddu",
-  "note": "PLAFOND, pas égalité : `pages` est ce qu'une fonction a le droit de toucher au rayon maximal, jamais ce qu'elle doit toucher exactement. Le bras échoue au-dessus de +10 %, jamais en dessous — un plan devenu moins cher n'est pas une régression. Relevé après la pose de 20260828000001 et 20260828000002, par explain (analyze, buffers, timing off), claim anon, parallélisme coupé ; chaque valeur est le PIRE de douze passages (quatre lots de trois), parce qu'un plafond pris sur un plan chanceux n'est pas un plafond. `ms` est le meilleur observé, donc le coût à chaud. Les deux fonctions qui rendent tout le rayon basculent entre deux plans d'un passage à l'autre : voir leurs notes. Remesurer et redater avant de recopier (CLAUDE.md) — les valeurs relevées avant poussée, dans la transaction de répétition, ne valaient déjà plus.",
+  "note": "PLAFOND, pas égalité : `pages` est ce qu'une fonction a le droit de toucher au rayon maximal, jamais ce qu'elle doit toucher exactement. Le bras échoue au-dessus de +10 %, jamais en dessous — un plan devenu moins cher n'est pas une régression. Relevé après la pose de 20260828000003 (#64), qui suit 20260828000001 et 20260828000002 (#62) ; par explain (analyze, buffers, timing off), claim anon, parallélisme coupé ; chaque valeur est le PIRE de douze passages (quatre lots de trois), parce qu'un plafond pris sur un plan chanceux n'est pas un plafond. `ms` est le meilleur observé, donc le coût à chaud. Remesurer et redater avant de recopier (CLAUDE.md) — les valeurs relevées avant poussée, dans la transaction de répétition, ne valaient déjà plus.",
+  "plan_cache": "Ce que la version du 28 août au matin appelait « bascule entre deux plans d'un passage à l'autre » n'était pas de la chance : ces fonctions sont en plpgsql, donc leurs requêtes passent par le cache de plans, et les deux valeurs étaient le plan CUSTOM et le plan GÉNÉRIQUE. Mesuré avec plan_cache_mode forcé dans les deux sens, six passages chacun : compass_street_rotation 151 778 en custom contre 286 710 en générique, compass_scoring_context_within 103 241 contre 137 576 — et `auto`, c'est-à-dire la production, prenait le GÉNÉRIQUE à chaque fois. Le chiffre bas n'était donc jamais celui qu'un visiteur payait. Conséquence de méthode : mesurer le corps d'une fonction comme une requête SQL nue le sous-estime d'un facteur deux, parce qu'une requête nue est planifiée en custom. Depuis 20260828000003 les deux plans ont convergé — custom et générique rendent le même chiffre à 25 pages près, remesuré le 28 août — parce que les CTE `materialized` retirent au planificateur la liberté qui produisait le mauvais plan.",
   "window_fraction": 0.34,
   "point": {
     "label": "Chatelet",
@@ -11,23 +12,23 @@
   "functions": {
     "compass_premises_within": {
       "pages": 94117,
-      "ms": 131,
-      "note": "Corrigée le 28 août par 20260828000001 (#62). 195 422 pages avant, avec l'ancien index ; 172 807 avec le nouveau, ce qui isole la part de la restructuration. Stable d'un passage à l'autre à 52 pages près."
+      "ms": 140,
+      "note": "Corrigée le 28 août par 20260828000001 (#62). 195 422 pages avant, avec l'ancien index ; 172 807 avec le nouveau, ce qui isole la part de la restructuration. L'élargissement de l'include par 20260828000003 ne la déplace pas : elle ne lit pas activity_code sur ce chemin. Varie de 92 129 à 94 117 d'un passage à l'autre."
     },
     "compass_bodacc_within": {
-      "pages": 148206,
+      "pages": 148346,
       "ms": 294,
-      "note": "Corrigée le 28 août par 20260828000002, même défaut trouvé en mesurant #62 : 361 965 pages et 9 331 ms au premier appel avant."
+      "note": "Corrigée le 28 août par 20260828000002, même défaut trouvé en mesurant #62 : 361 965 pages et 9 331 ms au premier appel avant. Remesurée après 20260828000003, qui ne la touche pas : 148 346 contre 148 206, l'écart est du bruit de passage."
     },
     "compass_scoring_context_within": {
-      "pages": 137576,
-      "ms": 149,
-      "note": "Non corrigée, et pas du même défaut : elle rend TOUT le rayon, sans limite — 17 173 lignes à 2 000 m, une par local, et les coordonnées comptent puisque src/core/scoring.ts construit un GridIndex dessus. Son coût est bien sa réponse ; le réduire veut dire changer ce qu'elle rend, décision produit qui toucherait des formules publiées. Bascule entre deux plans, 103 278 et 137 576 pages ; le plafond retient le second. Ouverte en ticket : #64."
+      "pages": 86102,
+      "ms": 114,
+      "note": "Corrigée le 28 août par 20260828000003 (#64) : 137 576 pages avant. Son coût EST sa réponse pour l'essentiel — elle rend 17 173 lignes à 2 000 m, une par local, et les coordonnées comptent puisque src/core/scoring.ts construit un GridIndex dessus — mais 34 346 de ses pages n'étaient pas sa réponse : une recherche par clé primaire dans bdcom_activity, 222 lignes et onze pages, jouée 17 173 fois. Le reste vient de l'include élargi. Aucune formule publiée n'a bougé."
     },
     "compass_street_rotation": {
-      "pages": 286744,
-      "ms": 355,
-      "note": "Non corrigée, et la plus chère des quatre depuis #62 — trois fois compass_premises_within. Contrairement à sa voisine, son coût n'est PAS sa réponse : agrégat par tronçon, elle rend 2 609 lignes à 2 000 m en en lisant 64 147, trois millésimes par local. 136 072 de ses pages sont cette recherche-là, qui n'est pas un parcours d'index seul faute de porter activity_code. Il y a de la place, et 2 091 ms au premier appel observé. Ouverte en ticket : #64."
+      "pages": 87879,
+      "ms": 246,
+      "note": "Corrigée le 28 août par 20260828000003 (#64) : 286 744 pages avant, la plus chère des quatre, elle est désormais la moins chère. Agrégat par tronçon — 2 609 lignes rendues à 2 000 m pour 64 147 lues, trois millésimes par local, et ces trois millésimes lui restent nécessaires puisque changed_since_previous est une comparaison entre eux. 136 361 de ses pages étaient deux recherches par clé primaire jouées par ligne (bdcom_activity 64 147 fois, street_segment 2 689 fois), 64 120 autres le passage au tas faute de porter activity_code."
     }
   }
 }

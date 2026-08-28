@@ -2247,10 +2247,15 @@ ignorée. »
   de celle d'avant. **Le réveil après une nuit n'est pas mesuré après correctif**, et la seule
   façon de le mesurer est d'attendre : premier appel de la matinée, 2 000 m, avant toute autre
   requête.
-- **Deux fonctions gardent le coût du ticket, et ce n'est pas le même défaut** — ni, corrigé le
-  28 août même, le même cas toutes les deux. Elles rendent l'une et l'autre tout le rayon sans
-  limite, donc aucun `top-N` sur lequel reporter quoi que ce soit ; mais ce que ça coûte ne se
-  lit pas pareil, et la première version de ce point les rangeait ensemble à tort :
+- ~~**Deux fonctions gardent le coût du ticket, et ce n'est pas le même défaut**~~ — **les deux
+  sont corrigées le 28 août par `20260828000003` (`#64`), et ce point s'est trompé deux fois
+  plutôt qu'une. Voir §28**, qui remplace ce qui suit : la première version rangeait les deux
+  fonctions ensemble à tort, la seconde — celle qui est écrite ici — a séparé leurs cas
+  correctement mais a conclu, pour `compass_scoring_context_within`, qu'il n'y avait pas de piste
+  technique. Il y en avait une, et elle valait 37 %. Les chiffres du tableau ci-dessous sont par
+  ailleurs des plans *custom*, mesurés en sortant les corps en requêtes SQL nues ; la production
+  paie le plan *générique*, plus cher, et §28 explique la différence. Conservé tel quel pour que
+  l'erreur reste lisible :
 
   | Fonction, 2 000 m | Lignes rendues | Lignes lues | Plafond du bras E |
   | --- | ---: | ---: | ---: |
@@ -2278,3 +2283,209 @@ ignorée. »
   sondé aux 4 515 pages que fait `premise_observation` en entier — borné, pas mesuré : aucun
   moyen de forcer ce plan sans un levier de planificateur, et ce n'est pas ce que ce ticket
   corrige. C'est la prochaine chose à regarder si la fenêtre se resserre.
+
+---
+
+## 28. Les deux fonctions de rayon que `#62` n'avait pas corrigées — le 28 août
+
+**Ouvert par [`#64`](https://github.com/IvandeMurard/paris-compass/issues/64)**, lui-même ouvert
+en mesurant `#62`. Le ticket demandait de vérifier que le patron de `#62` s'appliquait avant de le
+recopier. Il ne s'appliquait qu'à moitié, et ce qui manquait valait plus que ce qui restait.
+
+### D'abord la mesure que le ticket réclamait : à froid, la fonction ne répondait pas
+
+`compass_street_rotation`, 2 000 m sur Châtelet, par HTTP avec la clé publiable, **premier appel
+de la session sur des tables qu'aucune requête n'avait encore touchées**, le 28 août à 14 h 42 UTC :
+
+| Appel | Temps | Réponse |
+| --- | --- | --- |
+| **1 — le plus froid obtenable** | **4 111 ms** | **HTTP 500, `57014`** — annulée |
+| 2 | 1 403 ms | 200 |
+| 3 | 621 ms | 200 |
+| 4 | 609 ms | 200 |
+| 5 | 555 ms | 200 |
+
+Le ticket annonçait « 2 091 ms, 70 % du budget ». C'est **un dépassement**, pas 70 % — exactement
+comme `#62` sous-estimait le sien, et pour la même raison.
+
+**Comment le froid a été obtenu, et ce que ça ne vaut pas.** `docs/REPRISE.md` établit qu'on ne
+peut pas fabriquer un cache froid sur cette instance — trois voies, trois impasses — et que la
+seule mesure honnête est une instance réellement inactive. Ici l'instance n'était pas inactive
+depuis dix heures comme pour `#62` : la session précédente l'avait sollicitée le matin même. Ce
+qui est vrai et vérifiable est plus faible : **c'est le premier appel de cette session-ci, et il a
+été dépensé sur cette mesure avant toute autre requête**, catalogue mis à part. C'est un froid
+partiel, il suffit à faire tomber la fonction, et il ne prouve rien de plus.
+
+**Corollaire qui a coûté une mesure : il n'y en a qu'une par jour.** Le froid a été dépensé sur
+`compass_street_rotation` ; `compass_scoring_context_within`, mesurée trois minutes plus tard sur
+les mêmes tables désormais chaudes, n'a **pas** de mesure à froid avant correctif, et n'en aura
+pas. Elle est donnée tiède — 689 ms au premier appel — et c'est dit, plutôt que présenté comme un
+froid.
+
+### Ce que le ticket croyait, et qui était faux dans les deux sens
+
+| | Ce que `#64` annonçait | Ce qui est mesuré |
+| --- | --- | --- |
+| `compass_street_rotation` | une piste : élargir l'`include` à `activity_code` | vraie, mais elle ne vaut que 22 % — la cause principale est ailleurs |
+| `compass_scoring_context_within` | « pas de piste technique, il y a une décision » | **faux** : elle portait le même défaut, à 37 % |
+
+Aucune des trois pistes que `#64` proposait pour la seconde n'a été prise, et il n'y a **pas eu de
+décision produit à écrire** : rien n'a été retiré, aucune formule publiée n'a bougé,
+`src/core/scoring.ts` n'a pas été touché. La piste 2 du ticket — un rayon maximal propre à cette
+fonction — reposait de plus sur une prémisse fausse, vérifiée dans le code : « personne ne
+l'appelle à 2 000 m aujourd'hui ». Les outils MCP `score_location`, `explain_score` et
+`compare_locations` déclarent tous les trois `radius_m: z.number().positive().max(2000)` et le
+passent tel quel à la fonction. La promesse n'était pas vide.
+
+### Le défaut de méthode qui cachait le vrai coût : plan générique contre plan custom
+
+`eval/baselines/anon-budget.json` disait des deux fonctions qu'elles « basculent entre deux plans
+d'un passage à l'autre » et traitait l'écart comme de la chance. **Ce n'en était pas.** Ce sont des
+fonctions plpgsql : leurs requêtes passent par le cache de plans, et les deux valeurs sont le plan
+**custom** et le plan **générique**. `plan_cache_mode` forcé dans les deux sens, six passages
+chacun, le 28 août :
+
+| Fonction | custom | générique | ce que prend `auto` |
+| --- | ---: | ---: | --- |
+| `compass_street_rotation` | 151 778 | **286 710** | générique, à tous les coups |
+| `compass_scoring_context_within` | 103 241 | **137 576** | générique, à tous les coups |
+
+**Le chiffre bas n'était donc jamais celui qu'un visiteur payait.** Et il y a là une leçon de
+mesure qui dépasse ce ticket : sortir le corps d'une fonction plpgsql en requête SQL nue pour
+l'expliquer — le geste évident face à une boîte noire — le planifie en **custom**, et sous-estime
+la fonction d'un facteur deux. Pour lire le plan que la production exécute : `prepare` le corps,
+l'exécuter cinq fois pour que le cache bascule en générique, expliquer le sixième. C'est consigné
+dans `scripts/eval/budget.ts`, à l'endroit où les mesures se prennent.
+
+### Où allait vraiment le coût
+
+Le plan générique, lu correctement. `p_radius_m` étant inconnu au moment de la planification,
+`ST_DWithin` est estimé à 5 lignes contre 23 909 réelles, et le planificateur met une boucle
+imbriquée partout. Deux de ces boucles sondent des tables assez petites pour être lues une fois :
+
+| Nœud, `compass_street_rotation`, 2 000 m | Boucles | Pages |
+| --- | ---: | ---: |
+| `Index Scan bdcom_activity_pkey` — **une table de 222 lignes, onze pages** | 64 147 | **128 294** |
+| `Index Scan premise_observation_location_idx` — au tas, faute de porter `activity_code` | 23 909 | 136 072 |
+| `Index Scan street_segment_pkey` | 2 689 | 8 067 |
+| `Index Scan premise_location_geom_idx` | 1 | 14 275 |
+
+**136 361 pages, 48 % de la fonction, à chercher deux cent vingt-deux lignes une par une.** C'est
+la même faute que `#62` — du travail par ligne sur des lignes qui n'en demandent pas — mais elle ne
+se voyait pas, parce qu'elle n'existe que dans le plan générique.
+`compass_scoring_context_within` payait le même sondage 17 173 fois, pour 34 346 pages.
+
+### Le correctif, et pourquoi ce n'est pas un levier de planificateur
+
+Les deux tables de libellés passent en CTE `materialized`. C'est une **barrière, pas une
+indication** : elle fixe *quand* la table est lue, et la table est lue en entier dans les deux cas.
+Pas de `plan_cache_mode`, pas d'`enable_*`, rien qui dépende de l'accord du planificateur. S'y
+ajoute l'`include` élargi à `activity_code`, qui rend le sondage par local `Index Only Scan` avec
+`Heap Fetches: 0` — la piste que `#64` nommait, mesurée et retenue.
+
+**Le coût de l'index, que le ticket demandait de mesurer avant d'y croire :** 1 132 → 1 385 pages,
+**+253 pages, +2,0 Mo** sur 228 275 lignes. Mêmes colonnes de tête, donc aucun chemin d'accès perdu
+et pas de second index à tenir en phase.
+
+**Une piste écartée par la mesure**, pour qu'elle ne soit pas retentée : `include (street_segment_id)`
+sur l'index GiST `premise_location_geom_idx` ne rend pas le parcours *index seul*, ne vaut que
+640 pages sur 87 000 — 0,7 % — et dégrade l'horloge au passage. Refusée.
+
+### Ce que ça vaut, plan générique, Châtelet 2 000 m, claim `anon`, parallélisme coupé
+
+| Fonction | Avant | Après | |
+| --- | ---: | ---: | ---: |
+| `compass_street_rotation` | 286 744 | **87 879** | **−69 %** |
+| `compass_scoring_context_within` | 137 576 | **86 102** | **−37 %** |
+| `compass_premises_within` — `#62` | 94 117 | 94 117 | inchangée |
+| `compass_bodacc_within` — `#62` | 148 206 | 148 346 | bruit de passage |
+
+**La plus chère des quatre, de trois fois, est devenue la moins chère.** Douze passages, quatre
+lots de trois, pire des pages et meilleur de l'horloge — le protocole que le fichier de budget
+déclare. Le plafond du bras E est abaissé en conséquence : un plafond qu'on ne baisse pas après
+avoir corrigé cesse de protéger quoi que ce soit.
+
+**Effet de bord vérifié : les deux plans ont convergé.** Custom et générique rendent désormais le
+même chiffre à 25 pages près sur les deux fonctions, parce que la barrière retire au planificateur
+la liberté qui produisait le mauvais plan. La note « bascule entre deux plans » du fichier de
+budget est donc retirée, et le seuil `PAGES_UNDER_WARN` de `budget.ts`, qu'elle justifiait, est
+rejustifié sur ce qui reste : une dérive de passage à passage de 2 %.
+
+### Après correctif, par HTTP — et ce qui n'est pas mesuré
+
+Premier appel après la pose de la migration, qui invalide les plans et reconstruit l'index :
+**2 061 ms, HTTP 200**, là où le premier appel d'avant rendait 500. Puis 700, 464, 451, 390 ms —
+contre 555 à 621 ms à chaud avant. `compass_scoring_context_within` : 429 puis 238 et 235 ms.
+
+**Le réveil après une nuit n'est pas mesuré après correctif**, exactement comme §27 le disait de
+`#62`, et pour la même raison : il faut attendre. Ce qui est acquis est la page touchée, qui ne
+dépend pas de la température — 69 % de moins —, et c'est sur elle que la porte tranche.
+
+### Le contre-test : aucun chiffre affiché ne bouge
+
+Les anciens corps recréés sous `ref_*` à côté des nouveaux, dans une transaction annulée, et les
+deux interrogés sur **7 points × 5 rayons × 2 claims**, avec les deux périmètres pour la rotation
+et les trois millésimes pour le contexte, plus le point hors corpus et le rayon vide du bois de
+Vincennes — **354 comparaisons** :
+
+| | |
+| --- | --- |
+| Réponses qui diffèrent | **0** |
+| Dont `premises`, `vacant`, `changed_since_previous`, `total_matched` déplacés | **0** |
+
+L'argument structurel vient d'abord, comme dans `#62` : `bdcom_activity.code` et
+`street_segment.id` sont des **clés primaires** relevées dans `pg_constraint`, les deux jointures
+sont des `left join` dessus, et une jointure externe sur une clé unique ne peut ni ajouter ni
+retirer une ligne. Une CTE `materialized` change quand une table est lue, jamais quelles lignes
+elle contient.
+
+Quelques valeurs, appelant privilégié et `p_retail_scope_only => false` — c'est-à-dire là où
+`vacant` n'est pas structurellement nul et `changed_since_previous` n'est pas `null`, sans quoi le
+contre-test ne prouverait rien sur eux. Format `locaux / vacants / changements`, ancien et nouveau
+corps confondus parce qu'ils sont égaux :
+
+| Point, 2 000 m | 2017 | 2020 | 2023 |
+| --- | --- | --- | --- |
+| Châtelet | 23 607 / 2 162 / `null` | 23 367 / 2 785 / 6 368 | 17 173 / 0 / 3 247 |
+| Halles | 24 731 / 2 259 / `null` | 24 540 / 2 850 / 6 447 | 18 359 / 0 / 3 386 |
+| Belleville | 17 551 / 1 935 / `null` | 17 458 / 2 139 / 4 401 | 11 729 / 0 / 2 241 |
+| Montorgueil | 25 966 / 2 422 / `null` | 25 749 / 3 029 / 6 779 | 19 060 / 0 / 3 536 |
+| Alésia | 6 963 / 613 / `null` | 6 882 / 649 / 1 238 | 4 945 / 0 / 748 |
+
+Châtelet 2023 à 17 173 est le même nombre que §27 relevait pour `compass_premises_within` : les
+deux fonctions comptent bien la même population.
+
+### La règle : le bras E attrape-t-il la fonction qu'on lui ajouterait ?
+
+`#64` demandait de le vérifier plutôt que de l'affirmer. Une fonction de rayon a été créée,
+`compass_sabotage_within`, avec `grant execute ... to anon` et aucune ligne de budget, et **le bras
+qui est livré** — pas une copie — a été joué dessus :
+
+```
+FAIL  compass_sabotage_within — budget non déclaré — mesurer à 2000 m
+      et inscrire la ligne dans eval/baselines/anon-budget.json
+```
+
+Il la voit, parce qu'il énumère depuis `pg_proc` au lieu de tenir une liste. La fonction a été
+retirée après coup et `pg_proc` revérifié : **15 fonctions `compass_*`, aucune `compass_sabotage_*`**.
+
+> **Le piège rencontré en faisant cette démonstration, parce qu'il se reproduira.** La preuve a
+> d'abord été écrite en ouvrant une transaction puis en appelant `runBudget` dedans. Or `runBudget`
+> ouvre et **annule** ses propres transactions pour poser le claim `anon` : son `rollback` a annulé
+> la transaction englobante, et le `create function` qui suivait est parti **en autocommit — la
+> fonction de sabotage a réellement été posée sur le distant**. Elle a été vue au passage suivant
+> de `npm.cmd run eval`, qui est sorti rouge sur elle, puis retirée. Une démonstration de sabotage
+> ne s'imbrique pas dans une transaction avec du code qui gère les siennes ;
+> `scripts/eval/census-sabotage.ts` fait autrement, et c'est le modèle à suivre.
+
+### Ce que ça ne rattrape pas
+
+- **Les deux fonctions descendent toujours l'index d'observation une fois par local** — 71 952 et
+  71 728 pages, l'essentiel de ce qui reste. C'est l'estimation de `ST_DWithin`, fausse d'un
+  facteur 4 800, qui impose la boucle imbriquée. §27 nommait déjà la jointure par hachage qui
+  bornerait ce côté aux 4 515 pages de `premise_observation` en entier, et elle demande toujours un
+  levier de planificateur que personne n'a. **C'est ce qui reste à regarder si la fenêtre se
+  resserre**, et c'est maintenant la seule chose.
+- **Le froid après correctif n'est pas mesuré**, voir plus haut.
+- **Le bras E mesure toujours un point et un rayon**, et toujours `anon` seul : les deux réserves
+  de §27 tiennent inchangées.

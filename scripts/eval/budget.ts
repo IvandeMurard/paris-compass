@@ -57,12 +57,17 @@ const ROOT = resolve(import.meta.dirname, "../..")
 const PAGES_OVER_FAIL = 0.1
 
 /**
- * Far enough below the ceiling for long enough and the ceiling is fiction. Loose on purpose,
- * and the looseness is measured: the two functions that return a whole radius flip between
- * two plans from one run to the next — `compass_scoring_context_within` between 103 278 and
- * 137 576 pages, `compass_street_rotation` between 152 012 and 286 744, on 2026-08-28. The
- * cheap plan of the second sits at 0.53 of its ceiling, so anything at 0.5 would have warned
- * on roughly half the runs. A warning that fires every other run is a warning nobody reads.
+ * Far enough below the ceiling for long enough and the ceiling is fiction. Loose on purpose.
+ *
+ * The looseness used to be justified by a swing this file called a plan flip: the two
+ * functions returning a whole radius came back at 103 278 or 137 576 pages, 152 012 or
+ * 286 744. That reasoning is retired — the swing was the plpgsql plan cache handing out a
+ * custom plan or a generic one (see anon-budget.json, `plan_cache`), production always took
+ * the expensive one, and since 20260828000003 the two agree to within 25 pages. What is left
+ * to absorb is ordinary run-to-run drift: `compass_premises_within` moves between 92 129 and
+ * 94 117 pages, 2 %, and `compass_bodacc_within` about as much. 0.4 is far wider than that
+ * needs, deliberately — this threshold only says a ceiling has gone stale, and a warning
+ * that fires on noise is a warning nobody reads.
  */
 const PAGES_UNDER_WARN = 0.4
 
@@ -205,6 +210,14 @@ interface Measurement {
  * btree, so the count moves with the machine's mood rather than with the query. Measured on
  * `compass_premises_within` at 2 000 m: 94 117 pages with two workers allowed, 94 065 with
  * none. Small — and the point is that it is not zero, and not under anyone's control.
+ *
+ * THE FUNCTION IS CALLED, NEVER ITS BODY, and that is not a convenience. These are plpgsql
+ * functions: their statements go through the plan cache, and the plan production actually
+ * gets is the GENERIC one. Lifting a body out into a bare SQL statement to explain it — the
+ * obvious way to see inside a plpgsql black box — plans it CUSTOM, and measured 2026-08-28
+ * that understated `compass_street_rotation` by a factor of two (151 778 pages against the
+ * 286 710 a visitor paid). To read the plan inside one of these, prepare the body as a
+ * statement, execute it five times so the cache switches to generic, then explain the sixth.
  *
  * It is NOT the explanation for the one large swing seen so far. Minutes after the covering
  * index of 20260828000001 was built, the same call counted 80 417 pages; every one of the six
