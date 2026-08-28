@@ -20,7 +20,7 @@ Compass reads the street around it: what was there, what is changing, and what s
 
 ---
 
-> Compass sells neither coverage nor granularity — it sells **interpretation**. The value is not the number of sources plugged in; it is the distance between a raw figure and a sentence you can decide on.
+> Compass sells neither coverage nor granularity — it sells **interpretation**. The point is how clearly we turn a raw figure into a decision you can make today.
 
 A 3/6/9 lease is a nine-year bet, made today on one visit, a hunch about passing trade, and whatever the landlord says.
 
