@@ -83,8 +83,8 @@ d'abord ici : **remesurer avant de recopier.**
 | Bras de la porte | **cinq** : A invariants, B baselines, C jeu doré, **E budget de la fenêtre anon** (nouveau, `#62`), D porte anonyme jouée à part |
 | Tests unitaires | **188** — 179 la veille, +9 pour `budgetVerdict` et `parseWindowMs` |
 | `auth.users` | **0** — aucun compte, ce qui rend la décision de `w0-appelant` gratuite aujourd'hui et coûteuse plus tard |
-| Issues | **35 ouvertes, 22 fermées** — remesuré par `gh issue list --jq length` après fermeture de [`#62`](https://github.com/IvandeMurard/paris-compass/issues/62). Il valait 37/20 la veille : **remesurer avant de recopier** |
-| Épic [`#42`](https://github.com/IvandeMurard/paris-compass/issues/42) (vague 1) | ouverte, **5 cochés sur 7** — inchangé, `#62` n'y figure pas |
+| Issues | **36 ouvertes, 22 fermées** — remesuré par `gh issue list --jq length` en fin de session, après fermeture de [`#62`](https://github.com/IvandeMurard/paris-compass/issues/62) **et ouverture de [`#64`](https://github.com/IvandeMurard/paris-compass/issues/64)**. Il valait 35/22 une heure plus tôt et 37/20 la veille : **remesurer avant de recopier** |
+| Épic [`#42`](https://github.com/IvandeMurard/paris-compass/issues/42) (vague 1) | ouverte, **5 cochés sur 7** — inchangé, ni `#62` ni `#64` n'y figurent |
 | Portes | `typecheck` ✓ · `test` **188** ✓ · `build` ✓ · `eval` **37 invariants**, 8 cas dorés, bras E vert sur quatre fonctions, **11 avertissements de baseline inchangés depuis la veille** (sortie 3) · `eval:anon` **PASS, 15 contrôles**, trois passages · `verify:mcp` **41 contrôles, 40 verts, 1 suspendu** (Overpass 429, panne amont) · `eval:sabotage` **non relancé** — rien de ce jour ne touche la règle de retenue |
 
 **Coût des quatre fonctions de rayon au rayon maximal**, mesuré après poussée, claim `anon`,
