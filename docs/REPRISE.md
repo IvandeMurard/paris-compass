@@ -1,10 +1,38 @@
-# Reprise — état au 27 août 2026, fin de session 15
+# Reprise — état au 28 août 2026, fin de session 16
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`
 (backlog, décisions produit), `docs/PLAN-ACTION-VACANCE.md` (doctrine et backlog
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
+
+## `#62` — la carte tenait la fenêtre anonyme à chaud et la dépassait à froid — 28 août 2026
+
+**Le ticket sous-estimait son propre défaut.** Il citait 2 116 ms à chaud au rayon maximal, soit
+70 % des 3 s accordées à `anon`. Mesuré comme son critère le demandait — premier appel d'une
+instance restée inactive, ici dix heures — le premier appel est **annulé** : `57014`, HTTP 500,
+4 536 ms. Au rayon que le produit promet, sur une instance froide, la carte ne s'affichait pas.
+
+**Corrigé par la piste 2 du ticket, poussée plus loin qu'elle n'était formulée.** Le compte cesse
+de matérialiser les cinq jointures de libellés, qui sont reportées sur les seules lignes que le
+`limit` garde, et `premise_observation_location_idx` devient couvrant. **195 422 → 94 065 pages**
+au rayon maximal. Le même défaut, en pire, a été trouvé en mesurant et corrigé dans
+`compass_bodacc_within` — 9 331 ms au premier appel, trois fois la fenêtre entière — parce que la
+porte ajoutée par ce ticket serait sinon partie rouge.
+
+**La piste 3 est refusée** : baisser `compass_max_radius_m()` n'est pas une optimisation, c'est une
+promesse produit qu'on retire. La décision est écrite plus bas, sous « Décisions qui ne se déduisent
+pas du code ».
+
+**Ce que le ticket laisse derrière lui, et qui vaut plus que le correctif** : le **bras E** de la
+porte, qui énumère depuis `pg_proc` toute fonction de rayon appelable par `anon`, la joue au rayon
+maximal, et bloque sur les **pages touchées** — jamais sur l'horloge. Détail complet, arbitrage et
+ce qu'il ne rattrape pas : `DIAGNOSTIC.md` §27.
+
+> **`eval` est à 37 invariants, pas à 34.** Le chiffre « 34/34 » circule encore — il est dans
+> `docs/tickets/w0-appelant.md` et il était juste **le 26 août**. `I35`, `I36` et `I37` sont
+> arrivées le 27 avec `20260827000001`. Un chiffre mesuré porte sa date : remesurer avant de
+> recopier.
 
 ## `w1-dia` — clos par un refus, pas par une ingestion — 27 août 2026
 
@@ -416,6 +444,23 @@ Le détail, la mesure avant/après et **ce que la règle ne rattrape pas** : `DI
 §26 et `docs/CONTEXTE.md`.
 
 
+**Le rayon maximal reste à 2 000 m.** Tranché le 28 août 2026 en corrigeant `#62`, où la
+troisième piste du ticket était de le baisser.
+
+La raison tient en une phrase : **baisser `compass_max_radius_m()` n'est pas une
+optimisation, c'est une promesse produit qu'on retire.** 2 000 m est le plafond que l'outil
+MCP `find_premises` annonce dans son schéma d'entrée — un agent qui lit ce schéma le croit —
+et la fonction est partagée par **six** RPC. La baisser pour qu'une requête chère passe
+rétrécirait aussi `compass_bodacc_within`, `compass_scoring_context_within` et
+`compass_street_rotation`, dont aucun ticket ne l'a demandé. C'est le même geste que monter
+`statement_timeout` sur `anon`, dans l'autre sens : déplacer le coût sur ce qui n'a rien
+demandé.
+
+Le coût a donc été traité là où il naît, dans le corps des fonctions : `DIAGNOSTIC.md` §27.
+Ce qui rouvrirait la décision : une mesure montrant qu'au-delà d'un certain rayon la réponse
+cesse d'avoir un sens produit — « ce quartier » à 2 km n'est plus un quartier. Ce serait une
+décision de périmètre, écrite comme celle-ci, et pas un correctif de performance.
+
 **Quatre niveaux de fiabilité, calculés et jamais saisis** : `etabli`,
 `corrobore`, `probable`, `indetermine`. Pas de score sur 100 — un pourcentage de
 confiance serait le chiffre invérifiable que le produit refuse. La règle est dans
@@ -540,6 +585,23 @@ sortie 3 est légitime ; rejouer un **FAIL** ne l'est pas, et c'est toute la
 différence que ce ticket a achetée. `eval` (bras A) et `verify:mcp` n'ont pas
 cette distinction pour le timeout : là, **rejouer avant de diagnostiquer** reste
 la règle, et ne conclure à une régression qu'au deuxième rouge.
+
+**On ne peut pas fabriquer un cache froid sur cette instance — ne pas y passer la
+matinée.** Trois voies essayées le 28 août, trois impasses. Faire tourner le pool avec
+un gros balayage ne suffit pas : douze passages de ~28 000 pages sur
+`sirene_etablissement_stock` et `bodacc_establishment` laissent `Shared Read Blocks` à
+**0** sur la requête visée, parce que ses pages portent un `usagecount` de 5 sur 5 et
+que l'horloge de remplacement trouve toujours des victimes plus tièdes.
+`pg_buffercache_evict()` existe bien en PostgreSQL 17.6 mais rend **`42501`** : elle
+demande un vrai superutilisateur, et le rôle `postgres` de Supabase n'en est pas un. Et
+même réussi, rien de tout ça n'atteint le cache du système sous Postgres.
+
+> **Ce qui marche, à la place.** Mesurer **la page touchée** — `explain (analyze,
+> buffers)` —, qui ne dépend pas de la température : c'est le travail à faire, le cache
+> ne décide que du prix de chaque page. Et, pour le froid réel, **attendre** : le premier
+> appel après une nuit d'inactivité est la mesure que le critère de `#62` demandait, et
+> c'est comme ça qu'elle a été obtenue. Une session à cheval sur une nuit vaut de
+> dépenser son premier appel sur la mesure qui compte, avant toute autre requête.
 
 **Deux sessions dans le même arbre de travail se commitent l'une l'autre.** Le
 26 août au soir, deux sessions ont tourné en parallèle sur ce dépôt : l'une

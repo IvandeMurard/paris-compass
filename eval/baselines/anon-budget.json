@@ -1,0 +1,29 @@
+{
+  "measured_on": "2026-08-28",
+  "target": "dbefhvmyfmmhjeetdddu",
+  "note": "PLAFOND, pas égalité : `pages` est ce qu'une fonction a le droit de toucher au rayon maximal, jamais ce qu'elle doit toucher exactement. Le bras échoue au-dessus de +10 %, jamais en dessous — un plan devenu moins cher n'est pas une régression. Relevé après la pose de 20260828000001 et 20260828000002, par explain (analyze, buffers, timing off), claim anon, parallélisme coupé ; chaque valeur est le PIRE de douze passages (quatre lots de trois), parce qu'un plafond pris sur un plan chanceux n'est pas un plafond. `ms` est le meilleur observé, donc le coût à chaud. Les deux fonctions qui rendent tout le rayon basculent entre deux plans d'un passage à l'autre : voir leurs notes. Remesurer et redater avant de recopier (CLAUDE.md) — les valeurs relevées avant poussée, dans la transaction de répétition, ne valaient déjà plus.",
+  "window_fraction": 0.34,
+  "point": { "label": "Chatelet", "lat": 48.8566, "lng": 2.3522 },
+  "functions": {
+    "compass_premises_within": {
+      "pages": 94117,
+      "ms": 131,
+      "note": "Corrigée le 28 août par 20260828000001 (#62). 195 422 pages avant, avec l'ancien index ; 172 807 avec le nouveau, ce qui isole la part de la restructuration. Stable d'un passage à l'autre à 52 pages près."
+    },
+    "compass_bodacc_within": {
+      "pages": 148206,
+      "ms": 294,
+      "note": "Corrigée le 28 août par 20260828000002, même défaut trouvé en mesurant #62 : 361 965 pages et 9 331 ms au premier appel avant."
+    },
+    "compass_scoring_context_within": {
+      "pages": 137576,
+      "ms": 149,
+      "note": "Non corrigée, et pas du même défaut : elle rend TOUT le rayon, sans limite, parce que le scoring en a besoin. Il n'y a pas de top-N sur lequel reporter les libellés — son coût est ce qu'elle répond. Bascule entre deux plans, 103 278 et 137 576 pages ; le plafond retient le second."
+    },
+    "compass_street_rotation": {
+      "pages": 286744,
+      "ms": 355,
+      "note": "Non corrigée, même raison : un agrégat par tronçon sur tout le rayon. La plus chère des quatre une fois #62 posée, et la prochaine à regarder si la fenêtre se resserre. Bascule aussi, entre 152 012 et 286 744 pages."
+    }
+  }
+}

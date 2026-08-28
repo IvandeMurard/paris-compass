@@ -19,22 +19,32 @@ une adaptation qui n'est pas cosmétique et qui est expliquée dans `FAILURE_MOD
 > ou `eval/` ne passe sans que les invariants, les baselines et le jeu doré
 > soient au vert.
 
-## Les quatre bras
+## Les cinq bras
 
 | Fichier | Ce qu'il vérifie | Tolérance |
 | --- | --- | --- |
-| `invariants.sql` | **Vingt-huit** requêtes, dont vingt-sept doivent renvoyer zéro ligne — la vingt-huitième est un recensement, voir plus bas | Zéro |
+| `invariants.sql` | **Trente-sept** requêtes, dont trente-six doivent renvoyer zéro ligne — la trente-septième, `I24`, est un recensement, voir plus bas. *Compté le 28 août 2026 ; ce tableau a annoncé vingt-huit pendant deux semaines.* | Zéro |
 | `baselines/ingestion.json` | **Vingt-quatre** effectifs gelés au chargement | Signalé, bloquant au-delà de 1 % |
 | `golden.jsonl` | **Huit** chronologies vérifiées à la main | Zéro |
+| `baselines/anon-budget.json` | Ce que coûte, **au rayon maximal**, chaque fonction de rayon que `anon` peut appeler | Zéro sur les pages, parlant sur l'horloge |
 | `../scripts/eval/anon-http.ts` | La règle de licence **par HTTP, sans identifiants de base** | Zéro |
 
-Le quatrième bras se lance à part, et contre un projet hébergé uniquement :
+**Le bras E — le budget** — a une lettre plus loin que sa place : `D` est pris par la porte
+anonyme, qui tourne à part. Il énumère depuis `pg_proc` toute fonction `compass_*` prenant
+`p_radius_m` que `anon` peut exécuter, la joue à `compass_max_radius_m()`, et compare deux
+nombres à `baselines/anon-budget.json` : les **pages touchées**, qui ne dépendent pas de la
+température du cache et sur lesquelles il **bloque**, et le **temps**, sur lequel il se
+contente de parler. Une fonction de rayon sans ligne dans le fichier échoue : c'est la moitié
+qui protège la fonction que personne n'a encore écrite. Détail et raisons : `DIAGNOSTIC.md`
+§27, `scripts/eval/budget.ts`.
+
+La porte anonyme se lance à part, et contre un projet hébergé uniquement :
 
 ```powershell
 npm.cmd run eval:anon
 ```
 
-Il existe parce que les trois autres tournent tous sur une connexion privilégiée.
+Il existe parce que les autres tournent tous sur une connexion privilégiée.
 Le bras A fait dire `anon` à cette connexion en posant `request.jwt.claims`, mais
 n'émet jamais `set local role anon` : il éprouve le test que les fonctions font
 sur le *claim*, ni la politique RLS en dessous, ni la sérialisation PostgREST de

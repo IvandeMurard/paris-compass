@@ -2,11 +2,15 @@
 //
 //   npx.cmd tsx scripts/eval/run.ts
 //
-// Three arms, run in order, cheapest first:
+// Four arms, run in order, cheapest first:
 //   A — invariants (eval/invariants.sql), each must return zero rows — except a
 //       `@census` block, whose rows are a population to be checked for coverage
 //   B — ingestion baselines (eval/baselines/ingestion.json), drift over 1% fails
 //   C — golden cases (eval/golden.jsonl), hand-verified chronologies
+//   E — the anon window budget (eval/baselines/anon-budget.json): every radius
+//       function anon may call, measured at the maximum radius the product
+//       promises. D is taken — it is the anonymous gate, run separately by
+//       `npm.cmd run eval:anon`, which holds no database credentials.
 //
 // Exit codes follow the Aetherix convention (ADR-0007 §D2.f):
 //   0 PASS · 1 FAIL · 2 ERROR · 3 WARN
@@ -19,6 +23,7 @@ import { resolve } from "path"
 import type { Client } from "pg"
 
 import { connect, connectionTarget, log } from "../ingest/lib/db"
+import { runBudget } from "./budget"
 import { anonymousCoverage, censusVerdict, readInvariants } from "./census"
 
 const ROOT = resolve(import.meta.dirname, "../..")
@@ -324,6 +329,22 @@ async function runGolden(client: Client): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// E — le budget de la fenêtre anon
+// ---------------------------------------------------------------------------
+// La lettre saute D : le bras D est la porte anonyme, `npm.cmd run eval:anon`, qui tourne
+// séparément parce qu'elle ne tient aucun identifiant de base. Celui-ci en a besoin — il lit
+// des plans d'exécution — donc il vit ici. Le détail, et pourquoi il mesure deux nombres
+// plutôt qu'un, sont dans scripts/eval/budget.ts.
+
+async function runBudgetArm(client: Client): Promise<void> {
+  const outcome = await runBudget(client)
+  log("E — budget de la fenêtre anon", outcome.header)
+  for (const [what, detail] of outcome.passes) pass(what, detail)
+  for (const [what, detail] of outcome.warnings) warn(what, detail)
+  for (const [what, detail] of outcome.failures) fail(what, detail)
+}
+
+// ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
   // Both ends of the run name the database, because a verdict that does not say what it
@@ -340,6 +361,7 @@ async function main(): Promise<void> {
     const baselineActuals = await runBaselines(client)
     recordConfidenceHistory(target, baselineActuals)
     await runGolden(client)
+    await runBudgetArm(client)
   } finally {
     await client.end()
   }
@@ -352,7 +374,7 @@ async function main(): Promise<void> {
     log("AVERTISSEMENT", `${warnings} écart(s) sous le seuil bloquant — ${target}`)
     process.exitCode = 3
   } else {
-    log("PASS", `invariants, baselines et jeu doré au vert — ${target}`)
+    log("PASS", `invariants, baselines, jeu doré et budget anon au vert — ${target}`)
   }
 }
 

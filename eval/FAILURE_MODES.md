@@ -171,6 +171,57 @@ le cas doit être joué en rôle `anon`, ce qui suppose une base déployée.
 
 ---
 
+## Bras E — le budget de la fenêtre anon, 28 août 2026
+
+`eval/baselines/anon-budget.json` et `scripts/eval/budget.ts`. Ajouté par `#62`, où
+`compass_premises_within` dépensait 70 % de la fenêtre `anon` à chaud et **la dépassait à
+froid** — premier appel après dix heures d'inactivité : `57014`, la carte ne s'affiche pas.
+
+**Ce que les bras A à D ne pouvaient pas voir.** Ils vérifient tous ce qu'une fonction
+*répond*. Aucun ne vérifie ce qu'il en coûte de répondre — et pour un visiteur, une fonction
+juste et trop lente est une carte qui n'apparaît pas. Pire : la seule fois où le coût s'est
+invité dans la porte, il est arrivé déguisé en défaut de licence (`DIAGNOSTIC.md` §18, puis
+`#61`).
+
+**La population est énumérée, jamais listée.** Toute fonction `public.compass_*` qui prend
+`p_radius_m` et que `anon` peut exécuter, lue dans `pg_proc`, jouée au rayon que
+`compass_max_radius_m()` rend, les autres paramètres à leur défaut. Même mécanique que `I24`
+pour la règle de retenue : **une fonction nouvelle entre dans le bras sans qu'une ligne de code
+change**, et si personne ne lui a écrit de budget, le bras échoue en le disant.
+
+**La fenêtre est lue, jamais recopiée.** `statement_timeout` du rôle `anon`, dans
+`pg_roles.rolconfig`, à chaque passage. Le plafond est une fraction déclarée de cette
+fenêtre — 34 % aujourd'hui, soit 1 020 ms sur les 3 s que `anon` porte. Un budget qui
+contredirait en silence le réglage qu'il protège serait pire que pas de budget.
+
+**Deux nombres, et un seul bloque.**
+
+| Verdict | Cas |
+| --- | --- |
+| **ÉCHEC** | Une fonction de rayon appelable par `anon` sans ligne dans le fichier |
+| **ÉCHEC** | Une ligne inscrite au-dessus du plafond — jugée sans même jouer la requête |
+| **ÉCHEC** | Les pages mesurées s'écartent de plus de 10 % des pages déclarées |
+| **AVERTISSEMENT** | Le temps dépasse le plafond alors que les pages tiennent |
+
+Les **pages touchées** ne dépendent pas de la température du cache : c'est le travail à faire,
+et le cache ne décide que du prix de chaque page. C'est donc sur elles qu'on bloque. Le
+**temps**, lui, suit la température — et §18 a écrit ce que devient une porte qui en dépend :
+« une porte dont le verdict dépend de la température du cache est une porte qui apprendra un
+jour à être ignorée. » Le bras E dit donc l'heure sans jamais trancher dessus.
+
+**Le verdict est éprouvé hors base.** `budgetVerdict` est une fonction pure, testée par
+`scripts/eval/budget.test.ts` — dont deux contre-tests qui décident du sens du bras : 195 456
+pages rendues en 300 ms, sous le plafond, doivent **échouer** (le travail a changé) ; 94 070
+pages rendues en 2 800 ms, au-dessus du plafond, doivent **avertir** et non échouer (l'instance
+était froide). Même raison d'être que `classify` pour `#61` : c'est la décision qui fait
+*cesser* un échec, donc celle qu'il faut pouvoir lire sans base sous la main.
+
+**Ce qu'il ne couvre pas.** Un point et un rayon — Châtelet à 2 000 m, le point le plus dense
+du corpus, donc le pire cas plausible et non démontré. Le seul rôle `anon` : `authenticated`
+porte 8 s et aucun compte n'existe encore. Et il **voit** un plan qui bascule sans l'empêcher.
+
+---
+
 ## Ce qui déclenche la porte
 
 Toute modification de `supabase/migrations/`, `scripts/ingest/`, `src/core/`, ou
@@ -190,6 +241,14 @@ que la source dit vrai.
 interface peut encore afficher une colonne en en masquant une autre — c'est ce
 que la règle d'affichage de `docs/PLAN.md` §2.5 couvre, et elle se vérifie en
 revue, pas en CI.
+
+~~**Le coût d'une réponse.**~~ **Couvert depuis le 28 août par le bras E**, et
+seulement là où il mesure : au rayon maximal, sur un point, pour le rôle `anon`.
+Une fonction juste et trop lente reste une carte qui ne s'affiche pas, et jusqu'à
+`#62` la porte n'avait aucun moyen de le dire — elle ne rencontrait le coût que
+sous la forme de ses propres annulations, qu'elle prenait pour des défauts de
+licence. Ce qui reste découvert : les autres points, les autres rayons, et
+`authenticated`, dont la fenêtre de 8 s n'a pas de budget écrit.
 
 ~~**RLS et le transport.**~~ **Couvert depuis le 24 août par le bras D**
 (`scripts/eval/anon-http.ts`). Les bras A à C tournent sur une connexion

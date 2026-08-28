@@ -1999,3 +1999,224 @@ serait la règle derrière ce constat, et il n'est pas écrit : il demande de sa
 définit une fonction en dernier, ce qui se déduit du nom des fichiers et non du catalogue. Le piège
 des fins de ligne (`docs/REPRISE.md`, « Pièges qui ont coûté du temps ») est le premier obstacle, et
 il est déjà documenté.
+
+---
+
+## 27. La requête de carte ne tenait pas la fenêtre anonyme au rayon maximal — `compass_premises_within`, le 28 août
+
+**Ouvert par [`#62`](https://github.com/IvandeMurard/paris-compass/issues/62)** en mesurant `#61`,
+et §18 en portait déjà la mesure de départ. Le ticket proposait trois pistes sans en trancher
+aucune ; l'arbitrage est en fin de point, avec ce qu'il refuse.
+
+### Le fait, mesuré à froid et pas à chaud
+
+Le ticket citait **2 116 ms à chaud, soit 70 % du budget de 3 s**. Le critère demandait autre
+chose : « au premier appel d'une instance restée inactive ». Cette session est à cheval sur une
+nuit — dernière requête le 27 août à 23 h 47, reprise le 28 à 10 h 02, **dix heures d'inactivité**
+— et le premier appel a été dépensé sur cette mesure-là, avant que quoi que ce soit d'autre ne
+touche la base. Par HTTP, clé publiable, `compass_premises_within` à 2 000 m sur Châtelet :
+
+| Appel | Temps | Réponse |
+| --- | --- | --- |
+| **1 — instance froide** | **4 536 ms** | **HTTP 500, `57014`** — annulée |
+| 2 | 1 467 ms | 200, 500 lignes, `total_matched` 17 173 |
+| 3 | 548 ms | 200 |
+| 4 | 703 ms | 200 |
+| 5 | 853 ms | 200 |
+
+**Au rayon maximal sur une instance froide, la carte ne s'affiche pas.** Ce n'est plus « 70 % du
+budget », c'est un dépassement. Le ticket sous-estimait son propre défaut parce qu'il l'avait
+mesuré à chaud — et c'est exactement le piège que son critère nommait.
+
+**Fabriquer le froid ne marche pas sur cette instance, et il faut le dire.** `shared_buffers` vaut
+**224 Mo** (28 672 blocs, relevé dans `pg_settings` le 28 août) pour une base de 808 Mo, donc la
+base n'y tient pas — mais on ne peut pas pour autant vider le cache à la demande :
+
+- **Faire tourner le pool avec un gros balayage ne suffit pas.** Douze passages d'analyses par
+  index sur `sirene_etablissement_stock` et `bodacc_establishment`, soit ~28 000 pages chacun,
+  laissent `Shared Read Blocks` à **0** sur la requête visée. `pg_buffercache` dit pourquoi :
+  `premise_location_geom_idx` porte un `usagecount` de **5,00**, le maximum. L'horloge de
+  remplacement doit passer cinq fois sur une page chaude avant de la prendre, et elle trouve
+  toujours des victimes plus tièdes avant.
+- **`pg_buffercache_evict()` existe en PostgreSQL 17.6 et nous est refusé** — `42501`, la fonction
+  demande un vrai superutilisateur, ce que le rôle `postgres` de Supabase n'est pas.
+- Et rien n'atteint le cache du système sous Postgres de toute façon.
+
+**Donc la seule mesure honnête du froid est une instance réellement inactive**, et la seule chose
+reproductible est **la page touchée**, qui ne dépend pas de la température — §18 l'écrivait déjà.
+C'est sur elle que la porte tranche, et sur l'horloge qu'elle se contente de parler (bras E, plus
+bas).
+
+### Où allait le coût, nœud par nœud
+
+`explain (analyze, buffers)`, claim `anon`, 2 000 m, `limit 500`, second passage retenu —
+**195 422 pages**. Le plan les répartit ainsi :
+
+| Nœud | Pages | Part |
+| --- | --- | --- |
+| Les cinq jointures de libellés (`bdcom_activity`, `bdcom_situation`, `quartier`, `chantier_perturbant`, `bdcom_size_band`) | **103 979** | **53 %** |
+| Recherche de `premise_observation`, une par local du rayon (23 909 boucles) | 88 904 | 46 % |
+| Index géographique + tas de `premise_location` | 2 539 | 1 % |
+
+Les 17 173 lignes du rayon traversaient les cinq jointures **avant** le `limit 500` : 53 % du
+travail servait à étiqueter des lignes que personne ne reçoit. Le `limit` ne limitait rien parce
+que la CTE `hit`, référencée deux fois — une pour les lignes, une pour `(select count(*) from hit)`
+—, est matérialisée entière.
+
+### L'arbitrage : la piste 2, et pourquoi pas les deux autres
+
+**Piste 1 — ne calculer `total_matched` que lorsqu'il est demandé. Refusée.** Le compte est un
+chiffre affiché, donc porteur de sa source, et son seul rôle est de dire « 340 sur 1 200 ». Le
+rendre optionnel crée un appelant qui affiche 500 sans dénominateur — c'est-à-dire qui lit une
+limite comme un total. C'est la faute que `total_matched` existe pour empêcher, réintroduite par
+un paramètre.
+
+**Piste 3 — baisser `compass_max_radius_m()`. Refusée, et pas comme une optimisation écartée : ce
+serait une promesse produit retirée.** 2 000 m est le plafond que l'outil MCP `find_premises`
+annonce dans son schéma d'entrée, et `compass_max_radius_m()` est partagée par **six** fonctions —
+la baisser rétrécirait aussi `compass_bodacc_within`, `compass_scoring_context_within`,
+`compass_street_rotation` et les deux `_within` historiques, sans que rien dans leurs tickets ne
+l'ait demandé. Une promesse se retire par une décision écrite, pas par un effet de bord d'un
+ticket de performance. La décision de la garder est consignée dans `docs/REPRISE.md`.
+
+**Piste 2 — compter sans matérialiser les jointures. Retenue, et poussée plus loin que le ticket
+ne le formulait.** Le ticket voulait un compte moins cher ; la mesure dit que le compte n'était
+que la moitié du problème. `hit` ne porte plus que trois colonnes — les deux identités de ligne et
+la distance —, c'est sur elle que `total_matched` est compté, **et les cinq jointures de libellés
+sont reportées sur `top`**, les lignes que le `limit` garde vraiment.
+
+### Le contre-test : `total_matched` ne change pas de valeur en changeant de chemin
+
+Structurellement d'abord : les cinq jointures retirées du compte sont des `left join` sur
+`bdcom_activity.code`, `bdcom_size_band.code`, `bdcom_situation.code`, `quartier.id` et
+`chantier_perturbant.id` — **cinq clés primaires**, relevées dans `pg_constraint`. Une jointure
+externe sur une clé unique ne peut ni ajouter ni retirer une ligne. Ce qui est compté reste
+`premise_location` jointe à `premise_observation` sous `ST_DWithin`, la cardinalité exacte de
+l'ancienne CTE.
+
+Par la mesure ensuite, et pas sur Châtelet seul. L'ancien corps a été recréé sous le nom
+`ref_premises_within` dans une transaction annulée, à côté du nouveau, et les deux ont été
+interrogés sur **7 points × 5 rayons × 3 millésimes × 3 limites × 2 claims**, plus les familles et
+les dates pour BODACC — **490 comparaisons** :
+
+| | |
+| --- | --- |
+| `total_matched` déplacé | **0** |
+| Nombre de lignes rendues déplacé | **0** |
+| Réponses identiques colonne pour colonne | 386 |
+| Réponses différant **uniquement par une égalité** de tri | 104 — multiensemble des clés de tri identique dans chacune |
+| Nouvelle réponse instable d'un appel à l'autre | **0** |
+
+Quelques valeurs, millésime 2023, appelant anonyme : Châtelet 300 m → 291 · Halles 800 m → 3 387 ·
+Belleville 2 000 m → 11 729 · Batignolles 300 m → 469 · Bercy 800 m → 432 · Alésia 2 000 m →
+4 929 · Châtelet 2 000 m → 17 173. Rayon de 1 m : **0 ligne**, le vide reste un vide. Millésime
+2017 en anonyme : **1 ligne `withheld`**, `total_matched` nul.
+
+**Les 104 écarts ont produit un correctif de plus, et il change une réponse.** `order by
+distance_m` seul ne détermine pas quelles lignes reviennent quand la limite tombe au milieu d'une
+égalité — et BDCom en fabrique en permanence : l'APUR **empile tous les locaux d'une adresse sur
+une coordonnée unique** (`docs/BDCOM.md` §4), donc des dizaines de lignes sont à la même distance
+au mètre près. L'ancien corps tranchait arbitrairement, le nouveau tranchait autrement. Plutôt que
+de laisser la différence au hasard, le tri devient **total** — `distance_m, location_id` — dans les
+deux fonctions. Ce que ça achète : le même appel rend les mêmes lignes deux fois, ce qu'il ne
+promettait pas. C'est un changement de réponse, il est déclaré comme tel dans l'en-tête de la
+migration, et il n'est pas déductible du ticket.
+
+### Ce que ça donne, et l'index qui porte la moitié froide
+
+| Fonction, 2 000 m sur Châtelet | Pages avant | Pages après | ms avant | ms après |
+| --- | --- | --- | --- | --- |
+| `compass_premises_within` | 172 807 | **94 065** | 286 | **138** |
+| `compass_bodacc_within` | 380 695 | **146 596** | 674 | **301** |
+
+Mesuré dans la transaction de répétition, meilleur de trois, claim `anon`, `timing off`. Les
+172 807 pages « avant » sont l'ancien corps **avec le nouvel index** : à index égal, la
+restructuration seule enlève 46 % du travail. Contre l'ancien index, l'ancien corps en touchait
+195 422.
+
+**L'index est la moitié qui survit à un cache froid, et la restructuration ne l'est pas.** Diviser
+les accès aux tampons par deux divise le temps *chaud* ; le temps *froid* dépend du nombre de pages
+**distinctes** à lire, et la restructuration n'en retire presque aucune — les 88 904 accès à
+`premise_observation` visitent en boucle les mêmes pages. `premise_observation_location_idx` devient
+donc couvrant, `(location_id, vintage_id) include (id)` : la CTE `hit` n'a plus besoin du tas du
+tout, et le parcours devient un `Index Only Scan` à `Heap Fetches: 0`. Remplacé et non ajouté —
+mêmes colonnes de tête, donc aucun chemin d'accès perdu, et pas de second index à tenir en phase.
+Il ressort **plus petit** que celui qu'il remplace, 1 132 pages contre 1 972, la différence étant
+du gonflement que la reconstruction laisse tomber.
+
+### Trouvé en mesurant : la fonction la plus chère n'était pas celle du ticket
+
+En mesurant les quatre fonctions de rayon que `anon` peut appeler, au rayon maximal :
+
+| Fonction | Pages | ms à chaud | Premier appel |
+| --- | --- | --- | --- |
+| **`compass_bodacc_within`** | **361 965** | **1 108** | **9 331 ms** |
+| `compass_street_rotation` | 268 148 | 541 | 2 091 ms |
+| `compass_premises_within` — le sujet de `#62` | 195 422 | 330 | — |
+| `compass_scoring_context_within` | 125 861 | 166 | — |
+
+`compass_bodacc_within` porte **le même défaut en pire** : même CTE matérialisée, même compte
+après coup, plus un `count(*)` corrélé sur `premise_location` joué pour chaque avis du rayon afin
+de remplir `premises_at_address` — sur des avis que personne ne reçoit. À 2 000 m elle prend trois
+fois la fenêtre entière, et `anon` a le droit de l'appeler.
+
+**Corrigée ici plutôt qu'ouverte en ticket**, contre l'usage du dépôt, et pour une raison précise :
+la porte que ce ticket ajoute serait partie rouge, et une porte rouge à l'arrivée n'est pas une
+porte. Même contre-test, même argument de cardinalité — `bodacc_judgment.announcement_id` est sa
+**clé primaire**, vérifié dans le catalogue (120 623 jugements pour 120 623 annonces distinctes),
+donc la jointure retirée du compte ne peut pas le déplacer.
+
+### La règle : le bras E, et pourquoi il ne bloque pas sur une horloge
+
+Corriger deux fonctions ne protège pas la troisième, ni celle que personne n'a encore écrite. Le
+bras **E — budget de la fenêtre anon** (`scripts/eval/budget.ts`, `eval/baselines/anon-budget.json`)
+**énumère depuis `pg_proc`** toute fonction `compass_*` qui prend `p_radius_m` et que `anon` peut
+exécuter, et la joue au rayon que `compass_max_radius_m()` rend. Même mécanique que `I24` pour la
+règle de licence : la liste n'est pas tenue de mémoire, donc elle ne peut pas être oubliée. Les
+autres paramètres restent à leur défaut, ce qui fait qu'une fonction nouvelle entre dans le bras
+sans qu'une ligne de code change.
+
+La fenêtre n'est pas recopiée : elle est **lue dans `pg_roles.rolconfig`** à chaque passage. Un
+budget qui contredirait en silence le réglage qu'il protège serait pire que pas de budget.
+
+Ce qui bloque, et ce qui se contente de parler :
+
+- **ÉCHEC** — une fonction de rayon appelable par `anon` sans ligne dans le fichier de budget.
+  C'est la moitié qui protège l'appelant qui n'utilise pas encore ces fonctions.
+- **ÉCHEC** — une ligne inscrite au-dessus du plafond. La promesse est tenue là où elle est
+  écrite : on ne peut pas committer un budget hors budget, et le contrôle ne joue même pas la
+  requête.
+- **ÉCHEC** — les pages mesurées s'écartent de plus de 10 % des pages déclarées. Le travail a
+  changé : sixième jointure, index perdu, plan qui bascule — rien de tout cela ne se voit à
+  l'horloge sur une machine rapide, et tout se paie sur une machine lente.
+- **AVERTISSEMENT** — le temps dépasse le plafond alors que les pages tiennent. Instance froide ou
+  machine chargée, pas une régression, et le bras l'écrit en toutes lettres.
+
+Le verdict est une fonction pure, `budgetVerdict`, testée à part (`scripts/eval/budget.test.ts`,
+7 cas) comme `classify` l'est pour `#61` — dont un contre-test qui vérifie qu'une instance froide
+**ne peut pas** rendre ce bras rouge. C'est la réponse directe au reproche de §18 : « une porte
+dont le verdict dépend de la température du cache est une porte qui apprendra un jour à être
+ignorée. »
+
+### Ce que la règle ne rattrape pas, et il faut le lire
+
+- **L'instance froide n'est pas réparée, elle est rendue moins chère.** Le rayon reste un vrai
+  rayon sur de vraies données : à 2 000 m il faut lire l'index géographique et le tas de
+  `premise_location`, soit ~1 700 pages distinctes avant qu'aucune jointure ne commence. Une
+  instance suffisamment endormie dépassera encore. Ce qui a changé, c'est la marge.
+- **Deux fonctions gardent le coût du ticket, et ce n'est pas le même défaut.**
+  `compass_scoring_context_within` (125 861 pages) et `compass_street_rotation` (268 346) rendent
+  **tout le rayon**, sans limite, parce que c'est ce qu'elles répondent. Il n'y a pas de `top-N`
+  sur lequel reporter quoi que ce soit : leur coût est leur réponse. Le réduire veut dire changer
+  ce qu'elles rendent, ce qui est une décision produit et pas une optimisation. Le bras E les
+  porte avec leur chiffre et leur raison, donc elles ne peuvent plus empirer en silence.
+- **Le bras E mesure un point et un rayon**, Châtelet à 2 000 m. Un défaut qui n'apparaîtrait
+  qu'ailleurs — un quartier à la géométrie pathologique — lui échappe. Châtelet est le point le
+  plus dense du corpus, donc le pire cas plausible, mais « plausible » n'est pas « démontré ».
+- **Il ne mesure que `anon`.** `authenticated` porte 8 s et n'a aujourd'hui aucun compte
+  (`auth.users` = 0) ; le jour où il en aura, un budget lui reste à écrire.
+- **Rien ici ne rend une fonction insensible à un plan qui bascule.** Le bras le *voit* — les pages
+  bougent —, il ne l'empêche pas. Et l'estimation de `ST_DWithin` reste fausse d'un facteur 4 800
+  (5 lignes prévues, 23 909 réelles) : c'est elle qui pousse le planificateur vers une boucle
+  imbriquée de 23 909 recherches là où une jointure par hachage sur 4 515 pages suffirait. Ce
+  n'est pas corrigé ici, et c'est la prochaine chose à regarder si la fenêtre se resserre.
