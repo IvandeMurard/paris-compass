@@ -11,10 +11,11 @@
 //   ms    — the statement's execution time at `compass_max_radius_m()`, against a declared
 //           fraction of the anon window. The window is READ from pg_roles rather than copied
 //           here: a budget that quietly disagrees with the setting it protects is worse than
-//           no budget. Minimum of three runs, because the first one on a sleeping instance
-//           measures the cache and not the query.
+//           no budget. The FASTEST of three runs, because the first one on a sleeping
+//           instance measures the cache and not the query.
 //   pages — buffers touched. Cache-independent: it is the work to be done, and the cache only
-//           decides the price of each page.
+//           decides the price of each page. The HEAVIEST of three, because the file records a
+//           ceiling and a ceiling taken from a lucky plan is not a ceiling.
 //
 // WHAT BLOCKS AND WHAT ONLY SPEAKS, because this is the whole point. DIAGNOSTIC.md §18 says
 // it plainly: "une porte dont le verdict dépend de la température du cache est une porte qui
@@ -25,10 +26,12 @@
 //   FAIL  a line in the file whose declared ms is above the ceiling. The promise is enforced
 //         where it is made — at the moment someone writes the budget down — not at the moment
 //         a run happens to be slow.
-//   FAIL  measured pages away from the declared pages by more than 10 %. The work changed.
+//   FAIL  measured pages more than 10 % ABOVE the declared ceiling. The work grew. Below it,
+//         nothing fails: a plan that came out cheaper is not a regression.
 //   WARN  measured ms above the ceiling while the pages hold. The work did not change, so
 //         this is a cold instance or a loaded machine, and the arm says which rather than
 //         calling it a regression.
+//   WARN  measured pages far under the ceiling, which says the ceiling has gone stale.
 //
 // The population is ENUMERATED from pg_proc — every `compass_*` function that takes
 // `p_radius_m` and that `anon` may execute — the same mechanic as I24 for the licence rule:

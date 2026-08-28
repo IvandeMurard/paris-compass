@@ -13,6 +13,14 @@ contrat d'évaluation).
 instance restée inactive, ici dix heures — le premier appel est **annulé** : `57014`, HTTP 500,
 4 536 ms. Au rayon que le produit promet, sur une instance froide, la carte ne s'affichait pas.
 
+**Après correctif, le même premier appel répond** — 3 667 ms d'aller-retour HTTP, HTTP 200,
+500 lignes, aucune annulation, après cinquante-cinq minutes d'inactivité. Les appels suivants
+tombent à 205-353 ms contre 548-853 avant. **Réserve à lire avec le chiffre** : les deux fenêtres
+d'inactivité ne sont pas les mêmes — dix heures avant, cinquante-cinq minutes après — donc le
+réveil après une nuit reste **non mesuré après correctif**. Le protocole pour l'obtenir tient en
+une ligne, et il est à la portée de la prochaine session : *dépenser le premier appel de la
+matinée sur `compass_premises_within` à 2 000 m, avant toute autre requête.*
+
 **Corrigé par la piste 2 du ticket, poussée plus loin qu'elle n'était formulée.** Le compte cesse
 de matérialiser les cinq jointures de libellés, qui sont reportées sur les seules lignes que le
 `limit` garde, et `premise_observation_location_idx` devient couvrant. **195 422 → 94 065 pages**
@@ -48,25 +56,38 @@ normande, sans rapport avec Paris. Détail dans `docs/PLAN-ACTION-VACANCE.md` §
 table de `docs/SESSIONS.md` régénérée, `sessions:check` ✓. Rien dans `src/`, donc pas de portes
 à rejouer.
 
-## L'état mesuré le plus récent — 27 août 2026 le soir, après clôture de `#12`
+## L'état mesuré le plus récent — 28 août 2026, après clôture de `#62`
 
 **Le tableau de la section suivante date du 24 août** et n'a pas été remesuré depuis ; celui-ci
-l'a été, contre `dbefhvmyfmmhjeetdddu`, après la fermeture de `#12`. Quand les deux
+l'a été, contre `dbefhvmyfmmhjeetdddu`, après la fermeture de `#62`. Quand les deux
 se contredisent, c'est le plus daté des deux qui a tort — et la règle de `CLAUDE.md` s'applique
 d'abord ici : **remesurer avant de recopier.**
 
-| Mesure | Valeur, mesurée le 27 août 2026, après clôture de `#12` |
+| Mesure | Valeur, mesurée le 28 août 2026, après clôture de `#62` |
 | --- | --- |
-| Ledger distant `supabase_migrations` | **44** migrations, dernière `20260827000001` — inchangé, `w1-dia` ne touche pas la base |
-| Fonctions `compass_*` | **15** — inchangé |
-| Invariants | **37** — inchangé |
+| Ledger distant `supabase_migrations` | **46** migrations, dernière `20260828000002` — deux poussées ce jour, `20260828000001` et `20260828000002` |
+| Fonctions `compass_*` | **15** — inchangé, les deux migrations remplacent des corps sans en créer |
+| Invariants | **37** — inchangé. **Pas 34** : ce chiffre circule encore (`docs/tickets/w0-appelant.md`) et était juste le 26 août, avant `I35`–`I37` |
+| Bras de la porte | **cinq** : A invariants, B baselines, C jeu doré, **E budget de la fenêtre anon** (nouveau, `#62`), D porte anonyme jouée à part |
+| Tests unitaires | **188** — 179 la veille, +9 pour `budgetVerdict` et `parseWindowMs` |
 | `auth.users` | **0** — aucun compte, ce qui rend la décision de `w0-appelant` gratuite aujourd'hui et coûteuse plus tard |
-| Issues | **37 ouvertes, 20 fermées** — remesuré par `gh issue list --jq length`, après fermeture de [`#12`](https://github.com/IvandeMurard/paris-compass/issues/12). Il valait 38/19 la veille au soir : **remesurer avant de recopier** |
-| Épic [`#41`](https://github.com/IvandeMurard/paris-compass/issues/41) (vague 0) | **FERMÉE le 27 août**, dix tickets sur dix, aucun report. La prochaine est [`#42`](https://github.com/IvandeMurard/paris-compass/issues/42), vague 1, **5 cochés sur 7** depuis `#12` |
-| Portes | `eval`, `eval:anon`, `eval:sabotage`, `typecheck`, `test`, `build` et `verify:mcp` **non relancés** : `w1-dia` n'a touché ni base ni TypeScript, seulement `docs/` · `sessions:check` ✓ |
+| Issues | **35 ouvertes, 22 fermées** — remesuré par `gh issue list --jq length` après fermeture de [`#62`](https://github.com/IvandeMurard/paris-compass/issues/62). Il valait 37/20 la veille : **remesurer avant de recopier** |
+| Épic [`#42`](https://github.com/IvandeMurard/paris-compass/issues/42) (vague 1) | ouverte, **5 cochés sur 7** — inchangé, `#62` n'y figure pas |
+| Portes | `typecheck` ✓ · `test` **188** ✓ · `build` ✓ · `eval` **37 invariants**, 8 cas dorés, bras E vert sur quatre fonctions, **11 avertissements de baseline inchangés depuis la veille** (sortie 3) · `eval:anon` **PASS, 15 contrôles**, trois passages · `verify:mcp` **41 contrôles, 40 verts, 1 suspendu** (Overpass 429, panne amont) · `eval:sabotage` **non relancé** — rien de ce jour ne touche la règle de retenue |
+
+**Coût des quatre fonctions de rayon au rayon maximal**, mesuré après poussée, claim `anon`,
+parallélisme coupé, pire de douze passages — c'est le contenu de `eval/baselines/anon-budget.json`,
+et le bras E le rejoue à chaque `npm.cmd run eval` :
+
+| Fonction | Pages | ms à chaud | Plafond déclaré |
+| --- | ---: | ---: | --- |
+| `compass_premises_within` | 94 117 | 133 | 1 020 ms, soit 34 % de la fenêtre `anon` |
+| `compass_bodacc_within` | 148 206 | 294 | idem |
+| `compass_scoring_context_within` | 137 576 | 149 | idem |
+| `compass_street_rotation` | 286 744 | 355 | idem |
 
 Les corps de fonction déployés sont **identiques aux fichiers versionnés**, revérifié après la
-poussée de `20260827000001` — `compass_derived_licence` et `compass_survival_by_trade` comprises,
+poussée de `20260828000002` — `compass_premises_within` et `compass_bodacc_within` comprises,
 fins de ligne normalisées. Ils ne l'étaient pas tous avant : voir `DIAGNOSTIC.md` §26.
 
 ## Ce qui existe et fonctionne — en local **et sur le distant**
@@ -450,9 +471,10 @@ troisième piste du ticket était de le baisser.
 La raison tient en une phrase : **baisser `compass_max_radius_m()` n'est pas une
 optimisation, c'est une promesse produit qu'on retire.** 2 000 m est le plafond que l'outil
 MCP `find_premises` annonce dans son schéma d'entrée — un agent qui lit ce schéma le croit —
-et la fonction est partagée par **six** RPC. La baisser pour qu'une requête chère passe
-rétrécirait aussi `compass_bodacc_within`, `compass_scoring_context_within` et
-`compass_street_rotation`, dont aucun ticket ne l'a demandé. C'est le même geste que monter
+et la fonction est le garde-fou de **quatre** RPC — les quatre que le bras E énumère.
+La baisser pour qu'une requête chère passe rétrécirait aussi `compass_bodacc_within`,
+`compass_scoring_context_within` et `compass_street_rotation`, dont aucun ticket ne l'a
+demandé. C'est le même geste que monter
 `statement_timeout` sur `anon`, dans l'autre sens : déplacer le coût sur ce qui n'a rien
 demandé.
 
@@ -585,6 +607,15 @@ sortie 3 est légitime ; rejouer un **FAIL** ne l'est pas, et c'est toute la
 différence que ce ticket a achetée. `eval` (bras A) et `verify:mcp` n'ont pas
 cette distinction pour le timeout : là, **rejouer avant de diagnostiquer** reste
 la règle, et ne conclure à une régression qu'au deuxième rouge.
+
+**Un refus du classificateur sur `supabase db push` peut céder à la relance —
+essayer une fois avant de passer la main.** Quatrième et cinquième poussées, le
+28 août : la **même commande, inchangée**, refusée puis acceptée quelques minutes
+plus tard. Ça confirme ce que la note de procédure du 24 août disait — le refus
+n'est pas corrélé au contenu — et ça ajoute la conduite à tenir : relancer une
+fois, et seulement ensuite préparer la ligne pour qu'Ivan la lance. Ne pas
+contourner en appliquant le SQL à la main : le ledger `supabase_migrations` ne
+serait pas tenu, et c'est lui qui dit ce qui est posé.
 
 **On ne peut pas fabriquer un cache froid sur cette instance — ne pas y passer la
 matinée.** Trois voies essayées le 28 août, trois impasses. Faire tourner le pool avec

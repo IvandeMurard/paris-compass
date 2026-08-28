@@ -200,8 +200,9 @@ contredirait en silence le réglage qu'il protège serait pire que pas de budget
 | --- | --- |
 | **ÉCHEC** | Une fonction de rayon appelable par `anon` sans ligne dans le fichier |
 | **ÉCHEC** | Une ligne inscrite au-dessus du plafond — jugée sans même jouer la requête |
-| **ÉCHEC** | Les pages mesurées s'écartent de plus de 10 % des pages déclarées |
+| **ÉCHEC** | Les pages mesurées dépassent de plus de 10 % le plafond déclaré — jamais l'inverse : un plan devenu moins cher n'est pas une régression |
 | **AVERTISSEMENT** | Le temps dépasse le plafond alors que les pages tiennent |
+| **AVERTISSEMENT** | Les pages passent durablement très en dessous du plafond, qui est donc devenu fiction |
 
 Les **pages touchées** ne dépendent pas de la température du cache : c'est le travail à faire,
 et le cache ne décide que du prix de chaque page. C'est donc sur elles qu'on bloque. Le

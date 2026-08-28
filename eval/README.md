@@ -26,7 +26,7 @@ une adaptation qui n'est pas cosmétique et qui est expliquée dans `FAILURE_MOD
 | `invariants.sql` | **Trente-sept** requêtes, dont trente-six doivent renvoyer zéro ligne — la trente-septième, `I24`, est un recensement, voir plus bas. *Compté le 28 août 2026 ; ce tableau a annoncé vingt-huit pendant deux semaines.* | Zéro |
 | `baselines/ingestion.json` | **Vingt-quatre** effectifs gelés au chargement | Signalé, bloquant au-delà de 1 % |
 | `golden.jsonl` | **Huit** chronologies vérifiées à la main | Zéro |
-| `baselines/anon-budget.json` | Ce que coûte, **au rayon maximal**, chaque fonction de rayon que `anon` peut appeler | Zéro sur les pages, parlant sur l'horloge |
+| `baselines/anon-budget.json` | Ce que coûte, **au rayon maximal**, chaque fonction de rayon que `anon` peut appeler | Plafond sur les pages, parlant sur l'horloge |
 | `../scripts/eval/anon-http.ts` | La règle de licence **par HTTP, sans identifiants de base** | Zéro |
 
 **Le bras E — le budget** — a une lettre plus loin que sa place : `D` est pris par la porte

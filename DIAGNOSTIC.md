@@ -2073,10 +2073,10 @@ un paramètre.
 
 **Piste 3 — baisser `compass_max_radius_m()`. Refusée, et pas comme une optimisation écartée : ce
 serait une promesse produit retirée.** 2 000 m est le plafond que l'outil MCP `find_premises`
-annonce dans son schéma d'entrée, et `compass_max_radius_m()` est partagée par **six** fonctions —
-la baisser rétrécirait aussi `compass_bodacc_within`, `compass_scoring_context_within`,
-`compass_street_rotation` et les deux `_within` historiques, sans que rien dans leurs tickets ne
-l'ait demandé. Une promesse se retire par une décision écrite, pas par un effet de bord d'un
+annonce dans son schéma d'entrée, et `compass_max_radius_m()` est le garde-fou de **quatre**
+fonctions — relévées dans `pg_proc`, ce sont exactement les quatre que le bras E énumère. La
+baisser rétrécirait donc aussi `compass_bodacc_within`, `compass_scoring_context_within` et
+`compass_street_rotation`, sans que rien dans leurs tickets ne l'ait demandé. Une promesse se retire par une décision écrite, pas par un effet de bord d'un
 ticket de performance. La décision de la garder est consignée dans `docs/REPRISE.md`.
 
 **Piste 2 — compter sans matérialiser les jointures. Retenue, et poussée plus loin que le ticket
@@ -2144,6 +2144,44 @@ mêmes colonnes de tête, donc aucun chemin d'accès perdu, et pas de second ind
 Il ressort **plus petit** que celui qu'il remplace, 1 132 pages contre 1 972, la différence étant
 du gonflement que la reconstruction laisse tomber.
 
+### Ce que ça donne à froid — et ce que cette mesure ne démontre pas
+
+Même protocole que la mesure d'ouverture : instance laissée au repos, premier appel dépensé sur
+la question, HTTP, clé publiable, 2 000 m sur Châtelet. Fenêtre d'inactivité de **55 minutes**,
+de 10 h 56 à 11 h 51 le 28 août.
+
+| Appel | Avant — 10 h d'inactivité | Après — 55 min d'inactivité |
+| --- | --- | --- |
+| **1 — froid** | **4 536 ms, HTTP 500, `57014`** | **3 667 ms, HTTP 200, 500 lignes** |
+| 2 | 1 467 ms | 339 ms |
+| 3 | 548 ms | 353 ms |
+| 4 | 703 ms | 205 ms |
+| 5 | 853 ms | 207 ms |
+
+**Ce qui est démontré.** Le premier appel n'est plus annulé : la requête reste dans les 3 s que
+`anon` accorde à un ordre, puisque `57014` ne tombe pas. Les 3 667 ms sont un aller-retour
+complet — connexion, TLS, PostgREST, sérialisation de 500 lignes × 33 colonnes, réseau — et non
+le temps de l'ordre. Les appels suivants passent de 548-853 ms à 205-353 ms, et `total_matched`
+vaut 17 173 des deux côtés.
+
+**Ce qui n'est pas démontré, et il faut le lire comme tel.** Les deux colonnes ne mesurent pas la
+même chose : dix heures d'inactivité avant, cinquante-cinq minutes après. **La colonne de droite
+part donc d'un cache moins froid que celle de gauche**, et rien ici ne prouve qu'un réveil après
+une nuit tiendrait la fenêtre. Fabriquer un froid comparable est impossible sur cette instance
+(voir plus haut) ; la seule façon d'obtenir la mesure manquante est d'attendre, et elle est à la
+portée de n'importe quelle session : **dépenser le premier appel de la matinée sur
+`compass_premises_within` à 2 000 m avant toute autre requête.** C'est le protocole qui a produit
+la colonne de gauche.
+
+**Ce qui reste vrai indépendamment du cache**, et c'est pour ça que la porte tranche là-dessus :
+le travail au rayon maximal passe de **195 422 à 94 065 pages**, et l'ordre lui-même de 330 à
+**133 ms** — 4,4 % de la fenêtre de 3 s, 13 % du plafond que le bras E déclare.
+
+**Effet de bord mesuré sur la porte anonyme.** `compass_premises_within` était sa requête la plus
+coûteuse — 1 219 ms d'aller-retour le 28 août au matin. Sur les deux passages qui suivent la
+mesure à froid, elle rend **158 ms**, et la requête la plus coûteuse de la porte est devenue
+`compass_survival_by_trade` à 250 ms. Les deux passages sont **PASS, 15 contrôles**.
+
 ### Trouvé en mesurant : la fonction la plus chère n'était pas celle du ticket
 
 En mesurant les quatre fonctions de rayon que `anon` peut appeler, au rayon maximal :
@@ -2186,9 +2224,10 @@ Ce qui bloque, et ce qui se contente de parler :
 - **ÉCHEC** — une ligne inscrite au-dessus du plafond. La promesse est tenue là où elle est
   écrite : on ne peut pas committer un budget hors budget, et le contrôle ne joue même pas la
   requête.
-- **ÉCHEC** — les pages mesurées s'écartent de plus de 10 % des pages déclarées. Le travail a
-  changé : sixième jointure, index perdu, plan qui bascule — rien de tout cela ne se voit à
-  l'horloge sur une machine rapide, et tout se paie sur une machine lente.
+- **ÉCHEC** — les pages mesurées dépassent de plus de 10 % le plafond déclaré. Le travail a
+  grossi : sixième jointure, index perdu, plan qui bascule du mauvais côté — rien de tout cela
+  ne se voit à l'horloge sur une machine rapide, et tout se paie sur une machine lente. En
+  dessous du plafond, rien n'échoue : le budget est un plafond et non une égalité.
 - **AVERTISSEMENT** — le temps dépasse le plafond alors que les pages tiennent. Instance froide ou
   machine chargée, pas une régression, et le bras l'écrit en toutes lettres.
 
@@ -2203,7 +2242,11 @@ ignorée. »
 - **L'instance froide n'est pas réparée, elle est rendue moins chère.** Le rayon reste un vrai
   rayon sur de vraies données : à 2 000 m il faut lire l'index géographique et le tas de
   `premise_location`, soit ~1 700 pages distinctes avant qu'aucune jointure ne commence. Une
-  instance suffisamment endormie dépassera encore. Ce qui a changé, c'est la marge.
+  instance suffisamment endormie dépassera encore. Ce qui a changé, c'est la marge — et la
+  mesure d'après correctif porte sur cinquante-cinq minutes d'inactivité, pas sur les dix heures
+  de celle d'avant. **Le réveil après une nuit n'est pas mesuré après correctif**, et la seule
+  façon de le mesurer est d'attendre : premier appel de la matinée, 2 000 m, avant toute autre
+  requête.
 - **Deux fonctions gardent le coût du ticket, et ce n'est pas le même défaut.**
   `compass_scoring_context_within` (125 861 pages) et `compass_street_rotation` (268 346) rendent
   **tout le rayon**, sans limite, parce que c'est ce qu'elles répondent. Il n'y a pas de `top-N`
@@ -2218,5 +2261,7 @@ ignorée. »
 - **Rien ici ne rend une fonction insensible à un plan qui bascule.** Le bras le *voit* — les pages
   bougent —, il ne l'empêche pas. Et l'estimation de `ST_DWithin` reste fausse d'un facteur 4 800
   (5 lignes prévues, 23 909 réelles) : c'est elle qui pousse le planificateur vers une boucle
-  imbriquée de 23 909 recherches là où une jointure par hachage sur 4 515 pages suffirait. Ce
-  n'est pas corrigé ici, et c'est la prochaine chose à regarder si la fenêtre se resserre.
+  imbriquée de 23 909 recherches par index. Une jointure par hachage y plafonnerait le côté
+  sondé aux 4 515 pages que fait `premise_observation` en entier — borné, pas mesuré : aucun
+  moyen de forcer ce plan sans un levier de planificateur, et ce n'est pas ce que ce ticket
+  corrige. C'est la prochaine chose à regarder si la fenêtre se resserre.
