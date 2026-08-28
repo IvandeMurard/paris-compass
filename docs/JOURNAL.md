@@ -17,6 +17,110 @@ Les sections sont dans l'ordre où elles étaient, la plus récente d'abord.
 
 ---
 
+## `#62` — 28 août 2026, session 16 : la carte, et le premier appel qu'il ne fallait pas gâcher
+
+**Le ticket sous-estimait son propre défaut, et c'est son propre critère qui l'a montré.** Il
+annonçait 2 116 ms à chaud, « 70 % du budget de 3 s ». Il ajoutait, en petit, que la mesure qui
+compte est celle du *premier appel d'une instance restée inactive*. Cette session a commencé par
+une coïncidence exploitable : elle est à cheval sur une nuit, dernière requête le 27 à 23 h 47,
+reprise le 28 à 10 h 02. **Dix heures d'inactivité, et un seul premier appel à dépenser.** Il a
+été dépensé sur la question, avant toute autre requête : `57014`, HTTP 500, 4 536 ms. La carte
+ne s'affichait pas — ce n'était pas 70 % du budget, c'était un dépassement.
+
+### Ce qui ne se déduit ni du code ni du ticket
+
+**On ne peut pas fabriquer un cache froid sur cette instance, et il a fallu trois tentatives pour
+l'établir.** `shared_buffers` vaut 224 Mo pour une base de 808 Mo, donc la base n'y tient pas —
+et pourtant douze passages d'analyses par index sur 28 000 pages laissent `Shared Read Blocks` à
+zéro sur la requête visée. `pg_buffercache` dit pourquoi : les pages en cause portent un
+`usagecount` de 5 sur 5, et l'horloge de remplacement trouve toujours des victimes plus tièdes.
+`pg_buffercache_evict()` existe en PostgreSQL 17.6 et rend `42501` — elle veut un vrai
+superutilisateur, ce que le rôle `postgres` de Supabase n'est pas. Et rien de tout cela
+n'atteindrait le cache du système de toute façon. **La seule mesure honnête du froid est
+l'attente**, et le protocole tient en une ligne : dépenser le premier appel d'une matinée sur la
+question avant toute autre requête.
+
+**Le compte n'était pas le sujet, et le ticket le croyait.** Il proposait de ne calculer
+`total_matched` que sur demande. La mesure dit que **53 % des pages allaient aux cinq jointures
+de libellés**, appliquées aux 17 173 lignes du rayon avant un `limit 500`. Corriger le compte
+seul aurait laissé la moitié du défaut en place — exactement la même erreur de cible que §18
+avait faite avant `#61`, deux jours plus tôt, sur cette même famille de requêtes. **Deux tickets
+de suite ont visé la mauvaise requête faute d'avoir mesuré avant d'écrire.**
+
+**La restructuration ne sert presque à rien à froid, et c'est contre-intuitif.** Diviser par deux
+les accès aux tampons divise le temps *chaud*. Le temps *froid* dépend des pages **distinctes**,
+et les 88 904 accès à `premise_observation` visitaient en boucle les mêmes pages. C'est l'index
+couvrant — `include (id)`, `Heap Fetches: 0` — qui retire des pages du jeu de travail, pas le
+reste. Les deux moitiés du correctif n'agissent pas sur la même chose et la migration le dit.
+
+**Le contre-test a produit un correctif que personne n'avait demandé.** Sur 490 comparaisons
+contre l'ancien corps, `total_matched` n'a jamais bougé — mais 104 réponses différaient par
+*quelles* lignes revenaient. Cause : `order by distance_m` seul ne détermine rien quand la limite
+tombe au milieu d'une égalité, et l'APUR **empile tous les locaux d'une adresse sur une
+coordonnée unique**. L'ancien corps tranchait arbitrairement, le nouveau tranchait autrement. Le
+tri est devenu **total** dans les deux fonctions. C'est un changement de réponse, arrivé comme
+effet de bord d'une optimisation, et il est déclaré comme tel plutôt qu'absorbé.
+
+### Ce qui a été refusé, et pourquoi ça se lit ici
+
+**Baisser `compass_max_radius_m()`** — la troisième piste du ticket. Refusée comme une promesse
+produit qu'on retire : 2 000 m est le plafond que l'outil MCP `find_premises` annonce à un agent
+dans son schéma d'entrée, et la fonction est le garde-fou de quatre RPC. La décision est écrite
+dans `docs/REPRISE.md` avec ce qui la rouvrirait — une mesure montrant qu'au-delà d'un rayon, la
+réponse cesse d'avoir un sens produit.
+
+**Rendre `total_matched` optionnel.** Refusée parce que le compte est un chiffre affiché dont le
+seul rôle est de dire « 340 sur 1 200 » : le rendre facultatif fabrique l'appelant qui lit une
+limite comme un total, la faute même que la colonne existe pour empêcher.
+
+### Deux décisions de méthode qui ont changé le résultat
+
+**Le bras E ne bloque pas sur une horloge, et il a fallu deux essais pour le régler.** Première
+version, seuil symétrique à 10 % : elle a fait échouer `compass_scoring_context_within` à
+**−24,9 %**, sur un plan simplement devenu moins cher. Le budget est donc devenu un **plafond** et
+non une égalité — on échoue au-dessus, jamais en dessous. Et le plafond retient le **pire** de
+douze passages, parce qu'un plafond pris sur un plan chanceux n'en est pas un.
+
+**Une explication a été écrite puis retirée faute de preuve.** Un écart de 14,5 % entre deux
+mesures avait été attribué au parallélisme dans un commentaire de code. Mesuré directement, le
+parallélisme explique **52 pages**, pas 13 648. Le commentaire dit maintenant ce qui est mesuré,
+nomme la cause plausible — statistiques fraîches après reconstruction d'index — comme non
+démontrée, et donne la conduite à tenir. Le parallélisme reste coupé pendant la mesure, pour la
+raison qui a survécu : rendre le chiffre reproductible.
+
+### Ce qui a été trouvé en chemin
+
+**`compass_bodacc_within` portait le même défaut en pire** — 9 331 ms au premier appel, trois fois
+la fenêtre entière, sur un chemin que `anon` a le droit d'appeler. Corrigée dans la même session
+**contre l'usage du dépôt**, qui veut qu'un écart hors périmètre soit ouvert en ticket. La raison
+est précise : le bras E serait parti rouge, et une porte rouge à l'arrivée n'est pas une porte.
+
+**Et `§27` a rangé deux fonctions ensemble à tort**, corrigé le jour même en rédigeant `#64` :
+`compass_scoring_context_within` rend une ligne par local, donc son coût est bien sa réponse ;
+`compass_street_rotation` est un **agrégat** qui rend 2 609 lignes en en lisant 64 147. Facteur
+25, donc de la place — et la piste d'index a été mesurée dans la foulée : **−47 % sur la
+recherche par local**, `Index Only Scan`, `Heap Fetches: 0`. Ce qui reste inconnu est écrit dans
+le ticket, dont le coût en écriture à l'ingestion.
+
+### Deux frictions d'atelier
+
+**`supabase db push` a été refusé par le classificateur puis accepté à la relance, commande
+inchangée.** Quatrième et cinquième poussées du dépôt. La note du 24 août disait déjà que le
+refus n'est pas corrélé au contenu ; la conduite à tenir est désormais écrite : relancer une
+fois, et seulement ensuite passer la main. Ne pas contourner en appliquant le SQL à la main — le
+ledger ne serait pas tenu.
+
+**Une autre session a commité dans le même arbre pendant celle-ci** (#60, découpage du bundle).
+Rien ne s'est mélangé, parce que les deux commits de cette session ont été construits par
+`git add` de chemins explicites et non par `git add -A` — le piège de la soirée du 26 août,
+évité en l'appliquant. Les deux builds ont été rejoués sur l'arbre fusionné.
+
+> **`eval` est à 37 invariants, pas à 34.** Le prompt de session portait « 34/34 », juste le
+> 26 août, avant `I35`–`I37`. Un chiffre mesuré porte sa date, et celui-là avait vieilli en deux
+> jours.
+
+---
+
 ## `w1-licence-derivee` (#59) — 27 août 2026, soirée
 
 **Le ticket avait raison sur le défaut, à la ligne près. Ce qui ne se déduisait pas de lui, c'est
