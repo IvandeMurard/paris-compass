@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, lazy, useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
-import MapView from '@/components/MapView';
 import PropertyList from '@/components/PropertyList';
 import NaturalLanguageSearch from '@/components/NaturalLanguageSearch';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,18 @@ import { geocode } from '@/services/opendata/geocoding';
 import Seo from '@/components/Seo';
 import { SITE_URL } from '@/content/site';
 import { useLocale } from '@/i18n/locale';
+
+// Leaflet and its layer code only ever run inside MapView, so the map is loaded on demand:
+// that keeps the mapping library out of the bundle the page has to parse before it can paint
+// its shell. The map is the default tab, so this buys first render, not bytes never fetched.
+const MapView = lazy(() => import('@/components/MapView'));
+
+/** MapView with its own boundary, so a pending map never suspends the rest of the page. */
+const MapPanel = () => (
+  <Suspense fallback={<div className="h-full" />}>
+    <MapView />
+  </Suspense>
+);
 
 const IndexContent = () => {
   const { updateQuery } = useFiltersContext();
@@ -103,7 +114,7 @@ const IndexContent = () => {
                 </div>
 
                 <TabsContent value="map" className="flex-1 min-h-0 mt-0">
-                  <MapView />
+                  <MapPanel />
                 </TabsContent>
 
                 <TabsContent value="list" className="flex-1 min-h-0 overflow-auto mt-0">
@@ -116,7 +127,7 @@ const IndexContent = () => {
             <div className="md:hidden h-full">
               {viewMode === 'map' ? (
                 <div className="h-full">
-                  <MapView />
+                  <MapPanel />
                 </div>
               ) : (
                 <div className="h-full overflow-auto">

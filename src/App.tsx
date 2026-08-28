@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,19 +8,29 @@ import { AuthProvider } from "@/providers/AuthProvider";
 import { LocaleProvider } from "@/i18n/locale";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import SignIn from "./pages/SignIn";
-import SignUp from "./pages/SignUp";
-import Profile from "./pages/Profile";
-import About from "./pages/About";
-import Faq from "./pages/Faq";
-import Sources from "./pages/Sources";
-import Methodology from "./pages/Methodology";
-import Guides from "./pages/Guides";
-import GuideDetail from "./pages/GuideDetail";
-import Glossary from "./pages/Glossary";
-import ParisIndex from "./pages/ParisIndex";
-import Arrondissement from "./pages/Arrondissement";
-import Presentation from "./pages/Presentation";
+
+// Pages off the entry path are loaded on demand, so rollup emits one chunk each instead of
+// folding every page into the bundle the landing screen has to download first. The split is
+// declared here rather than through `build.rollupOptions.output.manualChunks` on purpose: this
+// file is application code, while `vite.config.ts` is rewritten from a template by Lovable and
+// `vite.config.local.ts` only drives `build:local` — a rule placed in either could silently
+// stop applying, or make the two build paths disagree.
+//
+// `Index` and `NotFound` stay eager: lazily loading the page the visitor already asked for
+// would only add a round trip.
+const Presentation = lazy(() => import("./pages/Presentation"));
+const About = lazy(() => import("./pages/About"));
+const Faq = lazy(() => import("./pages/Faq"));
+const Sources = lazy(() => import("./pages/Sources"));
+const Methodology = lazy(() => import("./pages/Methodology"));
+const Guides = lazy(() => import("./pages/Guides"));
+const GuideDetail = lazy(() => import("./pages/GuideDetail"));
+const Glossary = lazy(() => import("./pages/Glossary"));
+const ParisIndex = lazy(() => import("./pages/ParisIndex"));
+const Arrondissement = lazy(() => import("./pages/Arrondissement"));
+const SignIn = lazy(() => import("./pages/SignIn"));
+const SignUp = lazy(() => import("./pages/SignUp"));
+const Profile = lazy(() => import("./pages/Profile"));
 
 const queryClient = new QueryClient();
 
@@ -69,7 +80,10 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <LocaleProvider>
-            <AppRoutes />
+            {/* Inside LocaleProvider so a page still resolving keeps the locale it was asked in. */}
+            <Suspense fallback={null}>
+              <AppRoutes />
+            </Suspense>
           </LocaleProvider>
         </BrowserRouter>
       </TooltipProvider>
