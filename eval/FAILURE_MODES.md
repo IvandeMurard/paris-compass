@@ -210,6 +210,31 @@ et le cache ne décide que du prix de chaque page. C'est donc sur elles qu'on bl
 « une porte dont le verdict dépend de la température du cache est une porte qui apprendra un
 jour à être ignorée. » Le bras E dit donc l'heure sans jamais trancher dessus.
 
+**Mais l'équivalence « pages = travail » n'est vraie que dans un sens, et une de ces quatre
+fonctions le démontre.** Mesuré le 28 août 2026 en instruisant `#65` : forcée en jointure par
+hachage, `compass_bodacc_within` rend **−57 % de pages pour 3,6 fois plus de temps**. Construire
+une table de hachage est du processeur qu'aucune page ne compte. Donc :
+
+- **Plus de pages reste une régression.** C'est du travail en plus, sur toutes les machines, et
+  c'est pour ça que c'est le seul chiffre sur lequel ce bras bloque. Rien ne change de ce côté.
+- **Moins de pages n'est pas une preuve d'amélioration.** Un correctif qui divise les pages peut
+  être vert ici et plus lent pour un visiteur. Le bras ne le dira pas — il n'échoue jamais sur
+  une horloge, et c'est délibéré (§18). **Un correctif de performance ne se juge donc pas sur ce
+  bras seul** : il se mesure aussi à l'horloge, ailleurs, et l'écart se lit plutôt que se
+  raconte.
+- **Le bras voit un plan qui bascule ; il ne dit pas de quel côté il fallait basculer.** Mesuré
+  le 28 août sur `premise_location ⋈ premise_observation` : à 2 000 m les deux jointures sont à
+  **0,3 %** l'une de l'autre dans le modèle de coût du planificateur, à 800 m le hachage gagne
+  des pages en perdant du temps, et à 50 m il coûte dix-huit fois plus. Une cellule ne décide pas
+  pour les autres.
+
+**Et la cellule qu'il mesure n'est pas celle que le produit sert le plus.** Le bras joue Châtelet
+au **rayon maximal**, 2 000 m ; le rayon par défaut du produit est **800 m**
+(`AMENITY_RADIUS_M`), et `find_premises` plafonne à 500 m. Le rayon maximal est le bon choix pour
+une porte — c'est le pire cas, et c'est la promesse que `compass_max_radius_m()` porte — mais
+**un correctif jugé sur cette seule cellule peut dégrader le cas courant sans que rien ne
+rougisse.** Détail et mesures dans `DIAGNOSTIC.md` § 29.
+
 **Le verdict est éprouvé hors base.** `budgetVerdict` est une fonction pure, testée par
 `scripts/eval/budget.test.ts` — dont deux contre-tests qui décident du sens du bras : 195 456
 pages rendues en 300 ms, sous le plafond, doivent **échouer** (le travail a changé) ; 94 070

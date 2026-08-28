@@ -110,24 +110,24 @@ normande, sans rapport avec Paris. Détail dans `docs/PLAN-ACTION-VACANCE.md` §
 table de `docs/SESSIONS.md` régénérée, `sessions:check` ✓. Rien dans `src/`, donc pas de portes
 à rejouer.
 
-## L'état mesuré le plus récent — 28 août 2026, après clôture de `#64`
+## L'état mesuré le plus récent — 28 août 2026, après clôture de `#65`
 
 **Le tableau de la section suivante date du 24 août** et n'a pas été remesuré depuis ; celui-ci
-l'a été, contre `dbefhvmyfmmhjeetdddu`, après la fermeture de `#64`. Quand les deux
+l'a été, contre `dbefhvmyfmmhjeetdddu`, après la fermeture de `#65`. Quand les deux
 se contredisent, c'est le plus daté des deux qui a tort — et la règle de `CLAUDE.md` s'applique
 d'abord ici : **remesurer avant de recopier.**
 
-| Mesure | Valeur, mesurée le 28 août 2026, après clôture de `#64` |
+| Mesure | Valeur, mesurée le 28 août 2026, après clôture de `#65` |
 | --- | --- |
-| Ledger distant `supabase_migrations` | **47** migrations, dernière `20260828000003` — trois poussées ce jour, `…0001` et `…0002` (`#62`) puis `…0003` (`#64`) |
-| Fonctions `compass_*` | **15** — inchangé, les trois migrations remplacent des corps sans en créer |
+| Ledger distant `supabase_migrations` | **47** migrations, dernière `20260828000003` — remesuré en fin de session. Trois poussées ce jour, `…0001` et `…0002` (`#62`) puis `…0003` (`#64`) ; **`#65` n'en a posé aucune**, et c'est son résultat |
+| Fonctions `compass_*` | **15** — inchangé, remesuré. Les trois migrations remplacent des corps sans en créer, et `#65` n'en touche aucun. Vérifié aussi qu'aucune fonction candidate n'a survécu aux transactions annulées de `#65` : **0 résidu** |
 | Invariants | **37** — inchangé. **Pas 34** : ce chiffre circule encore (`docs/tickets/w0-appelant.md`) et était juste le 26 août, avant `I35`–`I37` |
 | Bras de la porte | **cinq** : A invariants, B baselines, C jeu doré, **E budget de la fenêtre anon** (`#62`), D porte anonyme jouée à part |
-| Tests unitaires | **188** — inchangé, `#64` ne change aucun verdict, seulement la justification d'un seuil |
+| Tests unitaires | **188** — inchangé, ni `#64` ni `#65` ne changent de verdict |
 | `auth.users` | **0** — aucun compte, ce qui rend la décision de `w0-appelant` gratuite aujourd'hui et coûteuse plus tard |
-| Issues | **36 ouvertes, 23 fermées** — remesuré par `gh issue list --jq length` en toute fin de session, après fermeture de [`#64`](https://github.com/IvandeMurard/paris-compass/issues/64) **et ouverture de [`#65`](https://github.com/IvandeMurard/paris-compass/issues/65)**. Il valait 35/23 vingt minutes plus tôt, 36/22 avant la fermeture, et 37/20 la veille : **remesurer avant de recopier** |
-| Épic [`#42`](https://github.com/IvandeMurard/paris-compass/issues/42) (vague 1) | ouverte, **5 cochés sur 7** — inchangé, ni `#62` ni `#64` n'y figurent |
-| Portes | `typecheck` ✓ · `test` **188** ✓ · `build` ✓ · `eval` **37 invariants**, 8 cas dorés, bras E vert sur quatre fonctions, **11 avertissements de baseline** (sortie 3) · `eval:anon` **PASS, 15 contrôles**, cinq passages dont le premier à froid · `verify:mcp` **41 contrôles, 39 verts, 0 échec, 2 suspendus** (Overpass 504, panne amont) · `eval:sabotage` **non relancé** — rien de ce jour ne touche la règle de retenue |
+| Issues | **37 ouvertes, 24 fermées** — remesuré par `gh issue list --jq length` en toute fin de session, après fermeture de [`#65`](https://github.com/IvandeMurard/paris-compass/issues/65) **et ouverture de [`#68`](https://github.com/IvandeMurard/paris-compass/issues/68) et [`#69`](https://github.com/IvandeMurard/paris-compass/issues/69)**. Il valait 36/23 en début de session, 35/23 après la seule fermeture, et 37/20 l'avant-veille : **remesurer avant de recopier** |
+| Épic [`#42`](https://github.com/IvandeMurard/paris-compass/issues/42) (vague 1) | ouverte, **5 cochés sur 7** — inchangé, remesuré ; ni `#62`, ni `#64`, ni `#65` n'y figurent |
+| Portes | `typecheck` ✓ · `test` **188** ✓ · `build` ✓ · `eval` **37 invariants**, 8 cas dorés, bras E vert sur quatre fonctions et **sous leurs plafonds** (−0,0 % à −2,1 %), **11 avertissements de baseline** (sortie 3) · `eval:anon` **PASS, 15 contrôles** (sortie 0), requête la plus coûteuse `compass_premises_within` à **1 121 ms** sur 3 000 · `verify:mcp` **41 contrôles, 40 verts, 0 échec, 1 suspendu** (panne amont) · `eval:sabotage` **non relancé** — rien de ce jour ne touche la règle de retenue. **`eval` a demandé trois passages** : deux morts sur `57014` à 120 000 ms dans le bras A, voir le piège plus bas et [`#69`](https://github.com/IvandeMurard/paris-compass/issues/69) |
 
 **Coût des quatre fonctions de rayon au rayon maximal**, mesuré après poussée de
 `20260828000003`, claim `anon`, parallélisme coupé, pire de douze passages — c'est le contenu de
@@ -672,6 +672,23 @@ différence que ce ticket a achetée. `eval` (bras A) et `verify:mcp` n'ont pas
 cette distinction pour le timeout : là, **rejouer avant de diagnostiquer** reste
 la règle, et ne conclure à une régression qu'au deuxième rouge.
 
+**Un `57014` dans le bras A de `eval` n'est pas toujours une instance froide.** Le
+28 août, deux passages morts **à 120 000 ms exactement** — pas une latence, une
+fenêtre : le lanceur se connecte en `postgres`, dont `statement_timeout` vaut
+**`2min`**. Le troisième est passé avec **`I1` à 115,3 s**, soit 4,7 s de marge.
+La porte est sur le fil, pas cassée — détail et pistes dans
+[`#69`](https://github.com/IvandeMurard/paris-compass/issues/69).
+
+> **La méthode qui donne le diagnostic en une fois** : jouer les invariants un par un
+> sur une connexion où l'on a relevé `set statement_timeout = '180s'`, et chronométrer.
+> `readInvariants()` de `scripts/eval/census.ts` est exporté, c'est vingt lignes. Ici :
+> `I1` 83,6 s, `I2` 65,4 s, `I7` 45,4 s, **les 37 à zéro ligne** — le contenu est vert,
+> c'est l'horloge qui ne l'est pas.
+>
+> **Et ne pas conclure d'un `| tail`** : `npm.cmd run eval | tail -30` rend le code de
+> sortie de `tail`, soit **0**, sur une porte sortie en 2. Même règle que
+> `Select-Object -First N` plus bas, rencontrée sous bash.
+
 **Un refus du classificateur sur `supabase db push` peut céder à la relance —
 essayer une fois avant de passer la main.** Quatrième et cinquième poussées, le
 28 août : la **même commande, inchangée**, refusée puis acceptée quelques minutes
@@ -726,6 +743,30 @@ générique à tous les coups. Deux conséquences :
 > est faux et rassurant. Rencontré le 28 août en instruisant
 > [`#65`](https://github.com/IvandeMurard/paris-compass/issues/65) : connexion neuve
 > par configuration, et ne retenir que les passages 6 et suivants.
+
+**Une estimation géographique fausse n'accuse pas l'histogramme — vérifier d'abord
+que l'estimateur le lit.** Sur `premise_location`, `l.geom && _ST_Expand(point, d)`
+— la forme qui **consulte** les statistiques — estime correctement à tous les rayons,
+tandis que `ST_DWithin(l.geom, point, d)` rend **9 partout**, soit 85 418 × 0,0001 :
+la sélectivité de repli de PostGIS. Le geste, avant de toucher à `SET STATISTICS` :
+comparer les deux formes, ça coûte deux requêtes qui n'exécutent rien.
+
+> **Et monter la cible sur une colonne `geography` détruit ce qu'elle prétend
+> affiner** : au-delà de **1 000**, l'histogramme ND tombe de 15 360 cellules à **19**
+> et l'estimation `&&` s'effondre à 1. Il est de toute façon **déjà à son plafond à la
+> valeur par défaut**. Mesuré le 28 août, `DIAGNOSTIC.md` § 29.
+
+**Deux faux zéros rassurants, tous deux rencontrés le 28 août.** `not (ST_X(g) = ST_X(g))`
+ne trouve **aucune** géométrie `NaN` — en Postgres, `NaN = NaN` est **vrai** ; utiliser
+`ST_X(g) = 'NaN'::float8`. Et `proname like 'compass[_]%'` rend **zéro** — les crochets
+sont de la syntaxe SQL Server, l'échappement Postgres est `like 'compass\_%'`. Le second
+servait à vérifier qu'aucune fonction de sabotage n'était restée sur le distant : un zéro
+faux y est le pire retour possible.
+
+**Un corps de fonction remplacé dans une transaction annulée exige un contrôle
+positif.** Un candidat qui n'a pas pris ressemble exactement à « aucun changement » —
+c'est-à-dire à la réponse qu'on cherche. Relire `prosrc` après le `create or replace`
+**avant** de conclure quoi que ce soit de la mesure.
 
 **Une démonstration de sabotage ne s'imbrique pas dans une transaction avec du code
 qui gère les siennes — sinon elle écrit pour de bon sur le distant.** Le 28 août, la
@@ -1251,3 +1292,16 @@ minimale dans l'avis GitHub ou l'export Socket avant de renoncer à une montée.
 Ne pas vérifier une montée de `vite` avec `npm.cmd run build` seul. La commande
 construit en mode production, où `lovable-tagger` **n'est pas chargé** : une panne
 du lien avec Lovable passerait inaperçue. Lancer aussi `npm.cmd run build:dev`.
+
+Ne pas forcer `enable_nestloop = off` sur les fonctions de rayon, ni globalement ni
+sur les quatre sans distinction de rayon : le hachage vaut −81 % de pages à 2 000 m
+mais **dix-huit fois pire à 50 m**, alors que le rayon par défaut du produit est 800 m
+et que `find_premises` plafonne à 500 m. Le levier ne sait pas dépendre du rayon.
+`#65`, `DIAGNOSTIC.md` § 29.
+
+Ne pas remplacer `ST_DWithin(g, point, d)` par `g && _ST_Expand(point, d) and
+ST_Distance(g, point) <= d`, malgré la documentation qui les donne pour équivalentes.
+**Elles ne le sont pas sur ce corpus** : quinze locaux à `POINT(NaN NaN)` passeraient
+la seconde à tous les rayons et à tous les points, jusqu'à 1 m. Démontré sur la
+population entière, `DIAGNOSTIC.md` § 29 et
+[`#68`](https://github.com/IvandeMurard/paris-compass/issues/68).

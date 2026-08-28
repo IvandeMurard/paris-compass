@@ -33,6 +33,17 @@
 //         calling it a regression.
 //   WARN  measured pages far under the ceiling, which says the ceiling has gone stale.
 //
+// PAGES ARE THE WORK, BUT THE EQUIVALENCE ONLY RUNS ONE WAY. Measured 2026-08-28 (#65):
+// forced into a hash join, `compass_bodacc_within` touches 57 % FEWER pages and takes 3.6
+// times LONGER — building a hash table is CPU no page count sees. So MORE pages is still a
+// regression and still the only thing this arm blocks on; FEWER pages is NOT proof of an
+// improvement, and a performance fix is not judged on this arm alone. The arm also SEES a plan
+// flip without saying which way it should have flipped: at 2 000 m the nested loop and the hash
+// join are within 0.3 % of each other in the planner's cost model. And the cell measured here —
+// Chatelet at the MAXIMUM radius — is not the one the product serves most: the default is 800 m
+// (AMENITY_RADIUS_M) and find_premises caps at 500 m. Full statement in eval/FAILURE_MODES.md,
+// measurements in DIAGNOSTIC.md §29.
+//
 // The population is ENUMERATED from pg_proc — every `compass_*` function that takes
 // `p_radius_m` and that `anon` may execute — the same mechanic as I24 for the licence rule:
 // the list is not kept by hand, so it cannot be forgotten. Every other parameter is left to

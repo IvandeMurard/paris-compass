@@ -2282,7 +2282,12 @@ ignorée. »
   imbriquée de 23 909 recherches par index. Une jointure par hachage y plafonnerait le côté
   sondé aux 4 515 pages que fait `premise_observation` en entier — borné, pas mesuré : aucun
   moyen de forcer ce plan sans un levier de planificateur, et ce n'est pas ce que ce ticket
-  corrige. C'est la prochaine chose à regarder si la fenêtre se resserre.
+  corrige. ~~C'est la prochaine chose à regarder si la fenêtre se resserre.~~ **Regardée
+  le 28 août par [`#65`](https://github.com/IvandeMurard/paris-compass/issues/65), et la réponse est
+  non : voir § 29.** Le facteur n'est pas 4 800 mais **2 656 avec le rayon écrit en clair**, il ne
+  vient pas d'un histogramme grossier mais d'une sélectivité de repli que l'estimateur applique
+  sans rien lire, et le corriger ne déplace aucun plan — le planificateur évalue les deux
+  jointures à **0,3 %** l'une de l'autre à 2 000 m.
 
 ---
 
@@ -2492,6 +2497,112 @@ retirée après coup et `pg_proc` revérifié : **15 fonctions `compass_*`, aucu
   ce qui contredit l'équivalence « pages = travail » sur laquelle le bras E tranche. L'estimation
   se trompe d'un facteur **2 656 même avec le rayon écrit en clair**, donc ce n'est pas le plan
   générique qui est en cause et `force_custom_plan` n'y changerait rien.
+  **Tranché le 28 août, § 29 : la piste de l'estimation est morte, et la boucle reste** — la
+  cible statistique n'y peut rien (l'estimateur ne lit pas l'histogramme, qui est déjà saturé), une
+  forme estimable ne déplace pas le plan, et elle aurait été **fausse** : quinze locaux à géométrie
+  `NaN` s'y invitaient à tous les rayons. Résultat retenu : accepter et déclarer.
 - **Le froid après correctif n'est pas mesuré**, voir plus haut.
 - **Le bras E mesure toujours un point et un rayon**, et toujours `anon` seul : les deux réserves
   de §27 tiennent inchangées.
+
+
+---
+
+## 29. L'estimation était bien fausse, et la corriger ne rachète rien — le 28 août
+
+**Ouvert par [`#65`](https://github.com/IvandeMurard/paris-compass/issues/65)**, fermé sans
+migration. §27 et §28 nommaient la cause — l'estimation de `ST_DWithin` est fausse et pousse une
+boucle imbriquée — et en tiraient qu'une jointure par hachage était « la prochaine chose à
+regarder ». La cause était juste, **la conséquence était fausse**.
+
+Mesures du 28 août 2026 sur `dbefhvmyfmmhjeetdddu`, PostgreSQL 17.6, PostGIS 3.3.7. **Les
+tableaux complets — 8 points × 4 rayons × 2 modes de plan, le balayage de cible, les 20 cellules
+d'exécution par fonction — sont dans le commentaire de clôture de `#65`.** Ce qui suit est ce
+qu'une session suivante ne doit pas avoir à redécouvrir.
+
+### 1. L'histogramme n'a jamais été en cause
+
+Deux formes du même prédicat, `EXPLAIN` sans `ANALYZE`, plan custom, `premise_location`
+(85 418 lignes), Châtelet :
+
+| Forme | 50 m | 300 m | 800 m | 2 000 m | Réel |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `ST_DWithin(l.geom, v_point, d)` — la forme déployée | **9** | **9** | **9** | **9** | 23 909 |
+| `l.geom && _ST_Expand(v_point, d)` | 2 | 601 | 6 675 | 35 095 | 23 909 |
+
+La forme `&&` **consulte** les statistiques et tombe juste — elle suit le rayon et la densité du
+point (hors corpus : 1 026 estimées contre 551 réelles). `ST_DWithin` rend **9 partout** :
+85 418 × 0,0001, la sélectivité de repli de PostGIS à la ligne près, vérifiée sur 64 cellules
+sans exception. **Ce n'est pas une estimation imprécise, c'est l'absence d'estimation** — donc
+affiner l'histogramme ne peut rien, et la piste que `#65` ordonnait en premier est close.
+
+**Piège, et c'est le vrai livrable de cette piste :** au-delà de la cible **1 000**, `SET
+STATISTICS` **détruit** l'histogramme ND que `geography` utilise — cellules 15 360 → **19**, et
+l'estimation `&&` s'effondre à 1 à tous les rayons, c'est-à-dire vers le mauvais plan. La
+frontière tombe exactement là où `cible³` déborde un entier signé 32 bits ; le mécanisme est
+déduit, la frontière est mesurée. L'histogramme est par ailleurs **déjà à son plafond à la
+valeur par défaut**. Cible remise par défaut, état revérifié.
+
+### 2. Une estimation corrigée ne change pas le plan
+
+Une forme estimable existe (`&&` plus une distance explicite) et vaut un facteur **2** au lieu de
+2 656 — 11 898 estimées contre 23 909. Le plan ne bouge pas, et le modèle de coût dit pourquoi :
+à 2 000 m la boucle et le hachage sont à **0,3 %** l'un de l'autre (904 222 contre 907 237).
+**Le planificateur n'hésite pas parce qu'il est mal renseigné : il est à égalité et tranche d'un
+cheveu**, le coût étant dominé par la constante `COST` de PostGIS, la même des deux côtés.
+
+Confirmé par l'exécution — corps candidat dans une transaction annulée, connexion neuve par
+configuration, passages 6 à 8, claim `anon` : **pages identiques à la page dans les 20 cellules**
+de chaque fonction sous le plan que la production exécute. Et sous le plan **générique**, aucune
+forme ne peut voir un rayon qu'on ne lui montre pas : la forme estimable y descend même à 3.
+
+### 3. Le contre-test a refusé le correctif — et c'est le résultat le plus important
+
+L'équivalence des deux prédicats a été démontrée sur la population entière avant toute
+comparaison de sorties : **15 lignes en désaccord dans chacune des 40 cellules**. Ce sont quinze
+locaux à `POINT(NaN NaN)` — `ST_DWithin` rend `false`, une boîte englobante `NaN` recouvre tout,
+`ST_Distance` rend `0`. La forme estimable aurait ajouté quinze locaux fantômes à **chaque**
+requête de rayon, jusqu'au rayon de 1 m et hors corpus, dans `premises`, `vacant`,
+`total_matched` et le `GridIndex` de `src/core/scoring.ts`.
+
+**Le correctif n'a donc pas seulement été écarté parce qu'il ne rapportait rien : il aurait été
+faux**, d'une manière qu'aucun bras de la porte ne regarde. Les quinze lignes sont ouvertes en
+[`#68`](https://github.com/IvandeMurard/paris-compass/issues/68).
+
+> L'argument structurel qui a porté `#62` et `#64` — « une jointure externe sur une clé unique ne
+> peut ni ajouter ni retirer une ligne » — était une **preuve**. Ici l'argument disponible était
+> une équivalence lue dans la documentation PostGIS, vraie en général et **fausse sur cette
+> donnée**. C'est la clause « une documentation n'est pas une mesure » de `CLAUDE.md`, rencontrée
+> sur du SQL.
+
+### L'arbitrage : la piste 3, accepter et déclarer
+
+Atteinte par mesure et non par renoncement. Les quatre fonctions tiennent la fenêtre, leurs
+plafonds ont été **abaissés** le 28 août par `#64`, et le bras E les empêche d'empirer en
+silence. **Aucune migration n'est posée, et c'est le résultat** : ledger à 47, corps déployés
+inchangés. La piste 2 du ticket — un levier conditionné au rayon — reste refusée sans être
+mesurée : elle double quatre corps et fait entrer un seuil arbitraire dans le code pour arbitrer
+un choix que le planificateur évalue à 0,3 % près.
+
+Ce que le ticket livre à la place d'un correctif, c'est **ce que le bras E ne voit pas** :
+l'équivalence « pages = travail » ne vaut que dans un sens — plus de pages reste une régression,
+**moins de pages n'est pas une preuve d'amélioration** (`compass_bodacc_within` : −57 % de pages
+pour 3,6 fois plus de temps). Écrit là où il sert, dans `eval/FAILURE_MODES.md` et l'en-tête de
+`scripts/eval/budget.ts`, avec la réserve corollaire : le bras mesure Châtelet à 2 000 m alors
+que le rayon par défaut du produit est 800 m.
+
+### Ce que ça ne rattrape pas
+
+- **La boucle est toujours là.** Ce point démontre qu'aucune correction d'estimation ne la
+  retirera, et que forcer le hachage échangerait le cas courant contre le pire cas. Ce qui reste
+  ouvert n'est plus « corriger l'estimation » mais « changer la forme du problème ».
+- **Une piste nommée et non mesurée**, pour qu'elle ne soit pas redécouverte comme neuve :
+  porter la géométrie dans `premise_observation` supprimerait la jointure au lieu d'en choisir le
+  plan. C'est une dénormalisation, pas une optimisation de plan, et elle demande sa propre
+  décision.
+- **Deux défauts trouvés en chemin, ouverts plutôt que corrigés** :
+  [`#68`](https://github.com/IvandeMurard/paris-compass/issues/68) les quinze géométries `NaN`,
+  [`#69`](https://github.com/IvandeMurard/paris-compass/issues/69) le bras A de `eval`, qui passe
+  à 115,3 s sur une fenêtre de 120 s et est mort deux fois sur trois ce jour-là.
+- Les deux réserves de §27 sur le bras E — un point, un rayon, `anon` seul — tiennent inchangées,
+  et sont désormais écrites dans le contrat plutôt que seulement ici.
