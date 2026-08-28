@@ -4,7 +4,8 @@
 
 **Context is the product.**
 
-*Every commercial-property tool describes the unit — surface, rent, photos — and leaves you to guess the rest. Compass reads the street instead, from public records only, and tells you how sure it is of each answer.*
+*Most commercial-property tools describe the unit - floor area, rent, photos - and leave you to infer the rest. But, a shopfront is only one part of the answer.
+Compass reads the street around it: what was there, what is changing, and what shapes its daily life nearby.*
 
 [![Live app](https://img.shields.io/badge/live-paris--compass.lovable.app-0f766e?style=flat)](https://paris-compass.lovable.app)
 [![Scope](https://img.shields.io/badge/scope-Paris%20intra--muros-334155?style=flat)](#scope)
