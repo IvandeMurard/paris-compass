@@ -3,7 +3,11 @@
   "target": "dbefhvmyfmmhjeetdddu",
   "note": "PLAFOND, pas égalité : `pages` est ce qu'une fonction a le droit de toucher au rayon maximal, jamais ce qu'elle doit toucher exactement. Le bras échoue au-dessus de +10 %, jamais en dessous — un plan devenu moins cher n'est pas une régression. Relevé après la pose de 20260828000001 et 20260828000002, par explain (analyze, buffers, timing off), claim anon, parallélisme coupé ; chaque valeur est le PIRE de douze passages (quatre lots de trois), parce qu'un plafond pris sur un plan chanceux n'est pas un plafond. `ms` est le meilleur observé, donc le coût à chaud. Les deux fonctions qui rendent tout le rayon basculent entre deux plans d'un passage à l'autre : voir leurs notes. Remesurer et redater avant de recopier (CLAUDE.md) — les valeurs relevées avant poussée, dans la transaction de répétition, ne valaient déjà plus.",
   "window_fraction": 0.34,
-  "point": { "label": "Chatelet", "lat": 48.8566, "lng": 2.3522 },
+  "point": {
+    "label": "Chatelet",
+    "lat": 48.8566,
+    "lng": 2.3522
+  },
   "functions": {
     "compass_premises_within": {
       "pages": 94117,
@@ -18,12 +22,12 @@
     "compass_scoring_context_within": {
       "pages": 137576,
       "ms": 149,
-      "note": "Non corrigée, et pas du même défaut : elle rend TOUT le rayon, sans limite, parce que le scoring en a besoin. Il n'y a pas de top-N sur lequel reporter les libellés — son coût est ce qu'elle répond. Bascule entre deux plans, 103 278 et 137 576 pages ; le plafond retient le second."
+      "note": "Non corrigée, et pas du même défaut : elle rend TOUT le rayon, sans limite — 17 173 lignes à 2 000 m, une par local, et les coordonnées comptent puisque src/core/scoring.ts construit un GridIndex dessus. Son coût est bien sa réponse ; le réduire veut dire changer ce qu'elle rend, décision produit qui toucherait des formules publiées. Bascule entre deux plans, 103 278 et 137 576 pages ; le plafond retient le second. Ouverte en ticket : #64."
     },
     "compass_street_rotation": {
       "pages": 286744,
       "ms": 355,
-      "note": "Non corrigée, même raison : un agrégat par tronçon sur tout le rayon. La plus chère des quatre une fois #62 posée, et la prochaine à regarder si la fenêtre se resserre. Bascule aussi, entre 152 012 et 286 744 pages."
+      "note": "Non corrigée, et la plus chère des quatre depuis #62 — trois fois compass_premises_within. Contrairement à sa voisine, son coût n'est PAS sa réponse : agrégat par tronçon, elle rend 2 609 lignes à 2 000 m en en lisant 64 147, trois millésimes par local. 136 072 de ses pages sont cette recherche-là, qui n'est pas un parcours d'index seul faute de porter activity_code. Il y a de la place, et 2 091 ms au premier appel observé. Ouverte en ticket : #64."
     }
   }
 }

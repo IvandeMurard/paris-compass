@@ -32,6 +32,14 @@ porte ajoutée par ce ticket serait sinon partie rouge.
 promesse produit qu'on retire. La décision est écrite plus bas, sous « Décisions qui ne se déduisent
 pas du code ».
 
+**Ouvert en le corrigeant : [`#64`](https://github.com/IvandeMurard/paris-compass/issues/64).**
+Les deux fonctions de rayon que `#62` n'a pas touchées. `compass_street_rotation` est désormais
+la plus chère des quatre — 286 744 pages, trois fois `compass_premises_within`, et 2 091 ms au
+premier appel observé. Et les deux ne sont pas le même cas, contrairement à ce que la première
+rédaction de §27 disait : `compass_scoring_context_within` rend une ligne par local, donc son
+coût est sa réponse ; `compass_street_rotation` est un agrégat qui rend 2 609 lignes en en lisant
+64 147, donc il y a de la place. Corrigé dans §27 le jour même.
+
 **Ce que le ticket laisse derrière lui, et qui vaut plus que le correctif** : le **bras E** de la
 porte, qui énumère depuis `pg_proc` toute fonction de rayon appelable par `anon`, la joue au rayon
 maximal, et bloque sur les **pages touchées** — jamais sur l'horloge. Détail complet, arbitrage et

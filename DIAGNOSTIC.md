@@ -2247,12 +2247,25 @@ ignorée. »
   de celle d'avant. **Le réveil après une nuit n'est pas mesuré après correctif**, et la seule
   façon de le mesurer est d'attendre : premier appel de la matinée, 2 000 m, avant toute autre
   requête.
-- **Deux fonctions gardent le coût du ticket, et ce n'est pas le même défaut.**
-  `compass_scoring_context_within` (125 861 pages) et `compass_street_rotation` (268 346) rendent
-  **tout le rayon**, sans limite, parce que c'est ce qu'elles répondent. Il n'y a pas de `top-N`
-  sur lequel reporter quoi que ce soit : leur coût est leur réponse. Le réduire veut dire changer
-  ce qu'elles rendent, ce qui est une décision produit et pas une optimisation. Le bras E les
-  porte avec leur chiffre et leur raison, donc elles ne peuvent plus empirer en silence.
+- **Deux fonctions gardent le coût du ticket, et ce n'est pas le même défaut** — ni, corrigé le
+  28 août même, le même cas toutes les deux. Elles rendent l'une et l'autre tout le rayon sans
+  limite, donc aucun `top-N` sur lequel reporter quoi que ce soit ; mais ce que ça coûte ne se
+  lit pas pareil, et la première version de ce point les rangeait ensemble à tort :
+
+  | Fonction, 2 000 m | Lignes rendues | Lignes lues | Plafond du bras E |
+  | --- | ---: | ---: | ---: |
+  | `compass_scoring_context_within` | 17 173 | 17 173 — une par local | 137 576 pages |
+  | `compass_street_rotation` | **2 609** | **64 147** — trois millésimes par local | 286 744 pages |
+
+  Pour la première, **son coût est bien sa réponse** : une ligne par local, et les coordonnées
+  comptent puisque `src/core/scoring.ts` construit un `GridIndex` dessus. La réduire veut dire
+  changer ce qu'elle rend — décision produit, et qui toucherait des formules publiées sur
+  `Methodology.tsx`. Pour la seconde, **non** : c'est un agrégat, facteur 25 entre ce qu'elle lit
+  et ce qu'elle rend, et 136 072 de ses 150 348 pages sont une recherche par local sur trois
+  millésimes qui pourrait devenir un parcours d'index seul. Il y a de la place, et §27 disait
+  l'inverse. Le bras E porte les deux avec leur chiffre, donc elles ne peuvent plus empirer en
+  silence — et la décision qui leur revient est ouverte en ticket, pas laissée ici :
+  [`#64`](https://github.com/IvandeMurard/paris-compass/issues/64).
 - **Le bras E mesure un point et un rayon**, Châtelet à 2 000 m. Un défaut qui n'apparaîtrait
   qu'ailleurs — un quartier à la géométrie pathologique — lui échappe. Châtelet est le point le
   plus dense du corpus, donc le pire cas plausible, mais « plausible » n'est pas « démontré ».
