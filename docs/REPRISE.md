@@ -1,10 +1,43 @@
-# Reprise — état au 28 août 2026, fin de session 16
+# Reprise — état au 28 août 2026, fin de session 17
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. Le reste du contexte est dans `docs/PLAN.md`
 (backlog, décisions produit), `docs/PLAN-ACTION-VACANCE.md` (doctrine et backlog
 priorisé), `docs/BDCOM.md` (pièges de la source) et `eval/FAILURE_MODES.md` (le
 contrat d'évaluation).
+
+## `#64` — les deux dernières fonctions de rayon, et un défaut de méthode qui les cachait — 28 août 2026
+
+**Corrigé par `20260828000003`. `compass_street_rotation` 286 744 → 87 879 pages,
+`compass_scoring_context_within` 137 576 → 86 102.** La plus chère des quatre, de trois fois, est
+devenue la moins chère. Détail complet dans `DIAGNOSTIC.md` §28.
+
+**Le ticket se trompait dans les deux sens, et c'est ce qu'il faut retenir de lui.** La piste
+d'index qu'il proposait était vraie mais ne valait que 22 % ; et la fonction qu'il déclarait « sans
+piste technique — il y a une décision » portait le **même défaut**, à 37 %. **Aucune décision
+produit n'a donc été nécessaire** : rien n'a été retiré, aucune formule publiée n'a bougé,
+`src/core/scoring.ts` n'a pas été touché, et `compass_max_radius_m()` reste à 2 000 m pour les
+quatre fonctions. La piste 2 du ticket — un rayon plus bas pour cette fonction-là — reposait de
+plus sur une prémisse fausse : les outils MCP `score_location`, `explain_score` et
+`compare_locations` déclarent tous les trois `radius_m … .max(2000)` et le passent tel quel.
+
+**Ce qui cachait le vrai coût, et qui vaut au-delà de ce ticket : le cache de plans plpgsql.**
+`anon-budget.json` disait de ces fonctions qu'elles « basculent entre deux plans d'un passage à
+l'autre » et prenait l'écart pour de la chance. C'était le plan **custom** contre le plan
+**générique**, et `auto` — la production — prend le générique à tous les coups : 286 710 contre
+151 778 pour la rotation, 137 576 contre 103 241 pour le contexte. **Le chiffre bas n'a jamais été
+payé par personne.** Voir plus bas, sous les pièges, la conséquence pour toute mesure future.
+
+**Le correctif ne touche pas au planificateur** : les deux tables de libellés passent en CTE
+`materialized` — une barrière, pas une indication —, plus l'`include` élargi à `activity_code`.
+Les deux plans ont convergé depuis, à 25 pages près. **354 comparaisons, aucun chiffre affiché
+déplacé** — `premises`, `vacant`, `changed_since_previous`, `total_matched`.
+
+**Ce qui reste, et c'est désormais la seule chose** : les deux fonctions descendent encore l'index
+d'observation une fois par local, 71 952 et 71 728 pages, parce que l'estimation de `ST_DWithin`
+est fausse d'un facteur 4 800. La jointure par hachage que §27 nommait déjà demande un levier de
+planificateur que personne n'a. Et **le réveil après une nuit n'est pas mesuré après correctif**,
+même réserve et même protocole que pour `#62`.
 
 ## `#62` — la carte tenait la fenêtre anonyme à chaud et la dépassait à froid — 28 août 2026
 
@@ -32,7 +65,7 @@ porte ajoutée par ce ticket serait sinon partie rouge.
 promesse produit qu'on retire. La décision est écrite plus bas, sous « Décisions qui ne se déduisent
 pas du code ».
 
-**Ouvert en le corrigeant : [`#64`](https://github.com/IvandeMurard/paris-compass/issues/64).**
+**Ouvert en le corrigeant, et clos le jour même : [`#64`](https://github.com/IvandeMurard/paris-compass/issues/64)** — voir la section au-dessus, qui fait foi. Ce qui suit est ce que `#62` en croyait à l'ouverture, et deux de ses affirmations se sont révélées fausses à la mesure : la piste d'index ne valait que 22 % du gain, et « son coût est sa réponse » était faux pour `compass_scoring_context_within` aussi. Conservé pour que le raisonnement reste lisible.
 Les deux fonctions de rayon que `#62` n'a pas touchées. `compass_street_rotation` est désormais
 la plus chère des quatre — 286 744 pages, trois fois `compass_premises_within`, et 2 091 ms au
 premier appel observé. Et les deux ne sont pas le même cas, contrairement à ce que la première
@@ -68,35 +101,35 @@ normande, sans rapport avec Paris. Détail dans `docs/PLAN-ACTION-VACANCE.md` §
 table de `docs/SESSIONS.md` régénérée, `sessions:check` ✓. Rien dans `src/`, donc pas de portes
 à rejouer.
 
-## L'état mesuré le plus récent — 28 août 2026, après clôture de `#62`
+## L'état mesuré le plus récent — 28 août 2026, après clôture de `#64`
 
 **Le tableau de la section suivante date du 24 août** et n'a pas été remesuré depuis ; celui-ci
-l'a été, contre `dbefhvmyfmmhjeetdddu`, après la fermeture de `#62`. Quand les deux
+l'a été, contre `dbefhvmyfmmhjeetdddu`, après la fermeture de `#64`. Quand les deux
 se contredisent, c'est le plus daté des deux qui a tort — et la règle de `CLAUDE.md` s'applique
 d'abord ici : **remesurer avant de recopier.**
 
-| Mesure | Valeur, mesurée le 28 août 2026, après clôture de `#62` |
+| Mesure | Valeur, mesurée le 28 août 2026, après clôture de `#64` |
 | --- | --- |
-| Ledger distant `supabase_migrations` | **46** migrations, dernière `20260828000002` — deux poussées ce jour, `20260828000001` et `20260828000002` |
-| Fonctions `compass_*` | **15** — inchangé, les deux migrations remplacent des corps sans en créer |
+| Ledger distant `supabase_migrations` | **47** migrations, dernière `20260828000003` — trois poussées ce jour, `…0001` et `…0002` (`#62`) puis `…0003` (`#64`) |
+| Fonctions `compass_*` | **15** — inchangé, les trois migrations remplacent des corps sans en créer |
 | Invariants | **37** — inchangé. **Pas 34** : ce chiffre circule encore (`docs/tickets/w0-appelant.md`) et était juste le 26 août, avant `I35`–`I37` |
-| Bras de la porte | **cinq** : A invariants, B baselines, C jeu doré, **E budget de la fenêtre anon** (nouveau, `#62`), D porte anonyme jouée à part |
-| Tests unitaires | **188** — 179 la veille, +9 pour `budgetVerdict` et `parseWindowMs` |
+| Bras de la porte | **cinq** : A invariants, B baselines, C jeu doré, **E budget de la fenêtre anon** (`#62`), D porte anonyme jouée à part |
+| Tests unitaires | **188** — inchangé, `#64` ne change aucun verdict, seulement la justification d'un seuil |
 | `auth.users` | **0** — aucun compte, ce qui rend la décision de `w0-appelant` gratuite aujourd'hui et coûteuse plus tard |
-| Issues | **36 ouvertes, 22 fermées** — remesuré par `gh issue list --jq length` en fin de session, après fermeture de [`#62`](https://github.com/IvandeMurard/paris-compass/issues/62) **et ouverture de [`#64`](https://github.com/IvandeMurard/paris-compass/issues/64)**. Il valait 35/22 une heure plus tôt et 37/20 la veille : **remesurer avant de recopier** |
+| Issues | **35 ouvertes, 23 fermées** — remesuré par `gh issue list --jq length` en fin de session, après fermeture de [`#64`](https://github.com/IvandeMurard/paris-compass/issues/64). Il valait 36/22 avant, 35/22 plus tôt le même jour et 37/20 la veille : **remesurer avant de recopier** |
 | Épic [`#42`](https://github.com/IvandeMurard/paris-compass/issues/42) (vague 1) | ouverte, **5 cochés sur 7** — inchangé, ni `#62` ni `#64` n'y figurent |
-| Portes | `typecheck` ✓ · `test` **188** ✓ · `build` ✓ · `eval` **37 invariants**, 8 cas dorés, bras E vert sur quatre fonctions, **11 avertissements de baseline inchangés depuis la veille** (sortie 3) · `eval:anon` **PASS, 15 contrôles**, trois passages · `verify:mcp` **41 contrôles, 40 verts, 1 suspendu** (Overpass 429, panne amont) · `eval:sabotage` **non relancé** — rien de ce jour ne touche la règle de retenue |
+| Portes | `typecheck` ✓ · `test` **188** ✓ · `build` ✓ · `eval` **37 invariants**, 8 cas dorés, bras E vert sur quatre fonctions, **11 avertissements de baseline** (sortie 3) · `eval:anon` **PASS, 15 contrôles**, cinq passages dont le premier à froid · `verify:mcp` **41 contrôles, 39 verts, 0 échec, 2 suspendus** (Overpass 504, panne amont) · `eval:sabotage` **non relancé** — rien de ce jour ne touche la règle de retenue |
 
-**Coût des quatre fonctions de rayon au rayon maximal**, mesuré après poussée, claim `anon`,
-parallélisme coupé, pire de douze passages — c'est le contenu de `eval/baselines/anon-budget.json`,
-et le bras E le rejoue à chaque `npm.cmd run eval` :
+**Coût des quatre fonctions de rayon au rayon maximal**, mesuré après poussée de
+`20260828000003`, claim `anon`, parallélisme coupé, pire de douze passages — c'est le contenu de
+`eval/baselines/anon-budget.json`, et le bras E le rejoue à chaque `npm.cmd run eval` :
 
-| Fonction | Pages | ms à chaud | Plafond déclaré |
-| --- | ---: | ---: | --- |
-| `compass_premises_within` | 94 117 | 133 | 1 020 ms, soit 34 % de la fenêtre `anon` |
-| `compass_bodacc_within` | 148 206 | 294 | idem |
-| `compass_scoring_context_within` | 137 576 | 149 | idem |
-| `compass_street_rotation` | 286 744 | 355 | idem |
+| Fonction | Pages | ms à chaud | Avant `#64` | Plafond déclaré |
+| --- | ---: | ---: | ---: | --- |
+| `compass_scoring_context_within` | **86 102** | 114 | 137 576 | 1 020 ms, soit 34 % de la fenêtre `anon` |
+| `compass_street_rotation` | **87 879** | 246 | 286 744 | idem |
+| `compass_premises_within` | 94 117 | 140 | 94 117 | idem |
+| `compass_bodacc_within` | 148 346 | 294 | 148 206 | idem |
 
 Les corps de fonction déployés sont **identiques aux fichiers versionnés**, revérifié après la
 poussée de `20260828000002` — `compass_premises_within` et `compass_bodacc_within` comprises,
@@ -495,6 +528,16 @@ Ce qui rouvrirait la décision : une mesure montrant qu'au-delà d'un certain ra
 cesse d'avoir un sens produit — « ce quartier » à 2 km n'est plus un quartier. Ce serait une
 décision de périmètre, écrite comme celle-ci, et pas un correctif de performance.
 
+> **Reconduite le 28 août en fermant `#64`, et sous une forme qu'il faut nommer :
+> aucun rayon maximal propre à une fonction.** `#64` proposait d'en donner un, plus
+> bas, à `compass_scoring_context_within` seule, en avançant que la promesse serait
+> vide puisque « le serveur MCP la joue au rayon de score, pas au rayon de carte ».
+> **Vérifié dans le code, c'est faux** : `score_location`, `explain_score` et
+> `compare_locations` déclarent tous les trois `radius_m:
+> z.number().positive().max(2000)` et le passent tel quel à la fonction. La promesse
+> est donc réelle et un agent qui lit ces schémas la croit. Elle n'a pas eu à être
+> retirée : le coût était ailleurs, et il a été traité dans le corps.
+
 **Quatre niveaux de fiabilité, calculés et jamais saisis** : `etabli`,
 `corrobore`, `probable`, `indetermine`. Pas de score sur 100 — un pourcentage de
 confiance serait le chiffre invérifiable que le produit refuse. La règle est dans
@@ -645,6 +688,41 @@ même réussi, rien de tout ça n'atteint le cache du système sous Postgres.
 > appel après une nuit d'inactivité est la mesure que le critère de `#62` demandait, et
 > c'est comme ça qu'elle a été obtenue. Une session à cheval sur une nuit vaut de
 > dépenser son premier appel sur la mesure qui compte, avant toute autre requête.
+
+**Mesurer le corps d'une fonction plpgsql comme une requête SQL nue la sous-estime
+d'un facteur deux.** C'est le geste évident face à une boîte noire — `explain` sur
+une fonction plpgsql ne rend qu'un `Function Scan` —, et il est faux. Les requêtes
+d'une fonction plpgsql passent par le **cache de plans** : au bout de cinq
+exécutions elles basculent sur le plan **générique**, et c'est celui-là que la
+production exécute. Une requête recopiée à la main est planifiée en **custom**, avec
+les vraies valeurs, donc mieux. Mesuré le 28 août sur `compass_street_rotation` à
+2 000 m : **151 778 pages en custom, 286 710 en générique**, et `auto` prend le
+générique à tous les coups. Deux conséquences :
+
+> **Pour lire le plan que la production exécute** : `prepare` le corps comme
+> instruction paramétrée, l'exécuter **cinq fois** pour que le cache bascule, et
+> expliquer le **sixième** appel. Vérifier au passage avec `set local
+> plan_cache_mode = force_generic_plan` / `force_custom_plan`, qui départage en une
+> mesure.
+>
+> **Une « bascule entre deux plans d'un passage à l'autre » n'est probablement pas
+> du hasard.** `eval/baselines/anon-budget.json` a porté cette phrase une journée sur
+> deux fonctions, et justifiait un seuil avec ; les deux valeurs étaient les deux
+> plans du cache, pas de la chance. Avant de traiter un écart de mesure comme du
+> bruit, forcer les deux modes.
+
+**Une démonstration de sabotage ne s'imbrique pas dans une transaction avec du code
+qui gère les siennes — sinon elle écrit pour de bon sur le distant.** Le 28 août, la
+preuve que le bras E attrape une fonction de rayon ajoutée a été écrite en ouvrant
+une transaction puis en appelant `runBudget` dedans. `runBudget` ouvre et **annule**
+ses propres transactions pour poser le claim `anon` : son `rollback` a annulé la
+transaction englobante, et le `create function` qui suivait est parti **en
+autocommit**. La fonction de sabotage a réellement été posée sur
+`dbefhvmyfmmhjeetdddu` ; elle a été vue au passage suivant de `npm.cmd run eval`,
+qui est sorti rouge sur elle, puis retirée et `pg_proc` revérifié. `pg` ne signale
+pas un `begin` imbriqué autrement que par un avertissement du serveur que le client
+n'affiche pas. **`scripts/eval/census-sabotage.ts` fait autrement, et c'est le
+modèle à copier.**
 
 **Deux sessions dans le même arbre de travail se commitent l'une l'autre.** Le
 26 août au soir, deux sessions ont tourné en parallèle sur ce dépôt : l'une
