@@ -2481,11 +2481,17 @@ retirée après coup et `pg_proc` revérifié : **15 fonctions `compass_*`, aucu
 ### Ce que ça ne rattrape pas
 
 - **Les deux fonctions descendent toujours l'index d'observation une fois par local** — 71 952 et
-  71 728 pages, l'essentiel de ce qui reste. C'est l'estimation de `ST_DWithin`, fausse d'un
-  facteur 4 800, qui impose la boucle imbriquée. §27 nommait déjà la jointure par hachage qui
-  bornerait ce côté aux 4 515 pages de `premise_observation` en entier, et elle demande toujours un
-  levier de planificateur que personne n'a. **C'est ce qui reste à regarder si la fenêtre se
-  resserre**, et c'est maintenant la seule chose.
+  71 728 pages, l'essentiel de ce qui reste. C'est l'estimation de `ST_DWithin` qui impose la
+  boucle imbriquée. **Ouvert en ticket plutôt que laissé ici :
+  [`#65`](https://github.com/IvandeMurard/paris-compass/issues/65)**, avec la mesure que §27 et la
+  première rédaction de ce point annonçaient sans la faire. Trois choses y sont mesurées et
+  changent la façon de poser le problème : le hachage vaut **−81 %** de pages à 2 000 m mais
+  **dix-huit fois pire à 50 m**, où la boucle est le bon plan ; le levier existe à l'échelle d'une
+  fonction (`ALTER FUNCTION … SET enable_nestloop = off`, vérifié) mais il ne sait pas dépendre du
+  rayon ; et `compass_bodacc_within` y perd **3,6 fois à l'horloge pour 57 % de pages en moins**,
+  ce qui contredit l'équivalence « pages = travail » sur laquelle le bras E tranche. L'estimation
+  se trompe d'un facteur **2 656 même avec le rayon écrit en clair**, donc ce n'est pas le plan
+  générique qui est en cause et `force_custom_plan` n'y changerait rien.
 - **Le froid après correctif n'est pas mesuré**, voir plus haut.
 - **Le bras E mesure toujours un point et un rayon**, et toujours `anon` seul : les deux réserves
   de §27 tiennent inchangées.

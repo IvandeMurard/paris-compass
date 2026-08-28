@@ -33,11 +33,20 @@ payé par personne.** Voir plus bas, sous les pièges, la conséquence pour tout
 Les deux plans ont convergé depuis, à 25 pages près. **354 comparaisons, aucun chiffre affiché
 déplacé** — `premises`, `vacant`, `changed_since_previous`, `total_matched`.
 
-**Ce qui reste, et c'est désormais la seule chose** : les deux fonctions descendent encore l'index
-d'observation une fois par local, 71 952 et 71 728 pages, parce que l'estimation de `ST_DWithin`
-est fausse d'un facteur 4 800. La jointure par hachage que §27 nommait déjà demande un levier de
-planificateur que personne n'a. Et **le réveil après une nuit n'est pas mesuré après correctif**,
-même réserve et même protocole que pour `#62`.
+**Ce qui reste est ouvert en ticket, pas laissé en note :
+[`#65`](https://github.com/IvandeMurard/paris-compass/issues/65).** Les quatre fonctions
+descendent encore un index une fois par local — 71 952 et 71 728 pages pour les deux d'ici — parce
+que l'estimation de `ST_DWithin` est fausse. Mesuré en ouvrant le ticket, et ça change la question :
+la jointure par hachage vaut **−81 % de pages à 2 000 m** mais **dix-huit fois pire à 50 m**, où la
+boucle est le bon plan et où se trouve le cas courant. Le levier existe à l'échelle d'une fonction
+(`ALTER FUNCTION … SET enable_nestloop = off`, vérifié) mais il ne sait pas dépendre du rayon. Et
+l'estimation se trompe d'un facteur **2 656 même avec le rayon écrit en clair** — ce n'est donc pas
+le plan générique qui est en cause, et `force_custom_plan` n'y changerait rien. La piste à tenter
+en premier est la seule qui ne retire rien : corriger l'estimation (`SET STATISTICS` sur `geom`),
+pas forcer le plan.
+
+Et **le réveil après une nuit n'est pas mesuré après correctif**, même réserve et même protocole
+que pour `#62`.
 
 ## `#62` — la carte tenait la fenêtre anonyme à chaud et la dépassait à froid — 28 août 2026
 
@@ -116,7 +125,7 @@ d'abord ici : **remesurer avant de recopier.**
 | Bras de la porte | **cinq** : A invariants, B baselines, C jeu doré, **E budget de la fenêtre anon** (`#62`), D porte anonyme jouée à part |
 | Tests unitaires | **188** — inchangé, `#64` ne change aucun verdict, seulement la justification d'un seuil |
 | `auth.users` | **0** — aucun compte, ce qui rend la décision de `w0-appelant` gratuite aujourd'hui et coûteuse plus tard |
-| Issues | **35 ouvertes, 23 fermées** — remesuré par `gh issue list --jq length` en fin de session, après fermeture de [`#64`](https://github.com/IvandeMurard/paris-compass/issues/64). Il valait 36/22 avant, 35/22 plus tôt le même jour et 37/20 la veille : **remesurer avant de recopier** |
+| Issues | **36 ouvertes, 23 fermées** — remesuré par `gh issue list --jq length` en toute fin de session, après fermeture de [`#64`](https://github.com/IvandeMurard/paris-compass/issues/64) **et ouverture de [`#65`](https://github.com/IvandeMurard/paris-compass/issues/65)**. Il valait 35/23 vingt minutes plus tôt, 36/22 avant la fermeture, et 37/20 la veille : **remesurer avant de recopier** |
 | Épic [`#42`](https://github.com/IvandeMurard/paris-compass/issues/42) (vague 1) | ouverte, **5 cochés sur 7** — inchangé, ni `#62` ni `#64` n'y figurent |
 | Portes | `typecheck` ✓ · `test` **188** ✓ · `build` ✓ · `eval` **37 invariants**, 8 cas dorés, bras E vert sur quatre fonctions, **11 avertissements de baseline** (sortie 3) · `eval:anon` **PASS, 15 contrôles**, cinq passages dont le premier à froid · `verify:mcp` **41 contrôles, 39 verts, 0 échec, 2 suspendus** (Overpass 504, panne amont) · `eval:sabotage` **non relancé** — rien de ce jour ne touche la règle de retenue |
 
@@ -710,6 +719,13 @@ générique à tous les coups. Deux conséquences :
 > deux fonctions, et justifiait un seuil avec ; les deux valeurs étaient les deux
 > plans du cache, pas de la chance. Avant de traiter un écart de mesure comme du
 > bruit, forcer les deux modes.
+>
+> **Le même cache mord une seconde fois : un GUC de planification ne réinvalide pas
+> un plan déjà en cache.** Mesurer `enable_nestloop = on` puis `off` sur la même
+> connexion mesure **le premier deux fois**, et rend « aucun changement » — ce qui
+> est faux et rassurant. Rencontré le 28 août en instruisant
+> [`#65`](https://github.com/IvandeMurard/paris-compass/issues/65) : connexion neuve
+> par configuration, et ne retenir que les passages 6 et suivants.
 
 **Une démonstration de sabotage ne s'imbrique pas dans une transaction avec du code
 qui gère les siennes — sinon elle écrit pour de bon sur le distant.** Le 28 août, la

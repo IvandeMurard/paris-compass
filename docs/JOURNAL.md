@@ -17,6 +17,87 @@ Les sections sont dans l'ordre où elles étaient, la plus récente d'abord.
 
 ---
 
+## `#64` — 28 août 2026, session 17 : le chiffre que personne ne payait
+
+**Le ticket disait vrai sur une fonction, faux sur l'autre, et se trompait de cause sur les
+deux.** Il proposait pour `compass_street_rotation` une piste d'index précise — élargir l'`include`
+à `activity_code` — et déclarait `compass_scoring_context_within` sans piste technique : « son coût
+est sa réponse », donc une décision produit à écrire. La piste était vraie et ne valait que 22 % ;
+la fonction déclarée sans piste portait le même défaut, à 37 %. **Aucune décision produit n'a été
+nécessaire.** Rien n'a été retiré, aucune formule publiée n'a bougé, `src/core/scoring.ts` n'a pas
+été ouvert.
+
+### Ce qui ne se déduit ni du code ni du ticket
+
+**Le chiffre sur lequel deux documents raisonnaient n'avait jamais été payé par personne.**
+`eval/baselines/anon-budget.json` disait des deux fonctions qu'elles « basculent entre deux plans
+d'un passage à l'autre », et s'en servait pour justifier un seuil de la porte. Ce n'était pas de la
+chance : ce sont des fonctions plpgsql, leurs requêtes passent par le cache de plans, et les deux
+valeurs étaient le plan **custom** et le plan **générique**. `auto` — la production — prend le
+générique à tous les coups. 286 710 pages, pas 151 778.
+
+Le détour est instructif parce que la faute était méthodologique et non technique. Pour voir dans
+une fonction plpgsql, on sort son corps en requête SQL et on l'explique : `explain` sur la fonction
+elle-même ne rend qu'un `Function Scan` opaque. Ce geste **planifie en custom**, avec les vraies
+valeurs, donc mieux que la réalité. Il sous-estimait la fonction d'un facteur deux, et il a
+d'abord fait croire que l'index seul suffisait — le corps sorti à la main tombait à 87 624 pages
+là où la fonction en payait 222 590. Deux mesures se contredisaient sans qu'aucune soit fausse ;
+c'est en forçant `plan_cache_mode` dans les deux sens que la contradiction s'est expliquée.
+
+**Une fois le bon plan lu, la faute était la même que celle de `#62`, à un endroit inattendu :**
+48 % de `compass_street_rotation` partait à sonder par clé primaire une table de **222 lignes** —
+onze pages — soixante-quatre mille fois. Du travail par ligne sur des lignes qui n'en demandent
+pas. Le correctif est une CTE `materialized`, c'est-à-dire une barrière et non une indication : il
+ne dépend pas de l'accord du planificateur, ce qui compte pour une porte qui doit rester vraie
+demain.
+
+**Effet non prévu et vérifié : les deux plans ont convergé.** Custom et générique rendent
+désormais le même chiffre à 25 pages près, parce que la barrière retire au planificateur la
+liberté qui produisait le mauvais plan. La note « bascule entre deux plans » a donc été retirée du
+fichier de budget, et le seuil qu'elle justifiait rejustifié sur ce qui reste — 2 % de dérive.
+
+### La bêtise de la session, et pourquoi elle est écrite
+
+Le ticket demandait de **vérifier** que le bras E attrape une fonction de rayon qu'on lui
+ajouterait, plutôt que de l'affirmer. La preuve a été écrite en ouvrant une transaction et en
+appelant `runBudget` dedans. Or `runBudget` ouvre et **annule** les siennes pour poser le claim
+`anon` : son `rollback` a annulé la transaction englobante, et le `create function` suivant est
+parti en autocommit. **La fonction de sabotage a réellement été posée sur le distant.** Elle a été
+vue au passage suivant de `npm.cmd run eval`, qui est sorti rouge sur elle, puis retirée et
+`pg_proc` revérifié.
+
+Ce qu'il faut en retenir tient en une ligne, et elle est dans `REPRISE.md` : une démonstration de
+sabotage ne s'imbrique pas dans une transaction avec du code qui gère les siennes.
+`scripts/eval/census-sabotage.ts` fait autrement, et c'était le modèle à copier.
+
+### Le froid, et son économie
+
+`docs/REPRISE.md` établit qu'on ne peut pas fabriquer un cache froid sur cette instance, donc le
+premier appel d'une session est une ressource qui ne se renouvelle pas dans la journée. Il a été
+dépensé sur `compass_street_rotation` : **4 111 ms, HTTP 500**. Conséquence assumée et écrite :
+`compass_scoring_context_within`, mesurée trois minutes plus tard sur des tables devenues chaudes,
+**n'a pas de mesure à froid avant correctif et n'en aura pas**. Elle est donnée tiède. Le froid
+n'était d'ailleurs pas celui de `#62` — pas dix heures d'inactivité, la session du matin avait
+touché l'instance — et c'est dit plutôt qu'arrondi.
+
+### Ce que la session laisse derrière elle
+
+`compass_street_rotation` était la plus chère des quatre fonctions de rayon, de trois fois ; elle
+est la moins chère. Les plafonds du bras E ont été **abaissés**, parce qu'un plafond qu'on ne
+baisse pas après avoir corrigé cesse de protéger quoi que ce soit.
+
+Et la dernière chose qui restait a été **mesurée avant d'être ouverte en ticket**, pour ne pas
+répéter ce que `#64` reprochait à `#62` — nommer une piste sans la chiffrer.
+[`#65`](https://github.com/IvandeMurard/paris-compass/issues/65) porte donc trois mesures qui
+changent la question plutôt que de la poser : la jointure par hachage vaut −81 % de pages à
+2 000 m mais **dix-huit fois pire à 50 m**, où se trouve le cas courant ; le levier existe à
+l'échelle d'une fonction mais ne sait pas dépendre du rayon ; et `compass_bodacc_within` y perd
+3,6 fois à l'horloge pour 57 % de pages en moins — ce qui **contredit l'équivalence « pages =
+travail » sur laquelle le bras E tranche**. C'est la première fois que la doctrine de la porte est
+prise en défaut par une mesure, et `#65` le dit au lieu de le contourner.
+
+---
+
 ## `#62` — 28 août 2026, session 16 : la carte, et le premier appel qu'il ne fallait pas gâcher
 
 **Le ticket sous-estimait son propre défaut, et c'est son propre critère qui l'a montré.** Il
