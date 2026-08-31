@@ -177,7 +177,7 @@ fautive.
 | ~~13~~ | ~~`w0-appelant`~~ | [#58](https://github.com/IvandeMurard/paris-compass/issues/58) | **fait** | P1 | Opus 5 |
 | ~~14~~ | ~~`w1-licence-derivee`~~ | [#59](https://github.com/IvandeMurard/paris-compass/issues/59) | **fait** | P1 | Opus 5 |
 | 15 | `w1-cadence` | [#70](https://github.com/IvandeMurard/paris-compass/issues/70) | ouvert | P1 | Opus 5 |
-| 16 | `w1-porte-planifiee` | [#71](https://github.com/IvandeMurard/paris-compass/issues/71) | ouvert | P1 | Opus 5 |
+| ~~16~~ | ~~`w1-porte-planifiee`~~ | [#71](https://github.com/IvandeMurard/paris-compass/issues/71) | **fait** | P1 | Opus 5 |
 | 17 | `w1-observabilite` | [#72](https://github.com/IvandeMurard/paris-compass/issues/72) | ouvert | P1 | Opus 5 |
 | 18 | `w1-catalogue` | [#73](https://github.com/IvandeMurard/paris-compass/issues/73) | ouvert | P1 | Opus 5 |
 | 19 | `w1-ppri` | [#13](https://github.com/IvandeMurard/paris-compass/issues/13) | ouvert | P1 | Opus 5 |
