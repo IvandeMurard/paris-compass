@@ -62,6 +62,7 @@ const ORDER = [
   "w1-cadence",
   "w1-porte-planifiee",
   "w1-observabilite",
+  "w1-catalogue",
   "w1-ppri",
   "w1-dia",
 ]
