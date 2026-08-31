@@ -81,6 +81,10 @@ sabotage, `npm.cmd run eval:sabotage`. Le test est un **laissez-passer nominatif
 liste noire : `= 'service_role'`, jamais `<> 'anon'`, pour que le prochain rôle de claim soit
 retenu par défaut plutôt que privilégié par oubli.
 
+Un futur palier MCP payant (`PERIMETRE.md` §10, réflexion non décidée) suivra le même patron :
+une clé d'API n'est ni `anon` ni un compte site, et sa portée est **commerciale** (quota),
+jamais **licence** — elle n'accorde pas ce que `compass_caller_is_privileged()` retient.
+
 ---
 
 ## Le piège à ne jamais refaire

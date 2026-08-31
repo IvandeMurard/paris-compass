@@ -22,11 +22,13 @@ const lire = (p: string) => readFileSync(p, "utf8").replace(/\r\n/g, "\n")
 /** Above this, the common prompt is told to shed a clause rather than keep accreting. */
 const SEUIL_PROMPT = 75
 
-/** Sections of docs/REPRISE.md that carry state or rules. The rest is history. */
+/** Sections of docs/REPRISE.md that carry state or rules. The rest is history.
+ *  The page was split in three on 31 August: the traps moved to docs/REPRISE-PIEGES.md
+ *  and the closed entries to docs/REPRISE-ARCHIVE.md, so two of these names left with them. */
 const REPRISE_UTILE = [
-  "Ce qui existe et fonctionne",
+  "L'état mesuré le plus récent",
+  "Environnement — ce qui ne tourne pas sur ce poste",
   "Décisions qui ne se déduisent pas du code",
-  "Pièges qui ont coûté du temps",
   "La suite, par ordre",
   "Ce qu'il ne faut pas faire",
 ]
@@ -114,8 +116,13 @@ function main() {
       "  docs/REPRISE.md, ces sections :",
       ...REPRISE_UTILE.map((s) => `      « ${s} »`),
       "",
+      "  docs/REPRISE-PIEGES.md — jamais en entier : y chercher au grep les mots du",
+      "  ticket avant de diagnostiquer quoi que ce soit.",
+      "",
       "  Les sections de docs/PLAN.md, docs/PERIMETRE.md et DIAGNOSTIC.md que le",
-      "  ticket cite nommément. Pas les fichiers entiers.",
+      "  ticket cite nommément. Pas les fichiers entiers. Un « DIAGNOSTIC.md §N »",
+      "  se résout par l'index en tête de DIAGNOSTIC.md : il dit si la section est",
+      "  restée là ou si elle est passée dans DIAGNOSTIC-CORRIGES.md.",
       "",
       "NE LIS PAS docs/JOURNAL.md. C'est le récit des sessions passées, sans autorité",
       "sur l'état courant. Il ne se consulte que sur une question précise — pourquoi",

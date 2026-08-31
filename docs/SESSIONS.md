@@ -42,7 +42,7 @@ Le texte source, pour référence :
 Ticket <ID> (issue #<NUM>).
 
 La liste exacte de ce qu'il faut lire est en bas de ce message. Tiens-t'en à
-elle : docs/REPRISE.md fait un millier de lignes et docs/JOURNAL.md près de deux
+elle : docs/REPRISE-ARCHIVE.md fait cinq cents lignes et docs/JOURNAL.md plus de deux
 mille, les lire en entier coûte cher et n'apporte rien. Le "Fait quand" du ticket
 est le critère d'acceptation : ne me dis pas que c'est fini avant de l'avoir
 démontré, pas supposé.
@@ -62,7 +62,7 @@ plutôt que de livrer contre un critère périmé.
 
 Et écris-le dans le dépôt, pas seulement ici. Ce qui n'existe qu'au chat meurt
 avec la session : un défaut trouvé va dans DIAGNOSTIC.md, un chiffre remesuré
-dans le fichier qui le portait, un piège dans docs/REPRISE.md. Ne me résume que
+dans le fichier qui le portait, un piège dans docs/REPRISE-PIEGES.md. Ne me résume que
 ce que je ne peux pas lire dans le depot, et ce qui demande une decision.
 
 L'etat GitHub n'est pas de la prose : la table d'ordre en est DERIVEE. Donc

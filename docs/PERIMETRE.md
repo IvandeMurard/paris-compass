@@ -249,6 +249,50 @@ Le même noyau de calcul, exposé deux fois. C'est le pont explicite entre Compa
 
 **Pourquoi ça compte pour le portfolio.** Compass devient la démonstration visible d'une architecture que Tacet, Aetherix et Anima portent sans interface. Le produit fini n'est pas seulement la carte : c'est la preuve que le même moteur sert un humain et un agent. C'est l'argument que les autres projets ne peuvent pas montrer.
 
+### Pourquoi passer par Compass plutôt que par la source
+
+Objection posée le 31 août 2026 : un agent atteint les mêmes données ouvertes directement, souvent
+par MCP. C'est la seule objection qui peut tuer ce canal, et une partie en est juste. Pour une
+question à une source — « combien de validations à cette station un mardi » — l'agent n'a pas
+besoin de Compass. Si le produit vendait l'accès, MCP le rendrait inutile : c'est exactement ce que
+le §9 acte en refusant de vendre l'agrégation.
+
+Ce que l'agent n'obtient pas en allant à la source :
+
+- **Les sources ne sont pas interrogeables à la granularité d'une question.** La BDCom n'est pas
+  une API : trois millésimes de fichiers, 85 418 locaux, en KML/CSV/GeoJSON/Shapefile ; DVF est
+  publié par lots semestriels. Aller à la source, pour un agent, c'est parser des dizaines de Mo
+  en contexte pour répondre sur un tronçon de rue. Problème de forme, pas d'accès.
+- **La jointure est le produit, et les pièges ne sont portés par aucune source.** Le périmètre
+  commun qui transforme un effondrement apparent de 27 % en −3 % réels ; 74 réattributions
+  d'identifiant sur 85 344 ; 69 % des locaux partageant leur numéro, ce qui fait d'un
+  rapprochement BODACC ↔ BDCom une décision et non une jointure ; la licence qui change de
+  millésime en millésime. **Un agent branché en direct sortira le −27 % avec la bonne citation et
+  une confiance totale.** Il ne mentira pas, il aura tort — et personne en aval ne pourra le voir.
+- **L'absence typée.** Compass distingue « pas de donnée », « donnée retirée par licence »
+  (`withheld`) et « hors périmètre du corpus ». La source brute rend trois zéros identiques.
+- **La porte d'évaluation, qui ne se re-dérive pas à la volée.** Ce qu'un consommateur paie n'est
+  pas la donnée mais la garantie qu'une régression ne peut pas être livrée en silence. Le chemin
+  direct n'a aucun corpus de non-régression : la source bouge, la réponse change, rien ne le dit.
+- **La licence comme service.** Un agent qui tape la source hérite des obligations ODbL sans le
+  savoir. Compass répond à une granularité déjà arbitrée, sous le rôle `anon` et son plafond de
+  rayon. C'est un transfert de responsabilité, et c'est facturable.
+- **L'arithmétique bête.** Un appel Compass rend une réponse datée, sourcée et calculée en un
+  aller-retour, contre plusieurs téléchargements et une chaîne de raisonnement à reconstituer.
+
+En une ligne : **la source dit ce qu'il y a dans le registre ; Compass dit ce que ça veut dire à
+cette adresse — et, seul, ce qui ne peut pas être su ici et pourquoi.**
+
+**Le garde-fou qui en découle, et qui est le vrai enseignement de l'objection : pour quels appels
+Compass est-il réductible à un passe-plat ?** Pour ceux-là il ne doit pas être payant, et
+`list_sources` doit renvoyer vers la source. La valeur tarifée doit se concentrer sur les appels
+qui portent la jointure — rotation rue par rue sur trois millésimes, périmètre commun, cessations
+vers disponibilité à venir. Un tarif à l'appel (§10) qui traite les deux familles à l'identique se
+fera repérer par le premier client sérieux.
+
+Rien de tout ça n'est un moat d'accès : un concurrent peut le refaire. Ce qu'il doit refaire, ce
+sont les mêmes erreurs pendant un an (§9).
+
 ---
 
 ## 9. La position vis-à-vis des projets voisins
@@ -276,16 +320,183 @@ Question posée le 17 août 2026 : l'entraînement d'un ou plusieurs agents est-
 Trois choses composent réellement, et toutes les trois sont déjà dans le dépôt :
 
 - **Le substrat de jointure.** L'identifiant BDCom stable entre millésimes (74 réattributions sur 85 344, *mesurées* au chargement) ; le périmètre commun qui transforme un effondrement apparent de 27 % en −3 % réels ; la licence portée **comme donnée** par millésime ; l'écart entre une adresse BODACC et un local BDCom quand 69 % des locaux partagent leur numéro. Rien de tout ça ne sort d'un prompt : c'est une année de pièges vérifiés, et refaire Compass suppose de refaire les mêmes erreurs.
-- **La porte d'évaluation.** Quinze invariants, vingt-quatre baselines, huit cas dorés, l'historique de composition. C'est le seul actif qui s'accumule vraiment, et c'est le bon type d'accumulation : il ne rend pas les réponses plus fines, il rend une régression impossible à livrer en silence. **Corpus de non-régression, pas jeu d'entraînement** — la confusion entre les deux est précisément ce qui ferait dériver le produit.
+- **La porte d'évaluation.** **Trente-sept** invariants, vingt-quatre baselines, huit cas dorés, l'historique de composition — *comptés le 31 août 2026 par `grep -c '^-- @invariant ' eval/invariants.sql` et `Object.keys(counts)` ; ce paragraphe annonçait quinze, un chiffre recopié qui était devenu faux en silence.* C'est le seul actif qui s'accumule vraiment, et c'est le bon type d'accumulation : il ne rend pas les réponses plus fines, il rend une régression impossible à livrer en silence. **Corpus de non-régression, pas jeu d'entraînement** — la confusion entre les deux est précisément ce qui ferait dériver le produit.
 - **Les refus.** Ils sont défendables parce qu'ils coûtent cher à tenir. Aino promet le *foot traffic* ; Compass explique pourquoi personne ne peut le donner honnêtement (§9, et `PLAN.md`, « Concurrence — Aino »).
 
 **Sur l'apprentissage de l'usage, une seule forme est admissible.** Un fait appris de l'usage n'a pas de source publique : il ne peut donc pas s'afficher, règle `Measured<T>`. L'usage peut légitimement décider **ce qu'on branche ensuite** et **ce qu'on met à l'écran** ; il ne doit jamais devenir un chiffre. C'est un signal de priorisation, pas une source de données — et si les demandes viennent d'un tiers professionnel, ses briefs sont son actif commercial, pas le nôtre.
 
 La version tenable de « un agent toujours plus fin » est celle déjà décidée en `PLAN.md` §6.8 : **c'est la traçabilité qui devient autonome, pas la certitude.**
 
+### Ce qui s'améliore avec l'usage, et à quelles conditions
+
+Question posée le 31 août 2026 : Compass peut-il répondre plus vite, plus précisément et à moindre
+coût à mesure que l'usage augmente ? Les trois verbes n'ont pas la même réponse, et les séparer est
+tout l'intérêt de la question.
+
+**Plus vite et moins cher : oui, mécaniquement, et sans toucher à la doctrine.** Une réponse Compass
+est une fonction déterministe du corpus, pas d'un modèle : la même question sur le même millésime
+rend le même résultat. Tout est donc cachable, précalculable, matérialisable — la réponse ne change
+pas, seul son coût de production change. Le levier économique suit : l'ingestion est un coût fixe,
+l'appel marginal est une requête.
+
+**Le dispositif n'est pas seulement un frein, c'est déjà un cliquet, et il a déjà bougé.** Le bras E
+« échoue au-dessus de +10 %, jamais en dessous — un plan devenu moins cher n'est pas une régression »
+(`baselines/anon-budget.json`) : le plafond a le droit de descendre. Mesuré le 28 août 2026, après
+les migrations `20260828000001/2/3` (#62, #64) :
+
+| Fonction | Pages avant | Pages après | |
+| --- | ---: | ---: | ---: |
+| `compass_street_rotation` | 286 744 | **87 879** | −69 % |
+| `compass_bodacc_within` | 361 965 | **148 346** | −59 % |
+| `compass_premises_within` | 195 422 | **94 117** | −52 % |
+| `compass_scoring_context_within` | 137 576 | **86 102** | −37 % |
+
+Le champ `plan_cache` du même fichier enregistre en plus un apprentissage de **méthode** et non de
+donnée — mesurer le corps d'une fonction comme une requête SQL nue la sous-estime d'un facteur deux,
+parce qu'une requête nue est planifiée en *custom* quand la production prend le plan *générique*.
+C'est ce genre de ligne qui empêche la mesure suivante d'être fausse. Et la métrique de qualité
+produit a son historique propre, `eval/confidence_history.jsonl`, une ligne par mesure.
+
+**Ce que l'usage n'apporte pas encore, et qui est l'ouverture réelle.** Rien dans cette boucle
+n'apprend seul, et rien n'est pondéré par l'usage : le point mesuré est fixe — Châtelet, rayon
+maximal, le pire cas. C'est le bon plafond et c'est un angle mort, puisqu'il ne dit pas quelle
+fonction mérite l'optimisation suivante. Un second profil de budget pondéré par l'usage réel
+**s'ajouterait** au pire cas sans le remplacer ; le remplacer laisserait dériver la fonction rare et
+chère. Chantier, pas doctrine : il appartient à `PLAN.md`.
+
+**Plus précisément : non, pas par l'usage** — c'est la décision du 17 août, ci-dessus. La précision
+n'augmente que par deux chemins, dont aucun n'est un entraînement : brancher une source de plus, ou
+améliorer la jointure. L'usage a le droit de décider **laquelle en premier**, jamais de produire le
+chiffre. Le piège tentant est sur la jointure : se servir des corrections d'usage comme données
+d'apprentissage du rapprochement BODACC ↔ BDCom serait précisément le corpus propriétaire étiqueté
+qui est refusé. La ligne tient en une phrase :
+
+> **L'usage peut révéler qu'une règle publiée est fausse. Il ne peut jamais devenir un poids non
+> publié.**
+
+Corriger la règle est un changement de code, re-dérivable, publié sur `Methodology.tsx`. La forme
+admissible de l'accumulation est celle qui existe déjà : une correction devient un **cas doré ou un
+invariant**. Le produit ne devient donc pas plus fin avec l'usage — il devient de plus en plus
+incapable de régresser. **Apprentissage par cliquet, pas par gradient.**
+
+### Ce qui s'oublie, et sous quelle autorité
+
+La contrepartie du cliquet est la péremption, et elle a déjà un protocole : `note_regel` de
+`baselines/ingestion.json` pose trois conditions au regel — chaque écart attribué à une cause
+**nommée avant** le gel, aucun n'atteignant le seuil bloquant, et le gel remplacé qui reste lisible
+dans `previous_freezes` — plus une règle anti-dérive : toute valeur est *remesurée* à la reprise,
+jamais reportée depuis un pourcentage. Ce n'est pas un oubli, c'est une **péremption avec reçu**.
+
+Il se généralise à condition de distinguer **deux durées de vie**, dont la confusion donne l'une des
+deux pannes — servir un chiffre périmé, ou ne plus savoir qu'il a bougé :
+
+- **Les valeurs dérivées** — cache, vues matérialisées — s'oublient sans cérémonie parce qu'elles
+  sont recalculables. La clé de cache porte le millésime ; un nouveau millésime est une nouvelle
+  clé, pas une invalidation à décider.
+- **Les références gelées** — baselines, cas dorés — ne s'oublient qu'avec cérémonie parce qu'elles
+  *sont* la mémoire du produit.
+
+Les cas dorés ne sont pas immortels non plus, et c'est déjà arbitré au bras B : un déplacement vers
+la gauche vient d'un changement délibéré, « dont les cas dorés doivent être mis à jour dans la même
+PR ». Précédent réel : le chargement de SIRENE a fait échouer `gold-siege-001`, qui attendait
+`probable` là où la fonction rendait désormais `corrobore`.
+
+**Sur l'autorité, il manque quelque chose.** Le procédé est écrit — modifier un seuil est une
+décision explicite, PR plus trace dans `PLAN.md` — et le critère d'admission aussi : un cas doit
+venir d'une faute réelle ou d'une réserve documentée, avec un `why` qui dit ce qu'il **verrouille**.
+**Mais rien n'est écrit sur le retrait.** Le dispositif ne sait qu'entrer et mettre à jour : c'est un
+cliquet asymétrique, où le corpus ne peut que grossir. À trente-sept invariants et près de trois
+minutes contre le distant, c'est sain ; à deux cents, la porte devient ce qu'on contourne — et le
+mode de panne est qu'on supprime un cas pour faire passer un build, exactement ce que `note_regel`
+interdit pour les baselines et que rien n'interdit ailleurs. Le correctif a la forme de
+`previous_freezes` : un cas retiré laisse une ligne disant pourquoi et ce qui le remplace.
+**L'autorité ne doit pas être une personne mais une règle qui laisse une trace** — une personne ne
+passe pas à l'échelle et ne survit pas à une session.
+
+La question devient opérationnelle dès que l'usage monte, puisque les corrections arrivent alors en
+volume. Le filtre découle de la doctrine :
+
+> Une correction devient un cas **si et seulement si elle nomme une règle publiée qui est fausse.**
+> Sinon, c'est un signal de priorisation, pas un cas.
+
+« Ce chiffre me semble faux » n'est pas re-dérivable et oriente le backlog. « La règle de
+rapprochement se trompe quand deux vitrines partagent un numéro » nomme une règle publiée : celle-là
+devient un cas doré.
+
+**La valeur qui s'accumule vraiment, elle, n'est pas dans les réponses.** C'est la carte des
+**questions posées auxquelles Compass ne sait pas répondre** : elle ordonne le backlog des sources,
+elle alimente les horizons du §5, et elle est admissible parce qu'elle ne devient jamais un chiffre
+affiché. Deux effets dérivés : la baisse du coût par appel rend viable le palier « à l'appel » du §10,
+qui ne l'est pas si chaque appel balaie 85 418 locaux ; et savoir quelles **absences** sont le plus
+demandées dit lesquelles méritent une explication plutôt qu'un `null`.
+
+**Un refus à poser avant qu'il ne se pose tout seul :** revendre l'usage agrégé — « quels quartiers
+sont les plus recherchés » — est écarté. Ce n'est pas une source publique, donc ce n'est pas
+affichable ; et si les requêtes viennent d'un tiers professionnel, ses recherches sont son actif
+commercial, pas le nôtre. La règle déjà écrite ci-dessus pour ses briefs vaut pour sa télémétrie.
+
 ---
 
-## 10. Le contexte de marché
+## 10. Monétisation — pistes et hypothèses
+
+Réflexion ouverte le 31 août 2026, en session avec Ivan. Rien ici n'est décidé au sens des refus
+ci-dessus : ce sont des pistes à valider, pas une doctrine. Le positionnement ne change pas —
+l'interprétation, pas l'agrégation (§9) — ce qui change, c'est qui paie pour y accéder.
+
+**Trois segments.**
+
+- **Entrepreneur / réseau de franchise.** Le preneur isolé décide « une à trois fois dans sa vie
+  professionnelle » (§1) — pas de récurrence, pas d'abonnement. Le payeur répété est le réseau de
+  franchise qui scoute plusieurs adresses par an. Produit payant : le dossier d'une adresse
+  (`PLAN.md` §2.6), à l'unité ou en abonnement réseau. **Un seul format, quel que soit le
+  destinataire** — banquier, comptable, franchiseur : le dossier n'est pas le prévisionnel refusé
+  en §4, c'est une pièce jointe sourcée. L'adapter par établissement financier réintroduirait par
+  la bande ce que §4 refuse déjà.
+- **Collectivité.** SEMAEST, mairie d'arrondissement, CCI Paris IDF — vente B2G d'un tableau de
+  bord ou d'une licence de données sur la rotation commerciale par tronçon et la vacance BDCom.
+  `compass_street_rotation` existe déjà en base sans appelant (`PLAN.md` §6.3, §5 bis C) : le
+  manque est un client, pas une fonctionnalité.
+- **Agents via MCP.** Voir ci-dessous — le seul des trois qui touche à une porte déjà construite.
+
+**La résolution du refus courtier (§1) passe par le volume, pas par les outils.**
+
+Le serveur MCP (§8, `PLAN.md` §4.1) est en production depuis le 15 août 2026 : six outils, tous
+sur le rôle `anon`, **gratuits et sans limite aujourd'hui** — fait vérifié dans `mcp-server/`,
+pas une hypothèse. `compare_locations` en fait partie, et **doit le rester en accès libre** :
+il compare **deux points**, `a` et `b` — l'outil du preneur qui hésite entre deux adresses, pas
+le portefeuille de cinquante que §1 refuse. Le retirer derrière un palier payant serait un
+contresens produit, pas une décision de pricing.
+
+Ce qui distingue un courtier d'un preneur n'est donc pas *quel* outil il appelle, c'est
+*combien de fois*. Le futur palier payant, s'il se construit, est un palier de **volume** (quota
+au-delà d'un seuil gratuit) — les six outils restent identiques des deux côtés.
+
+**Deux portes à ne pas confondre en construisant ça.** `compass_caller_is_privileged()` tranche
+une question de **licence** — un appelant peut-il voir les millésimes BDCom 2017/2020 dont la
+licence APUR n'a pas été lue (`CONTEXTE.md` §"Un compte n'ouvre aucune donnée"). Un futur palier
+payant tranche une question **commerciale** — quota au-delà du gratuit. Les deux portes sont
+indépendantes ; la seconde n'accorde jamais ce que la première retient.
+
+**Si un palier payant se construit un jour**, il demande une nouvelle classe d'appelant — une clé
+d'API, ni `anon` ni un compte site (`authenticated` n'est pas privilégié, décision du 26 août) —
+et une décision écrite de la même façon que celle-là avant d'exister en code.
+
+**Chiffrage — hypothèses non validées, datées du 31 août 2026, à revérifier avant tout
+engagement :**
+
+| Segment | Modèle | Fourchette | Marché |
+|---|---|---|---|
+| Réseau de franchise | Export à l'unité ou abonnement | 15–30 €/fiche ; 99–299 €/mois | Quelques dizaines de comptes atteignables an 1 |
+| Collectivité | Licence de données annuelle | 5 000–20 000 €/an selon périmètre | Poignée de cibles (SEMAEST, Mairie de Paris, CCI Paris IDF) |
+| MCP volume | Quota gratuit + palier payant | 0,01–0,05 €/appel, ou paliers 49–199 €/mois | Le plus scalable — pas de démarchage |
+
+Le plus vérifiable en premier : le MCP, parce qu'il tourne déjà. Observer qui dépasse un usage
+raisonnable avant de construire quoi que ce soit ne coûte rien ; démarcher une collectivité ou un
+réseau de franchise coûte du temps avant même un ticket.
+
+---
+
+## 11. Le contexte de marché
 
 À vérifier avant publication du case study, les chiffres bougent.
 

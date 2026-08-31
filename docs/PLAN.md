@@ -622,6 +622,10 @@ l'UI, ou au moins cesser de la déballer dans l'adaptateur.
 >   désigné une vitrine dans une pile et l'aurait présentée comme *la* réponse. Les candidats
 >   sont donc rendus, et l'arbitrage revient à l'appelant, qui le voit.
 >
+> **Piste de monétisation, non décidée** : `PERIMETRE.md` §10. Si un palier payant se construit,
+> c'est un quota de volume sur les six outils actuels — jamais un outil retiré du gratuit,
+> `compare_locations` compris (il compare deux points, pas un portefeuille).
+>
 >   `find_premises` est **épinglé au millésime 2023, sans paramètre**. Ce n'est pas un défaut
 >   de couverture : `20260809000011` retient de 2017 et 2020 non seulement le contenu mais
 >   **l'existence** d'un relevé, et un annuaire qui énumérerait leurs locaux divulguerait
@@ -649,7 +653,7 @@ l'UI, ou au moins cesser de la déballer dans l'adaptateur.
 >   La dernière colonne est la moitié qu'on saute : un vide réel se lit toujours comme un vide,
 >   donc le correctif n'a pas remplacé un défaut par son symétrique. Les chiffres privilégiés
 >   relevés au passage — 3 855 en 2017, 3 825 en 2020 — recoupent ceux de `20260816000001` et
->   du tableau de `REPRISE.md` « La suite » §8.
+>   du tableau de `REPRISE-ARCHIVE.md` « La suite » §8.
 >
 >   **Les trois fonctions qui portent la règle de licence sont désormais couvertes** : I9/I10
 >   pour `compass_address_timeline`, I12/I13 pour `compass_scoring_context_within`, I14/I15

@@ -12,14 +12,27 @@ Volontairement **non importés** ici : ce fichier est chargé à chaque session,
 | --- | --- |
 | `docs/SESSIONS.md` | **Avant de lancer une session de développement.** L'ordre des tickets, le prompt commun, les consignes propres à chacun, et quel modèle pour quelle classe de travail. |
 | `docs/JOURNAL.md` | Le récit des sessions passées. **Ne se lit pas en début de session** : sans autorité sur l'état courant, il ne sert qu'à retrouver *pourquoi* une décision a été prise. Jamais en entier. |
-| `docs/REPRISE.md` | **À lire en premier en début de session.** Où en est le travail, ce qui bloque, et les pièges qui ont déjà coûté du temps. Notamment : quel projet Supabase viser, et pourquoi il y en a eu trois. |
+| `docs/REPRISE.md` | **À lire en premier en début de session.** Où en est le travail, ce qui bloque, ce qui ne tourne pas sur ce poste, et ce qui reste à faire. Notamment : quel projet Supabase viser, et pourquoi il y en a eu trois. Une seule section d'état, la plus récente — tout état plus ancien est à l'archive. |
+| `docs/REPRISE-PIEGES.md` | Les pièges qui ont déjà coûté du temps, datés. **Ne se lit pas en début de session** : se consulte au moment de faire la chose risquée, ou après s'être cogné. Repérer au `grep`, lire le paragraphe. |
+| `docs/REPRISE-ARCHIVE.md` | Les entrées closes de la page de reprise — tickets terminés, états mesurés remplacés, points de « La suite » rayés. Gardés pour leurs mesures datées. Quand une mesure d'ici contredit `REPRISE.md`, c'est celle d'ici qui a tort. |
 | `docs/CONTEXTE.md` | Périmètre, persona, refus assumés, décisions d'architecture, état d'avancement. Avant toute modification du périmètre, des sources de données ou du noyau. |
 | `docs/PLAN.md` | Backlog ordonné : ce qui est fait, les phases 2 à 4 en détail, les sources à brancher et pourquoi. Avant de commencer un chantier. |
 | `docs/PLAN-ACTION-VACANCE.md` | Doctrine non négociable, backlog priorisé P0/P1/P2 en 8 vagues, catalogue des sources avec leurs pièges, ce que l'IA a le droit de faire. Complète `PLAN.md` sans le remplacer : celui-ci dit *quoi faire ensuite et dans quel ordre*, l'autre porte l'exécution technique. |
 | `docs/PERIMETRE.md` | Le raisonnement long : les questions auxquelles Compass peut répondre, celles qui sont partielles, celles qui sont bloquées, et les contournements. Avant d'ajouter une source ou de discuter du positionnement. |
 | `docs/BDCOM.md` | Pièges vérifiés de la source BDCom : coordonnées empilées, identifiant de local stable entre millésimes mais réattribué dans moins de 0,1 % des cas, périmètres et licences qui diffèrent selon le millésime. **Obligatoire avant toute migration touchant BDCom.** |
-| `DIAGNOSTIC.md` | Défauts identifiés dans le code, dont certains encore ouverts. Avant de corriger un bug. |
+| `DIAGNOSTIC.md` | **Avant de corriger un bug.** Les défauts encore ouverts, et surtout **l'index des trente** : il dit, pour chaque numéro de section, son état et dans lequel des deux fichiers elle vit. Un renvoi « `DIAGNOSTIC.md` §N » écrit ailleurs se résout là. |
+| `DIAGNOSTIC-CORRIGES.md` | Les défauts clos, numérotation d'origine conservée. **Ne se lit pas en entier** : l'index de `DIAGNOSTIC.md` dit quelle section ouvrir. Chaque section porte la mesure du défaut et celle du correctif — c'est ce qui permet de recouper une régression plus tard. |
 | `README.md` | Ce que le produit fait, refuse de faire, et ne peut pas savoir. |
+
+**Ces documents se lisent par section, pas en entier.** Repérer au `grep -n '^#'` ou sur un mot-clé,
+puis lire la plage au `sed -n 'a,bp'`. Quatre dépassent encore 70 Ko — `DIAGNOSTIC-CORRIGES.md` 165,
+`JOURNAL.md` 147, `PLAN-ACTION-VACANCE.md` 75, `PLAN.md` 74, mesurés le 31 août 2026 : une lecture
+intégrale de l'un d'eux coûte plus que tout le reste d'une session. Le titre de section est l'unité
+utile, et **les quatre plus gros ne se lisent jamais en entier** — deux d'entre eux ont un index ou
+une table qui dit quelle section ouvrir.
+
+Les deux fichiers lus à chaque session ont été découpés le 31 août : `REPRISE.md` de 89 à 35 Ko,
+`DIAGNOSTIC.md` de 175 à 16 Ko. Ce qui en est sorti n'a pas disparu — voir les lignes ci-dessus.
 
 ## Environnement
 

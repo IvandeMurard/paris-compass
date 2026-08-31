@@ -39,7 +39,7 @@ vaut pour la documentation comme pour l'écran : **un correctif consigné porte 
 | « rejouer les 21 migrations » | 25 dans `supabase/migrations/`, ~~24~~ **25** au ledger distant | `ls supabase/migrations` · ~~`docs/REPRISE.md`~~ **le ledger lui-même, remesuré le 24 août** |
 | « le gate (10 invariants…) » | 15 — `I1` à `I15` | `eval/invariants.sql` |
 | Établi / probable 51,6 % / 36,5 % | 51,4 % / 36,7 % | `eval/baselines/ingestion.json`, gel du 17 août |
-| `w0-deploy` présenté comme entièrement à faire | Chargement fait le 15 août ; reste le retrait à l'anonyme | `docs/REPRISE.md`, « La suite, par ordre » n° 1 et 8 |
+| `w0-deploy` présenté comme entièrement à faire | Chargement fait le 15 août ; reste le retrait à l'anonyme | `docs/REPRISE-ARCHIVE.md`, « La suite, par ordre » n° 1 et 8 |
 
 > **Un cinquième écart, le 24 août — et c'est cette ligne-ci qui l'a propagé.**
 > « 24 au ledger distant » venait de `docs/REPRISE.md` et non du ledger. Le
@@ -291,7 +291,7 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 #### w0-deploy — Déployer le corpus sur la base hébergée
 
 - Priorité **P0** · vague 0 · Q3 2026
-- **Pourquoi.** Le chargement du distant **est fait depuis le 15 août** : `dbefhvmyfmmhjeetdddu` porte le schéma et les données, 85 418 locaux et 228 275 relevés mesurés sur place le 17 août, porte d'évaluation au vert (`docs/REPRISE.md`, « Ce qui existe et fonctionne »). Ce qui reste ouvert n'est pas le chargement mais le **retrait à l'anonyme** : que 2017 et 2020 sortent en `withheld` et non en zéro pour un visiteur sans clé.
+- **Pourquoi.** Le chargement du distant **est fait depuis le 15 août** : `dbefhvmyfmmhjeetdddu` porte le schéma et les données, 85 418 locaux et 228 275 relevés mesurés sur place le 17 août, porte d'évaluation au vert (`docs/REPRISE-ARCHIVE.md`, « Ce qui existe et fonctionne », mesuré le 17 août). Ce qui reste ouvert n'est pas le chargement mais le **retrait à l'anonyme** : que 2017 et 2020 sortent en `withheld` et non en zéro pour un visiteur sans clé.
 - **Comment.** ~~Poser `20260817000001_premises_within_withholding.sql` sur le distant — le ledger distant est à 24 migrations, `supabase/migrations/` en compte 25~~ — **faux, remesuré le 24 août : le ledger est à 25 et la migration était déjà posée** — puis rejouer la porte en anonyme. Le reste (PostGIS, BDCom ×3, BODACC, SIRENE, géographie) est déjà en place.
 - **Doctrine.** Rien n'est annoncé comme live s'il n'est pas interrogeable par un visiteur anonyme.
 - **Fait quand.** Un appel anon PostgREST sur un point intra-muros renvoie des locaux 2023, et withheld (pas zéro) pour 2017/2020. — **Démontré le 24 août**, Châtelet : 2017 et 2020 rendent une ligne `withheld = true` sans contenu, 2023 rend 3 059 locaux, un rayon d'un mètre rend zéro ligne. Détail et négatif de contrôle dans `docs/tickets/w0-deploy.md`. Rejouable : `npm.cmd run eval:anon`.
