@@ -21,8 +21,9 @@ de la source), `eval/FAILURE_MODES.md` (le contrat d'évaluation) et `docs/JOURN
 
 ## L'état mesuré le plus récent — 31 août 2026, après clôture de `#69`
 
-**Le tableau de la section suivante date du 28 août.** Quand les deux se contredisent, c'est
-le plus daté des deux qui a tort. Ce qui a bougé le 31 août, et rien d'autre :
+**C'est le seul état que cette page porte** : les relevés antérieurs sont dans
+`docs/REPRISE-ARCHIVE.md`, et quand deux se contredisent c'est le plus daté qui a tort. Ce qui
+a bougé le 31 août, et rien d'autre :
 
 | Mesure | Valeur, mesurée le 31 août 2026 |
 | --- | --- |
@@ -34,8 +35,9 @@ le plus daté des deux qui a tort. Ce qui a bougé le 31 août, et rien d'autre 
 **Le bras A ne meurt plus dans sa fenêtre, et il en a une à lui.** Il héritait des 120 000 ms
 du rôle `postgres`, un réglage de cluster que personne ici n'a choisi ; il pose maintenant
 `set local statement_timeout = 60000`, **moitié moins**, et alerte à 30 000 ms. C'est possible
-parce que `I1`, `I2` et `I7` sont découpés : l'instruction la plus large fait ~11 s au lieu de
-118 s. `DIAGNOSTIC.md` § 30.
+parce que `I1`, `I2` et `I7` sont découpés : l'instruction la plus large fait **6 à 13 s** au
+lieu de 118. Section 30, désormais dans `DIAGNOSTIC-CORRIGES.md` — l'index de `DIAGNOSTIC.md`
+la résout.
 
 | | Avant, 31 août à froid | Après |
 | --- | ---: | ---: |
