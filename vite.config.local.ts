@@ -2,14 +2,21 @@ import { defineConfig } from "vite";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// A second build path, for a machine where the first one cannot run.
+// A second build path, kept as a fallback for when the first one cannot run.
 //
 // **Why it exists.** `vite.config.ts` loads `@vitejs/plugin-react-swc`, whose native binary
-// `swc.win32-arm64-msvc.node` is refused by Windows Smart App Control on this machine
+// `swc.win32-arm64-msvc.node` was refused by Windows Smart App Control on this machine
 // (measured 26 August 2026: `An Application Control policy has blocked this file`). Smart App
 // Control has no per-file allowlist — it is on or off, and turning it off cannot be undone
 // without reinstalling Windows. So the build was made to stop needing that binary rather than
 // the machine made to accept it.
+//
+// **The block is gone, as of two later measurements.** Remeasured 28 and 31 August 2026:
+// `require('@swc/core').transformSync(...)` returns code, and `npm run build` / `build:dev` both
+// complete and produce the same chunk hashes as `build:local` below (`index-DKJzmj15.js`,
+// `MapView-8C8F8Ymz.js`, `index-C7sT89I7.css`, all three dates). Nothing explains why — no known
+// Smart App Control policy change between the 26th and the 28th — so this file stays: the block
+// can return without warning, same as it appeared without one.
 //
 // **Why a separate file rather than an edit.** Exactly the reason `vitest.config.ts` gives:
 // `vite.config.ts` is also edited by Lovable, which resumes on 1 September and would revert
@@ -22,18 +29,21 @@ import { componentTagger } from "lovable-tagger";
 // the alias, the port, and `componentTagger()` in development mode — is copied verbatim from
 // `vite.config.ts` so the two paths exercise the same tree.
 //
-// **What this does NOT prove, and the second point is the one that matters.**
+// **What this used not to prove, before the block lifted.**
 //
-//  1. A bundle built here is not byte-identical to the one Lovable and any CI produce through
-//     SWC — 1 114.64 kB against 1 112.62 kB, measured the same day on the same tree. It
-//     answers "does this tree bundle", not "does it bundle the way production does".
-//  2. **It does not cover what `build:dev` exists for.** CLAUDE.md keeps the second build
-//     because production mode does not mount `lovable-tagger`, so a broken Lovable link would
-//     pass unseen. Measured here on 26 August: building `--mode development` with
+//  1. On 26 August, a bundle built here was not byte-identical to the one Lovable and any CI
+//     produce through SWC — 1 114.64 kB against 1 112.62 kB, measured the same day on the same
+//     tree. Since the block lifted, that gap is closed: `build` and `build:local` have produced
+//     the same chunk hashes on 28 and 31 August. If Smart App Control blocks SWC again, treat
+//     this point as live again until remeasured.
+//  2. **It does not cover what `build:dev` exists for, on this path.** CLAUDE.md keeps the
+//     second build because production mode does not mount `lovable-tagger`, so a broken Lovable
+//     link would pass unseen. Measured here on 26 August: building `--mode development` with
 //     `componentTagger()` and without it gives the **same bundle hash**, `index-CqoGBwpQ.js`.
 //     The tagger contributes nothing on this path, so a breakage in it stays just as invisible
-//     as in production mode. Whether it contributes anything on the SWC path is unknown — that
-//     path cannot run on this machine, which is the whole reason this file exists.
+//     as in production mode. Now that the SWC path can run again, it was checked there too:
+//     28 and 31 August, `build` and `build:dev` through SWC also produce the same hash as each
+//     other. The tagger contributes nothing on either path — measured, not assumed, on both now.
 //
 // The tagger is kept in the list anyway: it costs nothing, it keeps the two configs readable
 // side by side, and it starts working the day a version makes it active here.

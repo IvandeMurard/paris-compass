@@ -37,11 +37,16 @@ npm.cmd run sessions:check  # recoupe la table committee a l'etat GitHub, sort e
 npm.cmd run build:dev   # mode development — seul chemin qui charge lovable-tagger
 ```
 
-**Si `vite` refuse de démarrer sur « Failed to load native binding ».** Windows Smart App Control
-bloque le binaire natif de `@swc/core` — mesuré le 26 août 2026, et il n'a **ni liste
-d'autorisation ni exception par fichier** : on ne peut pas lui faire accepter ce fichier-là, et
-le désactiver est irréversible sans réinstaller Windows. Un second chemin de build existe pour
-ça, sans SWC :
+**Si `vite` refuse de démarrer sur « Failed to load native binding ».** Le 26 août 2026, Windows
+Smart App Control bloquait le binaire natif de `@swc/core` sur cette machine, et il n'a **ni
+liste d'autorisation ni exception par fichier** : on ne peut pas lui faire accepter ce
+fichier-là, et le désactiver est irréversible sans réinstaller Windows. **Depuis, le blocage a
+disparu** — remesuré deux fois, le 28 et le 31 août 2026 : `require('@swc/core').transformSync`
+rend du code, et `npm.cmd run build` / `npm.cmd run build:dev` vont au bout en produisant des
+hashes identiques à `build:local` (`index-DKJzmj15.js`, `MapView-8C8F8Ymz.js`,
+`index-C7sT89I7.css`, les trois mesures). Rien n'explique la disparition — pas de changement
+connu de la politique Smart App Control entre les deux dates — donc le blocage peut revenir.
+Un second chemin de build reste en place pour ce cas, sans SWC :
 
 ```powershell
 npm.cmd run dev:local        # serveur de dev
@@ -50,10 +55,11 @@ npm.cmd run build:dev:local  # mode development
 ```
 
 Ils lisent `vite.config.local.ts`, volontairement séparé de `vite.config.ts` que Lovable
-réécrit — même raison que `vitest.config.ts`. **Ils ne remplacent pas les portes d'origine** :
-le bundle diffère de celui produit par SWC, et `build:dev:local` ne couvre pas ce pour quoi
-`build:dev` existe (mesuré : `componentTagger()` ne change rien sur ce chemin). Les deux
-fichiers doivent rester en phase — un plugin ajouté à l'un appartient à l'autre.
+réécrit — même raison que `vitest.config.ts`. Le 26 août, ils ne remplaçaient pas les portes
+d'origine à l'identique : le bundle produit divergeait de celui de SWC. Depuis le 28 et le 31
+août, les deux chemins rendent le même bundle — mais si Smart App Control se remet à bloquer
+SWC, cette divergence peut revenir sans préavis. Les deux fichiers doivent rester en phase — un
+plugin ajouté à l'un appartient à l'autre.
 
 Après toute montée de `vite`, lancer **les deux** builds : `build` construit en mode production,
 où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lovable invisible.
