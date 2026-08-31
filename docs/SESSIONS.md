@@ -9,18 +9,20 @@ tous deux sur `dbefhvmyfmmhjeetdddu` — le piège des trois projets Supabase es
 
 ---
 
-## La fenêtre du 24 au 31 août
+## Lovable — la règle s'applique le jour où tu l'ouvres
 
-**Lovable est indisponible jusqu'au 1ᵉʳ septembre.** Conséquence directe : la
-synchronisation bidirectionnelle n'a pas lieu, donc le risque d'éditer les mêmes fichiers
-des deux côtés — celui que `CLAUDE.md` décrit comme coûteux — **n'existe pas pendant cette
-fenêtre**. Le travail sur `src/` est plus sûr maintenant qu'après.
+**Il n'y a pas d'échéance.** Précisé par Ivan le 31 août 2026 : Lovable reprend la main **quand
+il l'ouvre**, pas à une date. Les versions antérieures de cette page annonçaient une fenêtre
+fermant le 1ᵉʳ septembre — c'était faux, et une session l'aurait lu comme un compte à rebours.
 
-Une seule contrainte en échange : **tout doit être poussé avant le 1ᵉʳ septembre.** Lovable
-reprendra la main sur l'arbre qu'il trouvera. S'il trouve un arbre en retard, il écrasera du
-travail.
+Ce qui reste vrai, et qui est la seule chose à retenir : **tant que Lovable n'est pas ouvert,
+la synchronisation bidirectionnelle n'a pas lieu**, donc le risque d'éditer les mêmes fichiers
+des deux côtés n'existe pas. Le jour où il l'ouvre, la règle de `CLAUDE.md` reprend en plein —
+`git pull` avant, pousser après, ne pas toucher `.lovable/`.
 
-La fenêtre change l'ordre : les tickets qui touchent `src/` passent devant, pas derrière.
+Corollaire pratique : pousser à la fin de chaque session, toujours. Ce n'est pas une course
+contre une date, c'est ce qui garantit que Lovable trouvera l'arbre à jour le jour où il
+s'ouvre, quel qu'il soit.
 
 ---
 
@@ -148,7 +150,7 @@ fautive.
 
 <!-- BEGIN sessions -- généré par `npm.cmd run sessions`, ne pas éditer à la main -->
 
-*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 28/08/2026.*
+*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 31/08/2026.*
 
 | # | Ticket | Issue | État | Prio | Modèle |
 | --- | --- | --- | --- | --- | --- |
@@ -166,8 +168,9 @@ fautive.
 | ~~12~~ | ~~`w0-conclusion`~~ | [#54](https://github.com/IvandeMurard/paris-compass/issues/54) | **fait** | P1 | Opus 5 |
 | ~~13~~ | ~~`w0-appelant`~~ | [#58](https://github.com/IvandeMurard/paris-compass/issues/58) | **fait** | P1 | Opus 5 |
 | ~~14~~ | ~~`w1-licence-derivee`~~ | [#59](https://github.com/IvandeMurard/paris-compass/issues/59) | **fait** | P1 | Opus 5 |
-| 15 | `w1-ppri` | [#13](https://github.com/IvandeMurard/paris-compass/issues/13) | ouvert | P1 | Opus 5 |
-| ~~16~~ | ~~`w1-dia`~~ | [#12](https://github.com/IvandeMurard/paris-compass/issues/12) | **fait** | P1 | Opus 5 |
+| 15 | `w1-cadence` | [#70](https://github.com/IvandeMurard/paris-compass/issues/70) | ouvert | P1 | Opus 5 |
+| 16 | `w1-ppri` | [#13](https://github.com/IvandeMurard/paris-compass/issues/13) | ouvert | P1 | Opus 5 |
+| ~~17~~ | ~~`w1-dia`~~ | [#12](https://github.com/IvandeMurard/paris-compass/issues/12) | **fait** | P1 | Opus 5 |
 
 **Hors de cette file : 27 tickets ouverts**, à prendre après la vague 0 — 
 le détail par vague est dans [`PLAN-ACTION-VACANCE.md`](./PLAN-ACTION-VACANCE.md).

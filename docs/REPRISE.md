@@ -488,6 +488,26 @@ refaire sur tout nouveau projet avant `supabase db push`.
 
 ## Décisions qui ne se déduisent pas du code
 
+**Le back-end, les données et le MCP passent avant le front.** Direction donnée par Ivan le
+31 août 2026. Ce qui est prioritaire, dans l'ordre : la fiabilité, la rapidité et la solidité
+du socle ; l'accessibilité et le maintien en condition opérationnelle des API et du MCP ;
+un protocole d'évaluation strict qui tourne **de lui-même**, pas quand quelqu'un y pense.
+
+Trois conséquences qui se lisent dans le backlog :
+
+- Un ticket qui rend une donnée plus fiable, plus fraîche ou plus vérifiable passe devant un
+  ticket qui l'affiche mieux. `w1-ppri` (#13) est un défaut réel — un libellé de risque vrai
+  presque partout dans Paris, affiché sur la carte avec sa méthode publiée — et il attend
+  quand même, parce qu'il est du front.
+- **« Toujours privilégier la logique et les actions durables. »** Une cadence posée à la main
+  sur quatre sources n'est pas une cadence : c'est quatre décisions qui ne se répètent pas. La
+  règle doit énumérer, pas lister — même exigence que `I23`/`I24` pour la retenue de licence.
+- L'amélioration continue du protocole d'évaluation porte sur ce qu'il **détecte**, jamais sur
+  ce qu'il **tolère**. Une porte qui se détend pour rester verte a cessé d'être une porte, et
+  la règle des baselines le dit déjà : regeler est permis, jamais pour faire taire un
+  avertissement.
+
+
 **`authenticated` n'est pas un appelant privilégié.** Tranché par Ivan le 26 août 2026,
 sur `w0-appelant` (#58). Le privilège reste au rôle de service et aux connexions directes
 — ceux qui *exploitent* Compass — jamais à un compte créé sur le site.
