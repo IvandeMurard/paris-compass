@@ -45,3 +45,30 @@ export function classify(status: number, text: string, what: string): Error {
   }
   return new Error(`${what} : HTTP ${status} — ${text.slice(0, 200)}`)
 }
+
+/**
+ * The same decision on the DRIVER side, for the gates holding a database connection — #69.
+ *
+ * Arm A of `npm.cmd run eval` reached 2026-08-28 unable to survive its own cancellations: a
+ * `57014` escaped `runInvariants`, and arms B, C and E were never played. Two passes out of
+ * three that day produced no verdict at all — which is worse than a wrong one, because a
+ * gate that regularly says nothing is a gate that gets read as decoration.
+ *
+ * Here rather than in a module of its own so that both gates say the same word for the same
+ * thing: `eval:anon` has classified a cancellation as an upstream failure since #61, and a
+ * second copy of that judgement is how the two would drift apart. DIAGNOSTIC.md §26 is the
+ * precedent — the caller test existed in six copies and the copies disagreed.
+ *
+ * Same narrowness as `classify`, for the same reason: this is the decision that makes things
+ * STOP being failures. It tests `error.code`, which the driver parses out of the server's
+ * error fields, never the message text — a query whose own output merely contained "57014"
+ * must stay the failure it is.
+ */
+export function classifyDriverError(error: unknown, what: string, windowMs: number): Error {
+  const code = (error as { code?: unknown } | null)?.code
+  if (code === QUERY_CANCELED)
+    return new UpstreamTimeout(
+      `${QUERY_CANCELED} query_canceled — ${what} a dépassé les ${windowMs} ms accordées à ce bras`,
+    )
+  return error instanceof Error ? error : new Error(`${what} : ${String(error)}`)
+}

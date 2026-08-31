@@ -30,6 +30,24 @@ qu'elle sert à construire.
 Compass sont déterministes, donc on peut vérifier toute la base à chaque fois.
 C'est plus fort qu'un jeu doré, et c'est moins de travail à maintenir.
 
+> **Depuis le 31 août, trois invariants sont joués en plusieurs instructions, et ça ne
+> change pas cette clause** (`#69`). I1, I2 et I7 appellent `compass_address_timeline` une
+> fois par local : leur coût est linéaire en `premise_location`, et I1 mesurait **118 137 ms
+> à froid** contre une fenêtre de 120 000 ms. Ils sont découpés en tranches — **la
+> population est identique, toutes les tranches sont jouées**, et ce n'est démontrable :
+> les bornes sont **ouvertes en bas de la première et en haut de la dernière**, donc les
+> tranches couvrent le domaine entier et non l'intervalle d'où les bornes ont été tirées.
+> Une clé ne peut tomber ni entre deux tranches ni dans deux. Un mauvais découpage coûte du
+> temps, **jamais une ligne**. Arithmétique dans `scripts/eval/chunks.ts`, prouvée hors base
+> dans `chunks.test.ts`.
+>
+> **Ce qui aurait été un échantillon, et qui a été refusé :** restreindre la population de
+> I1 ou I2 comme I7 restreint la sienne. La restriction de I7 est saine — un local sans avis
+> BODACC ne peut pas violer une règle sur les avis BODACC. Il n'existe pas d'équivalent pour
+> I1 et I2 : la fonction émet une ligne de relevé **par millésime pour chaque local**,
+> observé ou non, donc tout local peut porter la ligne fautive. Restreindre là aurait été
+> échantillonner, et il aurait fallu l'écrire ici comme un changement de contrat.
+
 **Le jeu doré garde un rôle, mais second.** Les invariants attrapent des
 *classes* de faute ; le jeu doré attrape les régressions sur des cas nommés dont
 on a vérifié la vérité à la main — dont les deux qui ont motivé tout ceci.
@@ -40,6 +58,35 @@ on a vérifié la vérité à la main — dont les deux qui ont motivé tout cec
 
 Chaque invariant est une requête qui **doit renvoyer zéro ligne**. Une seule
 ligne fait échouer la porte.
+
+**Ce qui bloque et ce qui parle seulement**, depuis `#69` — le bras A a désormais les deux
+décisions que le bras E et la porte anonyme avaient déjà :
+
+| | Quand | Effet |
+| --- | --- | --- |
+| **FAIL** | un invariant rend des lignes | La seule chose qui échoue ici. Inchangé depuis le 9 août |
+| **susp** | la base annule l'instruction (`57014`) | Le bras ne l'a pas regardé : il le **nomme**, la course **continue**, et B, C et E sont joués. Ni vert ni rouge, sortie **3**, jamais 0 |
+| **WARN** | un invariant à zéro ligne dépasse **la moitié** de sa fenêtre | Le contenu est vert, c'est l'horloge qui approche. `DIAGNOSTIC.md` §18 : rien ici n'échoue sur une horloge |
+
+**Le bras A pose sa propre fenêtre, et c'est nouveau.** Jusqu'au 31 août il héritait de celle
+du rôle `postgres` — 120 000 ms, un réglage de cluster que personne dans ce dépôt n'a choisi.
+Il déclare maintenant **60 000 ms par instruction**, `set local`, donc **en dessous** de ce
+qu'il héritait, et il **alerte à 30 000 ms**. C'est ce seuil qui déclenchera la prochaine
+discussion, **pas une date** : la croissance du corpus ne rallonge pas l'instruction, elle
+ajoute des tranches. Ce qui ferait parler l'alerte, c'est le coût **par local** de
+`compass_address_timeline` qui monte — précisément la régression que rien ne savait voir.
+
+> **Les tranches sont égales en lignes, pas en coût**, et leur taille est **déduite du bruit
+> mesuré**. À taille égale, l'instruction la plus large de `I1` a bougé d'un facteur **1,9**
+> entre deux passages consécutifs — instance partagée — et le froid en ajoute 1,41 : elle peut
+> atteindre ~2,7 fois sa valeur courante sans qu'il ne se soit rien passé. D'où
+> `ARM_A_CHUNK_ROWS = 4 000`, qui met la plus large entre **6,2 s et 13,1 s** sur quatre
+> passages. Ça la laisse loin du seuil ; ça ne la rend pas immune au bruit, et la réserve est
+> écrite dans `DIAGNOSTIC.md` § 30. **C'est ce bouton-là qu'on tourne
+> quand une instruction s'approche, jamais `ARM_A_WINDOW_MS`** : le premier borne le travail,
+> le second ne borne que la patience. Et multiplier les tranches est presque gratuit —
+> vérifié, plan forcé générique : chaque tranche fait un `Index Only Scan` sur la clé primaire,
+> **5 pages**, pas un rebalayage de la table.
 
 | # | Ce qu'il empêche | Origine |
 | --- | --- | --- |

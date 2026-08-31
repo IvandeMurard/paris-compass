@@ -23,7 +23,7 @@ une adaptation qui n'est pas cosmétique et qui est expliquée dans `FAILURE_MOD
 
 | Fichier | Ce qu'il vérifie | Tolérance |
 | --- | --- | --- |
-| `invariants.sql` | **Trente-sept** requêtes, dont trente-six doivent renvoyer zéro ligne — la trente-septième, `I24`, est un recensement, voir plus bas. *Compté le 28 août 2026 ; ce tableau a annoncé vingt-huit pendant deux semaines.* | Zéro |
+| `invariants.sql` | **Trente-sept** requêtes, dont trente-six doivent renvoyer zéro ligne — la trente-septième, `I24`, est un recensement, voir plus bas. *Compté le 28 août 2026 ; ce tableau a annoncé vingt-huit pendant deux semaines.* **Trois d'entre elles — `I1`, `I2`, `I7` — sont jouées en plusieurs instructions depuis le 31 août (`#69`) : même population, toutes les tranches jouées.** | Zéro sur les lignes ; **parlant sur l'horloge**, jamais bloquant |
 | `baselines/ingestion.json` | **Vingt-quatre** effectifs gelés au chargement | Signalé, bloquant au-delà de 1 % |
 | `golden.jsonl` | **Huit** chronologies vérifiées à la main | Zéro |
 | `baselines/anon-budget.json` | Ce que coûte, **au rayon maximal**, chaque fonction de rayon que `anon` peut appeler | Plafond sur les pages, parlant sur l'horloge |

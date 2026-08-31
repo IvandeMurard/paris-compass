@@ -28,7 +28,25 @@ export interface Invariant {
    * applies to, not violations.
    */
   census?: string
+  /**
+   * Table and column to cut the population on, from an optional
+   * `-- @chunk <schema>.<table>.<column>` line — #69.
+   *
+   * The invariant then runs as several statements instead of one, and its SQL
+   * must carry the two bind parameters that bound each slice. See chunks.ts for
+   * why the slices cover the whole domain rather than the measured interval.
+   */
+  chunk?: { table: string; column: string }
 }
+
+/**
+ * Identifiers reaching this module come from a repository file, not from a
+ * caller — but they are interpolated into SQL to read the slice boundaries, so
+ * they are checked rather than trusted. A directive that does not parse is a
+ * typo, and a typo that silently disabled chunking would leave one statement
+ * quietly back on the wrong side of the window.
+ */
+const IDENTIFIER = /^[a-z_][a-z0-9_]*$/
 
 /** Splits invariants.sql on its `-- @invariant <id> :: <description>` markers. */
 export function readInvariants(path = resolve(ROOT, "eval/invariants.sql")): Invariant[] {
@@ -38,11 +56,13 @@ export function readInvariants(path = resolve(ROOT, "eval/invariants.sql")): Inv
     const [header, ...rest] = block.split("\n")
     const [id, description] = header.split("::").map((s) => s.trim())
     const body = rest.join("\n")
+    const chunk = /^--\s*@chunk\s+(\S+)/m.exec(body)?.[1]
     return {
       id,
       description,
       as: /^--\s*@as\s+(\S+)/m.exec(body)?.[1],
       census: /^--\s*@census\s+(\S+)/m.exec(body)?.[1],
+      chunk: chunk === undefined ? undefined : parseChunk(id, chunk),
       sql: body.trim(),
     }
   })
@@ -108,4 +128,14 @@ export function censusVerdict(
     uncovered,
     detail: `${population.length} fonction(s) recensée(s), toutes couvertes par un invariant @as anon`,
   }
+}
+
+/** Splits `<schema>.<table>.<column>`, checking every part is a plain identifier. */
+export function parseChunk(id: string, directive: string): { table: string; column: string } {
+  const parts = directive.split(".")
+  if (parts.length !== 3 || !parts.every((p) => IDENTIFIER.test(p)))
+    throw new Error(
+      `${id} : @chunk attend <schema>.<table>.<colonne> en identifiants simples, reçu « ${directive} »`,
+    )
+  return { table: `${parts[0]}.${parts[1]}`, column: parts[2] }
 }

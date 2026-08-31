@@ -110,7 +110,31 @@ normande, sans rapport avec Paris. Détail dans `docs/PLAN-ACTION-VACANCE.md` §
 table de `docs/SESSIONS.md` régénérée, `sessions:check` ✓. Rien dans `src/`, donc pas de portes
 à rejouer.
 
-## L'état mesuré le plus récent — 28 août 2026, après clôture de `#65`
+## L'état mesuré le plus récent — 31 août 2026, après clôture de `#69`
+
+**Le tableau de la section suivante date du 28 août.** Quand les deux se contredisent, c'est
+le plus daté des deux qui a tort. Ce qui a bougé le 31 août, et rien d'autre :
+
+| Mesure | Valeur, mesurée le 31 août 2026 |
+| --- | --- |
+| Ledger distant `supabase_migrations` | **47** — inchangé, `#69` **n'a posé aucune migration** : le défaut était dans le lanceur, pas dans le schéma |
+| Tests unitaires | **216** — 188 le 28 août, puis 214 avec `chunks.test.ts` et `invariants.test.ts`, puis 216 avec les deux cas d'horloge |
+| Invariants | **37** — inchangé. Trois d'entre eux, `I1`, `I2` et `I7`, sont **joués en 22 instructions** au lieu d'une. Même population, toutes les tranches jouées |
+| Portes | `typecheck` ✓ · `test` **216** ✓ · `eval` **joué sept fois de suite, sept fois au bout**, sortie 3 sur les **11 avertissements de baseline** habituels et **zéro sur l'horloge** · `eval:anon` **PASS, 15 contrôles**, sortie 0, la plus coûteuse `compass_premises_within` à **1 362 ms** sur 3 000 · `verify:mcp` **38 contrôles, 35 verts, 0 échec, 3 suspendus** (Overpass 504), sortie 0 · `build` ✓, hashes inchangés (`index-DKJzmj15.js`) — rien dans `src/` |
+
+**Le bras A ne meurt plus dans sa fenêtre, et il en a une à lui.** Il héritait des 120 000 ms
+du rôle `postgres`, un réglage de cluster que personne ici n'a choisi ; il pose maintenant
+`set local statement_timeout = 60000`, **moitié moins**, et alerte à 30 000 ms. C'est possible
+parce que `I1`, `I2` et `I7` sont découpés : l'instruction la plus large fait ~11 s au lieu de
+118 s. `DIAGNOSTIC.md` § 30.
+
+| | Avant, 31 août à froid | Après |
+| --- | ---: | ---: |
+| Instruction la plus large du bras A | **118 137 ms** (I1) sur 120 000 | **6 200 à 13 100 ms** sur 60 000, alerte à 30 000 |
+| Bras A entier | 296 160 ms | ~220 s — le découpage borne l'instruction, **pas le total** |
+| Un `57014` sur un invariant | tue la course, **B, C et E jamais joués** | **suspendu**, nommé, la course va au bout, sortie 3 |
+
+## L'état mesuré le 28 août 2026, après clôture de `#65`
 
 **Le tableau de la section suivante date du 24 août** et n'a pas été remesuré depuis ; celui-ci
 l'a été, contre `dbefhvmyfmmhjeetdddu`, après la fermeture de `#65`. Quand les deux
@@ -684,26 +708,39 @@ latence, pas la donnée.
 > `pg_roles.rolconfig`. Ce n'est pas une valeur PostgREST à deviner, c'est une
 > option de rôle qu'on peut lire.
 
-**`eval:anon` ne rend plus ce faux rouge — les autres portes, si.** Depuis `#61`,
-elle classe un `57014` en **« suspendu — panne amont »** et sort en **3** : ni
-vert, ni rouge, et le mot « INDÉTERMINÉ » est écrit en toutes lettres. Rejouer une
-sortie 3 est légitime ; rejouer un **FAIL** ne l'est pas, et c'est toute la
-différence que ce ticket a achetée. `eval` (bras A) et `verify:mcp` n'ont pas
-cette distinction pour le timeout : là, **rejouer avant de diagnostiquer** reste
-la règle, et ne conclure à une régression qu'au deuxième rouge.
+**`eval:anon` ne rend plus ce faux rouge — et `eval` non plus depuis le 31 août.** Depuis
+`#61`, la porte anonyme classe un `57014` en **« suspendu — panne amont »** et sort en **3** :
+ni vert, ni rouge, et le mot « INDÉTERMINÉ » est écrit en toutes lettres. Rejouer une sortie 3
+est légitime ; rejouer un **FAIL** ne l'est pas. **Le bras A de `eval` a la même distinction
+depuis `#69`** : il nomme l'invariant suspendu, **va au bout**, et B, C et E sont joués.
+`verify:mcp` ne l'a toujours pas — là, **rejouer avant de diagnostiquer** reste la règle, et ne
+conclure à une régression qu'au deuxième rouge.
 
-**Un `57014` dans le bras A de `eval` n'est pas toujours une instance froide.** Le
-28 août, deux passages morts **à 120 000 ms exactement** — pas une latence, une
-fenêtre : le lanceur se connecte en `postgres`, dont `statement_timeout` vaut
-**`2min`**. Le troisième est passé avec **`I1` à 115,3 s**, soit 4,7 s de marge.
-La porte est sur le fil, pas cassée — détail et pistes dans
-[`#69`](https://github.com/IvandeMurard/paris-compass/issues/69).
+**Un `57014` dans le bras A de `eval` n'est pas toujours une instance froide — corrigé le
+31 août.** Le 28 août, deux passages morts **à 120 000 ms exactement** — pas une latence, une
+fenêtre : le lanceur se connectait en `postgres`, dont `statement_timeout` valait **`2min`**,
+hérité d'un réglage de cluster. Remesuré à froid le 31 août : **`I1` seul à 118 137 ms**, 1,6 %
+de marge. Fermé par [`#69`](https://github.com/IvandeMurard/paris-compass/issues/69) —
+découpage en tranches, fenêtre déclarée à 60 000 ms, alerte à 30 000 ms, `DIAGNOSTIC.md` § 30.
+
+> **Et la leçon de méthode, qui vaut au-delà de ce ticket : la fenêtre est par instruction,
+> pas par bras.** « Le bras A passe à 115,3 s » se lit comme un budget de bras ; c'était `I1`
+> seul, et le bras entier faisait 216 s sans qu'aucun plafond ne s'y applique. Confondre les
+> deux mène à monter le plafond ; les distinguer mène à découper l'instruction. **Avant de
+> déplacer une limite, vérifier ce qu'elle compte.**
 
 > **La méthode qui donne le diagnostic en une fois** : jouer les invariants un par un
 > sur une connexion où l'on a relevé `set statement_timeout = '180s'`, et chronométrer.
 > `readInvariants()` de `scripts/eval/census.ts` est exporté, c'est vingt lignes. Ici :
 > `I1` 83,6 s, `I2` 65,4 s, `I7` 45,4 s, **les 37 à zéro ligne** — le contenu est vert,
-> c'est l'horloge qui ne l'est pas.
+> c'est l'horloge qui ne l'est pas. **Depuis `#69`, un invariant `@chunk` attend deux
+> paramètres de bornes** : lui passer `[null, null]` le joue en entier, comme le fait
+> `scripts/eval/census-sabotage.ts`.
+>
+> **Et le premier appel de la session est la mesure qui compte.** Le 31 août, `I1` a rendu
+> 118 137 ms au premier appel contre 83 785 ms une fois chaud : **41 % d'écart**, c'est-à-dire
+> toute la marge. Une session qui commence par réchauffer l'instance a dépensé la seule
+> mesure à froid qu'elle pouvait obtenir — voir le piège du cache plus bas.
 >
 > **Et ne pas conclure d'un `| tail`** : `npm.cmd run eval | tail -30` rend le code de
 > sortie de `tail`, soit **0**, sur une porte sortie en 2. Même règle que
@@ -1312,6 +1349,20 @@ minimale dans l'avis GitHub ou l'export Socket avant de renoncer à une montée.
 Ne pas vérifier une montée de `vite` avec `npm.cmd run build` seul. La commande
 construit en mode production, où `lovable-tagger` **n'est pas chargé** : une panne
 du lien avec Lovable passerait inaperçue. Lancer aussi `npm.cmd run build:dev`.
+
+Ne pas restreindre la population de `I1` ou `I2` comme `I7` restreint la sienne. Celle de
+`I7` est saine — un local sans avis BODACC ne peut pas violer une règle sur les avis BODACC.
+Il n'existe pas d'équivalent : la chronologie émet une ligne de relevé **par millésime pour
+chaque local**, observé ou non, donc tout local peut porter la ligne fautive. Ce serait un
+**échantillon**, ce que `eval/FAILURE_MODES.md` refuse, et il faudrait le porter au contrat.
+Le découpage en tranches de `#69` n'en est pas un : les bornes sont ouvertes aux deux
+extrémités du domaine, donc toutes les lignes sont vues. `DIAGNOSTIC.md` § 30.
+
+Ne pas monter la fenêtre du bras A pour absorber une lenteur. Elle est **déclarée** dans
+`scripts/eval/invariants.ts` depuis le 31 août, à 60 000 ms, et l'alerte à 30 000 ms est là
+pour que la discussion arrive **avant** le mur. Si une instruction s'en approche, la réponse
+par défaut est de baisser `ARM_A_CHUNK_ROWS`, pas de monter `ARM_A_WINDOW_MS` : la première
+borne le travail, la seconde le cache.
 
 Ne pas forcer `enable_nestloop = off` sur les fonctions de rayon, ni globalement ni
 sur les quatre sans distinction de rayon : le hachage vaut −81 % de pages à 2 000 m

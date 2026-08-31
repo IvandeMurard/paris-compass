@@ -13,27 +13,53 @@
 --                         uses it, I24 — run by hand, it lists the functions the
 --                         licence rule applies to, which is information rather
 --                         than a failure.
+--   `-- @chunk <schema>.<table>.<column>`
+--                         run this block as SEVERAL statements, cut on that
+--                         column, so no single statement's cost grows with the
+--                         corpus (#69). The block must then carry `$1` and `$2`
+--                         as its slice bounds, each dropped when null. THE
+--                         POPULATION IS UNCHANGED: the slices cover the whole
+--                         ordered domain and every one of them is run. Three
+--                         blocks use it — I1, I2, I7.
 --
 -- Contract and rationale: eval/FAILURE_MODES.md.
 
 -- @invariant I1 :: une chronologie affirme un fait là où observed = false
+-- @chunk public.premise_location.id
 -- The failure of 2026-08-09: an unsurveyed year rendered as a statement. If a
 -- row is not observed it carries no label, no code, no amount, and its
 -- confidence is `indetermine`.
+--
+-- Run in slices rather than in one statement (#69). One call to the timeline
+-- function per premise costs 0.965 ms and 94 pages, so this invariant is linear
+-- in `premise_location` and reached 118 137 ms cold on 2026-08-31 against a
+-- 120 000 ms window. The slices are NOT a sample: they cover the whole ordered
+-- domain, the runner walks every one of them, and the population is unchanged.
+-- The two bounds are bound by the runner; each is dropped when it is null.
 select l.id as location_id, t.occurred_on, t.label, t.confidence
 from public.premise_location l
 cross join lateral public.compass_address_timeline(l.id) t
-where t.observed = false
+where ($1::bigint is null or l.id >= $1::bigint)
+  and ($2::bigint is null or l.id < $2::bigint)
+  and t.observed = false
   and (t.label is not null or t.activity_code is not null
        or t.amount_eur is not null or t.confidence <> 'indetermine')
 limit 20;
 
 -- @invariant I2 :: un fait etabli sans pièce jointe
+-- @chunk public.premise_location.id
 -- A confidence level has to be justified by something the reader can check.
+--
+-- Sliced for the same reason as I1, and by the same key. No restriction of the
+-- population exists here the way it does for I7: the timeline emits a survey row
+-- per vintage for EVERY premise, observed or not, so every premise can carry an
+-- `etabli` row. Narrowing this one would be a sample, not a restriction.
 select l.id as location_id, t.occurred_on, t.source, t.confidence
 from public.premise_location l
 cross join lateral public.compass_address_timeline(l.id) t
-where t.confidence = 'etabli'
+where ($1::bigint is null or l.id >= $1::bigint)
+  and ($2::bigint is null or l.id < $2::bigint)
+  and t.confidence = 'etabli'
   and (t.evidence is null or btrim(t.evidence) = ''
        or t.confidence_reason is null or btrim(t.confidence_reason) = '')
 limit 20;
@@ -72,7 +98,13 @@ where (l.street_segment_id is not null) <> (l.street_match is not null)
 limit 20;
 
 -- @invariant I7 :: un avis BODACC etabli alors que l'adresse est un siège ou partagée
+-- @chunk public.premise_location.id
 -- The inference error of 2026-08-09, made structurally impossible.
+--
+-- Sliced like I1 and I2 (#69), on the same key: the restriction below already
+-- narrows the population, but only by about a third — 75 027 ms cold on
+-- 2026-08-31 against I2's 75 841 — because the join that computes it is itself
+-- the expensive part. Restriction and slicing are independent, and both apply.
 --
 -- Restricted to premises that actually carry a BODACC notice. That is a sound
 -- restriction, not a sample: a premise with no notice cannot violate this.
@@ -88,6 +120,8 @@ from (
   from public.premise_location l
   join public.bodacc_establishment e
     on e.street_key = l.street_key and e.house_number_int = l.num
+  where ($1::bigint is null or l.id >= $1::bigint)
+    and ($2::bigint is null or l.id < $2::bigint)
 ) l
 cross join lateral public.compass_address_timeline(l.id) t
 where t.kind in ('sale', 'proceeding')

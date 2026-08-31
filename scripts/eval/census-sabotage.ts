@@ -41,6 +41,7 @@
 import type { Client } from "pg"
 
 import { connect, connectionTarget, log } from "../ingest/lib/db"
+import type { Invariant } from "./census"
 import { anonymousCoverage, censusVerdict, readInvariants } from "./census"
 import { licenceVerdict, type VintageFact } from "./licence-counts"
 
@@ -189,6 +190,17 @@ interface Outcome {
   censusPopulation: string[]
 }
 
+/**
+ * The slice bounds a `@chunk` invariant expects, both open — #69.
+ *
+ * This demonstration proves a RULE, not a cost, so it runs the whole population in one
+ * statement whatever the gate does about its window. Passed rather than assumed absent:
+ * none of the invariants played here is sliced today, and a silent `bind message supplies
+ * 0 parameters` the day one is would be a maddening way to find out.
+ */
+const bounds = (invariant: Invariant): unknown[] | undefined =>
+  invariant.chunk ? [null, null] : undefined
+
 /** Runs I23 and I24 as the gate runs them, and reports what they saw. */
 async function play(client: Client): Promise<Outcome> {
   const invariants = readInvariants()
@@ -199,8 +211,8 @@ async function play(client: Client): Promise<Outcome> {
   if (!structural || !census) throw new Error("I23 ou I24 absent de eval/invariants.sql")
   if (!census.census) throw new Error("I24 ne porte pas de marqueur @census")
 
-  const structuralRows = await client.query(structural.sql)
-  const censusRows = await client.query(census.sql)
+  const structuralRows = await client.query(structural.sql, bounds(structural))
+  const censusRows = await client.query(census.sql, bounds(census))
   const verdict = censusVerdict(censusRows.rows as Record<string, unknown>[], census.census, covered)
 
   return {
@@ -228,7 +240,7 @@ async function playOne(client: Client, id: string, inTransaction = false): Promi
       await client.query("select set_config('request.jwt.claims', $1, true)", [
         JSON.stringify({ role: invariant.as }),
       ])
-    const result = await client.query(invariant.sql)
+    const result = await client.query(invariant.sql, bounds(invariant))
     return result.rows as Record<string, unknown>[]
   } finally {
     await client.query(inTransaction ? "rollback to savepoint invariant" : "rollback")

@@ -2603,6 +2603,206 @@ que le rayon par défaut du produit est 800 m.
 - **Deux défauts trouvés en chemin, ouverts plutôt que corrigés** :
   [`#68`](https://github.com/IvandeMurard/paris-compass/issues/68) les quinze géométries `NaN`,
   [`#69`](https://github.com/IvandeMurard/paris-compass/issues/69) le bras A de `eval`, qui passe
-  à 115,3 s sur une fenêtre de 120 s et est mort deux fois sur trois ce jour-là.
+  à 115,3 s sur une fenêtre de 120 s et est mort deux fois sur trois ce jour-là. **`#69` est
+  fermée le 31 août, § 30** — et la mesure de 115,3 s était celle de `I1` seul, pas du bras.
 - Les deux réserves de §27 sur le bras E — un point, un rayon, `anon` seul — tiennent inchangées,
   et sont désormais écrites dans le contrat plutôt que seulement ici.
+
+---
+
+## 30. La porte mourait dans son premier bras, et ce n'est pas sa lenteur le défaut — le 31 août
+
+**Ouvert par [`#69`](https://github.com/IvandeMurard/paris-compass/issues/69)**, trouvé en
+jouant les portes de `#65`. Mesures du 31 août 2026 sur `dbefhvmyfmmhjeetdddu`,
+PostgreSQL 17.6, **premier appel de la session** — l'instance n'avait pas été réchauffée par
+des passages ratés, ce que le ticket demandait explicitement.
+
+### D'abord la vérification que le ticket réclamait de son propre récit
+
+`#69` affirmait « ce n'est pas une régression de `#65` » et le démontrait. **Recoupé plutôt
+que cru**, et ça a coûté une minute : `compass_address_timeline` est définie pour la dernière
+fois par `20260826000001`, et son corps ne contient **ni `geom` ni aucun appel `ST_`** — donc
+les statistiques que `#65` a montées puis remises par défaut ne peuvent pas l'atteindre. Les
+trois migrations poussées le 28 août (`20260828000001` à `…0003`) remplacent
+`compass_premises_within`, `compass_bodacc_within`, `compass_street_rotation` et
+`compass_scoring_context_within` : **aucune ne touche la chronologie**. L'affirmation tient.
+
+### Le fait, à froid
+
+| Invariant | 31 août, à froid | 28 août, à chaud (`#69`) |
+| --- | ---: | ---: |
+| **I1** | **118 137 ms** | 83 599 ms |
+| **I2** | 75 841 ms | 65 394 ms |
+| **I7** | 75 027 ms | 45 389 ms |
+| I3 | 7 832 ms | 2 808 ms |
+| I21 | 5 339 ms | 6 451 ms |
+| I8 | 2 590 ms | 2 797 ms |
+| **Bras A entier** | **296 160 ms** | 216 017 ms |
+
+**I1 à 118 137 ms contre une fenêtre de 120 000 ms : 1,6 % de marge.** Le 28 août la même
+mesure à chaud donnait 115,3 s, et deux passages sur trois étaient morts à 120 000 ms exactement.
+Les 37 invariants rendent zéro ligne dans les deux relevés : le contenu est vert.
+
+**La fenêtre est par instruction, pas par bras.** C'est I1 seul qui la dépasse ; les 296 s du
+bras entier ne sont jamais soumises à un plafond. Le ticket parlait du « bras A à 115,3 s » —
+c'est I1 à 115,3 s, et la distinction décide de tout le correctif.
+
+### Où va le coût, et il n'y a rien à corriger dedans
+
+`explain (analyze, buffers)` sur I1, à chaud :
+
+```
+Limit (actual time=83769..83770 rows=0)
+  ->  Nested Loop
+        ->  Seq Scan on premise_location l  (rows=85418, 1 228 ms)
+        ->  Function Scan on compass_address_timeline t
+              (actual time=0.965..0.965 rows=0 loops=85418)
+              Buffers: shared hit=8054570 read=11206
+```
+
+**0,965 ms et 94 pages par appel, 85 418 appels.** Pas de plan qui bascule, pas d'index perdu,
+**et pas de parallélisme** : `max_parallel_workers_per_gather` vaut **1** sur cette instance et
+le planificateur n'essaie même pas. 8,07 millions de pages touchées, dont **99,85 % en cache** —
+donc les 34 s d'écart entre froid et chaud sont le prix des pages, pas le travail. Doctrine du
+bras E, rencontrée sur le bras A : **les pages sont le travail, le cache n'en fixe que le prix.**
+
+Et le coût est **nominal**. `compass_address_timeline` est `security definer` avec
+`set search_path` — donc **non inlinable** : chaque appel est une exécution à part entière, et
+c'est le prix de la garantie de licence, pas un défaut. Il n'y a pas de correctif à chercher là.
+
+### Ce qui a grandi, et ce n'est pas ce qu'on croyait
+
+La porte est passée de **8 invariants le 9 août à 37 le 27 août**. La croissance du coût n'est
+pas là :
+
+| | Coût | Part du bras A |
+| --- | ---: | ---: |
+| **I1, I2, I7** — les trois qui appellent la chronologie par local, présents **depuis le 9 août** | **269 005 ms** | **90,8 %** |
+| Les 34 autres | 27 155 ms | 9,2 % |
+| Dont les **19 ajoutés depuis le 17 août** | 11 163 ms | **3,8 %** |
+
+**Dix-neuf invariants ajoutés en dix jours coûtent 3,8 % du bras.** La médiane des 34 est de
+~130 ms. Le bras A n'est donc **pas** dimensionné par son nombre d'invariants : il l'est par
+trois d'entre eux, dont le coût est linéaire en `premise_location`. Le 38e invariant coûtera
+une fraction de seconde ; c'est le prochain millésime, ou le prochain lot de locaux, qui
+pousserait I1 par-dessus la fenêtre.
+
+### Le défaut, qui n'est pas la lenteur
+
+**Deux fois sur trois le 28 août, la porte n'a rendu aucun verdict.** L'erreur remontait
+jusqu'à `main().catch`, donc **les bras B, C et E n'étaient jamais joués** — ni les effectifs
+d'ingestion, ni le jeu doré, ni le budget de la fenêtre anon. La sortie était honnête sur sa
+nature (`ERREUR`, sortie 2), contrairement à §18 où le coût arrivait déguisé en défaut de
+licence. Le défaut est ailleurs : **une porte qui régulièrement ne dit rien finit par se lire
+comme du décor**, et c'est la version lente de ce que §18 redoutait.
+
+**Et un second défaut, invisible jusqu'à ce qu'on tente le correctif évident.** Le
+`begin` / `rollback` de chaque invariant n'était pas protégé : une instruction annulée laisse la
+transaction en erreur, donc **attraper l'annulation sans relâcher la transaction** aurait fait
+mourir les 36 invariants suivants en `25P02`. Une suspension serait devenue trente-sept. Le
+`rollback` est passé dans un `finally`, et c'est la moitié du correctif.
+
+### Le correctif, et ce qui a été refusé
+
+**1. Une annulation suspend, elle n'interrompt plus.** `classifyDriverError` dans
+`scripts/eval/upstream.ts` — à côté de `classify` de `#61` plutôt qu'en copie, parce que les
+deux portes doivent dire le même mot pour la même chose (§26 : le test d'appelant existait en
+six exemplaires et ils divergeaient). Il teste `error.code`, **jamais le texte** : un invariant
+dont la *sortie* citerait `57014` doit rester l'échec qu'il est. Le bras A nomme l'invariant
+« suspendu », va au bout, et B, C et E sont joués. Sortie **3**, jamais 0 : le bras n'a pas
+regardé, il ne peut pas être vert.
+
+**2. Le bras A est extrait dans `scripts/eval/invariants.ts`.** Même raison que `budget.ts` et
+`upstream.ts` : `main()` s'exécute à l'import de `run.ts`, donc **aucun test ne pouvait
+atteindre le bras A**. Il rend maintenant un résultat que `run.ts` imprime, et
+`invariants.test.ts` démontre hors base que la course survit, que la transaction est bien
+relâchée, et qu'une erreur de droits reste une erreur.
+
+**3. Trois invariants sont joués en tranches, et ce n'est pas un échantillon.**
+`scripts/eval/chunks.ts`. La propriété qui le garantit : **la première tranche est ouverte en
+bas et la dernière en haut**, donc les tranches couvrent le domaine entier — pas l'intervalle
+d'où les bornes ont été tirées. Une clé ne peut tomber ni entre deux tranches ni dans deux, et
+**un mauvais découpage coûte du temps, jamais une ligne**. C'est un argument de construction,
+pas une précaution — la distinction que §29 a payée cher : « une jointure externe sur une clé
+unique ne peut ni ajouter ni retirer une ligne » était une preuve, une équivalence lue dans la
+documentation n'en était pas une. Démontré hors base dans `chunks.test.ts`.
+
+Le découpage coûte **3,6 %** : 86 832 ms en six instructions contre 83 785 ms en une. Les bornes
+sont **relues à chaque passage**, donc la croissance du corpus ajoute des tranches toute seule.
+
+**4. Le bras A déclare sa propre fenêtre — vers le bas.** Il héritait de celle du rôle
+`postgres`, **120 000 ms**, qui vient d'un réglage de cluster que personne dans ce dépôt n'a
+choisi : c'est comme ça qu'une porte se retrouve sur le fil sans que quiconque l'ait décidé. Il
+pose maintenant `set local statement_timeout = 60000`, transaction-local, **la moitié de ce
+qu'il héritait**, et il **avertit à 30 000 ms**.
+
+> **La question posée par le ticket était « faut-il monter la fenêtre ». La réponse est non,
+> et il a fallu la mesurer pour le dire.** Découper rend l'instruction la plus large du bras A
+> égale à une tranche, **sous une fenêtre deux fois plus étroite qu'avant**. Monter le plafond
+> aurait fait passer la porte demain en laissant intact ce qui la pousse.
+
+**Les tranches sont égales en lignes, pas en coût.** Les locaux ne portent pas tous le même
+nombre d'avis BODACC : la tranche la plus large coûte 1,46 ms par local là où la moyenne est
+à 0,965. Dimensionner sur la moyenne est donc faux, et c'est la première erreur commise ici.
+
+**La taille des tranches est déduite du bruit mesuré — et il a fallu le mesurer deux fois,
+la première estimation étant trop clémente.** Instruction la plus large de `I1`, quatre
+passages consécutifs le 31 août :
+
+| Taille de tranche | Tranches | Instruction la plus large |
+| ---: | ---: | --- |
+| 12 000 | 8 | **15,6 s** puis **24,4 s** |
+| 8 000 | 11 | **12,2 s** puis **23,2 s** |
+
+**Facteur ~1,9 entre deux passages consécutifs à taille égale**, sur une instance partagée,
+avant que le froid n'ajoute son 1,41. La plus large peut donc atteindre **~2,7 fois** sa
+valeur courante sans que rien n'ait régressé. À 8 000 le mauvais passage tombait à 23,2 s,
+**77 % de l'alerte à 30 s** : exactement l'alerte-qui-sonne-sur-du-bruit que `budget.ts`
+refuse. `ARM_A_CHUNK_ROWS = 4 000` donne 22 tranches, et — **mesuré et non extrapolé**, la
+mise à l'échelle prédisait 6 s — une instruction la plus large à **10,1 s puis 13,1 s** sur
+deux passages de plus, soit 34 % puis 44 % de l'alerte.
+
+**Et multiplier les tranches ne coûte presque rien — mesuré, pas supposé.** La crainte évidente
+était que chaque tranche rebalaye la table. Elle ne le fait pas : `explain` sur une tranche,
+**plan forcé générique**, rend un **`Index Only Scan` sur `premise_location_pkey`** avec les
+bornes en `Index Cond`, **5 pages**, et 11 ms de planification. La forme à garde nulle
+(`$1 is null or id >= $1`) **ne défait pas l'index**. C'est donc ce bouton-là qu'on tourne
+quand une instruction s'approche du seuil, jamais la fenêtre.
+
+**Le seuil qui déclenchera la prochaine discussion est mécanique, pas calendaire.** À 30 000 ms
+une instruction fait parler la porte, sans la faire échouer — le bras A n'échoue jamais sur une
+horloge, règle du bras E (§27). Et ce seuil ne bougera **pas** avec le corpus : un
+`premise_location` deux fois plus gros achète deux fois plus de tranches, pas une instruction
+plus longue. Ce qui le ferait parler, c'est le coût **par local** de `compass_address_timeline`
+qui monte — la seule régression de coût que rien dans la porte ne savait voir.
+
+**Refusé, et c'est un résultat.** Restreindre la population de I1 et I2 comme I7 restreint la
+sienne. La restriction de I7 est saine — un local sans avis BODACC ne peut pas violer une règle
+sur les avis BODACC — mais **il n'existe pas d'équivalent** : la chronologie émet une ligne de
+relevé **par millésime pour chaque local**, observé ou non, donc tout local peut porter la
+ligne fautive de I1 comme de I2. Restreindre là aurait été échantillonner, ce que
+`eval/FAILURE_MODES.md` refuse explicitement, et il aurait fallu l'écrire comme un changement
+de contrat. **Mesuré au passage :** la restriction de I7 ne vaut qu'un tiers — 75 027 ms contre
+75 841 ms pour I2 — parce que la jointure qui la calcule est elle-même le gros du travail.
+
+### Ce que ça ne rattrape pas
+
+- **Le bras A prend toujours ~5 minutes**, et le découpage n'y change rien : il borne
+  l'instruction, pas le total. C'est un autre sujet que la fenêtre, et il n'est pas ouvert ici.
+- **Une suspension est une non-vérification.** Un `57014` sur I1 laisse I1 non joué ; la porte
+  le dit, la nomme, et sort en 3 — mais elle ne l'a pas vérifié. Rejouer reste nécessaire, et
+  c'est exactement la conduite que `#61` a achetée pour la porte anonyme.
+- **L'alerte à 30 s n'est pas immune au bruit de l'instance, et il faut le savoir avant de la
+  lire.** La tranche la plus large a été mesurée entre **6,2 s et 13,1 s** sur quatre passages
+  à taille finale, sur une instance partagée ; le froid ajoute ~1,41 par-dessus. Un mauvais
+  passage froid peut donc frôler les 30 s **sans qu'il ne se soit rien passé**. Rétrécir les
+  tranches encore ne supprime pas ce bruit, ça le divise seulement — la chasse s'arrête ici,
+  délibérément. **Conduite à tenir si l'alerte parle : regarder si le coût par local a bougé
+  (0,965 ms et 94 pages le 31 août), pas monter la fenêtre.** Une alerte n'est pas un échec.
+- **La fenêtre de 60 000 ms n'est pas mesurée à froid réel** : le rapport froid/chaud du
+  31 août (118 137 / 83 785 = 1,41) est appliqué à une mesure à chaud, pas relevé après une
+  nuit d'inactivité.
+- **Le parallélisme n'a pas été essayé.** `max_parallel_workers_per_gather = 1` le plafonne à
+  un facteur deux au mieux, c'est un levier de planificateur — ce que §28 et §29 refusent — et
+  il ne changerait pas la linéarité en `premise_location`. Nommé pour ne pas être redécouvert
+  comme neuf.

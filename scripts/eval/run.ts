@@ -15,6 +15,13 @@
 // Exit codes follow the Aetherix convention (ADR-0007 §D2.f):
 //   0 PASS · 1 FAIL · 2 ERROR · 3 WARN
 //
+// A cancelled invariant SUSPENDS and the run continues — #69. Until 2026-08-31 a `57014`
+// in arm A escaped to `main().catch`, and arms B, C and E were never played: two passes out
+// of three that day produced no verdict at all. The exit was honest about being an ERROR,
+// which is why this was never mistaken for a licence fault the way DIAGNOSTIC.md §18 was;
+// the defect is that the gate stopped judging, and a gate that regularly says nothing gets
+// read as decoration. A suspension is now exit 3, never 0, with the ids named.
+//
 // Contract and rationale: eval/FAILURE_MODES.md.
 
 import { existsSync, readFileSync, writeFileSync } from "fs"
@@ -24,12 +31,19 @@ import type { Client } from "pg"
 
 import { connect, connectionTarget, log } from "../ingest/lib/db"
 import { runBudget } from "./budget"
-import { anonymousCoverage, censusVerdict, readInvariants } from "./census"
+import { runInvariantsArm } from "./invariants"
 
 const ROOT = resolve(import.meta.dirname, "../..")
 
 let failures = 0
 let warnings = 0
+/**
+ * Invariants the database refused to finish — #69. Never a FAIL and never a PASS:
+ * a cancellation says the gate could not look, not that it looked and disliked what
+ * it saw. Named in the footer, because the one thing a gate must never do quietly is
+ * skip a check.
+ */
+const suspensions: string[] = []
 
 const fail = (what: string, detail: string): void => {
   failures += 1
@@ -38,6 +52,10 @@ const fail = (what: string, detail: string): void => {
 const warn = (what: string, detail: string): void => {
   warnings += 1
   process.stdout.write(`  WARN  ${what} — ${detail}\n`)
+}
+const suspend = (what: string, detail: string): void => {
+  suspensions.push(what)
+  process.stdout.write(`  susp  ${what} — ${detail}\n`)
 }
 const pass = (what: string, detail = ""): void => {
   process.stdout.write(`  ok    ${what}${detail ? ` — ${detail}` : ""}\n`)
@@ -48,45 +66,12 @@ const pass = (what: string, detail = ""): void => {
 // ---------------------------------------------------------------------------
 
 async function runInvariants(client: Client): Promise<void> {
-  log("A — invariants", "chaque requête doit renvoyer zéro ligne")
-  const invariants = readInvariants()
-  const covered = anonymousCoverage(invariants)
-  for (const invariant of invariants) {
-    const started = Date.now()
-    // Impersonation is transaction-local, so the privileged connection is
-    // restored whatever the invariant does. Without this the gate could only
-    // ever exercise the privileged path — the one that always works.
-    await client.query("begin")
-    if (invariant.as) {
-      await client.query("select set_config('request.jwt.claims', $1, true)", [
-        JSON.stringify({ role: invariant.as }),
-      ])
-    }
-    const result = await client.query(invariant.sql)
-    await client.query("rollback")
-    const seconds = ((Date.now() - started) / 1000).toFixed(1)
-
-    // A census block returns the population, not violations: each row names a
-    // function the licence rule applies to, and the failure is a name no `@as
-    // anon` invariant calls. Verdict in ./census.ts, shared with the sabotage
-    // proof (npm.cmd run eval:sabotage) so the demonstration exercises the
-    // check that ships rather than a copy of it.
-    if (invariant.census) {
-      const verdict = censusVerdict(result.rows as Record<string, unknown>[], invariant.census, covered)
-      if (verdict.ok) pass(invariant.id, `${verdict.detail} (${seconds}s)`)
-      else fail(invariant.id, `${invariant.description} — ${verdict.detail}`)
-      continue
-    }
-
-    if (result.rowCount === 0) {
-      pass(invariant.id, `${invariant.description} (${seconds}s)`)
-    } else {
-      fail(
-        invariant.id,
-        `${invariant.description} — ${result.rowCount} ligne(s), ex. ${JSON.stringify(result.rows[0])}`,
-      )
-    }
-  }
+  const outcome = await runInvariantsArm(client)
+  log("A — invariants", outcome.header)
+  for (const [what, detail] of outcome.passes) pass(what, detail)
+  for (const [what, detail] of outcome.suspensions) suspend(what, detail)
+  for (const [what, detail] of outcome.warnings) warn(what, detail)
+  for (const [what, detail] of outcome.failures) fail(what, detail)
 }
 
 // ---------------------------------------------------------------------------
@@ -367,9 +352,26 @@ async function main(): Promise<void> {
   }
 
   process.stdout.write("\n")
+  // A suspension outranks a warning and is outranked by a failure — #69. It can never
+  // become a PASS: the arm did not look, and a gate that reports green on a check it
+  // skipped is worse than one that goes red. INDÉTERMINÉ is written in full, and the
+  // suspended ids are named, because « rejouer une sortie 3 est légitime, rejouer un FAIL
+  // ne l'est pas » only works if the two are told apart at a glance.
   if (failures > 0) {
-    log("ÉCHEC", `${failures} défaillance(s), ${warnings} avertissement(s) — ${target}`)
+    log(
+      "ÉCHEC",
+      `${failures} défaillance(s), ${warnings} avertissement(s)` +
+        `${suspensions.length > 0 ? `, ${suspensions.length} suspendu(s)` : ""} — ${target}`,
+    )
     process.exitCode = 1
+  } else if (suspensions.length > 0) {
+    log(
+      "INDÉTERMINÉ",
+      `${suspensions.length} invariant(s) non joué(s) — ${suspensions.join(", ")} : ` +
+        `la base a refusé de finir, ce n'est ni vert ni rouge. Rejouer. ` +
+        `${warnings} avertissement(s) par ailleurs — ${target}`,
+    )
+    process.exitCode = 3
   } else if (warnings > 0) {
     log("AVERTISSEMENT", `${warnings} écart(s) sous le seuil bloquant — ${target}`)
     process.exitCode = 3
