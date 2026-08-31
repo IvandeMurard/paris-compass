@@ -56,7 +56,12 @@ const ORDER = [
   // 25 August); once signup opens, the same fix takes data away from people who had it.
   "w0-appelant",
   "w1-licence-derivee",
+  // Le socle avant l'ecran, direction du 31 aout. #70 donne une cadence aux quatre
+  // sources qui n'en ont pas, #71 fait tourner la porte et rend ses echecs audibles,
+  // #72 ouvre le tuyau d'observabilite avant qu'il y ait du trafic a observer.
   "w1-cadence",
+  "w1-porte-planifiee",
+  "w1-observabilite",
   "w1-ppri",
   "w1-dia",
 ]
