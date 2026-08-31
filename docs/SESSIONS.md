@@ -98,6 +98,14 @@ un miroir Overpass est indisponible — ça n'est pas un rouge. Il rend "défaut
 les défauts déjà consignés, et passe au ROUGE si l'un d'eux disparaît : c'est
 voulu, ça veut dire qu'il faut fermer l'issue et mettre à jour DIAGNOSTIC.md.
 
+Ces portes tournent aussi toutes seules, tous les matins a 07:29 UTC, sur
+.github/workflows/porte.yml : huit bras, un rouge ouvre une issue porte-rouge,
+une panne amont n'en ouvre pas. Deux consequences pour toi. Un rouge que tu
+laisses derriere toi reveillera quelqu'un demain matin. Et si tu ajoutes un
+script a package.json, npm.cmd run test echoue tant qu'il n'est ni joue par un
+workflow planifie ni justifie dans scripts/porte/cadence.json — ecris la raison,
+elle est lue.
+
 Puis lance npm.cmd run sessions et commite ce qu'il change, et termine par
 npm.cmd run sessions:check : il recoupe la table committee a l'etat GitHub et
 sort en 1 si elle a derive. Si tu as touche a l'ordre, au modele ou aux

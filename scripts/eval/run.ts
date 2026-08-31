@@ -32,6 +32,7 @@ import type { Client } from "pg"
 import { connect, connectionTarget, log } from "../ingest/lib/db"
 import { runBudget } from "./budget"
 import { runInvariantsArm } from "./invariants"
+import { isUnreachable, unreachableCode } from "./upstream"
 
 const ROOT = resolve(import.meta.dirname, "../..")
 
@@ -381,6 +382,17 @@ async function main(): Promise<void> {
 }
 
 main().catch((error) => {
+  // A base that never answered is not a defect this repository owns — #71. Exit 3, like a
+  // cancelled invariant: the gate did not look, which is neither green nor red, and the
+  // scheduled job wakes nobody on it. Decided on `error.code`, never on the message.
+  if (isUnreachable(error)) {
+    log(
+      "INDÉTERMINÉ",
+      `la base n'a pas répondu (${unreachableCode(error)}) — panne amont, aucun invariant joué. Rejouer.`,
+    )
+    process.exitCode = 3
+    return
+  }
   log("ERREUR", error instanceof Error ? error.message : String(error))
   process.exitCode = 2
 })

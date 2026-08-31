@@ -90,6 +90,26 @@ sur le contrôle. Détail et limites dans `../DIAGNOSTIC.md` §23.
 > I22 existaient déjà. Un compte recopié plutôt que remesuré, exactement ce que
 > `CLAUDE.md` interdit — remesuré ici par `grep -c '^-- @invariant '`.
 
+## Qui lance la porte
+
+**Plus personne, depuis le 31 août 2026.** `.github/workflows/porte.yml` joue huit bras tous
+les jours à 07:29 UTC — `typecheck`, `test`, `build`, `build:dev`, `sessions:check`, `eval`,
+`eval:anon`, `verify:mcp` — après les quatre crons d'ingestion et derrière leur verrou, pour
+ne jamais juger une base en cours de chargement. Mesuré ce jour-là, un passage chacun :
+`eval` **306 s**, `eval:anon` **5 s**, `verify:mcp` **114 s**.
+
+Un **rouge** (sortie 1 ou 2) ouvre une issue `porte-rouge` portant le compte rendu en trois
+blocs de `scripts/porte/report.ts`. Une **panne amont** (sortie 3) est nommée, datée, et
+n'ouvre rien : une alerte qui crie sur un miroir Overpass à 429 sera coupée en deux semaines.
+La distinction se prend au code de sortie, jamais sur le texte — et la décision de faire
+cesser un échec appartient à `scripts/eval/upstream.ts`, dans le bras qui tient l'erreur et
+son `code`.
+
+Un bras qui existe sans être planifié fait échouer `npm.cmd run test` : tout script de
+`package.json` doit être joué par un workflow qui porte une cadence, ou porter une raison
+écrite dans `scripts/porte/cadence.json`. `npm.cmd run porte:sabotage` le démontre en trois
+actes, sans toucher la base. [`#71`](https://github.com/IvandeMurard/paris-compass/issues/71).
+
 ## Prérequis
 
 Une base locale chargée : `npx.cmd supabase start`, puis

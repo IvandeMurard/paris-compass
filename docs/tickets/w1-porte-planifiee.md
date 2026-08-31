@@ -75,3 +75,35 @@ déclencheur existe, pas qu'il a réussi ni que sa cadence est la bonne.
 
 Voir `.github/workflows/ingestion.yml`, `eval/FAILURE_MODES.md`, `#69` pour le coût de `eval`,
 `#70` pour la même forme côté sources, et la direction du 31 août dans `docs/REPRISE.md`.
+
+---
+
+## Fait le 31 août 2026
+
+**Aucune migration.** `.github/workflows/porte.yml` joue **huit** bras tous les jours à
+07:29 UTC, derrière le verrou `concurrency` de l'ingestion. La cadence est déduite d'une
+mesure du 31 août, deux passages — `eval` **306** puis **299 s**, `eval:anon` **5 s**,
+`verify:mcp` **114** puis **227 s**, l'écart étant Overpass — et **non
+des 115 s du ticket**, qui étaient `I1` seul avant son découpage par `#69`.
+
+Le livrable est `scripts/porte/arms.ts` : tout script de `package.json` doit être joué par un
+workflow qui porte une cadence, ou porter une raison écrite dans `scripts/porte/cadence.json`.
+`npm.cmd run porte:sabotage` le démontre en trois actes, et la démonstration a aussi été jouée
+sur le vrai bras — clé invalide → sortie 2 → signal ; hôte injoignable → sortie 3 → silence.
+
+Le compte rendu en trois blocs est dans `scripts/porte/report.ts` et **`#73` le réutilise**.
+
+**Ce que ça ne rattrape pas**, en plus de ce que le ticket annonçait :
+
+- **Il reste une décision humaine avant le premier passage** : le dépôt ne porte que
+  `DATABASE_URL`. `SUPABASE_URL` et `SUPABASE_ANON_KEY` — l'URL du projet et la clé
+  *publiable* — sont à poser. Le job s'arrête en les nommant tant qu'elles manquent.
+- **GitHub désactive les workflows planifiés d'un dépôt public après 60 jours sans activité.**
+  Même limite que `w0-cron`, et elle vaut désormais pour la porte aussi : un dépôt qui
+  s'endort perd sa cadence sans que rien ne le dise.
+- **Deux scripts qui pointent le même fichier ne se distinguent pas** dans la détection par
+  chemin — `verify:mcp` et `smoke:mcp`. Aujourd'hui sans conséquence, les deux workflows
+  passant par `npm run`.
+
+Le détail, les mesures et les cinq autres limites :
+[`#71`](https://github.com/IvandeMurard/paris-compass/issues/71).

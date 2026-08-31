@@ -64,6 +64,70 @@ export function classify(status: number, text: string, what: string): Error {
  * error fields, never the message text — a query whose own output merely contained "57014"
  * must stay the failure it is.
  */
+/**
+ * The codes that mean « we never reached the other end », as opposed to « the other end
+ * answered something this gate dislikes » — w1-porte-planifiee (#71).
+ *
+ * Two families, and both come from a `code` field rather than from a message: the socket
+ * errors Node raises before any protocol starts, and the Postgres class 08 / 57P codes that
+ * say the connection went away. Written out one by one rather than matched on a prefix,
+ * because this is the second decision in this repository that makes things STOP being
+ * failures, and #61 established what that costs when it is generous.
+ */
+export const UNREACHABLE_CODES = new Set([
+  "ENOTFOUND",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "EAI_AGAIN",
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+  "EPIPE",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_SOCKET",
+  "08000",
+  "08001",
+  "08003",
+  "08004",
+  "08006",
+  "57P01",
+  "57P03",
+])
+
+/**
+ * True when nothing this repository owns has been shown to be wrong: the endpoint was not
+ * reachable, so the gate did not look.
+ *
+ * Why it exists at all: from 31 August 2026 the three arms are played every morning by a
+ * scheduled job that wakes a human on a red (#71). Without this, the first Supabase blip
+ * would open an issue, the second would too, and within a fortnight the alert would be
+ * muted — which removes the vigilance without supplying the guarantee. The fix belongs here,
+ * in the arm that holds the error object, and never in the report, which holds a string.
+ *
+ * `fetch` wraps its cause, so the chain is walked — bounded, because a cycle in `cause` is
+ * cheaper to refuse than to survive.
+ */
+export function isUnreachable(error: unknown): boolean {
+  let current: unknown = error
+  for (let depth = 0; current != null && depth < 4; depth += 1) {
+    const code = (current as { code?: unknown }).code
+    if (typeof code === "string" && UNREACHABLE_CODES.has(code)) return true
+    current = (current as { cause?: unknown }).cause
+  }
+  return false
+}
+
+/** The code that decided it, for a message a human can act on. Never the message text. */
+export function unreachableCode(error: unknown): string {
+  let current: unknown = error
+  for (let depth = 0; current != null && depth < 4; depth += 1) {
+    const code = (current as { code?: unknown }).code
+    if (typeof code === "string" && UNREACHABLE_CODES.has(code)) return code
+    current = (current as { cause?: unknown }).cause
+  }
+  return "code inconnu"
+}
+
 export function classifyDriverError(error: unknown, what: string, windowMs: number): Error {
   const code = (error as { code?: unknown } | null)?.code
   if (code === QUERY_CANCELED)

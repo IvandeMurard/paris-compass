@@ -1,4 +1,4 @@
-# Reprise — état au 31 août 2026
+# Reprise — état au 31 août 2026 (soir)
 
 À lire en premier après `CLAUDE.md`. Décrit ce qui tourne, ce qui bloque, et ce
 qui n'est écrit nulle part ailleurs. **Une seule section d'état, la plus récente** :
@@ -19,7 +19,7 @@ Le reste du contexte est dans `docs/PLAN.md` (backlog, décisions produit),
 de la source), `eval/FAILURE_MODES.md` (le contrat d'évaluation) et `docs/JOURNAL.md`
 (le récit des sessions passées).
 
-## L'état mesuré le plus récent — 31 août 2026, après clôture de `#69`
+## L'état mesuré le plus récent — 31 août 2026, après clôture de `#69` puis de `#71`
 
 **C'est le seul état que cette page porte** : les relevés antérieurs sont dans
 `docs/REPRISE-ARCHIVE.md`, et quand deux se contredisent c'est le plus daté qui a tort. Ce qui
@@ -27,10 +27,19 @@ a bougé le 31 août, et rien d'autre :
 
 | Mesure | Valeur, mesurée le 31 août 2026 |
 | --- | --- |
-| Ledger distant `supabase_migrations` | **47** — inchangé, `#69` **n'a posé aucune migration** : le défaut était dans le lanceur, pas dans le schéma |
-| Tests unitaires | **216** — 188 le 28 août, puis 214 avec `chunks.test.ts` et `invariants.test.ts`, puis 216 avec les deux cas d'horloge |
+| Ledger distant `supabase_migrations` | **47** — inchangé, ni `#69` ni `#71` **n'ont posé de migration** : les deux défauts étaient dans les lanceurs, pas dans le schéma |
+| Tests unitaires | **273** — 216 après `#69`, puis 273 avec les quatre fichiers de `scripts/porte/` et les six cas ajoutés à `scripts/ingest/workflow.test.ts` et `scripts/eval/upstream.test.ts` |
 | Invariants | **37** — inchangé. Trois d'entre eux, `I1`, `I2` et `I7`, sont **joués en 22 instructions** au lieu d'une. Même population, toutes les tranches jouées |
-| Portes | `typecheck` ✓ · `test` **216** ✓ · `eval` **joué sept fois de suite, sept fois au bout**, sortie 3 sur les **11 avertissements de baseline** habituels et **zéro sur l'horloge** · `eval:anon` **PASS, 15 contrôles**, sortie 0, la plus coûteuse `compass_premises_within` à **1 362 ms** sur 3 000 · `verify:mcp` **38 contrôles, 35 verts, 0 échec, 3 suspendus** (Overpass 504), sortie 0 · `build` ✓, hashes inchangés (`index-DKJzmj15.js`) — rien dans `src/` |
+| **Coût des trois bras distants** | Deux passages. `eval` **306 s** puis **299 s** (bras A seul 240 s) · `eval:anon` **5 s** deux fois · `verify:mcp` **114 s** puis **227 s** — **425 s puis 531 s**. L'écart est entièrement `verify:mcp`, et c'est Overpass : les contrôles suspendus attendent des miroirs publics à 429 et 504, chacun avec son délai. C'est ce chiffre-là qui dimensionne la cadence de la porte planifiée, **pas les 115 s de `#69`**, qui étaient `I1` seul avant son découpage |
+| **Secrets de dépôt** | **`DATABASE_URL` seul.** `SUPABASE_URL` et `SUPABASE_ANON_KEY` **manquent**, donc `eval:anon` et `verify:mcp` n'ont pas de clé sur un runner. Le workflow s'arrête là-dessus en le nommant, avant de dépenser dix minutes |
+| Portes | `typecheck` ✓ · `test` **273** ✓ · `eval` **deux passages, deux fois au bout**, sortie 3 sur les **11 avertissements de baseline** habituels, **zéro sur l'horloge** · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 39 verts, 0 échec, 2 suspendus** (Overpass 429 puis 504), sortie 0 · `porte:sabotage` **PASS, 13 contrôles** · `build` et `build:dev` ✓, hashes inchangés (`index-DKJzmj15.js`, `MapView-8C8F8Ymz.js`) — rien dans `src/` |
+
+**La porte tourne toute seule depuis le 31 août** — `.github/workflows/porte.yml`, tous les
+jours à 07:29 UTC, huit bras : `typecheck`, `test`, `build`, `build:dev`, `sessions:check`,
+`eval`, `eval:anon`, `verify:mcp`. Un rouge ouvre une issue `porte-rouge` ; une panne amont
+n'en ouvre pas. Le cron d'ingestion signale ses échecs **sur le même canal**. Le détail, les
+mesures et ce que la règle ne rattrape pas :
+[`#71`](https://github.com/IvandeMurard/paris-compass/issues/71).
 
 **Le bras A ne meurt plus dans sa fenêtre, et il en a une à lui.** Il héritait des 120 000 ms
 du rôle `postgres`, un réglage de cluster que personne ici n'a choisi ; il pose maintenant
@@ -321,6 +330,41 @@ Trois conséquences qui se lisent dans le backlog :
   avertissement.
 
 
+**Un rouge et une panne amont se distinguent au code de sortie, et la clémence vit dans le
+bras — jamais dans le rapport.** Tranché le 31 août 2026 en posant la porte planifiée
+([`#71`](https://github.com/IvandeMurard/paris-compass/issues/71)).
+
+Le seul risque sérieux de ce chantier est l'alerte qui crie pour rien : un miroir Overpass à
+429, un endpoint momentanément injoignable, n'appellent aucune décision, et une alerte qui les
+signale sera coupée en deux semaines — ce qui **supprime la vigilance sans fournir la
+garantie**. La règle qui en découle tient en deux phrases.
+
+- **Le rapport ne classe rien.** Il lit le code de sortie que le bras a arrêté : 0 rien à
+  faire, 3 changé sans décision, 1 et 2 décision requise. Il ne lit jamais le texte.
+- **La décision de faire cesser un échec se prend là où l'erreur et son `code` existent**,
+  c'est-à-dire dans `scripts/eval/upstream.ts` : `classify` pour l'HTTP (`#61`),
+  `classifyDriverError` pour le pilote (`#69`), `isUnreachable` pour l'endpoint qui n'a jamais
+  répondu (`#71`). Si une classe de panne amont arrive au rapport en rouge, **c'est là qu'on
+  la corrige**, pas en assouplissant le rapport — qui ne tient qu'une chaîne de caractères, et
+  `#61` a déjà refusé de classer sur du texte.
+
+Le format du compte rendu — **rien à faire** en une ligne pour l'ensemble, **changé sans
+décision requise** nommé et daté, **décision requise** avec la mesure, sa date et la décision
+attendue — est écrit une fois dans `scripts/porte/report.ts` et **réutilisé** par le cron
+d'ingestion, et par `w1-catalogue` (#73) quand il passera. Trois protocoles qui produisent
+trois formats de rapport, c'est trois choses à lire, donc zéro chose lue.
+
+
+**La cadence de la porte est quotidienne, et elle est déduite.** Même date, même ticket.
+Ce qui est surveillé est le distant, et la chose la plus rapide qui le déplace est le
+chargement BODACC de 03:17 UTC — la seule source qui vieillit en jours. Une cadence plus fine
+que ce qu'elle surveille n'achète rien et coûte huit millions de pages de balayage rejouées
+vingt-quatre fois par jour sur une instance partagée ; une cadence hebdomadaire institue
+exactement le délai « posé un mardi, trouvé un jeudi » que le ticket existe pour supprimer.
+La porte partage le verrou `concurrency` de l'ingestion : **elle ne juge jamais une base en
+cours de chargement**, et c'est le verrou qui le garantit, pas le décalage horaire.
+
+
 **`authenticated` n'est pas un appelant privilégié.** Tranché par Ivan le 26 août 2026,
 sur `w0-appelant` (#58). Le privilège reste au rôle de service et aux connexions directes
 — ceux qui *exploitent* Compass — jamais à un compte créé sur le site.
@@ -581,6 +625,18 @@ Ne pas monter la fenêtre du bras A pour absorber une lenteur. Elle est **décla
 pour que la discussion arrive **avant** le mur. Si une instruction s'en approche, la réponse
 par défaut est de baisser `ARM_A_CHUNK_ROWS`, pas de monter `ARM_A_WINDOW_MS` : la première
 borne le travail, la seconde le cache.
+
+Ne pas rendre le rapport de la porte plus clément pour faire taire un signal. Le rapport lit
+un code de sortie et rien d'autre ; la seule place légitime pour décider qu'une chose cesse
+d'être un échec est `scripts/eval/upstream.ts`, dans le bras qui tient l'erreur et son `code`.
+Assouplir `scripts/porte/report.ts` reviendrait à classer sur du texte, ce que `#61` a refusé,
+et à éteindre les rouges à l'endroit exact où personne ne le verrait. `#71`.
+
+Ne pas ajouter un script à `package.json` sans le classer. `npm.cmd run test` échoue tant qu'un
+script n'est ni joué par un workflow qui porte un `on.schedule`, ni nommé dans
+`scripts/porte/cadence.json` avec une **raison écrite**. C'est voulu, et c'est le trou de `#70`
+un cran plus haut : six bras en six mois dont un que personne ne lance. Une raison qui se
+résume à « pas besoin » est le début de la complaisance que `#71` refuse.
 
 Ne pas forcer `enable_nestloop = off` sur les fonctions de rayon, ni globalement ni
 sur les quatre sans distinction de rayon : le hachage vaut −81 % de pages à 2 000 m

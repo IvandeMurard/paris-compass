@@ -28,6 +28,7 @@ const yaml = readFileSync(WORKFLOW, "utf8")
  * eventually gets disarmed.
  */
 const structure = yaml
+  .replace(/\r\n/g, "\n")
   .split("\n")
   .filter((line) => !/^\s*#/.test(line))
   .join("\n")
@@ -97,8 +98,11 @@ describe("workflow d'ingestion", () => {
     expect(structure).toMatch(/cancel-in-progress:\s*false/)
   })
 
-  it("ne demande que la lecture du dépôt", () => {
+  it("ne demande que la lecture du dépôt, et le droit d'ouvrir l'issue qui dit l'échec", () => {
+    // `issues: write` arrived with #71 point 4 and is the only widening: the job still pushes
+    // nothing. It is checked in both directions — the write it needs, and no `write-all`.
     expect(structure).toMatch(/permissions:\s*\n\s*contents:\s*read/)
+    expect(structure).not.toMatch(/contents:\s*write/)
   })
 
   it("ne porte qu'un secret, et jamais la clé anon", () => {
@@ -112,6 +116,38 @@ describe("workflow d'ingestion", () => {
   it("relève la fraîcheur même quand le chargement a échoué", () => {
     // The reading matters most on failure: it shows last_success_at did not move.
     expect(structure).toMatch(/if:\s*always\(\)/)
+  })
+
+  it("signale un chargement en échec, et seulement quand la cadence était tenue", () => {
+    // #71 point 4. Until 31 August 2026 this file carried no `if: failure()` at all: a load
+    // that fell over was silent, and `run_by = 'schedule'` went on claiming the automation
+    // worked while `ingested_at` aged. `github.event_name == 'schedule'` is the same
+    // distinction recordRun makes — a run launched from the Actions tab has somebody watching.
+    expect(structure, "aucun signal d'échec dans le workflow d'ingestion").toMatch(/if:\s*failure\(\)/)
+    const signal = /if:\s*failure\(\)[\s\S]*$/.exec(structure)?.[0] ?? ""
+    expect(signal).toMatch(/github\.event_name\s*==\s*'schedule'/)
+    expect(signal).toMatch(/porte:signal/)
+  })
+
+  it("signale sur le même canal que la porte planifiée, jamais sur un canal à lui", () => {
+    // Three protocols producing three report formats is three things to read, therefore zero
+    // things read — #71 and #73. Same label, same three-block body, same one-open-issue rule.
+    const signal = /if:\s*failure\(\)[\s\S]*$/.exec(structure)?.[0] ?? ""
+    expect(signal).toMatch(/--label\s+porte-rouge/)
+    expect(signal).toMatch(/porte:rapport/)
+  })
+
+  it("ne met aucun journal de chargeur dans le corps publié", () => {
+    // The repository is public and the loaders print connectionTarget(). The body carries the
+    // run's URL — the journal behind it is not public — and never the log itself.
+    const signal = /if:\s*failure\(\)[\s\S]*$/.exec(structure)?.[0] ?? ""
+    expect(signal).toMatch(/--echec-ingestion/)
+    expect(signal).not.toMatch(/\.log/)
+  })
+
+  it("demande le droit d'ouvrir une issue, et rien de plus", () => {
+    expect(structure).toMatch(/permissions:\s*\n\s*contents:\s*read\s*\n\s*issues:\s*write/)
+    expect(structure).not.toMatch(/permissions:[\s\S]{0,120}write-all/)
   })
 
   it("rejoue la confirmation SIRENE après BDCom, sans quoi le cron quotidien détruit les corroborations", () => {

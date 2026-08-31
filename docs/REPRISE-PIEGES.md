@@ -303,6 +303,23 @@ inatteignable sans que rien ne le signale. À vérifier pour toute source que
 `mcp-server/` interroge et que le front interroge aussi : la même requête n'est
 pas la même requête des deux côtés.
 
+**Un contrôle qui lit un fichier ligne par ligne meurt en silence sur des fins de ligne
+Windows — 31 août 2026.** `scripts/porte/workflow.test.ts` et `scripts/ingest/workflow.test.ts`
+lisent leur workflow YAML et cherchent des motifs ancrés (`^\s*- cron:`, `- name: eval\n`).
+Un fichier réécrit une fois par un outil qui écrit en `\r\n` — n'importe quel script Python
+lancé sur ce poste avec `io.open(..., 'w')` — fait que **tous** ces motifs cessent de trouver,
+et le test rend « attendu '' » sans dire pourquoi. Une demi-heure perdue. Les deux fichiers
+normalisent maintenant `\r\n` avant de découper, `scripts/porte/arms.ts` aussi ; le piège reste
+valable pour tout nouveau contrôle qui lira un fichier du dépôt.
+
+**Les secrets de dépôt ne sont pas ceux du poste — mesuré le 31 août 2026.** Le dépôt ne porte
+que `DATABASE_URL` ; `.env.local` porte en plus `VITE_SUPABASE_URL` et
+`VITE_SUPABASE_PUBLISHABLE_KEY`, et `mcp-server/.env` sa propre paire. Un workflow qui joue
+`eval:anon` ou `verify:mcp` a donc besoin de `SUPABASE_URL` et `SUPABASE_ANON_KEY` **posés
+comme secrets**, sans quoi il échoue là où rien n'est cassé. `.github/workflows/porte.yml` le
+vérifie en tête de job et s'arrête en le nommant, plutôt que de rendre trois bras rouges pour
+une seule cause. `gh secret list` dit ce qui est réellement posé.
+
 **Ne jamais passer `--omit=optional` à npm sur ce projet.** Rollup livre son
 binaire natif (`@rollup/rollup-win32-x64-msvc`) en dépendance *optionnelle* :
 l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur

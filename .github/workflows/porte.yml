@@ -1,0 +1,208 @@
+# Scheduled gate — w1-porte-planifiee (#71).
+#
+# The evaluation protocol was written, proven, and played by nobody: `eval`, `eval:anon` and
+# `verify:mcp` all waited for a hand. Between two sessions nothing said whether the remote was
+# still sound, and a regression laid down on a Tuesday was found on Thursday by somebody who
+# had opened a session for another subject entirely.
+#
+# ── The cadence, and it is deduced rather than chosen ─────────────────────────────────────
+#
+# Measured 31 August 2026 against the remote, two passes, the first being the session's first
+# call:
+#
+#   eval         306 s then 299 s, exit 3 (the 11 usual baseline warnings; arm A alone 240 s)
+#   eval:anon      5 s then   5 s, exit 0 (PASS, 15 controls)
+#   verify:mcp   114 s then 227 s, exit 0 (41 controls, 39 green, 0 failed, 2 suspended)
+#
+# 425 s and 531 s for the three, plus about a minute for the code arms and the two installs.
+# The spread is entirely `verify:mcp`, and it is Overpass rather than this repository: the
+# suspended checks wait on public mirrors answering 429 and 504, each with its own timeout.
+# That is why the job's budget is 45 minutes and not ten — an arm that waits on a public
+# mirror has no upper bound anybody here controls.
+#
+# **The 115 s of #69 is not this number and never was.** That figure was `I1` alone, on one
+# statement, before #69 cut it into 22 slices; and the window it was measured against is now
+# per statement, not per arm. Reusing it to size a cadence would have been the exact trap this
+# repository has named twice — a figure true on its date, false in silence afterwards.
+#
+# **Daily, and after the ingestion.** What is being watched is the remote, and the fastest
+# thing that moves it is the BODACC load at 03:17 UTC — the only source that ages in days.
+# A cadence finer than the thing it watches buys nothing and costs a great deal: eight million
+# buffer pages of scans, replayed twenty-four times a day against a shared instance, for a
+# state that changes once. A weekly cadence institutionalises exactly the Tuesday-to-Thursday
+# delay this ticket exists to remove. So: once a day, at 07:29 UTC, after the latest of the
+# four ingestion crons (06:37) — and the `concurrency` lock below is the real guarantee, not
+# the offset. The gate must never judge a database mid-load: a baseline read while BODACC is
+# being rebuilt is a red nobody owns, and that is how an alert gets muted.
+#
+# One limit that belongs next to the cadence rather than in a document: GitHub disables the
+# scheduled workflows of a public repository after 60 days without activity. w0-cron noted it
+# for the ingestion and it holds here too — a repository that goes quiet loses its cadence, and
+# nothing says so. This gate cannot see its own absence.
+
+name: Porte
+
+on:
+  schedule:
+    - cron: "29 7 * * *"
+  workflow_dispatch:
+
+# Never `pull_request`, and above all never `pull_request_target`: the repository is public and
+# this job holds the privileged connection string. Same reasoning as ingestion.yml.
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  porte:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    # The same group as the ingestion, deliberately, and never cancelling: an arm played while a
+    # loader is rewriting bodacc_announcement judges a half-built database. Queueing behind a
+    # load costs minutes; judging mid-load costs the credibility of the alert.
+    concurrency:
+      group: ingestion
+      cancel-in-progress: false
+
+    env:
+      PORTE: ${{ github.workspace }}/.porte
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Préparer le recueil
+        run: mkdir -p "$PORTE"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      # After the root install and before everything expensive: a secret that is not there will
+      # not be there in ten minutes either, and the report step below needs `tsx` to be able to
+      # say so. Measured 31 August 2026: the repository carried `DATABASE_URL` and nothing else,
+      # so `eval:anon` and `verify:mcp` had no key to run with. A missing secret is a
+      # configuration defect this repository owns, not an upstream outage — the job stops here
+      # and the report says which secret, rather than three arms turning red for one cause.
+      - name: Les secrets sont là
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          missing=""
+          for name in DATABASE_URL SUPABASE_URL SUPABASE_ANON_KEY; do
+            [ -n "${!name:-}" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Secrets de dépôt absents :$missing. La porte ne peut rien juger sans eux."
+            exit 1
+          fi
+
+      # verify:mcp typechecks and bundles the MCP server from its own project, which has its
+      # own lockfile and its own stricter tsconfig.
+      - run: npm ci
+        working-directory: mcp-server
+
+      # The publishable key, the same one the browser bundle already ships — never a service
+      # key. mcp-server/src/supabase.ts reads this file; the trust boundary I11 holds is that
+      # the MCP server is an anonymous caller.
+      - name: Environnement du serveur MCP
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          printf 'SUPABASE_URL=%s\nSUPABASE_ANON_KEY=%s\n' "$SUPABASE_URL" "$SUPABASE_ANON_KEY" \
+            > mcp-server/.env
+
+      # ── Les bras ────────────────────────────────────────────────────────────────────────
+      #
+      # One step per arm, written out rather than looped, and the repetition is the point: this
+      # block IS the list of scheduled arms, and scripts/porte/arms.ts reads it to decide
+      # whether any npm script has been left without a trigger. A loop over an array would hide
+      # the arm names from that check, and the check is what makes the rest durable.
+      #
+      # Each step captures the *numeric* exit code and never fails: the arms use 0 PASS, 1 FAIL,
+      # 2 ERROR, 3 not-green-and-not-red, and `continue-on-error` would flatten 3 into "failed",
+      # losing the only distinction that keeps this alert from crying on an upstream outage.
+
+      - name: typecheck
+        run: |
+          npm run typecheck > "$PORTE/typecheck.log" 2>&1 && code=0 || code=$?
+          cat "$PORTE/typecheck.log"
+          printf 'typecheck\t%s\t%s\n' "$code" "$PORTE/typecheck.log" >> "$PORTE/bras.tsv"
+
+      - name: test
+        run: |
+          npm run test > "$PORTE/test.log" 2>&1 && code=0 || code=$?
+          cat "$PORTE/test.log"
+          printf 'test\t%s\t%s\n' "$code" "$PORTE/test.log" >> "$PORTE/bras.tsv"
+
+      - name: build
+        run: |
+          npm run build > "$PORTE/build.log" 2>&1 && code=0 || code=$?
+          cat "$PORTE/build.log"
+          printf 'build\t%s\t%s\n' "$code" "$PORTE/build.log" >> "$PORTE/bras.tsv"
+
+      # Production and development are two different builds: `lovable-tagger` is only mounted in
+      # development, so `build` alone would leave a broken Lovable link invisible — CLAUDE.md.
+      - name: build:dev
+        run: |
+          npm run build:dev > "$PORTE/build-dev.log" 2>&1 && code=0 || code=$?
+          cat "$PORTE/build-dev.log"
+          printf 'build:dev\t%s\t%s\n' "$code" "$PORTE/build-dev.log" >> "$PORTE/bras.tsv"
+
+      # The committed order table of docs/SESSIONS.md drifts when an issue is closed on GitHub,
+      # which happens without anybody pushing. That is precisely the class of staleness a
+      # session-triggered gate cannot see.
+      - name: sessions:check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          npm run sessions:check > "$PORTE/sessions-check.log" 2>&1 && code=0 || code=$?
+          cat "$PORTE/sessions-check.log"
+          printf 'sessions:check\t%s\t%s\n' "$code" "$PORTE/sessions-check.log" >> "$PORTE/bras.tsv"
+
+      - name: eval
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          npm run eval > "$PORTE/eval.log" 2>&1 && code=0 || code=$?
+          cat "$PORTE/eval.log"
+          printf 'eval\t%s\t%s\n' "$code" "$PORTE/eval.log" >> "$PORTE/bras.tsv"
+
+      # Holds no database credentials on purpose: it exercises exactly what a visitor without a
+      # key reaches, over real PostgREST calls.
+      - name: eval:anon
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          npm run eval:anon > "$PORTE/eval-anon.log" 2>&1 && code=0 || code=$?
+          cat "$PORTE/eval-anon.log"
+          printf 'eval:anon\t%s\t%s\n' "$code" "$PORTE/eval-anon.log" >> "$PORTE/bras.tsv"
+
+      - name: verify:mcp
+        run: |
+          npm run verify:mcp > "$PORTE/verify-mcp.log" 2>&1 && code=0 || code=$?
+          cat "$PORTE/verify-mcp.log"
+          printf 'verify:mcp\t%s\t%s\n' "$code" "$PORTE/verify-mcp.log" >> "$PORTE/bras.tsv"
+
+      # ── Le compte rendu ─────────────────────────────────────────────────────────────────
+
+      - name: Compte rendu
+        id: rapport
+        if: always()
+        run: npm run porte:rapport -- --bras "$PORTE/bras.tsv" --sortie "$PORTE/rapport.md"
+
+      # Only when the third block is non-empty, and only on a schedule: a dispatched run has
+      # somebody watching it, and waking that person through an issue is noise.
+      - name: Signaler
+        if: always() && steps.rapport.outputs.decision == 'true' && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: npm run porte:signal -- --corps "$PORTE/rapport.md" --titre "Porte planifiée — décision requise" --label porte-rouge

@@ -41,9 +41,15 @@ concurrency:
   group: ingestion
   cancel-in-progress: false
 
-# The job pushes nothing and opens nothing. It reads the repository and writes to Postgres.
+# The job reads the repository and writes to Postgres. It opens one thing, and only on a
+# failed scheduled load: the issue that says so — w1-porte-planifiee (#71), point 4. Until
+# 31 August 2026 this file carried no `if: failure()` at all, so a load that fell over was
+# silent: `run_by = 'schedule'` went on claiming the automation worked while `ingested_at`
+# aged. A silent cadence is worse than an absent one — it removes the vigilance without
+# supplying the guarantee.
 permissions:
   contents: read
+  issues: write
 
 jobs:
   ingest:
@@ -125,3 +131,30 @@ jobs:
         # did **not** move — a failed run refreshes nothing, which is exactly what the table
         # has to guarantee.
         run: npx tsx scripts/ingest/freshness.ts
+
+      # ── L'échec se voit ─────────────────────────────────────────────────────────────────
+      #
+      # Same channel as the scheduled gate, deliberately: same three-block report, same label,
+      # same one-open-issue-at-a-time rule. Three protocols producing three report formats is
+      # three things to read, therefore zero things read — #71 and #73.
+      #
+      # Only on `schedule`. A load launched from the Actions tab has somebody watching it, and
+      # the same distinction `recordRun` makes between a kept cadence and a button press.
+      #
+      # The body carries no loader log. The loaders print `connectionTarget()`, and this
+      # repository is public: the run's own journal, which is not, is one click away.
+      - name: Le chargement a échoué — le dire
+        if: failure() && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PORTE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p .porte
+          npm run porte:rapport -- \
+            --echec-ingestion "${{ steps.which.outputs.source }}" \
+            --sortie .porte/rapport.md
+          npm run porte:signal -- \
+            --corps .porte/rapport.md \
+            --titre "Cron d'ingestion — chargement en échec" \
+            --label porte-rouge

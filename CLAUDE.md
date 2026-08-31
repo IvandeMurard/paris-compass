@@ -44,6 +44,7 @@ npm.cmd run typecheck   # tsc --build
 npm.cmd run test        # vitest
 npm.cmd run dev
 npm.cmd run build       # production
+npm.cmd run porte:sabotage  # demontre la porte planifiee : bras non planifie, rouge, panne amont
 npm.cmd run brief <ticket>  # assemble le prompt d'une session et ce qu'elle doit lire
 npm.cmd run sessions    # regenere le tableau d'ordre de docs/SESSIONS.md depuis GitHub
 npm.cmd run sessions:check  # recoupe la table committee a l'etat GitHub, sort en 1 si elle a derive
@@ -90,6 +91,14 @@ où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lova
 - **Lovable synchronise ce dépôt dans les deux sens.** Ne pas éditer les mêmes fichiers des deux
   côtés dans une même session. `git pull` avant de commencer, pousser avant de rouvrir Lovable.
   Ne pas toucher `.lovable/`.
+- **Un rouge de la porte se corrige dans le bras, jamais dans le rapport.** Depuis le 31 août
+  2026 les huit bras tournent seuls chaque matin (`.github/workflows/porte.yml`) et un rouge
+  ouvre une issue. Le rapport ne lit que le code de sortie — 0, 3, 1, 2 — et jamais le texte :
+  la seule place légitime pour décider qu'une chose cesse d'être un échec est
+  `scripts/eval/upstream.ts`, dans le bras qui tient l'erreur et son `code`. Assouplir le
+  rapport éteindrait les alertes là où personne ne le verrait. Corollaire mécanique : un script
+  ajouté à `package.json` fait échouer `test` tant qu'il n'est ni planifié ni justifié dans
+  `scripts/porte/cadence.json`.
 - **Ne pas lancer `npm audit fix --force`** : cela remonterait des versions majeures et casserait
   le build. Et ne pas confondre ce que l'outil **propose** avec ce qui **corrige** : `audit fix
   --force` vise toujours la dernière majeure publiée, jamais la plus petite version qui suffit.

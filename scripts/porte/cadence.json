@@ -1,0 +1,26 @@
+{
+  "_lisez-moi": [
+    "Les scripts de package.json qu'aucun workflow planifie ne joue, et POURQUOI — w1-porte-planifiee (#71).",
+    "La regle est dans scripts/porte/arms.ts et elle est jouee par scripts/porte/arms.test.ts : tout script",
+    "de package.json doit etre soit joue par un workflow qui porte un on.schedule, soit nomme ici avec une",
+    "raison ecrite. Jamais un silence. Une raison vide vaut un silence, et une raison pour un script disparu",
+    "est de la prose qui ne decrit plus rien : les deux passent au rouge.",
+    "Ce n'est pas une liste d'exceptions ou l'on range ce qui derange. Une raison qui se resume a « pas",
+    "besoin » est le debut de la complaisance que #71 refuse."
+  ],
+  "unscheduled": {
+    "predev": "Crochet npm de `dev`, qui n'est pas planifié : il régénère le plan du site avant le serveur de développement. Il suit le sort de ce qu'il enveloppe.",
+    "dev": "Serveur de développement. Il ne rend aucun verdict, et rien à distance ne peut le faire changer d'avis.",
+    "dev:local": "Second chemin de développement, sans SWC. Il n'existe que pour le poste où Smart App Control a bloqué le binaire natif de @swc/core (CLAUDE.md) ; un runner Linux n'a pas ce blocage. Doit rester en phase avec vite.config.ts, ce qui est une exigence de relecture et non de cadence.",
+    "build:local": "Même raison que `dev:local` : le chemin de secours sans SWC, propre à un poste. C'est `build`, planifié, qui dit si le bundle se construit.",
+    "build:dev:local": "Même raison que `build:local`. C'est `build:dev`, planifié, qui dit si le lien avec Lovable tient — `lovable-tagger` n'est monté qu'en mode development.",
+    "lint": "Injouable depuis une date inconnue, constaté le 24 août 2026 : ESLint 9.39.5 plante au chargement d'une règle de @typescript-eslint avant d'analyser un seul fichier, et la sortie est une montée de dépendance (DIAGNOSTIC.md §7 et §8, docs/REPRISE.md). Le planifier reviendrait à programmer un rouge quotidien qui n'apprend rien — exactement l'alerte qui se fait couper. À planifier le jour où il tourne.",
+    "test:watch": "`test` en boucle, pour une session qui écrit. C'est `test`, planifié, qui rend le verdict.",
+    "preview": "Sert un bundle déjà construit. Aucun verdict.",
+    "smoke:mcp": "Imprime les réponses des six outils MCP et ne décide rien : il resterait vert pendant que chaque chiffre dirait quelque chose de faux. C'est `verify:mcp`, planifié, qui juge.",
+    "eval:sabotage": "Écrit sur le distant. Chaque acte vit dans une transaction annulée, mais une écriture jouée sans personne devant reste une écriture non surveillée sur une base partagée. Il se joue à la main, quand la règle de retenue de licence bouge.",
+    "porte:sabotage": "Démontre la règle de #71, il ne mesure pas l'état du dépôt : ses trois actes sont joués à chaque `npm run test` par scripts/porte/*.test.ts, qui est planifié. Le script existe pour qu'un humain puisse voir la démonstration se dérouler.",
+    "sessions": "Réécrit la table d'ordre de docs/SESSIONS.md — une écriture dans le dépôt, qui appartient à la session ayant fermé l'issue. C'est `sessions:check`, planifié, qui dit sans rien écrire si la table a dérivé.",
+    "brief": "Assemble le prompt d'une session et la liste de ce qu'elle doit lire. Aucun verdict."
+  }
+}

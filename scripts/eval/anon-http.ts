@@ -56,7 +56,14 @@ import { existsSync } from "fs"
 import { resolve } from "path"
 
 import { expectationHolds, licenceVerdict, type VintageFact } from "./licence-counts"
-import { ANON_STATEMENT_TIMEOUT_MS, classify, QUERY_CANCELED, UpstreamTimeout } from "./upstream"
+import {
+  ANON_STATEMENT_TIMEOUT_MS,
+  classify,
+  isUnreachable,
+  QUERY_CANCELED,
+  unreachableCode,
+  UpstreamTimeout,
+} from "./upstream"
 
 const ENV_FILE = resolve(import.meta.dirname, "../../.env.local")
 if (existsSync(ENV_FILE)) process.loadEnvFile(ENV_FILE)
@@ -637,6 +644,17 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
+  // PostgREST that never answered is not a licence defect — #71. `fetch` reports it as
+  // `TypeError: fetch failed` with the real cause underneath, so the decision is taken on the
+  // wrapped `code` and never on the text. Exit 3: the gate did not look.
+  if (isUnreachable(error)) {
+    out(
+      `INDÉTERMINÉ — l'API n'a pas répondu (${unreachableCode(error)}) : panne amont, ` +
+        "aucun contrôle de licence joué. Rejouer.",
+    )
+    process.exitCode = 3
+    return
+  }
   out(`ERREUR — ${error instanceof Error ? error.message : String(error)}`)
   process.exitCode = 2
 })
