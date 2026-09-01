@@ -164,11 +164,18 @@ const ROAD_WEIGHT: Record<string, number> = {
   secondary: 2,
 };
 
-/** Fetch every OpenStreetMap feature Compass needs for a map viewport, in one request. */
+/**
+ * Fetch every OpenStreetMap feature Compass needs for a map viewport, in one request.
+ *
+ * Each mirror is tried exactly once — no back-off loop. Three hosts that all refuse in the
+ * same second are refusing for a local reason, and retrying them only spends the user's
+ * time while the map stays blank. The caller is told, once, and offers a Retry button.
+ */
 export async function fetchOverpassSnapshot(bbox: BBox): Promise<OverpassSnapshot> {
   const query = buildQuery(bbox);
   let data: OverpassResponse | null = null;
   let lastError: unknown = null;
+  let refusals = 0;
 
   for (const endpoint of OVERPASS_ENDPOINTS) {
     try {
@@ -189,10 +196,19 @@ export async function fetchOverpassSnapshot(bbox: BBox): Promise<OverpassSnapsho
       break;
     } catch (error) {
       lastError = error;
+      if (isNetworkRefusal(error)) refusals += 1;
     }
   }
 
-  if (!data) throw lastError instanceof Error ? lastError : new Error('Overpass unavailable');
+  if (!data) {
+    const message = lastError instanceof Error ? lastError.message : 'Overpass unavailable';
+    throw new OverpassUnreachableError(message, {
+      // Every mirror refused at the network layer: the block is on this side of the wire.
+      blocked: refusals === OVERPASS_ENDPOINTS.length,
+      cause: lastError,
+    });
+  }
+
 
   const snapshot: OverpassSnapshot = {
     pois: [],
