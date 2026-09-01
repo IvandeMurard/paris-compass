@@ -1,5 +1,10 @@
 {
   "_lisez-moi": [
+    "Deux populations, une seule regle. `unscheduled` : les scripts de package.json qu'aucun workflow",
+    "planifie ne joue — w1-porte-planifiee (#71). `sources` : les sources de compass_source_freshness()",
+    "qu'aucune entree cron ne recharge — w1-cadence (#70), jouee par scripts/porte/cadences.ts.",
+    "Dans les deux cas : un declencheur planifie, ou une raison ecrite ici. Jamais un silence.",
+    "",
     "Les scripts de package.json qu'aucun workflow planifie ne joue, et POURQUOI — w1-porte-planifiee (#71).",
     "La regle est dans scripts/porte/arms.ts et elle est jouee par scripts/porte/arms.test.ts : tout script",
     "de package.json doit etre soit joue par un workflow qui porte un on.schedule, soit nomme ici avec une",
@@ -22,5 +27,15 @@
     "porte:sabotage": "Démontre la règle de #71, il ne mesure pas l'état du dépôt : ses trois actes sont joués à chaque `npm run test` par scripts/porte/*.test.ts, qui est planifié. Le script existe pour qu'un humain puisse voir la démonstration se dérouler.",
     "sessions": "Réécrit la table d'ordre de docs/SESSIONS.md — une écriture dans le dépôt, qui appartient à la session ayant fermé l'issue. C'est `sessions:check`, planifié, qui dit sans rien écrire si la table a dérivé.",
     "brief": "Assemble le prompt d'une session et la liste de ce qu'elle doit lire. Aucun verdict."
-  }
+  },
+  "_lisez-moi-sources": [
+    "`sources` est vide, et c'est le resultat de #70 : les huit sources de compass_source_freshness()",
+    "portent toutes une entree cron dans .github/workflows/ingestion.yml. Une source qui arriverait la",
+    "doit porter la raison pour laquelle rien ne la recharge — une source dont le producteur ne publie",
+    "plus rien, par exemple. « pas besoin » est le debut de la complaisance que #71 refuse, et « on la",
+    "rechargera a la main » est exactement le trou que #70 a bouche.",
+    "La note se tient ici, hors de `sources`, et non dedans : une cle rangee la-dedans serait lue comme",
+    "l'excuse d'une source qu'aucune migration ne declare, donc comme une orpheline, donc un rouge."
+  ],
+  "sources": {}
 }

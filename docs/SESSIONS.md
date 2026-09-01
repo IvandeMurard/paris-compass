@@ -99,7 +99,7 @@ les défauts déjà consignés, et passe au ROUGE si l'un d'eux disparaît : c'e
 voulu, ça veut dire qu'il faut fermer l'issue et mettre à jour DIAGNOSTIC.md.
 
 Ces portes tournent aussi toutes seules, tous les matins a 07:29 UTC, sur
-.github/workflows/porte.yml : huit bras, un rouge ouvre une issue porte-rouge,
+.github/workflows/porte.yml : neuf bras, un rouge ouvre une issue porte-rouge,
 une panne amont n'en ouvre pas. Deux consequences pour toi. Un rouge que tu
 laisses derriere toi reveillera quelqu'un demain matin. Et si tu ajoutes un
 script a package.json, npm.cmd run test echoue tant qu'il n'est ni joue par un

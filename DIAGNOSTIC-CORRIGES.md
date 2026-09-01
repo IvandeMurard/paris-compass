@@ -2598,3 +2598,69 @@ de contrat. **Mesuré au passage :** la restriction de I7 ne vaut qu'un tiers �
   un facteur deux au mieux, c'est un levier de planificateur — ce que §28 et §29 refusent — et
   il ne changerait pas la linéarité en `premise_location`. Nommé pour ne pas être redécouvert
   comme neuf.
+
+---
+
+## 31. Une cadence ajoutée à l'énumération et jamais à la table de tolérance — le 1er septembre 2026
+
+**Fichier :** `scripts/ingest/freshness.ts` (avant `w1-cadence`), désormais
+`scripts/ingest/lib/cadence.ts`.
+
+**Clos le 1er septembre 2026, `#70`, sans migration** — le défaut était dans le lecteur, pas
+dans le schéma.
+
+### Ce qui était faux
+
+`freshness.ts` décidait de l'état d'une source ainsi :
+
+```ts
+const TOLERANCE_DAYS: Record<string, number | null> = {
+  continuous: 3, monthly: 45, triennial: 400,
+  rare: null, // nothing to say: these layers do not age in days
+}
+const tolerance = TOLERANCE_DAYS[r.cadence] ?? null
+```
+
+La valeur `weekly` a été ajoutée à `public.ingestion_cadence` le 25 août 2026 par
+`20260825000006_chantier_cadence.sql`, pour `chantiers`. Elle n'a jamais rejoint cette table.
+Le `?? null` l'a donc lue comme « rien à dire », c'est-à-dire comme **une source qui ne peut
+pas être en retard**.
+
+**Mesure du défaut, 1er septembre 2026 sur le distant** : `chantiers`, cadence déclarée
+`weekly`, chargée à la main le 25 août, âgée de 6 jours — rendue **« à jour »**. Et elle
+l'aurait été à 600 jours comme à 6 : le seuil n'existait pas. C'est précisément la source que
+`#70` nomme comme « celle qui saigne », et l'instrument censé le voir affirmait le contraire.
+
+Deux propriétés du défaut valent d'être notées, parce qu'elles se reverront :
+
+- **Le silence venait d'un défaut par défaut.** Aucune ligne fautive n'a été écrite ; c'est
+  l'absence d'une ligne qui a produit l'affirmation. Un `?? null` sur une énumération est une
+  décision — « tout ce que je ne connais pas est sans importance » — prise par personne.
+- **Il ne se voyait dans aucun rouge.** `npm.cmd run freshness` sortait en 0 quoi qu'il lise ;
+  la table s'affichait, verte, et personne n'était en tort.
+
+### Le correctif
+
+- `scripts/ingest/lib/cadence.ts` porte `CADENCES`, les cinq valeurs de l'énumération, et
+  `TOLERANCE_DAYS` qui **doit** en couvrir chacune. `toleranceOf` **lève** sur une cadence
+  inconnue au lieu de rendre `null` : une valeur ajoutée à l'énumération et pas ici est une
+  migration que ce fichier n'a pas rattrapée, et la lire comme « rien à dire » est le défaut
+  lui-même.
+- `rare` reçoit un nombre — 400 jours — là où il portait `null`. Le commentaire d'origine
+  disait vrai de la donnée et faux du contrôle : ce que `age_days` mesure est l'âge de **notre
+  vérification**, jamais celui du vote ou de l'autorisation. Une couche rare dont le cron est
+  mort depuis un an est exactement le silence que la table existe pour rompre.
+- `scripts/porte/cadences.test.ts` joue les deux moitiés à chaque `npm.cmd run test` : aucune
+  valeur de l'énumération sans tolérance, et **aucune source déclarée par une migration dont la
+  cadence soit inconnue de la table**. C'est cette seconde qui aurait attrapé `weekly` le
+  25 août.
+
+### Ce que le correctif ne rattrape pas
+
+- **Une valeur ajoutée à l'énumération sans qu'aucune source ne la porte** passe encore. La
+  liste `CADENCES` est écrite à la main ; le contrôle recoupe les cadences **effectivement
+  déclarées** par les migrations, pas le type Postgres. Une valeur orpheline ne fait de mal à
+  personne le jour où elle naît, et fera rougir le jour où une source la prend.
+- **Un seuil franchi ne dit pas pourquoi.** « `chantiers` a 12 jours » ne distingue pas un cron
+  qui n'a pas tourné d'un chargeur qui a échoué en silence. Le premier se lit dans l'onglet
+  Actions, le second dans l'issue que `#71` fait ouvrir.

@@ -19,24 +19,25 @@ Le reste du contexte est dans `docs/PLAN.md` (backlog, décisions produit),
 de la source), `eval/FAILURE_MODES.md` (le contrat d'évaluation) et `docs/JOURNAL.md`
 (le récit des sessions passées).
 
-## L'état mesuré le plus récent — 31 août 2026, après clôture de `#69` puis de `#71`
+## L'état mesuré le plus récent — 1er septembre 2026, après clôture de `#70`
 
 **C'est le seul état que cette page porte** : les relevés antérieurs sont dans
 `docs/REPRISE-ARCHIVE.md`, et quand deux se contredisent c'est le plus daté qui a tort. Ce qui
-a bougé le 31 août, et rien d'autre :
+a bougé les 31 août et 1er septembre, et rien d'autre :
 
-| Mesure | Valeur, mesurée le 31 août 2026 |
+| Mesure | Valeur, mesurée le 31 août 2026, sauf mention du 1er septembre |
 | --- | --- |
 | Ledger distant `supabase_migrations` | **47** — inchangé, ni `#69` ni `#71` **n'ont posé de migration** : les deux défauts étaient dans les lanceurs, pas dans le schéma |
-| Tests unitaires | **273** — 216 après `#69`, puis 273 avec les quatre fichiers de `scripts/porte/` et les six cas ajoutés à `scripts/ingest/workflow.test.ts` et `scripts/eval/upstream.test.ts` |
+| Tests unitaires | **299**, mesurés le 1er septembre 2026 — 273 après `#71`, puis 299 avec `scripts/porte/cadences.test.ts` (21 cas), les trois de la réconciliation distant/migrations, et deux ajoutés de part et d'autre dans `scripts/ingest/workflow.test.ts` et `scripts/porte/workflow.test.ts` |
+| **Sources et cadences** | **8 sources dans `compass_source_freshness()`, 8 entrées `cron`**, mesuré le 1er septembre 2026. Les huit du distant sont exactement les huit que les migrations déclarent — recoupé par `freshness`, zéro écart. Entretien : **1 par `schedule`** (`bodacc`), 1 par `workflow-dispatch` (`geography`), 6 depuis un terminal. Les cadences les plus lentes n'ont pas encore eu leur tour, donc `freshness` sort en **3** et le dira jusqu'à ce qu'elles l'aient eu |
 | Invariants | **37** — inchangé. Trois d'entre eux, `I1`, `I2` et `I7`, sont **joués en 22 instructions** au lieu d'une. Même population, toutes les tranches jouées |
-| **Coût des trois bras distants** | Deux passages. `eval` **306 s** puis **299 s** (bras A seul 240 s) · `eval:anon` **5 s** deux fois · `verify:mcp` **114 s** puis **227 s** — **425 s puis 531 s**. L'écart est entièrement `verify:mcp`, et c'est Overpass : les contrôles suspendus attendent des miroirs publics à 429 et 504, chacun avec son délai. C'est ce chiffre-là qui dimensionne la cadence de la porte planifiée, **pas les 115 s de `#69`**, qui étaient `I1` seul avant son découpage |
+| **Coût des trois bras distants** (le quatrième, `freshness`, est **un aller-retour** : une RPC, aucun balayage) | Deux passages. `eval` **306 s** puis **299 s** (bras A seul 240 s) · `eval:anon` **5 s** deux fois · `verify:mcp` **114 s** puis **227 s** — **425 s puis 531 s**. L'écart est entièrement `verify:mcp`, et c'est Overpass : les contrôles suspendus attendent des miroirs publics à 429 et 504, chacun avec son délai. C'est ce chiffre-là qui dimensionne la cadence de la porte planifiée, **pas les 115 s de `#69`**, qui étaient `I1` seul avant son découpage |
 | **Secrets de dépôt** | **`DATABASE_URL` seul.** `SUPABASE_URL` et `SUPABASE_ANON_KEY` **manquent**, donc `eval:anon` et `verify:mcp` n'ont pas de clé sur un runner. Le workflow s'arrête là-dessus en le nommant, avant de dépenser dix minutes |
-| Portes | `typecheck` ✓ · `test` **273** ✓ · `eval` **deux passages, deux fois au bout**, sortie 3 sur les **11 avertissements de baseline** habituels, **zéro sur l'horloge** · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 39 verts, 0 échec, 2 suspendus** (Overpass 429 puis 504), sortie 0 · `porte:sabotage` **PASS, 13 contrôles** · `build` et `build:dev` ✓, hashes inchangés (`index-DKJzmj15.js`, `MapView-8C8F8Ymz.js`) — rien dans `src/` |
+| Portes | `typecheck` ✓ · `test` **299** ✓ (1er septembre) · `freshness` **8 sources, 0 en retard, 0 écart**, sortie 3 (1er septembre) · `eval` **deux passages, deux fois au bout**, sortie 3 sur les **11 avertissements de baseline** habituels, **zéro sur l'horloge** · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 39 verts, 0 échec, 2 suspendus** (Overpass 429 puis 504), sortie 0 · `porte:sabotage` **PASS, 13 contrôles** · `build` et `build:dev` ✓, hashes inchangés (`index-DKJzmj15.js`, `MapView-8C8F8Ymz.js`) — rien dans `src/` |
 
 **La porte tourne toute seule depuis le 31 août** — `.github/workflows/porte.yml`, tous les
-jours à 07:29 UTC, huit bras : `typecheck`, `test`, `build`, `build:dev`, `sessions:check`,
-`eval`, `eval:anon`, `verify:mcp`. Un rouge ouvre une issue `porte-rouge` ; une panne amont
+jours à 07:29 UTC, neuf bras : `typecheck`, `test`, `build`, `build:dev`, `sessions:check`,
+`freshness`, `eval`, `eval:anon`, `verify:mcp`. Un rouge ouvre une issue `porte-rouge` ; une panne amont
 n'en ouvre pas. Le cron d'ingestion signale ses échecs **sur le même canal**. Le détail, les
 mesures et ce que la règle ne rattrape pas :
 [`#71`](https://github.com/IvandeMurard/paris-compass/issues/71).
@@ -355,6 +356,35 @@ d'ingestion, et par `w1-catalogue` (#73) quand il passera. Trois protocoles qui 
 trois formats de rapport, c'est trois choses à lire, donc zéro chose lue.
 
 
+**Une cadence est une propriété de la source, et une source sans cadence est un rouge.**
+Tranché le 1er septembre 2026 en fermant `w1-cadence`
+([`#70`](https://github.com/IvandeMurard/paris-compass/issues/70)), et c'est la mise en oeuvre
+de « toujours privilégier la logique et les actions durables » sur les données.
+
+Trois choses en découlent, et aucune n'est les quatre entrées `cron` ajoutées ce jour-là.
+
+- **La population est énumérée.** `scripts/porte/cadences.ts` lit les sources que les migrations
+  insèrent dans `ingestion_run` — l'endroit où la valeur est **produite**, `recordRun` ne faisant
+  ensuite que des `update` — et les croise avec la table `cron -> source` des workflows
+  planifiés. Une neuvième source née sans cadence rougit à l'écriture de sa migration, dans
+  `npm.cmd run test`, sans base.
+- **Le recoupement se fait sur ce qui NOMME, jamais sur ce qui EXÉCUTE.** La branche `bdcom)`
+  d'`ingestion.yml` lance aussi `geography.ts` ; apparier les sources aux chemins de leurs
+  chargeurs aurait fait répondre le cron de BDCom pour `geography`. Détail dans
+  `docs/REPRISE-PIEGES.md`.
+- **Le dépassement de cadence est un bras de la porte, pas une ligne de journal.**
+  `freshness` sort désormais 0, 3 ou 1 sur la convention de `scripts/porte/report.ts`, et il
+  vit dans `porte.yml` — parce qu'un chargement qui n'a **jamais démarré** ne laisse aucun
+  échec derrière lui : `ingestion.yml` ne peut pas rapporter un job qu'il n'a pas lancé.
+
+**Ce que la règle ne rattrape pas, et il faut le nommer** : elle vérifie qu'un déclencheur
+**existe**, jamais qu'il a **réussi** — ni que le chargeur a chargé la bonne chose.
+`last_success_at` avance dès que le chargeur n'a pas levé ; une source qui se mettrait à
+publier une couche vide rafraîchirait cette date chaque semaine et resterait verte ici pour
+toujours. C'est l'affaire de la porte d'évaluation et de ses baselines. Deux limites plus
+étroites sont écrites dans `DIAGNOSTIC.md` §31.
+
+
 **La cadence de la porte est quotidienne, et elle est déduite.** Même date, même ticket.
 Ce qui est surveillé est le distant, et la chose la plus rapide qui le déplace est le
 chargement BODACC de 03:17 UTC — la seule source qui vieillit en jours. Une cadence plus fine
@@ -631,6 +661,14 @@ un code de sortie et rien d'autre ; la seule place légitime pour décider qu'un
 d'être un échec est `scripts/eval/upstream.ts`, dans le bras qui tient l'erreur et son `code`.
 Assouplir `scripts/porte/report.ts` reviendrait à classer sur du texte, ce que `#61` a refusé,
 et à éteindre les rouges à l'endroit exact où personne ne le verrait. `#71`.
+
+Ne pas ajouter une source à `ingestion_run` sans lui donner une cadence tenue. Depuis le
+1er septembre 2026, `npm.cmd run test` échoue tant qu'une source déclarée par une migration
+n'a ni entrée `cron` dans un workflow planifié, ni raison écrite dans le bloc `sources` de
+`scripts/porte/cadence.json`. Et ne pas élargir une tolérance de
+`scripts/ingest/lib/cadence.ts` pour éteindre un « EN RETARD » : le seuil dit depuis quand
+nous n'avons pas vérifié, et le monter ne rafraîchit rien — c'est le même geste que desserrer
+une baseline, refusé une fois pour toutes. `#70`.
 
 Ne pas ajouter un script à `package.json` sans le classer. `npm.cmd run test` échoue tant qu'un
 script n'est ni joué par un workflow qui porte un `on.schedule`, ni nommé dans

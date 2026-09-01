@@ -1,8 +1,9 @@
-// The proof that the scheduled gate actually closes the door — w1-porte-planifiee (#71).
+// The proof that the scheduled gate actually closes the door — w1-porte-planifiee (#71), then
+// w1-cadence (#70) one level down, on the sources rather than on the scripts.
 //
 //   npm.cmd run porte:sabotage
 //
-// Three acts, on the model of `eval:sabotage`: a rule nobody plays is a comment, and the rules
+// Four acts, on the model of `eval:sabotage`: a rule nobody plays is a comment, and the rules
 // here claim things about an arm that does not exist yet and about an outage that has not
 // happened yet. Nothing touches the database and nothing touches a file — the acts run against
 // the real modules with substituted inputs, because a proof that runs a COPY of the check
@@ -16,6 +17,10 @@
 //      must stay three lines and wake nobody. This is the act that matters most: an alert that
 //      cries on a 429 from an Overpass mirror will be muted within a fortnight, and a muted
 //      alert removed the vigilance without supplying the guarantee.
+//   4. UNE NEUVIÈME SOURCE — a row inserted into `ingestion_run` with a declared cadence and
+//      no cron. Same shape as act one, one level down: this is the hole #70 closes, and the
+//      four sources that fell into it between 25 and 31 August 2026 looked exactly like the
+//      probe used here.
 //
 // A fourth thing is checked in passing, because the repository is public: neither the red nor
 // the outage may carry a database identifier out of the machine.
@@ -23,6 +28,14 @@
 // Exit codes follow the runner's convention: 0 PASS, 1 FAIL, 2 ERROR.
 
 import { classifyArms, readExcuses, readScripts, readWorkflows } from "./arms"
+import {
+  classifySources,
+  readDeclaredSources,
+  readSourceExcuses,
+  scheduledSources,
+  readWorkflows as readSourceWorkflows,
+  type DeclaredSource,
+} from "./cadences"
 import { carriesDatabaseIdentifier } from "./redaction"
 import { buildReport, EXIT, type ArmOutcome } from "./report"
 
@@ -178,15 +191,84 @@ function acteTrois(): void {
   }
 }
 
-out("Sabotage de la porte planifiée — trois actes, aucun accès à la base, aucun fichier écrit")
+/**
+ * A ninth source, written the way the four of #70 were born: plausible, useful, loaded once by
+ * hand, and registered in no `on.schedule`. `chantiers` looked exactly like this on 25 August.
+ */
+const SOURCE_PROBE: DeclaredSource = {
+  source: "marches",
+  cadence: "weekly",
+  migration: "20260901000001_marches.sql",
+}
+
+function acteQuatre(): void {
+  out("\nActe 4 — une neuvième source, déclarée avec une cadence et rechargée par personne")
+
+  const declared = readDeclaredSources()
+  const triggers = scheduledSources(readSourceWorkflows())
+  const excuses = readSourceExcuses()
+
+  const clean = classifySources(declared, triggers, excuses)
+  const silentBefore = clean.filter((v) => v.state !== "planifie" && v.state !== "excuse")
+  if (silentBefore.length === 0) {
+    pass("état de départ", `${clean.length} sources, toutes planifiées ou excusées — la porte est au vert`)
+  } else {
+    fail(
+      "état de départ",
+      `${silentBefore.length} source(s) déjà sans classement (${silentBefore.map((v) => v.source).join(", ")}) : ` +
+        "le sabotage ne prouverait rien puisque la porte est déjà rouge",
+    )
+  }
+
+  const sabotaged = classifySources([...declared, SOURCE_PROBE], triggers, excuses)
+  const probe = sabotaged.find((v) => v.source === SOURCE_PROBE.source)
+  if (probe?.state === "muet") {
+    pass(SOURCE_PROBE.source, `passe au rouge — cadence « ${probe.cadence} » déclarée, aucun cron ne la tient`)
+  } else {
+    fail(SOURCE_PROBE.source, `attendu « muet », obtenu « ${probe?.state ?? "absent"} » : la règle ne voit pas la source ajoutée`)
+  }
+
+  const others = sabotaged.filter((v) => v.source !== SOURCE_PROBE.source)
+  if (others.every((v) => v.state === "planifie" || v.state === "excuse")) {
+    pass("les autres sources", "restent au vert — le rouge vient de la sonde, pas d'une règle cassée")
+  } else {
+    fail("les autres sources", "le sabotage a rougi autre chose que la sonde")
+  }
+
+  // The counter-test, the half a sabotage usually forgets: a check that went red on every
+  // input would pass this act and be worth nothing.
+  const restored = classifySources(declared, triggers, excuses)
+  if (restored.every((v) => v.state === "planifie" || v.state === "excuse")) {
+    pass("sonde retirée", "la porte revient au vert")
+  } else {
+    fail("sonde retirée", "la porte reste rouge sans la sonde — le rouge ne venait pas d'elle")
+  }
+
+  // And the trap #71 met one level up, transposed: two npm scripts pointing at the same file
+  // could not be told apart by a path, and the `bdcom` arm of ingestion.yml runs geography.ts
+  // in passing. A match on loader paths would have made the BDCom cron vouch for geography.
+  const chained: DeclaredSource = { source: "enchainee", cadence: "rare", migration: "sonde.sql" }
+  const viaPath = classifySources([chained], triggers, excuses)
+  if (viaPath[0]?.state === "muet") {
+    pass("chargeur enchaîné", "une source qu'aucun cron ne nomme reste muette, même chargée en passant")
+  } else {
+    fail("chargeur enchaîné", "un chargeur enchaîné répond pour une source que rien ne planifie")
+  }
+}
+
+out("Sabotage de la porte planifiée — quatre actes, aucun accès à la base, aucun fichier écrit")
 acteUn()
 acteDeux()
 acteTrois()
+acteQuatre()
 
 out("")
 if (failures > 0) {
   out(`FAIL — ${failures} contrôle(s) en échec : la porte planifiée ne tient pas ce qu'elle annonce`)
   process.exitCode = 1
 } else {
-  out("PASS — un bras non planifié rougit, un rouge crie, une panne amont ne crie pas")
+  out(
+    "PASS — un bras non planifié rougit, un rouge crie, une panne amont ne crie pas, " +
+      "une source sans cadence rougit",
+  )
 }

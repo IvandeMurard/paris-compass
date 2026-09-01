@@ -320,6 +320,20 @@ comme secrets**, sans quoi il échoue là où rien n'est cassé. `.github/workfl
 vérifie en tête de job et s'arrête en le nommant, plutôt que de rendre trois bras rouges pour
 une seule cause. `gh secret list` dit ce qui est réellement posé.
 
+**Une population enumeree se recoupe sur ce qui NOMME, jamais sur ce qui EXECUTE — 1er
+septembre 2026.** `#71` l'avait rencontre sur les scripts : `verify:mcp` et `smoke:mcp` lancent
+le meme fichier, donc un workflow citant `scripts/verify-mcp.mjs` aurait repondu pour les deux
+alors qu'un seul decide quelque chose. `#70` a rencontre le meme piege un cran plus bas, et cette
+fois il est **present dans le depot** : la branche `bdcom)` de `.github/workflows/ingestion.yml`
+lance `bdcom.ts` **puis `geography.ts`**. Un controle qui aurait apparie les sources aux chemins
+de leurs chargeurs aurait donc conclu que le cron trimestriel de BDCom tient la cadence de
+`geography` — vrai en pratique ce jour-la, faux comme regle, et surtout invisible le jour ou
+l'enchainement disparait. `scripts/porte/cadences.ts` apparie sur la table `cron -> source` que
+le workflow ecrit lui-meme, une source par planification, et jamais sur ce que le bras execute.
+La consequence a assumer : une source **reellement** rechargee en passant par un bras voisin est
+lue comme non planifiee. C'est voulu — elle doit avoir sa propre entree `cron` ou sa raison
+ecrite dans `scripts/porte/cadence.json`.
+
 **Ne jamais passer `--omit=optional` à npm sur ce projet.** Rollup livre son
 binaire natif (`@rollup/rollup-win32-x64-msvc`) en dépendance *optionnelle* :
 l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur

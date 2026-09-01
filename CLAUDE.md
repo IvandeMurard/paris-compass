@@ -92,13 +92,19 @@ où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lova
   côtés dans une même session. `git pull` avant de commencer, pousser avant de rouvrir Lovable.
   Ne pas toucher `.lovable/`.
 - **Un rouge de la porte se corrige dans le bras, jamais dans le rapport.** Depuis le 31 août
-  2026 les huit bras tournent seuls chaque matin (`.github/workflows/porte.yml`) et un rouge
+  2026 les neuf bras tournent seuls chaque matin (`.github/workflows/porte.yml`) et un rouge
   ouvre une issue. Le rapport ne lit que le code de sortie — 0, 3, 1, 2 — et jamais le texte :
   la seule place légitime pour décider qu'une chose cesse d'être un échec est
   `scripts/eval/upstream.ts`, dans le bras qui tient l'erreur et son `code`. Assouplir le
   rapport éteindrait les alertes là où personne ne le verrait. Corollaire mécanique : un script
   ajouté à `package.json` fait échouer `test` tant qu'il n'est ni planifié ni justifié dans
   `scripts/porte/cadence.json`.
+- **Une source d'ingestion aussi porte sa cadence, et c'est la même règle** — `#70`, le
+  1er septembre 2026. Une source insérée dans `ingestion_run` par une migration doit avoir son
+  entrée `cron` dans un workflow planifié, ou sa raison écrite dans le bloc `sources` de
+  `scripts/porte/cadence.json` ; sinon `test` échoue. Et une tolérance de
+  `scripts/ingest/lib/cadence.ts` ne se monte **jamais** pour éteindre un « EN RETARD » : le
+  seuil dit depuis quand on n'a pas vérifié, le monter ne rafraîchit rien.
 - **Ne pas lancer `npm audit fix --force`** : cela remonterait des versions majeures et casserait
   le build. Et ne pas confondre ce que l'outil **propose** avec ce qui **corrige** : `audit fix
   --force` vise toujours la dernière majeure publiée, jamais la plus petite version qui suffit.

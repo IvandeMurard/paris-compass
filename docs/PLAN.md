@@ -128,6 +128,26 @@ Les sources n'ont pas le même rythme naturel : SIRENE se republie **mensuelleme
 fixe, la géographie (quartiers, voies) rarement. Une seule cadence pour les quatre serait
 fausse pour au moins trois d'entre elles.
 
+> **Les huit sources ont leur cadence depuis le 1er septembre 2026 — `w1-cadence` ([#70]).**
+> Et ce ticket **redit cette section** : ce qui est écrit ici et ce qui est écrit là-bas sont
+> un seul chantier, pas deux backlogs. L'état, mesuré ce jour-là sur
+> `compass_source_freshness()` : les quatre crons de `#6` couvraient les quatre sources du
+> 25 août ; `chantiers`, `sirene_stock`, `plu` et `terrasses` sont arrivées après et ne
+> s'étaient inscrites nulle part. Elles portent maintenant chacune leur entrée `cron` dans
+> `.github/workflows/ingestion.yml` — hebdomadaire pour `chantiers`, le 2 du mois pour
+> `sirene_stock`, deux fois l'an pour `plu` et `terrasses`, **en cadence de vérification** :
+> recharger ne rajeunit ni un vote du Conseil de Paris ni une autorisation de terrasse.
+>
+> **Mais les quatre lignes ne sont pas le livrable.** Une cadence posée à la main sur les
+> sources d'un jour donné est un inventaire, et un inventaire ne se met pas à jour tout seul —
+> c'est le geste qui a créé le trou. La règle est `scripts/porte/cadences.ts` : elle
+> **énumère** les sources que les migrations insèrent dans `ingestion_run`, les croise avec la
+> table `cron -> source` des workflows planifiés, et rougit sur toute source portant une
+> cadence déclarée que rien ne tient. Jouée à chaque `npm.cmd run test`, démontrée par le
+> quatrième acte de `npm.cmd run porte:sabotage`.
+>
+> [#70]: https://github.com/IvandeMurard/paris-compass/issues/70
+
 ~~À trancher avant d'automatiser, pas après : où tourne un job planifié qui a besoin d'une
 connexion à privilèges élevés.~~ **Tranché le 24 août : GitHub Actions, avec `DATABASE_URL` en
 secret de dépôt**, déclencheurs réduits à `schedule` et `workflow_dispatch`, et
@@ -162,6 +182,21 @@ raison mesurée :
 honnête que si le rythme de rafraîchissement est soit réel, soit déclaré. Poser la date sans
 l'automatisation ferait la même faute que le loyer fabriqué (`DIAGNOSTIC.md` §1) sous une autre
 forme — un chiffre qui a l'air à jour et ne l'est pas forcément.
+
+> **Le dépassement de cadence a un comportement, depuis le 1er septembre 2026** — `#70`,
+> point 3. Jusque-là, rien ne le disait : `freshness.ts` imprimait « EN RETARD » et sortait en
+> 0. Il rend maintenant un verdict sur la convention de la porte — 0 tout dans sa tolérance,
+> 3 une source jamais chargée ou dont l'entretien n'est pas encore démontré par un cron,
+> 1 une source au-delà de sa tolérance ou un écart entre la liste du distant et celle des
+> migrations — et il est **un bras de `.github/workflows/porte.yml`**, joué chaque matin. Le
+> `--releve-seul` que passe `ingestion.yml` est le seul endroit qui le désarme, et pour une
+> raison : un verdict rendu là ferait échouer un chargement à cause d'**une autre** source.
+>
+> Les tolérances sont dans `scripts/ingest/lib/cadence.ts`, et ce sont des tolérances **du
+> contrôle**, jamais de la donnée : `age_days` mesure depuis quand nous n'avons pas vérifié,
+> pas depuis quand la couche est vieille. C'est pourquoi `rare` porte 400 jours et non `null`,
+> et c'est le défaut `DIAGNOSTIC.md` §31 — `weekly`, ajoutée à l'énumération le 25 août, n'y
+> avait jamais été inscrite, donc `chantiers` était rendue « à jour » à n'importe quel âge.
 
 > **Tenu, et de façon lisible.** `compass_source_freshness()` rend `run_by` à côté de chaque
 > date, `npm.cmd run freshness` écrit noir sur blanc « cadence déclarée, pas tenue » tant

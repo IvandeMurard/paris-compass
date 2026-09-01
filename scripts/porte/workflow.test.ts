@@ -26,6 +26,18 @@ describe("workflow de la porte", () => {
     expect(structure).toMatch(/^\s*-\s*cron:\s*"[^"]+"/m)
   })
 
+  it("joue le bras de fraîcheur, qui décide du dépassement de cadence", () => {
+    // #70 point 3: what happens when a source goes past its declared cadence happens here.
+    // A load that never fired leaves no failed run behind, so the ingestion workflow cannot
+    // report it — only a reading of the whole table sees the absence.
+    expect(structure).toMatch(/npm run freshness(?![\w:.-])/)
+    const step = /name:\s*freshness\n[\s\S]*?(?=\n      - name:)/.exec(structure)?.[0] ?? ""
+    expect(step, "le bras de fraîcheur n'a pas la chaîne privilégiée").toMatch(/DATABASE_URL/)
+    // Never `--releve-seul` here: that flag belongs to ingestion.yml, where a verdict on the
+    // other seven sources would name the wrong dataset in a « chargement en échec ».
+    expect(step).not.toMatch(/--releve-seul/)
+  })
+
   it("joue les trois bras que le ticket nomme", () => {
     for (const arm of ["eval", "eval:anon", "verify:mcp"]) {
       expect(structure, `${arm} n'est pas joué`).toMatch(new RegExp(`npm run ${arm.replace(":", ":")}(?![\\w:.-])`))
@@ -65,8 +77,9 @@ describe("workflow de la porte", () => {
   })
 
   it("ne donne la chaîne privilégiée qu'au bras qui en a besoin", () => {
-    // `eval` is the only arm holding DATABASE_URL. `eval:anon` deliberately holds none: it
-    // exercises exactly what a visitor without a key reaches.
+    // `eval` and `freshness` are the two arms holding DATABASE_URL — both read the remote
+    // through the privileged connection. `eval:anon` deliberately holds none: it exercises
+    // exactly what a visitor without a key reaches.
     const evalStep = /name:\s*eval\n[\s\S]*?(?=\n      - name:)/.exec(structure)?.[0] ?? ""
     expect(evalStep).toMatch(/DATABASE_URL/)
     const anonStep = /name:\s*eval:anon\n[\s\S]*?(?=\n      - name:)/.exec(structure)?.[0] ?? ""

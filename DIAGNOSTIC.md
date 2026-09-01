@@ -1,11 +1,11 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte trente au 31 août 2026**, et la phrase
+« quatre défauts, par ordre de gravité » : il en porte trente et un au 1er septembre 2026**, et la phrase
 est restée fausse trois semaines.
 
 Découpé en deux le 31 août 2026, comme `docs/REPRISE.md` la veille : cette page ne garde que
-**ce qui est encore ouvert**. Les vingt-six défauts clos sont dans
+**ce qui est encore ouvert**. Les vingt-sept défauts clos sont dans
 [`DIAGNOSTIC-CORRIGES.md`](./DIAGNOSTIC-CORRIGES.md), **avec leur numérotation d'origine** —
 `docs/REPRISE.md`, `docs/PERIMETRE.md`, `eval/FAILURE_MODES.md` et les tickets y renvoient par
 leur numéro de section.
@@ -53,6 +53,7 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 28 | Les deux fonctions de rayon que `#62` n'avait pas corrigées | clos le 28 août, `20260828000003` | corrigés |
 | 29 | L'estimation était fausse, et la corriger ne rachète rien | clos le 28 août — `#65` fermé **sans** migration | corrigés |
 | 30 | La porte mourait dans son premier bras | clos le 31 août, `#69` | corrigés |
+| 31 | Une cadence ajoutée à l'énumération et jamais à la table de tolérance | clos le 1er septembre, `#70` | corrigés |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |

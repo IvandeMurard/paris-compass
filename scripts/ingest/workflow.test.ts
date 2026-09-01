@@ -16,7 +16,9 @@ import { resolve } from "path"
 
 import { describe, expect, it } from "vitest"
 
-const WORKFLOW = resolve(import.meta.dirname, "../../.github/workflows/ingestion.yml")
+import { readDeclaredSources } from "../porte/cadences"
+
+const WORKFLOW =resolve(import.meta.dirname, "../../.github/workflows/ingestion.yml")
 const yaml = readFileSync(WORKFLOW, "utf8")
 
 /**
@@ -53,10 +55,14 @@ function dispatchOptions(): string[] {
 }
 
 describe("workflow d'ingestion", () => {
-  it("déclare quatre planifications, une par cadence", () => {
-    // Four sources, four rhythms. A single cadence would be wrong for at least three of them
-    // — PLAN.md §2.2bis.
-    expect(declaredCrons()).toHaveLength(4)
+  it("déclare une planification par source, jamais une cadence commune", () => {
+    // Derived, not counted: writing `toHaveLength(4)` is what let the four sources of #70
+    // arrive without anybody noticing the number had stopped matching. The population is the
+    // one the migrations declare — scripts/porte/cadences.ts owns the rule, this only checks
+    // that the workflow's own two halves agree on its size.
+    const declared = readDeclaredSources()
+    expect(declaredCrons()).toHaveLength(declared.length)
+    expect(caseArms()).toHaveLength(declared.length)
   })
 
   it("traduit chaque planification déclarée en un jeu", () => {
@@ -113,9 +119,30 @@ describe("workflow d'ingestion", () => {
     expect(structure).not.toMatch(/ANON_KEY|PUBLISHABLE/)
   })
 
-  it("relève la fraîcheur même quand le chargement a échoué", () => {
+  it("relève la fraîcheur même quand le chargement a échoué, et sans rendre de verdict", () => {
     // The reading matters most on failure: it shows last_success_at did not move.
     expect(structure).toMatch(/if:\s*always\(\)/)
+    // `--releve-seul` since #70. The script settles a verdict on the WHOLE table, and a source
+    // other than the one this job loaded being past its cadence would fail this job and open an
+    // issue titled « chargement en échec » naming the wrong dataset. The verdict belongs to the
+    // gate, which judges the remote as a whole — porte.yml plays `freshness` as an arm.
+    expect(structure).toMatch(/freshness\.ts\s+--releve-seul/)
+  })
+
+  it("donne un chargeur à chacune des huit sources, la sienne et pas une autre", () => {
+    // The four of #70 are deliberately not chained: each rebuilds its own reference table and
+    // recomputes its own attachment, so re-running one alone is safe. Chaining one to another
+    // is what would make a cron vouch for a source it only loads in passing — the trap
+    // scripts/porte/cadences.ts refuses to fall into, checked here on the real file.
+    for (const [source, loader] of [
+      ["chantiers", "ingest/chantiers.ts"],
+      ["sirene_stock", "ingest/sirene-stock.ts"],
+      ["plu", "ingest/plu.ts"],
+      ["terrasses", "ingest/terrasses.ts"],
+    ]) {
+      const arm = new RegExp(`${source}\\)([\\s\\S]*?);;`).exec(structure)?.[1] ?? ""
+      expect(arm, `la branche ${source} ne lance pas ${loader}`).toContain(loader)
+    }
   })
 
   it("signale un chargement en échec, et seulement quand la cadence était tenue", () => {

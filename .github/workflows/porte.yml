@@ -1,4 +1,4 @@
-# Scheduled gate — w1-porte-planifiee (#71).
+# Scheduled gate — w1-porte-planifiee (#71), then the freshness arm of w1-cadence (#70).
 #
 # The evaluation protocol was written, proven, and played by nobody: `eval`, `eval:anon` and
 # `verify:mcp` all waited for a hand. Between two sessions nothing said whether the remote was
@@ -166,6 +166,18 @@ jobs:
           npm run sessions:check > "$PORTE/sessions-check.log" 2>&1 && code=0 || code=$?
           cat "$PORTE/sessions-check.log"
           printf 'sessions:check\t%s\t%s\n' "$code" "$PORTE/sessions-check.log" >> "$PORTE/bras.tsv"
+
+      # w1-cadence (#70), point 3: what happens when a source goes past its declared cadence.
+      # It happens here, because a load that never fired leaves no failed run behind — the
+      # ingestion workflow cannot report a job it did not start, and only a reading of the
+      # whole table sees the absence. Cheap: one RPC, no scan.
+      - name: freshness
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          npm run freshness > "$PORTE/freshness.log" 2>&1 && code=0 || code=$?
+          cat "$PORTE/freshness.log"
+          printf 'freshness\t%s\t%s\n' "$code" "$PORTE/freshness.log" >> "$PORTE/bras.tsv"
 
       - name: eval
         env:

@@ -1,10 +1,23 @@
-# Scheduled ingestion — w0-cron (#6), PLAN.md §2.2bis and §2.2ter.
+# Scheduled ingestion — w0-cron (#6) then w1-cadence (#70), PLAN.md §2.2bis and §2.2ter.
 #
-# The four sources do not share a rhythm, and one cadence would be wrong for at least three of
-# them: BODACC publishes every working day, INSEE republishes SIRENE monthly, APUR surveys every
-# three years with no announced calendar, and the reference geography barely moves. Hence four
-# `cron` entries in one file rather than a common schedule — the time step is a property of the
-# source, not of the pipeline.
+# The sources do not share a rhythm, and one cadence would be wrong for nearly all of them:
+# BODACC publishes every working day, the Ville de Paris updates its worksites weekly, INSEE
+# republishes SIRENE monthly, APUR surveys every three years with no announced calendar, and
+# the reference layers barely move. Hence one `cron` entry per source rather than a common
+# schedule — the time step is a property of the source, not of the pipeline.
+#
+# ── Four, then eight ──────────────────────────────────────────────────────────────────────
+#
+# #6 wrote four schedules on 25 August 2026, for the four sources that existed that day. The
+# four that arrived in the days after — chantiers, sirene_stock, plu, terrasses — registered
+# nowhere, and nothing said so for a week. That is the failure #70 exists to make impossible,
+# and the four `cron` lines below are its smaller half: the rule that stops the ninth source
+# from being born without a cadence is scripts/porte/cadences.ts, played by every `npm run
+# test`. Adding a source here without a schedule now turns the gate red.
+#
+# The four later cadences are VERIFICATION cadences and nothing more. Reloading does not
+# rejuvenate a Conseil de Paris vote nor a terrace authorisation: it checks that the layer
+# still served is the one the source publishes, which is the same reading BDCom already had.
 #
 # This job carries the privileged connection, never the anon key. The loaders write to tables
 # with no insert policy (scripts/ingest/lib/db.ts), so they need a role that bypasses RLS. The
@@ -22,9 +35,27 @@ on:
     # on the hour — does not make two loads collide. The `concurrency` lock below is the real
     # guarantee; this only avoids queueing behind it every day.
     - cron: "17 3 * * *"      # BODACC — daily, the only source that ages in days
-    - cron: "43 4 3 * *"      # SIRENE — monthly, on the 3rd, after INSEE republishes
+    - cron: "43 4 3 * *"      # SIRENE géolocalisé — monthly, on the 3rd, after INSEE republishes
     - cron: "11 5 5 1,4,7,10 *"  # BDCom — quarterly: we verify, we do not rejuvenate
     - cron: "37 6 7 1,7 *"    # Geography — twice a year, never next to BDCom
+    # ── #70 ──────────────────────────────────────────────────────────────────────────────
+    # Chantiers — weekly, the rhythm the dataset declares for itself. Tuesday rather than
+    # Monday: the city's own update lands over the start of the week, and a load that runs
+    # before it would spend a week presenting last week's worksites as current.
+    - cron: "7 2 * * 2"
+    # SIRENE stock — monthly, on the 2nd. INSEE republishes the stock on the 1st and REPLACES
+    # the resource rather than archiving it, which is what made a pinned URL 404 on
+    # 25 August 2026 (#56). One day of margin, and the loader resolves the vintage from the
+    # data.gouv.fr API rather than pinning it.
+    - cron: "53 2 2 * *"
+    # PLU — twice a year, and this one is a verification. The Conseil de Paris votes without
+    # an announced calendar, so there is no rhythm to follow; what this catches is the day the
+    # published layer stops being the one loaded here, and `source_as_of` will not have moved.
+    - cron: "21 5 9 3,9 *"
+    # Terrasses — twice a year, framing the seasonal window rather than dividing the year
+    # evenly. The "estivales" authorisations run 1 April to 31 October (the source's own
+    # regulatory page): 8 April sees the window opened, 8 November sees it closed.
+    - cron: "9 5 8 4,11 *"
 
   workflow_dispatch:
     inputs:
@@ -32,7 +63,7 @@ on:
         description: "Jeu à recharger"
         required: true
         type: choice
-        options: [bodacc, sirene, bdcom, geography]
+        options: [bodacc, sirene, bdcom, geography, chantiers, sirene_stock, plu, terrasses]
 
 # One ingestion at a time, and the running one is never killed: an interrupted load leaves a
 # rolled-back transaction, so nothing loaded, so a run lost rather than replaced. The loaders
@@ -71,6 +102,10 @@ jobs:
             "43 4 3 * *")           source=sirene ;;
             "11 5 5 1,4,7,10 *")    source=bdcom ;;
             "37 6 7 1,7 *")         source=geography ;;
+            "7 2 * * 2")            source=chantiers ;;
+            "53 2 2 * *")           source=sirene_stock ;;
+            "21 5 9 3,9 *")         source=plu ;;
+            "9 5 8 4,11 *")         source=terrasses ;;
             "")                     source="${CHOSEN:?ni schedule ni input : rien à faire}" ;;
             *)
               echo "::error::Planification inconnue « ${SCHEDULE} » — la table de correspondance de ce fichier est désynchronisée du bloc on.schedule."
@@ -121,6 +156,14 @@ jobs:
               # hunts.
               npx tsx scripts/ingest/bdcom.ts
               npx tsx scripts/ingest/geography.ts ;;
+            # The four of #70. None is chained: each rebuilds its own reference table and
+            # recomputes its own attachment from scratch, so re-running one alone is safe —
+            # the headers of chantiers.ts, plu.ts, terrasses.ts and sirene-stock.ts each say
+            # so, and each needs geography.ts to have run once, which it has.
+            chantiers)    npx tsx scripts/ingest/chantiers.ts ;;
+            sirene_stock) npx tsx scripts/ingest/sirene-stock.ts ;;
+            plu)          npx tsx scripts/ingest/plu.ts ;;
+            terrasses)    npx tsx scripts/ingest/terrasses.ts ;;
           esac
 
       - name: Fraîcheur après chargement
@@ -130,7 +173,14 @@ jobs:
         # `always()`: this reading matters most on failure, where it shows `last_success_at`
         # did **not** move — a failed run refreshes nothing, which is exactly what the table
         # has to guarantee.
-        run: npx tsx scripts/ingest/freshness.ts
+        #
+        # `--releve-seul` on purpose, and it is the only place that passes it. Since #70 the
+        # script settles a verdict on the whole table, and a source OTHER than the one this job
+        # just loaded being past its cadence would fail this job and open an issue titled
+        # « chargement en échec » naming the wrong dataset. The verdict belongs to the gate,
+        # which judges the state of the remote as a whole: .github/workflows/porte.yml plays
+        # `freshness` as an arm of its own, every morning.
+        run: npx tsx scripts/ingest/freshness.ts --releve-seul
 
       # ── L'échec se voit ─────────────────────────────────────────────────────────────────
       #
