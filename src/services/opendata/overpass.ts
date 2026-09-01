@@ -9,6 +9,37 @@ const OVERPASS_ENDPOINTS = [
   'https://overpass.private.coffee/api/interpreter',
 ];
 
+export const OVERPASS_HOSTS = OVERPASS_ENDPOINTS.map((url) => new URL(url).host);
+
+/**
+ * Every Overpass mirror refused the request.
+ *
+ * Distinguished from a generic failure because the two call for different words on screen.
+ * A `TypeError: Failed to fetch` on all three hosts is not an upstream outage — the mirrors
+ * are independent — it is the browser's own network refusing to reach them: proxy, DNS
+ * filter, content blocker. `blocked` records that reading so the UI can name the hosts
+ * instead of blaming the data.
+ */
+export class OverpassUnreachableError extends Error {
+  readonly hosts = OVERPASS_HOSTS;
+  readonly blocked: boolean;
+
+  constructor(message: string, options: { blocked: boolean; cause?: unknown }) {
+    super(message, { cause: options.cause });
+    this.name = 'OverpassUnreachableError';
+    this.blocked = options.blocked;
+  }
+}
+
+/**
+ * A `fetch` that never reached the server rejects with a `TypeError`, with no status.
+ * An HTTP error, a timeout abort or an Overpass remark all produce something else.
+ */
+const isNetworkRefusal = (error: unknown) =>
+  error instanceof TypeError ||
+  (error instanceof DOMException && error.name === 'AbortError');
+
+
 interface OverpassElement {
   type: 'node' | 'way' | 'relation';
   id: number;
