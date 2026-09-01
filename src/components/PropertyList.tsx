@@ -29,12 +29,7 @@ const PropertyList = () => {
   if (isError) {
     return (
       <div className="p-6">
-        <Alert variant="destructive">
-          <AlertTitle>{t('list.errorTitle')}</AlertTitle>
-          <AlertDescription>
-            {(error as Error)?.message ?? t('list.errorBody')}
-          </AlertDescription>
-        </Alert>
+        <OpenDataErrorNotice error={error} onRetry={() => refetch()} />
       </div>
     );
   }
