@@ -100,11 +100,8 @@ voulu, ça veut dire qu'il faut fermer l'issue et mettre à jour DIAGNOSTIC.md.
 
 Ces portes tournent aussi toutes seules, tous les matins a 07:29 UTC, sur
 .github/workflows/porte.yml : neuf bras, un rouge ouvre une issue porte-rouge,
-une panne amont n'en ouvre pas. Deux consequences pour toi. Un rouge que tu
-laisses derriere toi reveillera quelqu'un demain matin. Et si tu ajoutes un
-script a package.json, npm.cmd run test echoue tant qu'il n'est ni joue par un
-workflow planifie ni justifie dans scripts/porte/cadence.json — ecris la raison,
-elle est lue.
+une panne amont n'en ouvre pas. Consequence pour toi : un rouge que tu laisses
+derriere toi reveillera quelqu'un demain matin.
 
 Puis lance npm.cmd run sessions et commite ce qu'il change, et termine par
 npm.cmd run sessions:check : il recoupe la table committee a l'etat GitHub et
