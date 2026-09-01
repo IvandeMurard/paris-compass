@@ -2641,22 +2641,43 @@ Deux propriétés du défaut valent d'être notées, parce qu'elles se reverront
 
 ### Le correctif
 
+**Le correctif n'est pas « écrire un nombre pour `weekly` ».** C'est la distinction entre une
+absence **décidée** et une absence **par défaut** — c'est elle qui manquait, et le nombre n'en
+est qu'une conséquence.
+
 - `scripts/ingest/lib/cadence.ts` porte `CADENCES`, les cinq valeurs de l'énumération, et
-  `TOLERANCE_DAYS` qui **doit** en couvrir chacune. `toleranceOf` **lève** sur une cadence
-  inconnue au lieu de rendre `null` : une valeur ajoutée à l'énumération et pas ici est une
-  migration que ce fichier n'a pas rattrapée, et la lire comme « rien à dire » est le défaut
-  lui-même.
-- `rare` reçoit un nombre — 400 jours — là où il portait `null`. Le commentaire d'origine
-  disait vrai de la donnée et faux du contrôle : ce que `age_days` mesure est l'âge de **notre
-  vérification**, jamais celui du vote ou de l'autorisation. Une couche rare dont le cron est
-  mort depuis un an est exactement le silence que la table existe pour rompre.
+  `TOLERANCE_DAYS` qui **doit** en couvrir chacune — par un seuil, ou par un `null` portant sa
+  raison écrite. `toleranceOf` distingue les deux : une clé **écrite `null`** est une décision
+  et passe ; une clé **absente** lève, parce que c'est une valeur ajoutée à l'énumération que
+  ce fichier n'a pas rattrapée. Le `?? null` d'origine confondait exactement ces deux cas —
+  il répondait « rien à dire » à une question que personne n'avait posée.
+- **`rare` et `triennial` n'ont pas de seuil, et c'est une décision d'Ivan du 1er septembre
+  2026**, prise contre les 400 jours que ce fichier a portés quelques heures : plus d'un an
+  n'est pas un seuil, c'est un nombre qui se déclencherait longtemps après le moment où l'on
+  pouvait encore agir — et un seuil sur lequel personne n'agit est l'alerte qui se fait couper.
+
+  Ce qui rend ce `null` honnête plutôt que paresseux, et qui n'est pas évident : **les huit
+  crons vivent dans un seul fichier de workflow.** Le risque de vivacité que courent ces
+  couches n'est pas un trimestre lent, c'est GitHub désactivant les workflows planifiés d'un
+  dépôt public resté calme 60 jours — ce qui désactive `ingestion.yml` **en entier**. `bodacc`
+  est dans le même fichier avec un seuil de trois jours : il rougit dans les trois jours et
+  répond donc pour les huit. Un seuil propre à `rare` n'aurait acheté que le cas que `bodacc`
+  ne couvre pas.
+- **Une source sans seuil n'est pas rendue « à jour ».** Elle porte
+  `sans seuil (vérification)`, et `freshness` les compte à part. Dire « à jour » de ce que rien
+  n'a vérifié est précisément le petit mensonge dont ce défaut était fait : la décision de ne
+  pas poser de seuil ne l'autorise pas.
 - `scripts/porte/cadences.test.ts` joue les deux moitiés à chaque `npm.cmd run test` : aucune
-  valeur de l'énumération sans tolérance, et **aucune source déclarée par une migration dont la
-  cadence soit inconnue de la table**. C'est cette seconde qui aurait attrapé `weekly` le
-  25 août.
+  valeur de l'énumération sans décision écrite, et **aucune source déclarée par une migration
+  dont la cadence soit inconnue de la table**. C'est cette seconde qui aurait attrapé `weekly`
+  le 25 août.
 
 ### Ce que le correctif ne rattrape pas
 
+- **Une panne propre à un seul des crons sans seuil** n'est pas vue ici : le chargeur PLU qui
+  lèverait chaque 9 mars pendant que le reste du fichier tourne. Elle fait échouer le job, et
+  le workflow d'ingestion ouvre une issue pour ça (`#71`, point 4) — donc elle se voit par
+  l'exécution en échec, jamais par cette table.
 - **Une valeur ajoutée à l'énumération sans qu'aucune source ne la porte** passe encore. La
   liste `CADENCES` est écrite à la main ; le contrôle recoupe les cadences **effectivement
   déclarées** par les migrations, pas le type Postgres. Une valeur orpheline ne fait de mal à

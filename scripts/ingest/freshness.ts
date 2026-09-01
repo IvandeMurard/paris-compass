@@ -86,13 +86,16 @@ async function main(): Promise<void> {
 
     let late = 0
     let never = 0
+    let unjudged = 0
     for (const r of rows) {
-      // Throws on a cadence the tolerance table does not know, rather than reading it as
+      // Throws on a cadence the tolerance table has no ENTRY for, rather than reading it as
       // "nothing to say" — that fallback is exactly how `weekly` went unwatched for a week
-      // (DIAGNOSTIC.md §31).
+      // (DIAGNOSTIC.md §31). A cadence entered as `null` is a decision, and comes back as
+      // `sans-seuil` rather than as `à jour`.
       const verdict = verdictOf({ cadence: r.cadence, ageDays: r.age_days })
       if (verdict.state === "en-retard") late += 1
       if (verdict.state === "jamais-charge") never += 1
+      if (verdict.state === "sans-seuil") unjudged += 1
 
       process.stdout.write(
         cell(r.source, 13) +
@@ -122,6 +125,17 @@ async function main(): Promise<void> {
     for (const complaint of drift) process.stdout.write(`\n  ÉCART  ${complaint}\n`)
 
     if (late > 0) process.stdout.write(`\n${late} source(s) au-delà de leur cadence déclarée.\n`)
+    if (unjudged > 0) {
+      // Named rather than counted silently: these rows are not green, they are unjudged, and
+      // a reader must be able to tell which. Decision of 1 September 2026 — the threshold that
+      // would have covered them sat beyond a year, and `bodacc` covers the case that matters
+      // (the workflow being disabled) for the whole file in three days.
+      process.stdout.write(
+        `\n${unjudged} source(s) sans seuil de retard, par décision : leur cadence est une cadence\n` +
+          "de vérification sur des couches qui ne vieillissent pas en jours. Ce qui les surveille est\n" +
+          "`bodacc`, dans le même fichier de workflow — voir scripts/ingest/lib/cadence.ts.\n",
+      )
+    }
 
     // Declared, not asserted. While this counter is zero, no date in this table is backed by a
     // real refresh — the failure PLAN.md §2.2ter calls the fabricated rent in another form.
@@ -155,7 +169,10 @@ async function main(): Promise<void> {
       process.exitCode = EXIT.unsettled
       return
     }
-    process.stdout.write(`\nPASS — ${rows.length} sources, toutes dans leur cadence et rafraîchies par un cron.\n`)
+    process.stdout.write(
+      `\nPASS — ${rows.length} sources rafraîchies par un cron, ${rows.length - unjudged} dans leur cadence, ` +
+        `${unjudged} sans seuil par décision.\n`,
+    )
   } finally {
     await client.end()
   }

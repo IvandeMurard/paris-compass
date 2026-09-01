@@ -12,10 +12,25 @@
 // long the data may stay old. A 2023 BDCom survey verified this morning is in date here and
 // still three years old, and that is correct.
 //
-// This is why `rare` carries a number rather than a null. Until 1 September 2026 it carried
-// null, with the comment "nothing to say: these layers do not age in days" — true of the
-// layers, false of our verification of them. A PLU reload that stopped firing a year ago is
-// exactly the silence this table exists to break.
+// ── `rare` has no threshold at all, and that is a decision rather than an omission ────────
+//
+// Decided by Ivan on 1 September 2026, reversing the 400 days this file carried for a few
+// hours: more than a year is not a threshold, it is a number that would fire long after
+// anybody could act on it, and a threshold nobody acts on is the alert that gets muted.
+//
+// The reason it costs little is worth writing down, because it is not obvious and it is what
+// makes the null honest rather than lazy: **all eight crons live in one workflow file**. The
+// liveness risk these layers actually face is not a slow quarter — it is GitHub disabling the
+// scheduled workflows of a quiet public repository after 60 days, which disables
+// `ingestion.yml` whole, not one entry. `bodacc` sits in the same file with a three-day
+// tolerance, so it goes red within three days of that happening and takes the answer for all
+// eight with it. A per-cron threshold on `rare` would buy the case that `bodacc` does not
+// already cover, and only that case.
+//
+// What it therefore does NOT catch, and it must be named: a failure specific to one of these
+// crons — the PLU loader throwing every 9 March while the rest of the file runs. That fails
+// the job, and the ingestion workflow opens an issue for it (#71, point 4). It is caught by
+// the run failing, never by this table.
 //
 // ── Every cadence of the enum, and no silent default ──────────────────────────────────────
 //
@@ -23,9 +38,12 @@
 // 20260825000006_chantier_cadence.sql and never reached the tolerance table, which read
 // `TOLERANCE_DAYS[cadence] ?? null`. `chantiers` — the one source declared weekly, and the one
 // reloaded by hand — was therefore reported "à jour" at any age whatsoever. DIAGNOSTIC.md §31.
-// Hence `toleranceOf` throws on a cadence it does not know rather than falling back: an
-// unknown cadence is a migration this file has not caught up with, and reading it as "nothing
-// to say" is how the defect happened the first time.
+//
+// So the distinction this file turns on is between a null WRITTEN here and a key MISSING from
+// here. The first is a decision, taken above, with its reason. The second is a migration this
+// file has not caught up with, and `toleranceOf` throws on it. `?? null` collapsed the two,
+// which is precisely how the defect happened: it answered "nothing to say" to a question
+// nobody had been asked.
 
 /** The values of `public.ingestion_cadence`, in the order the enum declares them. */
 export const CADENCES = ["continuous", "monthly", "triennial", "rare", "weekly"] as const
@@ -33,40 +51,45 @@ export const CADENCES = ["continuous", "monthly", "triennial", "rare", "weekly"]
 export type Cadence = (typeof CADENCES)[number]
 
 /**
- * Days our copy may go unrefreshed before it is visibly behind, per declared cadence.
+ * Days our copy may go unrefreshed before it is visibly behind, per declared cadence. `null`
+ * means "no threshold, deliberately" — see the header; a MISSING key means "not decided", and
+ * `toleranceOf` throws on it.
  *
  * Each number is the source's own rhythm plus one grace period, so that a single missed run
  * shows and a scheduling lag does not. GitHub's scheduled runs are commonly late by tens of
  * minutes and occasionally skipped outright, which is precisely a thing worth seeing once and
  * not worth waking anybody for twice.
  */
-export const TOLERANCE_DAYS: Record<Cadence, number> = {
+export const TOLERANCE_DAYS: Record<Cadence, number | null> = {
   // BODACC publishes every working day and the cron runs daily: three days covers a long
-  // weekend plus one skipped run.
+  // weekend plus one skipped run. This is also the canary for the whole workflow file — see
+  // the header on why `rare` and `triennial` can then do without a threshold of their own.
   continuous: 3,
   // The weekly cron plus three days. One missed week shows on the tenth day.
   weekly: 10,
   // INSEE republishes monthly, the crons run on the 2nd and the 3rd: 45 days is one missed
   // month and a half, and cannot be reached by a cron that fires.
   monthly: 45,
-  // BDCom is surveyed every three years; the cron verifies quarterly. 400 days is more than
-  // four missed verifications — it catches a workflow that has stopped, not a slow quarter.
-  triennial: 400,
-  // Twice-a-year verification cadence for the layers that barely move (geography, PLU,
-  // terrasses). Same reading as `triennial`: it catches a cron that died, not a stale layer.
-  rare: 400,
+  // No threshold. Same decision, and the same reason, as `rare` below: BDCom is surveyed every
+  // three years and the quarterly cron only verifies, so any threshold worth having would sit
+  // beyond a year — far past the point where somebody could still act on it.
+  triennial: null,
+  // No threshold, decided 1 September 2026. Geography, PLU and terrasses are verification
+  // cadences on layers that do not age in days; the liveness risk they run is the workflow
+  // being disabled, and `continuous` above catches that for the whole file in three days.
+  rare: null,
 }
 
-export function toleranceOf(cadence: string): number {
-  const days = TOLERANCE_DAYS[cadence as Cadence]
-  if (days === undefined) {
+/** The tolerance for a cadence, or `null` for the cadences deliberately given no threshold. */
+export function toleranceOf(cadence: string): number | null {
+  if (!Object.prototype.hasOwnProperty.call(TOLERANCE_DAYS, cadence)) {
     throw new Error(
       `cadence « ${cadence} » inconnue de scripts/ingest/lib/cadence.ts. ` +
-        "Une valeur ajoutée à public.ingestion_cadence doit recevoir sa tolérance ici — " +
-        "la lire comme « rien à dire » est le défaut §31.",
+        "Une valeur ajoutée à public.ingestion_cadence doit être tranchée ici — un seuil, ou " +
+        "un null avec sa raison écrite. La lire comme « rien à dire » est le défaut §31.",
     )
   }
-  return days
+  return TOLERANCE_DAYS[cadence as Cadence]
 }
 
 /**
@@ -105,26 +128,36 @@ export function reconcileSources(remote: string[], declared: string[]): string[]
   return complaints
 }
 
-export type FreshnessState = "a-jour" | "jamais-charge" | "en-retard"
+export type FreshnessState = "a-jour" | "jamais-charge" | "en-retard" | "sans-seuil"
 
 export interface FreshnessVerdict {
   state: FreshnessState
-  /** The tolerance the verdict was taken against, for a caller that prints it. */
-  toleranceDays: number
+  /** The tolerance the verdict was taken against, or `null` where there is none. */
+  toleranceDays: number | null
   label: string
 }
 
 /**
  * The verdict on one row of `compass_source_freshness()`.
  *
- * "Never loaded" is not "very old": it is an absence of measurement, and the two are different
- * answers — the same rule that governs every figure in this product. It does not count as late,
- * and it is not silent either: it gets its own state and its own line.
+ * Four states, and the three that are not "à jour" are three different answers rather than
+ * three flavours of the same one:
+ *
+ *   jamais-charge  an absence of measurement, never "very old". The rule that governs every
+ *                  figure in this product.
+ *   sans-seuil     loaded, and this table has not judged how recently — the cadence carries no
+ *                  threshold by decision. It is deliberately NOT reported as "à jour": saying
+ *                  "up to date" about something nothing checked is the small lie DIAGNOSTIC.md
+ *                  §31 was made of, and the decision to have no threshold does not licence it.
+ *   en-retard      measured past its declared tolerance.
  */
 export function verdictOf(row: { cadence: string; ageDays: number | null }): FreshnessVerdict {
   const toleranceDays = toleranceOf(row.cadence)
   if (row.ageDays === null) {
     return { state: "jamais-charge", toleranceDays, label: "jamais chargé" }
+  }
+  if (toleranceDays === null) {
+    return { state: "sans-seuil", toleranceDays, label: "sans seuil (vérification)" }
   }
   if (row.ageDays > toleranceDays) {
     return { state: "en-retard", toleranceDays, label: `EN RETARD (> ${toleranceDays} j)` }

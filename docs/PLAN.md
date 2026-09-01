@@ -194,9 +194,21 @@ forme — un chiffre qui a l'air à jour et ne l'est pas forcément.
 >
 > Les tolérances sont dans `scripts/ingest/lib/cadence.ts`, et ce sont des tolérances **du
 > contrôle**, jamais de la donnée : `age_days` mesure depuis quand nous n'avons pas vérifié,
-> pas depuis quand la couche est vieille. C'est pourquoi `rare` porte 400 jours et non `null`,
-> et c'est le défaut `DIAGNOSTIC.md` §31 — `weekly`, ajoutée à l'énumération le 25 août, n'y
-> avait jamais été inscrite, donc `chantiers` était rendue « à jour » à n'importe quel âge.
+> pas depuis quand la couche est vieille.
+>
+> **Trois cadences portent un seuil, deux n'en portent pas — et l'absence est écrite.**
+> `continuous` 3 jours, `weekly` 10, `monthly` 45 ; `rare` et `triennial` aucun, décidé par
+> Ivan le 1er septembre 2026. Un seuil qui aurait du sens sur une cadence de vérification
+> serait au-delà d'un an, c'est-à-dire bien après le moment où l'on pouvait encore agir. Ce
+> qui surveille réellement ces couches est `bodacc` : **les huit crons sont dans un seul
+> fichier de workflow**, le risque qu'elles courent est que GitHub le désactive après 60 jours
+> calmes, et il le désactive en entier — donc les trois jours de `bodacc` répondent pour les
+> huit. Une source sans seuil est rendue `sans seuil (vérification)`, **jamais « à jour »**.
+>
+> La distinction entre un `null` **écrit** et une clé **absente** est le correctif de
+> `DIAGNOSTIC.md` §31 : `weekly`, ajoutée à l'énumération le 25 août, n'y avait jamais été
+> inscrite, et le `?? null` d'alors l'a lue comme « rien à dire » — donc `chantiers` était
+> rendue « à jour » à n'importe quel âge. Une clé absente lève maintenant.
 
 > **Tenu, et de façon lisible.** `compass_source_freshness()` rend `run_by` à côté de chaque
 > date, `npm.cmd run freshness` écrit noir sur blanc « cadence déclarée, pas tenue » tant

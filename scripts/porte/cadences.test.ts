@@ -184,14 +184,23 @@ describe("la règle, jouée sur ce dépôt-ci", () => {
 })
 
 describe("le dépassement de cadence a un comportement décidé", () => {
-  it("ne laisse aucune valeur de l'énumération sans tolérance", () => {
-    for (const cadence of CADENCES) expect(TOLERANCE_DAYS[cadence]).toBeGreaterThan(0)
+  it("ne laisse aucune valeur de l'énumération sans décision écrite", () => {
+    // A number or an explicit null — never an absent key. The two are different things since
+    // 1 September 2026, and the whole fix of §31 is that they are told apart.
+    for (const cadence of CADENCES) {
+      expect(Object.prototype.hasOwnProperty.call(TOLERANCE_DAYS, cadence), `${cadence} non tranchée`).toBe(true)
+      const days = TOLERANCE_DAYS[cadence]
+      expect(days === null || days > 0, `${cadence} porte une tolérance absurde`).toBe(true)
+    }
   })
 
   it("refuse une cadence inconnue au lieu de la lire comme « rien à dire »", () => {
     // The exact shape of §31: `TOLERANCE_DAYS[cadence] ?? null` turned an unhandled enum value
-    // into a source that could never be late.
+    // into a source that could never be late. A key absent still throws; a key written `null`
+    // is a decision and does not.
     expect(() => toleranceOf("quinquennal")).toThrow(/inconnue/)
+    expect(() => toleranceOf("rare")).not.toThrow()
+    expect(toleranceOf("rare")).toBeNull()
   })
 
   it("distingue jamais chargé de très vieux", () => {
@@ -227,10 +236,38 @@ describe("le dépassement de cadence a un comportement décidé", () => {
     expect(reconcileSources(["a", "b"], ["b", "a"])).toEqual([])
   })
 
-  it("mesure l'âge du contrôle et non celui de la donnée", () => {
-    // A `rare` layer verified twice a year: 400 days catches a cron that died, never a stale
-    // vote. Until 1 September 2026 `rare` carried no tolerance at all and could not be late.
-    expect(verdictOf({ cadence: "rare", ageDays: 200 }).state).toBe("a-jour")
-    expect(verdictOf({ cadence: "rare", ageDays: 401 }).state).toBe("en-retard")
+  it("ne met jamais en retard une cadence de vérification, et ne la dit pas à jour non plus", () => {
+    // Decision of 1 September 2026: `rare` and `triennial` carry no threshold. Any threshold
+    // worth having would have sat beyond a year, which is past the point where anybody could
+    // act on it. But an unjudged row must not be rendered "à jour" — saying up-to-date about
+    // something nothing checked is the small lie §31 was made of.
+    for (const ageDays of [200, 401, 5000]) {
+      expect(verdictOf({ cadence: "rare", ageDays }).state).toBe("sans-seuil")
+      expect(verdictOf({ cadence: "triennial", ageDays }).state).toBe("sans-seuil")
+    }
+    expect(verdictOf({ cadence: "rare", ageDays: 5000 }).label).not.toContain("à jour")
+    // And "never loaded" still wins over "no threshold": an absence of measurement is not the
+    // same answer as a measurement nobody judged.
+    expect(verdictOf({ cadence: "rare", ageDays: null }).state).toBe("jamais-charge")
+  })
+
+  it("garde un seuil là où la donnée vieillit vraiment en jours", () => {
+    // The counter-test of the decision above: dropping the thresholds for the verification
+    // cadences must not have dropped them for the sources that do age.
+    expect(TOLERANCE_DAYS.continuous).toBe(3)
+    expect(TOLERANCE_DAYS.weekly).toBe(10)
+    expect(TOLERANCE_DAYS.monthly).toBe(45)
+  })
+
+  it("laisse bodacc surveiller le fichier de workflow entier", () => {
+    // The reason the nulls above cost little, and it is the half that is not obvious: the
+    // eight crons live in ONE workflow file, and the liveness risk these layers run is GitHub
+    // disabling that file after 60 quiet days — which disables it whole. `bodacc` is in the
+    // same file with a three-day threshold, so it answers for all eight.
+    const crons = readWorkflows()
+      .map((w) => [...w.text.matchAll(/^\s*-\s*cron:/gm)].length)
+      .filter((n) => n > 0)
+    expect(crons, "les crons d'ingestion ne sont plus dans un seul fichier").toContain(readDeclaredSources().length)
+    expect(TOLERANCE_DAYS.continuous).not.toBeNull()
   })
 })

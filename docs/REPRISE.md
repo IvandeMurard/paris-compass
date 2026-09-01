@@ -28,12 +28,12 @@ a bougé les 31 août et 1er septembre, et rien d'autre :
 | Mesure | Valeur, mesurée le 31 août 2026, sauf mention du 1er septembre |
 | --- | --- |
 | Ledger distant `supabase_migrations` | **47** — inchangé, ni `#69` ni `#71` **n'ont posé de migration** : les deux défauts étaient dans les lanceurs, pas dans le schéma |
-| Tests unitaires | **299**, mesurés le 1er septembre 2026 — 273 après `#71`, puis 299 avec `scripts/porte/cadences.test.ts` (21 cas), les trois de la réconciliation distant/migrations, et deux ajoutés de part et d'autre dans `scripts/ingest/workflow.test.ts` et `scripts/porte/workflow.test.ts` |
+| Tests unitaires | **301**, mesurés le 1er septembre 2026 — 273 après `#71`, puis 299 avec `scripts/porte/cadences.test.ts`, la réconciliation distant/migrations et deux cas ajoutés de part et d'autre dans `scripts/ingest/workflow.test.ts` et `scripts/porte/workflow.test.ts`, puis **301** en tranchant les cadences sans seuil |
 | **Sources et cadences** | **8 sources dans `compass_source_freshness()`, 8 entrées `cron`**, mesuré le 1er septembre 2026. Les huit du distant sont exactement les huit que les migrations déclarent — recoupé par `freshness`, zéro écart. Entretien : **1 par `schedule`** (`bodacc`), 1 par `workflow-dispatch` (`geography`), 6 depuis un terminal. Les cadences les plus lentes n'ont pas encore eu leur tour, donc `freshness` sort en **3** et le dira jusqu'à ce qu'elles l'aient eu |
 | Invariants | **37** — inchangé. Trois d'entre eux, `I1`, `I2` et `I7`, sont **joués en 22 instructions** au lieu d'une. Même population, toutes les tranches jouées |
 | **Coût des trois bras distants** (le quatrième, `freshness`, est **un aller-retour** : une RPC, aucun balayage) | Deux passages. `eval` **306 s** puis **299 s** (bras A seul 240 s) · `eval:anon` **5 s** deux fois · `verify:mcp` **114 s** puis **227 s** — **425 s puis 531 s**. L'écart est entièrement `verify:mcp`, et c'est Overpass : les contrôles suspendus attendent des miroirs publics à 429 et 504, chacun avec son délai. C'est ce chiffre-là qui dimensionne la cadence de la porte planifiée, **pas les 115 s de `#69`**, qui étaient `I1` seul avant son découpage |
 | **Secrets de dépôt** | **`DATABASE_URL` seul.** `SUPABASE_URL` et `SUPABASE_ANON_KEY` **manquent**, donc `eval:anon` et `verify:mcp` n'ont pas de clé sur un runner. Le workflow s'arrête là-dessus en le nommant, avant de dépenser dix minutes |
-| Portes | `typecheck` ✓ · `test` **299** ✓ (1er septembre) · `freshness` **8 sources, 0 en retard, 0 écart**, sortie 3 (1er septembre) · `eval` **deux passages, deux fois au bout**, sortie 3 sur les **11 avertissements de baseline** habituels, **zéro sur l'horloge** · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 39 verts, 0 échec, 2 suspendus** (Overpass 429 puis 504), sortie 0 · `porte:sabotage` **PASS, 13 contrôles** · `build` et `build:dev` ✓, hashes inchangés (`index-DKJzmj15.js`, `MapView-8C8F8Ymz.js`) — rien dans `src/` |
+| Portes | `typecheck` ✓ · `test` **301** ✓ (1er septembre) · `freshness` **8 sources, 0 en retard, 0 écart, 4 sans seuil par décision**, sortie 3 (1er septembre) · `eval` **deux passages, deux fois au bout**, sortie 3 sur les **11 avertissements de baseline** habituels, **zéro sur l'horloge** · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 39 verts, 0 échec, 2 suspendus** (Overpass 429 puis 504), sortie 0 · `porte:sabotage` **PASS, quatre actes** · `build` et `build:dev` ✓, hashes inchangés (`index-DKJzmj15.js`, `MapView-8C8F8Ymz.js`) — rien dans `src/` |
 
 **La porte tourne toute seule depuis le 31 août** — `.github/workflows/porte.yml`, tous les
 jours à 07:29 UTC, neuf bras : `typecheck`, `test`, `build`, `build:dev`, `sessions:check`,
@@ -376,6 +376,15 @@ Trois choses en découlent, et aucune n'est les quatre entrées `cron` ajoutées
   `freshness` sort désormais 0, 3 ou 1 sur la convention de `scripts/porte/report.ts`, et il
   vit dans `porte.yml` — parce qu'un chargement qui n'a **jamais démarré** ne laisse aucun
   échec derrière lui : `ingestion.yml` ne peut pas rapporter un job qu'il n'a pas lancé.
+- **Deux cadences n'ont volontairement aucun seuil.** Tranché par Ivan le même jour, contre
+  les 400 jours qu'elles ont portés quelques heures : plus d'un an n'est pas un seuil, c'est
+  un nombre qui se déclenche après le moment où l'on pouvait agir. `rare` et `triennial` sont
+  des cadences de **vérification** ; ce qui les surveille réellement est `bodacc`, parce que
+  **les huit crons vivent dans un seul fichier** et que le risque qu'elles courent — GitHub
+  désactivant les workflows planifiés d'un dépôt calme depuis 60 jours — désactive ce fichier
+  en entier. Une absence de seuil **écrite** n'est pas un `?? null` : c'est la distinction que
+  `DIAGNOSTIC.md` §31 a coûté, et une source sans seuil est rendue `sans seuil`, jamais
+  « à jour ».
 
 **Ce que la règle ne rattrape pas, et il faut le nommer** : elle vérifie qu'un déclencheur
 **existe**, jamais qu'il a **réussi** — ni que le chargeur a chargé la bonne chose.
