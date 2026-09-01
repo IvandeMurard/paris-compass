@@ -1,7 +1,7 @@
 import React from 'react';
 import PropertyCard from './PropertyCard';
+import OpenDataErrorNotice from './OpenDataErrorNotice';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { usePremises, useAreaEnvironment } from '@/hooks/useOpenData';
 import { useFiltersContext } from '@/providers/FiltersProvider';
 import { useLocale } from '@/i18n/locale';
@@ -9,7 +9,7 @@ import { useLocale } from '@/i18n/locale';
 const PropertyList = () => {
   const { t, locale } = useLocale();
   const { matches, bbox } = useFiltersContext();
-  const { data, isLoading, isError, error } = usePremises(bbox);
+  const { data, isLoading, isError, error, refetch } = usePremises(bbox);
   const center = {
     lat: (bbox.south + bbox.north) / 2,
     lng: (bbox.west + bbox.east) / 2,
@@ -29,12 +29,7 @@ const PropertyList = () => {
   if (isError) {
     return (
       <div className="p-6">
-        <Alert variant="destructive">
-          <AlertTitle>{t('list.errorTitle')}</AlertTitle>
-          <AlertDescription>
-            {(error as Error)?.message ?? t('list.errorBody')}
-          </AlertDescription>
-        </Alert>
+        <OpenDataErrorNotice error={error} onRetry={() => refetch()} />
       </div>
     );
   }

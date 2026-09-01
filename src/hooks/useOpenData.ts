@@ -50,7 +50,11 @@ export function usePremises(bbox: BBox = PARIS_BBOX) {
     queryFn: () => fetchPremises(box),
     enabled: !tooLarge,
     staleTime: 30 * 60 * 1000,
-    retry: 1,
+    // No automatic retry. `fetchOverpassSnapshot` already walks three independent mirrors;
+    // when all three refuse, a fourth attempt costs seventy more seconds and changes nothing.
+    // The user gets an explicit Retry button instead of a silent loop.
+    retry: false,
+    refetchOnWindowFocus: false,
   });
   return { ...query, tooLarge };
 }

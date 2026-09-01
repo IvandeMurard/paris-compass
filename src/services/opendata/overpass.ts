@@ -9,6 +9,40 @@ const OVERPASS_ENDPOINTS = [
   'https://overpass.private.coffee/api/interpreter',
 ];
 
+export const OVERPASS_HOSTS = OVERPASS_ENDPOINTS.map((url) => new URL(url).host);
+
+/**
+ * Every Overpass mirror refused the request.
+ *
+ * Distinguished from a generic failure because the two call for different words on screen.
+ * A `TypeError: Failed to fetch` on all three hosts is not an upstream outage — the mirrors
+ * are independent — it is the browser's own network refusing to reach them: proxy, DNS
+ * filter, content blocker. `blocked` records that reading so the UI can name the hosts
+ * instead of blaming the data.
+ */
+export class OverpassUnreachableError extends Error {
+  readonly hosts = OVERPASS_HOSTS;
+  readonly blocked: boolean;
+  /** Set by hand: the `cause` option of `Error` needs a lib newer than this project targets. */
+  readonly reason: unknown;
+
+  constructor(message: string, options: { blocked: boolean; cause?: unknown }) {
+    super(message);
+    this.name = 'OverpassUnreachableError';
+    this.blocked = options.blocked;
+    this.reason = options.cause;
+  }
+}
+
+/**
+ * A `fetch` that never reached the server rejects with a `TypeError`, with no status.
+ * An HTTP error, a timeout abort or an Overpass remark all produce something else.
+ */
+const isNetworkRefusal = (error: unknown) =>
+  error instanceof TypeError ||
+  (error instanceof DOMException && error.name === 'AbortError');
+
+
 interface OverpassElement {
   type: 'node' | 'way' | 'relation';
   id: number;
@@ -130,11 +164,18 @@ const ROAD_WEIGHT: Record<string, number> = {
   secondary: 2,
 };
 
-/** Fetch every OpenStreetMap feature Compass needs for a map viewport, in one request. */
+/**
+ * Fetch every OpenStreetMap feature Compass needs for a map viewport, in one request.
+ *
+ * Each mirror is tried exactly once — no back-off loop. Three hosts that all refuse in the
+ * same second are refusing for a local reason, and retrying them only spends the user's
+ * time while the map stays blank. The caller is told, once, and offers a Retry button.
+ */
 export async function fetchOverpassSnapshot(bbox: BBox): Promise<OverpassSnapshot> {
   const query = buildQuery(bbox);
   let data: OverpassResponse | null = null;
   let lastError: unknown = null;
+  let refusals = 0;
 
   for (const endpoint of OVERPASS_ENDPOINTS) {
     try {
@@ -155,10 +196,19 @@ export async function fetchOverpassSnapshot(bbox: BBox): Promise<OverpassSnapsho
       break;
     } catch (error) {
       lastError = error;
+      if (isNetworkRefusal(error)) refusals += 1;
     }
   }
 
-  if (!data) throw lastError instanceof Error ? lastError : new Error('Overpass unavailable');
+  if (!data) {
+    const message = lastError instanceof Error ? lastError.message : 'Overpass unavailable';
+    throw new OverpassUnreachableError(message, {
+      // Every mirror refused at the network layer: the block is on this side of the wire.
+      blocked: refusals === OVERPASS_ENDPOINTS.length,
+      cause: lastError,
+    });
+  }
+
 
   const snapshot: OverpassSnapshot = {
     pois: [],

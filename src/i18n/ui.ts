@@ -87,6 +87,30 @@ export const UI = {
   'map.locate': { fr: 'Me localiser', en: 'Locate me' },
   'map.reset': { fr: 'Recentrer sur Paris', en: 'Recentre on Paris' },
 
+  // Network failure made visible. Overpass is reached straight from the browser, so a
+  // corporate proxy, a DNS filter or a content blocker can cut it while every other source
+  // still answers. Saying which hosts failed is what turns a blank map into a diagnosis.
+  'map.blocked.title': {
+    fr: 'Données OpenStreetMap injoignables depuis ce réseau',
+    en: 'OpenStreetMap data unreachable from this network',
+  },
+  'map.blocked.body': {
+    fr: 'Le fond de carte s’affiche, mais les locaux et les aménités viennent d’Overpass, qui ne répond pas. Un proxy d’entreprise, un filtrage DNS ou un bloqueur de contenu en est la cause la plus fréquente.',
+    en: 'The base map still renders, but premises and amenities come from Overpass, which is not responding. A corporate proxy, DNS filtering or a content blocker is the usual cause.',
+  },
+  'map.blocked.hosts': { fr: 'Hôtes contactés :', en: 'Hosts contacted:' },
+  'common.retry': { fr: 'Réessayer', en: 'Retry' },
+  'common.reload': { fr: 'Recharger la page', en: 'Reload the page' },
+  'app.crash.title': {
+    fr: 'L’application a rencontré une erreur',
+    en: 'The application hit an error',
+  },
+  'app.crash.body': {
+    fr: 'Rien n’est perdu côté données : il s’agit d’une erreur d’affichage. Recharger la page suffit en général.',
+    en: 'No data is lost: this is a rendering error. Reloading the page usually clears it.',
+  },
+
+
   // Search
   'search.placeholder': {
     fr: 'Rechercher en langage naturel…',
