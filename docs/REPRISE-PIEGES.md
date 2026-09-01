@@ -342,3 +342,31 @@ l'omettre casse `vitest` et `vite build` avec un `MODULE_NOT_FOUND` sur
 
 ---
 
+---
+
+## Un workflow planifié tourne, mais six heures après l'heure déclarée — 1er septembre 2026
+
+**Ne pas conclure qu'une cadence est cassée parce que rien n'a tourné à l'heure dite.** GitHub
+retarde les workflows `schedule` des dépôts publics sous charge, et ce dépôt le subit
+lourdement. Mesuré le 1er septembre sur les quatre derniers passages de `ingestion.yml`, dont
+le créneau `bodacc` est déclaré à **03:17 UTC** :
+
+| Jour | Exécution réelle | Retard |
+| --- | --- | --- |
+| 29 août | 10:10 | 6 h 53 |
+| 30 août | 09:18 | 6 h 01 |
+| 31 août | 09:51 | 6 h 34 |
+| 1er septembre | 08:43 | 5 h 26 |
+
+**Environ six heures, systématiquement.** Le retard n'est ni une panne ni une erreur de
+configuration : les quatre passages sont en succès.
+
+Conséquence pratique : `porte.yml`, déclaré à `29 7 * * *`, ne tourne pas à 07:29 mais vers
+13:30 UTC. Constater son absence en fin de matinée ne prouve rien. Pour savoir si une cadence
+fonctionne, lire `gh run list --workflow=<nom>` sur plusieurs jours — jamais l'heure au mur.
+
+**Ce que ça change pour ce qui s'appuie dessus.** Une vérification « la porte a-t-elle tourné
+dans les dernières 24 h ? » reste juste. Une vérification « a-t-elle tourné ce matin ? » sera
+fausse un jour sur deux. Et le créneau déclaré est une *intention*, pas une mesure — l'écrire
+comme une heure d'exécution serait le même défaut qu'un chiffre sans sa date.
+
