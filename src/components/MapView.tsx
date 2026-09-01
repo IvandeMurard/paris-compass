@@ -95,6 +95,18 @@ const MapView = () => {
     <div className="relative h-full w-full bg-[#f5f5f5]">
       <div ref={mapRef} className="h-full w-full" />
 
+      {/* Centred, not tucked into the layers panel: an empty map is read as an answer unless
+          the failure is put where the answer would have been. */}
+      {isError && (
+        <OpenDataErrorNotice
+          error={error}
+          onRetry={() => refetch()}
+          className="absolute left-1/2 top-20 z-[1100] w-[min(28rem,calc(100%-2rem))] -translate-x-1/2"
+        />
+      )}
+
+
+
       <div className="absolute left-4 top-4 flex flex-col gap-2 z-[1000]">
         <Button variant="secondary" size="icon" aria-label={t('map.zoomIn')} onClick={handleZoomIn} className="bg-white hover:bg-gray-100">
           <ZoomIn className="h-4 w-4 text-gray-700" />
