@@ -23,11 +23,14 @@ export const OVERPASS_HOSTS = OVERPASS_ENDPOINTS.map((url) => new URL(url).host)
 export class OverpassUnreachableError extends Error {
   readonly hosts = OVERPASS_HOSTS;
   readonly blocked: boolean;
+  /** Set by hand: the `cause` option of `Error` needs a lib newer than this project targets. */
+  readonly reason: unknown;
 
   constructor(message: string, options: { blocked: boolean; cause?: unknown }) {
-    super(message, { cause: options.cause });
+    super(message);
     this.name = 'OverpassUnreachableError';
     this.blocked = options.blocked;
+    this.reason = options.cause;
   }
 }
 
