@@ -8,6 +8,7 @@ import { usePremises, useAreaEnvironment } from '@/hooks/useOpenData';
 import { useFiltersContext } from '@/providers/FiltersProvider';
 import type { BBox } from '@/services/opendata/types';
 import DataSourcesPanel from './DataSourcesPanel';
+import OpenDataErrorNotice from './OpenDataErrorNotice';
 import { useLocale } from '@/i18n/locale';
 import { translateLabel } from '@/i18n/labels';
 
@@ -20,7 +21,7 @@ const MapView = () => {
 
   const { t, locale } = useLocale();
   const { matches, bbox, setBbox } = useFiltersContext();
-  const { data, isFetching, isError, tooLarge } = usePremises(bbox);
+  const { data, isFetching, isError, error, refetch, tooLarge } = usePremises(bbox);
   const premises = useMemo(() => (data?.premises ?? []).filter(matches), [data, matches]);
   const pois = useMemo(() => data?.pois ?? [], [data]);
 
