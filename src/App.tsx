@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/providers/AuthProvider";
+import AppErrorBoundary from "@/components/AppErrorBoundary";
 import { LocaleProvider } from "@/i18n/locale";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -73,22 +74,24 @@ const AppRoutes = () => (
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <LocaleProvider>
-            {/* Inside LocaleProvider so a page still resolving keeps the locale it was asked in. */}
-            <Suspense fallback={null}>
-              <AppRoutes />
-            </Suspense>
-          </LocaleProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+  <AppErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <LocaleProvider>
+              {/* Inside LocaleProvider so a page still resolving keeps the locale it was asked in. */}
+              <Suspense fallback={null}>
+                <AppRoutes />
+              </Suspense>
+            </LocaleProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </AppErrorBoundary>
 );
 
 export default App;
