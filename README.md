@@ -10,7 +10,7 @@ Compass reads the street around it: what was there, what is changing, and what s
 [![Live app](https://img.shields.io/badge/live-paris--compass.lovable.app-0f766e?style=flat)](https://paris-compass.lovable.app)
 [![Scope](https://img.shields.io/badge/scope-Paris%20intra--muros-334155?style=flat)](#scope)
 [![Data](https://img.shields.io/badge/data-public%20sources%20only-1d4ed8?style=flat)](#where-every-number-comes-from)
-[![Eval gate](https://img.shields.io/badge/eval%20gate-10%20invariants%20·%2024%20baselines-16a34a?style=flat)](#how-a-number-earns-its-place)
+[![Eval gate](https://img.shields.io/badge/eval%20gate-37%20invariants%20·%2024%20baselines-16a34a?style=flat)](#how-a-number-earns-its-place)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue?style=flat)](LICENSE)
 [![Stack](https://img.shields.io/badge/React%2018-TypeScript-38bdf8?style=flat)](#stack)
 
@@ -21,6 +21,8 @@ Compass reads the street around it: what was there, what is changing, and what s
 ---
 
 > Compass sells neither coverage nor granularity — it sells **interpretation**. The point is how clearly we turn a raw figure into a decision you can make today.
+
+> And an interpretation is worth only what you can check. The tools in this market promise answers *grounded in audited data* — that names who verified. Compass promises figures **re-derivable from a cited public source** — that names who *can* verify: you. An internal audit is a promise. A cited source is a test anyone can rerun, including against us.
 
 A 3/6/9 lease is a nine-year bet, made today on one visit, a hunch about passing trade, and whatever the landlord says.
 
@@ -96,7 +98,7 @@ Today's composition across the corpus — this is the quality metric, and improv
 
 That 36.7% is structural, not laziness: BODACC names an *address*, BDCom names a *unit*, and 69% of units share their street number. No public data will say which of eight shopfronts was sold.
 
-A gate runs the whole corpus against **18 invariants, 24 frozen baselines and 8 hand-verified chronologies** before anything ships. Seventeen of those invariants check what the functions return; the eighteenth checks what they *are* — a function exposing an `observed` column must be `SECURITY DEFINER`, because row-level security silently turns a withheld row into "never surveyed".
+A gate runs the whole corpus against **37 invariants, 24 frozen baselines and 8 hand-verified chronologies** before anything ships — counted 2 September 2026 with `grep -c '^-- @invariant ' eval/invariants.sql`. Most of them check what the functions return; one checks what they *are* — a function exposing an `observed` column must be `SECURITY DEFINER`, because row-level security silently turns a withheld row into "never surveyed".
 
 ---
 
@@ -144,7 +146,13 @@ Every refusal buys something back. The trade is the point.
 No open observatory of commercial rents exists in France. Local rent observatories cover private *housing*; INSEE's ILC is a revision index, not a level. Street-level commercial values are sold by private vendors — which is the proof they are not open. Goodwill sale prices carry an indirect signal and nothing more.
 
 **How many people walk past this door?**
-Paris has no permanent pedestrian sensor: the city's multimodal counters cover bikes, scooters, motorcycles, cars, lorries and buses — not pedestrians. Telco and trajectory data are proprietary, costly and heavy under GDPR. Compass measures *presence and rhythm* instead.
+Paris has no permanent pedestrian sensor: the city's multimodal counters cover bikes, scooters, motorcycles, cars, lorries and buses — not pedestrians.
+
+Vendors do sell the number, and "proprietary and expensive" is the weak objection — worth being precise about what it actually is. It comes from a **panel of mobile handsets**: SDKs embedded in third-party apps report GPS coordinates in the background, and the sample is then extrapolated by weighting it against known demographics. The vendors say so themselves — *"We don't see everyone. We see a sample."* Peer-reviewed work on a comparable panel measured a mean sampling rate of **7.5%**, swinging between 4.5% and 14.5%, with low-income and less-educated populations under-represented and the urban/rural bias reversing sign mid-series.<sup>1</sup>
+
+So the figure is `modelled`, never `measured` — and the buyer cannot see the panel size on their own street, cannot replay the weighting, and is not told when a recalibration moves last year's number. The objection is not honesty, it is **verifiability**. Compass measures *presence and rhythm* from open sources instead, and labels it a proxy on screen.
+
+<sup>1</sup> Li Z., Ning H., Jing F., Lessani M. N. (2024). *Understanding the bias of mobile location data across spatial scales and over time.* PLOS ONE 19(1):e0294430.
 
 **What do people here spend, and on what?**
 Card transaction data: proprietary. No workaround.

@@ -205,7 +205,7 @@ docker ps --format "{{.Names}} | {{.Ports}}"   # voir quelle pile tourne vraimen
 # .env.local vise le distant : sans cette variable, la porte partirait vers eu-north-1.
 # Les variables du shell priment sur .env.local — vérifié, inutile de toucher au fichier.
 $env:DATABASE_URL = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
-npm.cmd run eval      # 18 invariants, 24 baselines, 8 cas dorés — ~45 s en local, ~3 min sur le distant
+npm.cmd run eval      # 37 invariants, 24 baselines, 8 cas dorés — ~45 s en local, ~3 min sur le distant
 Remove-Item Env:\DATABASE_URL
 ```
 

@@ -4,5 +4,5 @@
 
 ## Docs
 
-- [README](README.md): the six axes of context, data sources, evaluation gate (10 invariants, 24 baselines)
+- [README](README.md): the six axes of context, data sources, evaluation gate (37 invariants, 24 baselines)
 - [Live app](https://paris-compass.lovable.app): no account needed

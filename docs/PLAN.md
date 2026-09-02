@@ -1089,14 +1089,169 @@ déjà faire du SIG et veulent aller plus vite. Compass est vertical — une dé
 personne, un avis argumenté. Notre équivalent existe et s'appelle §4.1.
 
 **À refuser franchement.** Ils revendiquent le « foot traffic ». Or aucun comptage piéton
-ouvert ne couvre l'Île-de-France, c'est documenté en §3. Ils utilisent donc un proxy tu, ou une
-source commerciale. **Notre refus explicite est un actif concurrentiel, pas un manque** : ils
-promettent le chiffre que tout le monde veut, nous expliquons pourquoi personne ne peut le
-donner honnêtement. C'est le terrain où nous gagnons contre eux, et il vaut d'être tenu
-explicitement dans la case study (§4.4).
+ouvert ne couvre l'Île-de-France, c'est documenté en §3 : le chiffre vient donc d'un panel
+commercial, chez eux comme chez MyTraffic. **Notre refus explicite est un actif concurrentiel,
+pas un manque** — mais l'argument juste n'est pas celui qui était écrit ici.
+
+*Corrigé le 2 septembre 2026, après l'analyse de Gini.* Ce paragraphe disait « ils utilisent
+donc un proxy tu » et « personne ne peut le donner honnêtement ». Les deux tombent devant un
+acteur qui documente sa chaîne : MyTraffic publie le panel, le redressement et les biais qu'il
+reconnaît. Rien n'y est tu, et l'accusation se retournerait au premier contradicteur. Ce que
+personne ne peut donner, c'est un flux piéton **vérifiable** — un chiffre de panel est
+`modelled`, recalibré sans préavis, et l'acheteur ne peut ni voir la taille de l'échantillon sur
+sa rue ni rejouer le calcul. Chaîne complète, sources et étude de biais dans « Concurrence —
+Gini (MyTraffic) » ci-dessous. C'est le terrain où nous gagnons contre eux, et il vaut d'être
+tenu explicitement dans la case study (§4.4).
 
 Ne pas copier non plus leur export libre : le refus d'exporter une liste est structurant
 (§2.6), pas un retard.
+
+---
+
+## Concurrence — Gini (MyTraffic)
+
+Analysé le 2 septembre 2026, sur `mytraffic.io/fr/gini`, `/fr/pricing`, `/fr/how-it-works` et le
+guide « Foot traffic data » de leur blog.
+
+Agent conversationnel géospatial au-dessus d'une base propriétaire alimentée depuis 2016, né de
+l'absorption de **Geoblink** (racheté en 2023). Quatre surfaces : **Chat**, **Skills** (couches
+d'analyse métier pré-câblées), **Explore Mode** (carte filtrable, « fonctionnalités d'un SIG »),
+**Forecasting** (CA estimé à l'adresse, entraîné sur l'historique du réseau du client). Le
+livrable s'appelle l'**Artifact Factory** : synthèses exécutives et supports partageables,
+« bien au-delà des simples tableaux de bord ». 700+ clients, JLL, Leclerc, BNP Paribas, Danone.
+
+Ce n'est pas un builder de plus sur les registres publics : c'est le premier acteur analysé ici
+qui **descend jusqu'au persona du §1** — l'offre *Tiny*, 249 €/mois, cible mot pour mot
+« entrepreneurs, analystes solo, petits opérateurs et franchisés ».
+
+### La phrase qui vise Compass, et pourquoi elle est un cadeau
+
+> *« Gini does not generate plausible-sounding answers from the open internet. Every output is
+> grounded in MyTraffic's audited data. »*
+
+C'est la meilleure phrase de leur site, et elle est écrite contre nous — ou plutôt contre ce
+qu'un lecteur pressé croira lire. Elle repose sur une confusion qu'il faut casser explicitement,
+parce qu'elle ne se cassera pas toute seule :
+
+- **L'*open internet*, c'est de la prose non sourcée** qu'un modèle restitue de mémoire, sans
+  producteur, sans date, sans licence, sans moyen de recoupement. Le reproche est juste.
+- **L'*open data*, ce sont des registres versionnés, millésimés et licenciés** — BDCom, BODACC,
+  DVF, Sirene. Compass n'y « génère » rien : il y calcule.
+
+Compass n'est donc pas la cible de la phrase, il est **du même côté qu'elle, un cran plus loin**.
+Le critère qu'ils posent — le *grounding* — est le bon, et c'est nous qui le remplissons le mieux :
+
+| | Gini | Compass |
+|---|---|---|
+| Origine du chiffre | base propriétaire auditée | source publique citée |
+| Qui peut l'auditer | **eux** | **le lecteur** |
+| Rejouable par un tiers | non | oui — contrainte fondatrice n° 1 |
+| Si la méthode change | le chiffre change en silence | la porte d'évaluation le voit |
+
+La formulation à retenir, et à porter au README : **« audited » dit qui a vérifié ;
+« re-derivable » dit qui *peut* vérifier.** Un audit interne est une promesse ; une source citée
+est un test que n'importe qui peut refaire.
+
+### Comment ils obtiennent le flux piéton — la chaîne complète
+
+À écrire noir sur blanc une fois pour toutes, parce que c'est là que le refus du §3 se joue
+vraiment, et parce que la version courte (« ils ont un proxy tu ») est fausse.
+
+1. **Aucun capteur.** Un **panel de terminaux mobiles**. Des SDK embarqués dans des applications
+   tierces — météo, jeux, actualités — remontent les coordonnées GPS du téléphone en tâche de
+   fond. MyTraffic travaille avec des applications en direct et avec des courtiers de données de
+   localisation, dont **Singlespot**, pour un ordre de grandeur de **19 millions de mobiles
+   actifs par an** (chiffre de presse sectorielle, non certifié par eux).
+2. **Le consentement est délégué.** Il est recueilli par l'éditeur de l'application via sa CMP,
+   souvent pour une finalité publicitaire. MyTraffic affirme n'exploiter que des coordonnées
+   consenties pour la finalité analytique. À noter tout de même, parce que ça caractérise le
+   canal et non l'entreprise : **Singlespot a été mis en demeure par la CNIL en octobre 2018**
+   pour absence de consentement au traitement de données de géolocalisation. Le piéton compté
+   ignore qu'il est compté.
+3. **Volumétrie.** 100 M points de données par mois, précision annoncée **10 m**, 1 M adresses.
+   La couverture varie selon la page de leur propre site : **10 pays** (`how-it-works`),
+   **14** (blog), **18** (pricing). Aucune n'est datée.
+4. **Le redressement, qui est le vrai produit.** Leur guide 2026 le dit sans détour : *« On ne
+   voit pas tout le monde. On voit un échantillon… la plateforme extrapole en pondérant cet
+   échantillon contre des données démographiques connues »*, avec l'analogie explicite du sondage
+   électoral. La qualité dépend de **trois** choses qu'ils énumèrent eux-mêmes : la taille du
+   panel **dans ce pays**, sa **représentativité**, et la **calibration** de l'extrapolation. Un
+   seuil minimal de passages hebdomadaires existe, sous lequel ils jugent le redressement
+   insuffisamment solide — et ne publient pas.
+5. **Les biais qu'ils reconnaissent.** Les marges s'élargissent quand le panel est mince, en zone
+   dense ou en intérieur (« les signaux GPS dérivent entre étages et bâtiments »), et sur les
+   fenêtres courtes (« un mardi calme est bien plus bruyant qu'un mois complet »).
+6. **Les biais que la littérature mesure.** Li Z., Ning H., Jing F., Lessani M. N. (2024),
+   *Understanding the bias of mobile location data across spatial scales and over time*,
+   PLOS ONE 19(1):e0294430 — sur le panel SafeGraph, États-Unis, 2018-2022 : taux
+   d'échantillonnage moyen **7,5 %**, oscillant de **4,5 % à 14,5 %** ; sous-représentation des
+   ménages sous 50 000 $, des populations hispaniques et des faibles niveaux de scolarité ;
+   inversion du biais urbain/rural fin 2019 ; aggravation pendant la pandémie. Panel différent,
+   même famille de données — et la conclusion vaut pour tous : **la représentativité d'un panel
+   mobile n'est stable ni dans le temps ni dans l'espace.**
+
+**Ce qu'il faut en tirer, et c'est la correction la plus importante de cette section.** Un flux
+piéton MyTraffic est `modelled`, jamais `measured`, au sens de `src/core/provenance.ts` — et
+c'est *leur propre description*, pas notre accusation. La ligne de partage n'est donc pas
+l'honnêteté, c'est la **vérifiabilité** : le client ne peut pas voir la taille du panel sur *sa*
+rue, ne peut pas voir le pas de redressement, ne peut pas rejouer le calcul, et ne saura pas
+qu'un chiffre de l'an dernier a changé parce que la calibration a été refaite. Rien de tout ça
+n'est caché par malice ; c'est structurellement invisible parce que la donnée est fermée.
+
+### À voler
+
+- **Les hypothèses et le niveau de confiance, en plus des sources.** Ils annoncent la triade
+  complète : *« Every Gini output includes its sources, its assumptions, and its confidence
+  level. »* Compass porte `source · licence · millésime · méthode` et une échelle de confiance à
+  quatre niveaux — mais les **hypothèses** d'un calcul ne sont exposées nulle part. C'est le
+  geste le moins cher de toute cette analyse.
+- **L'Artifact Factory valide le dossier d'adresse (§2.6).** Ils gagnent de l'argent sur
+  exactement le format qu'on a mis au backlog : un livrable partageable plutôt qu'un tableau de
+  bord, parce que la décision passe par un tiers. Confirmation externe de `PERIMETRE.md` §10.
+- **L'unité de facturation.** Ils facturent la **conversation** — une analyse lancée — pas le
+  siège ni l'appel d'API, et les conversations non consommées ne se reportent pas. C'est la
+  réponse à l'objection « le preneur décide une à trois fois dans sa vie professionnelle » : on
+  ne lui vend pas un abonnement, on lui vend un stock d'analyses. À reprendre dans le palier MCP
+  de `PERIMETRE.md` §10.
+- **Le point d'ancrage prix.** Tiny = 249 €/mois pour 5 conversations, soit **~50 € l'analyse**.
+  La fourchette 15–30 €/fiche du §10 est deux à trois fois sous le marché — cohérent avec un
+  périmètre Paris et des sources gratuites, mais ça prouve surtout que le segment est **solvable
+  et déjà démarché**.
+- **Leur propre argument sur la fraîcheur** : *« Une décision de site sur un footfall vieux de
+  deux ans est une supposition. »* C'est la défense de la discipline de cadence
+  (`scripts/porte/cadence.json`), écrite par un concurrent.
+- **Le vocabulaire.** « L'ADN des lieux », « les lieux comme des systèmes vivants »,
+  *decision-ready*. Ils vendent en une phrase ce que Compass énonce en refus. Même diagnostic que
+  pour Aino : **produit supérieur, discours inférieur.**
+
+### À ne pas copier
+
+- **Le forecasting de CA.** Refus du §4, et il tient : ils peuvent le faire parce qu'ils ont
+  l'historique du réseau du client. Compass ne l'a pas et ne doit pas le simuler.
+- **« 97 % des nouvelles implantations rentables dès la première année. »** Pas de dénominateur,
+  pas de période, pas de contrefactuel, pas de source. La promesse la plus forte du secteur ne
+  compilerait pas sous `Measured<T>` — bon exemple pour la case study.
+- **Les trois couvertures contradictoires** (10 / 14 / 18 pays) sur leur propre site : la
+  démonstration, chez quelqu'un d'autre, de ce que coûte un chiffre recopié sans sa date.
+- **La couverture multi-pays.** Profondeur contre largeur — le refus de couverture nationale
+  reste le bon.
+
+### Ce que ça déplace dans le positionnement
+
+`PERIMETRE.md` §9 oppose couverture (iFeyz2), découpe (Towncenter), prédiction (Arpentiq) et
+interprétation (Compass). **Gini casse la grille : il vend l'interprétation aussi, et avec une
+base de données que personne ici ne peut s'offrir.** La ligne qui reste est plus étroite, et plus
+solide parce qu'elle est structurelle :
+
+> Gini vend l'**interprétation propriétaire**. Compass vend l'**interprétation vérifiable**.
+
+Un concurrent peut acheter de la donnée GPS ; il ne peut pas rendre re-dérivable une donnée
+fermée.
+
+Deux notes pour finir. Aucune des pages lues n'annonce d'**API ni de serveur MCP** — le canal du
+§8, l'agent comme second ICP, reste inoccupé par eux. Et leur descente vers le franchisé isolé
+via *Tiny* est le premier signal qu'il faudra défendre le persona du §1 contre un acteur financé,
+et plus seulement contre des builders.
 
 ---
 
