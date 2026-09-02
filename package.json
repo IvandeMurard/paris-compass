@@ -21,6 +21,7 @@
     "porte:rapport": "tsx scripts/porte/rapport.ts",
     "porte:signal": "tsx scripts/porte/signal.ts",
     "porte:sabotage": "tsx scripts/porte/sabotage.ts",
+    "porte:publie": "tsx scripts/porte/publie.ts",
     "freshness": "tsx scripts/ingest/freshness.ts",
     "verify:mcp": "node scripts/verify-mcp.mjs",
     "smoke:mcp": "node scripts/verify-mcp.mjs --smoke",

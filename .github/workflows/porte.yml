@@ -204,6 +204,18 @@ jobs:
           cat "$PORTE/verify-mcp.log"
           printf 'verify:mcp\t%s\t%s\n' "$code" "$PORTE/verify-mcp.log" >> "$PORTE/bras.tsv"
 
+      # Le dixième bras, et le seul qui regarde hors du dépôt — DIAGNOSTIC.md §32. Les neuf
+      # autres prouvent que ce dépôt se construit ; aucun ne disait que le site *répond*, et ils
+      # étaient tous verts le 2 septembre pendant que la page publiée ne rendait rien. Il lit la
+      # référence attendue dans `.env`, que le checkout fournit depuis que ce fichier est suivi.
+      # Un Lovable injoignable rend 3 et non un rouge : leur indisponibilité n'est pas un défaut
+      # d'ici, et une porte qui crie sur l'amont est une porte qu'on finit par couper.
+      - name: porte:publie
+        run: |
+          npm run porte:publie > "$PORTE/publie.log" 2>&1 && code=0 || code=$?
+          cat "$PORTE/publie.log"
+          printf 'porte:publie\t%s\t%s\n' "$code" "$PORTE/publie.log" >> "$PORTE/bras.tsv"
+
       # ── Le compte rendu ─────────────────────────────────────────────────────────────────
 
       - name: Compte rendu

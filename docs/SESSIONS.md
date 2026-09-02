@@ -99,7 +99,7 @@ les défauts déjà consignés, et passe au ROUGE si l'un d'eux disparaît : c'e
 voulu, ça veut dire qu'il faut fermer l'issue et mettre à jour DIAGNOSTIC.md.
 
 Ces portes tournent aussi toutes seules, tous les matins a 07:29 UTC, sur
-.github/workflows/porte.yml : neuf bras, un rouge ouvre une issue porte-rouge,
+.github/workflows/porte.yml : dix bras, un rouge ouvre une issue porte-rouge,
 une panne amont n'en ouvre pas. Consequence pour toi : un rouge que tu laisses
 derriere toi reveillera quelqu'un demain matin.
 
@@ -155,7 +155,7 @@ fautive.
 
 <!-- BEGIN sessions -- généré par `npm.cmd run sessions`, ne pas éditer à la main -->
 
-*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 01/09/2026.*
+*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 02/09/2026.*
 
 | # | Ticket | Issue | État | Prio | Modèle |
 | --- | --- | --- | --- | --- | --- |

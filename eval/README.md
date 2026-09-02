@@ -92,9 +92,9 @@ sur le contrôle. Détail et limites dans `../DIAGNOSTIC.md` §23.
 
 ## Qui lance la porte
 
-**Plus personne, depuis le 31 août 2026.** `.github/workflows/porte.yml` joue neuf bras tous
+**Plus personne, depuis le 31 août 2026.** `.github/workflows/porte.yml` joue dix bras tous
 les jours à 07:29 UTC — `typecheck`, `test`, `build`, `build:dev`, `sessions:check`, `eval`,
-`freshness`, `eval:anon`, `verify:mcp` — après les huit crons d'ingestion et derrière leur verrou, pour
+`freshness`, `eval:anon`, `verify:mcp`, `porte:publie` — après les huit crons d'ingestion et derrière leur verrou, pour
 ne jamais juger une base en cours de chargement. Mesuré ce jour-là, un passage chacun :
 `eval` **306 s**, `eval:anon` **5 s**, `verify:mcp` **114 s**.
 

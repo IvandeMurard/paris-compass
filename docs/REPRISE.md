@@ -28,16 +28,16 @@ a bougé les 31 août et 1er septembre, et rien d'autre :
 | Mesure | Valeur, mesurée le 31 août 2026, sauf mention du 1er septembre |
 | --- | --- |
 | Ledger distant `supabase_migrations` | **47** — inchangé, ni `#69` ni `#71` **n'ont posé de migration** : les deux défauts étaient dans les lanceurs, pas dans le schéma |
-| Tests unitaires | **315**, mesurés le 2 septembre 2026 — 273 après `#71`, puis 299 avec `scripts/porte/cadences.test.ts`, la réconciliation distant/migrations et deux cas ajoutés de part et d'autre dans `scripts/ingest/workflow.test.ts` et `scripts/porte/workflow.test.ts`, puis **301** en tranchant les cadences sans seuil, puis **315** le 2 septembre 2026 avec les 14 tests de `scripts/build/envPublic.test.ts` |
+| Tests unitaires | **321**, mesurés le 2 septembre 2026 — 273 après `#71`, puis 299 avec `scripts/porte/cadences.test.ts`, la réconciliation distant/migrations et deux cas ajoutés de part et d'autre dans `scripts/ingest/workflow.test.ts` et `scripts/porte/workflow.test.ts`, puis **301** en tranchant les cadences sans seuil, puis **321** le 2 septembre 2026 avec les 14 tests de `scripts/build/envPublic.test.ts` et les 6 de `scripts/porte/publie.test.ts` |
 | **Sources et cadences** | **8 sources dans `compass_source_freshness()`, 8 entrées `cron`**, mesuré le 1er septembre 2026. Les huit du distant sont exactement les huit que les migrations déclarent — recoupé par `freshness`, zéro écart. Entretien : **1 par `schedule`** (`bodacc`), 1 par `workflow-dispatch` (`geography`), 6 depuis un terminal. Les cadences les plus lentes n'ont pas encore eu leur tour, donc `freshness` sort en **3** et le dira jusqu'à ce qu'elles l'aient eu |
 | Invariants | **37** — inchangé. Trois d'entre eux, `I1`, `I2` et `I7`, sont **joués en 22 instructions** au lieu d'une. Même population, toutes les tranches jouées |
 | **Coût des trois bras distants** (le quatrième, `freshness`, est **un aller-retour** : une RPC, aucun balayage) | Deux passages. `eval` **306 s** puis **299 s** (bras A seul 240 s) · `eval:anon` **5 s** deux fois · `verify:mcp` **114 s** puis **227 s** — **425 s puis 531 s**. L'écart est entièrement `verify:mcp`, et c'est Overpass : les contrôles suspendus attendent des miroirs publics à 429 et 504, chacun avec son délai. C'est ce chiffre-là qui dimensionne la cadence de la porte planifiée, **pas les 115 s de `#69`**, qui étaient `I1` seul avant son découpage |
 | **Secrets de dépôt** | **`DATABASE_URL` seul.** `SUPABASE_URL` et `SUPABASE_ANON_KEY` **manquent**, donc `eval:anon` et `verify:mcp` n'ont pas de clé sur un runner. Le workflow s'arrête là-dessus en le nommant, avant de dépenser dix minutes |
-| Portes | `typecheck` ✓ · `test` **315** ✓ (2 septembre) · `freshness` **8 sources, 0 en retard, 0 écart, 4 sans seuil par décision**, sortie 3 (1er septembre) · `eval` **deux passages, deux fois au bout**, sortie 3 sur les **11 avertissements de baseline** habituels, **zéro sur l'horloge** · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 39 verts, 0 échec, 2 suspendus** (Overpass 429 puis 504), sortie 0 · `porte:sabotage` **PASS, quatre actes** · `build` et `build:dev` ✓ (2 septembre), **hashes changés** : `index-DX8ZO1QB.js`, `App-uI7Bjffv.js` (chunk neuf), `MapView-BiNyeJsQ.js` — `src/main.tsx` charge `App` dynamiquement depuis le §32, et `src/pages/Index.tsx` a bougé côté Lovable |
+| Portes | `typecheck` ✓ · `test` **321** ✓ (2 septembre) · `freshness` **8 sources, 0 en retard, 0 écart, 4 sans seuil par décision**, sortie 3 (1er septembre) · `eval` **deux passages, deux fois au bout**, sortie 3 sur les **11 avertissements de baseline** habituels, **zéro sur l'horloge** · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 39 verts, 0 échec, 2 suspendus** (Overpass 429 puis 504), sortie 0 · `porte:sabotage` **PASS, quatre actes** · `porte:publie` **PASS contre la production, sortie 0** (2 septembre) · `build` et `build:dev` ✓ (2 septembre), **hashes changés** : `index-DX8ZO1QB.js`, `App-uI7Bjffv.js` (chunk neuf), `MapView-BiNyeJsQ.js` — `src/main.tsx` charge `App` dynamiquement depuis le §32, et `src/pages/Index.tsx` a bougé côté Lovable |
 
 **La porte tourne toute seule depuis le 31 août** — `.github/workflows/porte.yml`, tous les
-jours à 07:29 UTC, neuf bras : `typecheck`, `test`, `build`, `build:dev`, `sessions:check`,
-`freshness`, `eval`, `eval:anon`, `verify:mcp`. Un rouge ouvre une issue `porte-rouge` ; une panne amont
+jours à 07:29 UTC, dix bras : `typecheck`, `test`, `build`, `build:dev`, `sessions:check`,
+`freshness`, `eval`, `eval:anon`, `verify:mcp`, `porte:publie`. Un rouge ouvre une issue `porte-rouge` ; une panne amont
 n'en ouvre pas. Le cron d'ingestion signale ses échecs **sur le même canal**. Le détail, les
 mesures et ce que la règle ne rattrape pas :
 [`#71`](https://github.com/IvandeMurard/paris-compass/issues/71).
@@ -664,6 +664,21 @@ Les points **1, 3, 4, 8, 9, 10 et 11 sont rayés** et sont partis dans
     Absente, la garde 2 ne protège pas le chemin de publication et seule celle de `main.tsx`
     tient. À consigner ici dans les deux cas — c'est ce qui décide si la règle est au bon
     endroit.
+
+13. **Un rouge de la porte est ouvert et sans preneur — [`#74`](https://github.com/IvandeMurard/paris-compass/issues/74), du 1er septembre 2026.**
+    Repéré le 2 septembre en cherchant autre chose, ce qui est déjà le symptôme : personne
+    n'était allé voir. `verify:mcp` sort en **1** sur le runner, à l'étape « build index.ts » :
+
+    ```
+    /home/runner/.../node_modules/esbuild/bin/esbuild:1
+    ELF^B^A^A
+    SyntaxError: Invalid or unexpected token
+    ```
+
+    Node exécute le binaire natif d'esbuild comme du JavaScript. Ce n'est pas le blocage Smart
+    App Control de ce poste — c'est un runner Linux — et ce n'est pas non plus une panne amont :
+    le bras a un défaut, ou l'installation du serveur MCP en a un. **Non diagnostiqué**, noté
+    ici pour qu'il cesse d'attendre. Rien de cette session ne l'a causé : il précède le §32.
 
 
 ## Ce qu'il ne faut pas faire
