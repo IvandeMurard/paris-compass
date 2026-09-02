@@ -1,0 +1,8 @@
+# Compass
+
+> Turns open data into traceable, address-level context for commercial-property decisions in Paris intra-muros: what was on a shopfront before, how the street turns over, what a lease costs nearby, and what's changing now. Public data sources only, React 18 + TypeScript, Apache-2.0.
+
+## Docs
+
+- [README](README.md): the six axes of context, data sources, evaluation gate (10 invariants, 24 baselines)
+- [Live app](https://paris-compass.lovable.app): no account needed
