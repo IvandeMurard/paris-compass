@@ -16,9 +16,25 @@ dist-ssr
 
 # Secrets. `*.local` couvre déjà .env.local, mais on l'écrit en clair : une clé de service
 # poussée par inadvertance ne se rattrape pas avec un commit de correction.
+#
+# `.env` n'est PAS ignoré, et c'est délibéré depuis le 2 septembre 2026. Il ne porte que
+# l'URL du projet et la clé publiable du rôle `anon` — lecture seule, sous RLS, et déjà
+# exposées par le navigateur de chaque visiteur puisque Compass est sans compte. Les ignorer
+# ne les rendait pas secrètes : ça privait le build publié des deux valeurs, et la production
+# tombait en écran blanc muet. Voir DIAGNOSTIC.md §32.
+#
+# Ce que cette exception laisse passer est tenu ailleurs, et pas par la vigilance :
+# scripts/build/envPublic.test.ts refuse toute clé hors des trois autorisées, et tout
+# `sb_secret_`, `service_role` ou `postgresql://` dans ce fichier — à chaque `npm.cmd run test`,
+# donc aussi tous les matins sur la porte planifiée.
 *.local
-.env
 .env.*
+# L'exception est **ancrée à la racine** par le `/`. Sans elle, retirer la ligne `.env`
+# désignorait TOUS les `.env` de l'arbre : mesuré le 2 septembre 2026, `mcp-server/.env`
+# est entré dans l'index au premier `git add -A`. Il ne portait qu'une URL et une clé
+# anonyme, mais la prochaine fois n'est pas garantie de s'en tenir là.
+.env
+!/.env
 !.env.example
 
 # Sauvegardes de base. Ce dépôt est public : un dump embarque le schéma `auth`

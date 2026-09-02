@@ -1,11 +1,11 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte trente et un au 1er septembre 2026**, et la phrase
+« quatre défauts, par ordre de gravité » : il en porte trente-deux au 2 septembre 2026**, et la phrase
 est restée fausse trois semaines.
 
 Découpé en deux le 31 août 2026, comme `docs/REPRISE.md` la veille : cette page ne garde que
-**ce qui est encore ouvert**. Les vingt-sept défauts clos sont dans
+**ce qui est encore ouvert**. Les vingt-huit défauts clos sont dans
 [`DIAGNOSTIC-CORRIGES.md`](./DIAGNOSTIC-CORRIGES.md), **avec leur numérotation d'origine** —
 `docs/REPRISE.md`, `docs/PERIMETRE.md`, `eval/FAILURE_MODES.md` et les tickets y renvoient par
 leur numéro de section.
@@ -54,6 +54,7 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 29 | L'estimation était fausse, et la corriger ne rachète rien | clos le 28 août — `#65` fermé **sans** migration | corrigés |
 | 30 | La porte mourait dans son premier bras | clos le 31 août, `#69` | corrigés |
 | 31 | Une cadence ajoutée à l'énumération et jamais à la table de tolérance | clos le 1er septembre, `#70` | corrigés |
+| 32 | La configuration publique du front ignorée par git — bundle publié sans clé, page blanche | clos le 2 septembre 2026 | corrigés |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |

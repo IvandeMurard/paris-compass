@@ -2685,3 +2685,118 @@ est qu'une conséquence.
 - **Un seuil franchi ne dit pas pourquoi.** « `chantiers` a 12 jours » ne distingue pas un cron
   qui n'a pas tourné d'un chargeur qui a échoué en silence. Le premier se lit dans l'onglet
   Actions, le second dans l'issue que `#71` fait ouvrir.
+
+---
+
+## 32. La configuration publique du front ignorée par git — la page publiée ne rendait rien — le 2 septembre 2026
+
+**Fichiers :** `.gitignore` (ligne `.env`, posée au commit `11a7177`), `src/main.tsx`,
+`package.json` (crochet `prebuild`), et deux fichiers neufs sous `scripts/build/`.
+
+**Clos le 2 septembre 2026, sans migration** — le défaut n'était ni dans le schéma ni dans le
+code applicatif : il était dans ce que le dépôt refusait de porter.
+
+### Ce qui était faux
+
+`https://paris-compass.lovable.app` répondait **HTTP 200** et servait un `index.html` complet
+de 12 952 octets — titre, `og:`, tout. Et rien ne s'affichait. Le bundle publié,
+`index-DZV_6s4n.js`, 771 180 octets, récupéré le 2 septembre 2026, portait ceci :
+
+```js
+const zL=void 0,ob=void 0;   // SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY
+```
+
+Zéro occurrence de `dbefhvmyfmmhjeetdddu` dans le bundle, zéro URL `*.supabase.co`. Le
+validateur de `supabase-js` faisait le reste, à l'évaluation du module :
+
+```js
+function LL(t){const e=t==null?void 0:t.trim();if(!e)throw new Error("supabaseUrl is required.")
+```
+
+`src/integrations/supabase/client.ts` est **généré** et appelle `createClient` au niveau du
+module. La levée précédait donc tout rendu : pas de `#root` monté, pas de message, pas de
+composant d'erreur — une page muette.
+
+**La cause.** `.gitignore` ignorait `.env`. Le build de l'aperçu Lovable tourne dans leur espace
+de travail, où `.env` existe ; le build publié part du dépôt, où il n'a jamais existé. Vite
+remplaçait alors les deux `import.meta.env.*` par `undefined`, littéralement figés dans le
+bundle. Le diagnostic de cause est celui de Lovable, consigné dans `.lovable/plan.md` ; ce qui
+suit est sa vérification et le correctif.
+
+**Pourquoi personne ne l'a vu d'ici.** `.env.local` porte les deux mêmes valeurs sur ce poste, et
+Vite le charge. `npm.cmd run dev` et `npm.cmd run build` ont donc toujours marché en local, et
+marchaient encore le jour où la production était blanche. Le défaut n'était visible que depuis un
+arbre propre — c'est-à-dire depuis nulle part où quelqu'un regardait.
+
+**Ce que ça explique en plus.** Les deux commits antérieurs « Corrigé l'écran blanc » et
+« Corrigé double instance Leaflet » n'ont rien changé, et ne pouvaient rien changer : leur code
+est en aval d'une levée qui se produit à l'import. Un correctif inatteignable se lit comme un
+correctif qui ne marche pas.
+
+### Ce qui a été fait, et pourquoi à trois endroits
+
+Un seul de ces trois points répare la page. Les deux autres existent parce qu'un correctif de
+donnée n'est pas un correctif de défaut : il fallait qu'il survive à un rechargement, et qu'il
+tienne pour un producteur de bundle qui n'existe pas encore.
+
+1. **`.env` est suivi**, par une exception **ancrée à la racine** dans `.gitignore` (`!/.env`) — `*.local`, `.env`, `.env.*` et
+   `!.env.example` inchangés, donc `.env.local` et son `DATABASE_URL` restent dehors, comme tout `.env` plus bas dans l'arbre. Le motif
+   écrit en `.gitignore` visait une **clé de service** ; ce fichier-ci ne porte que l'URL du
+   projet et la clé publiable du rôle `anon`, mesuré en lecture seule : 20 policies `to anon`
+   dont 19 `for select`, aucun `insert`/`update`/`delete`, et le chemin anonyme est déjà sous
+   la porte `eval:anon` (15 contrôles, dont un `expectWithheld`). Compass étant sans compte, le
+   navigateur de chaque visiteur porte déjà ces deux valeurs : les ignorer ne les rendait pas
+   secrètes, ça rendait seulement le build aveugle.
+
+2. **`scripts/build/envGuard.ts`, branché sur `prebuild`.** Interroge l'environnement avec le
+   `loadEnv` de Vite — la même question que le build, pas une approximation — et sort en 1 si
+   une valeur requise manque. Démontré rouge le 2 septembre depuis un répertoire sans `.env` ni
+   `.env.local` : les deux clés nommées, sortie 1. Il n'est **pas** dans `vite.config.ts`, que
+   Lovable réverte — même raison que `vitest.config.ts` et `vite.config.local.ts`.
+
+3. **`src/main.tsx` contrôle avant de monter.** Point non évident : `import App from './App.tsx'`
+   est hissé et évalué **avant** la première instruction du module, et `App` atteint le client
+   Supabase. Une garde écrite sous un import statique n'aurait jamais tourné — la levée la
+   précède. `App` est donc chargé par `import()` dynamique après le contrôle. Coût : une requête
+   avant le premier rendu, et `App` devient un chunk séparé. Gain : une page qui nomme la
+   variable absente au lieu de se taire.
+
+Et **`scripts/build/envPublic.test.ts`**, 14 tests, qui tient l’exception : `.env` présent et
+suivi, non réignoré, `.env.local` toujours dehors, aucune clé hors des trois autorisées, et
+aucun `sb_secret_`, `postgresql://` ni jeton de rôle autre qu'`anon` — le rôle est lu dans la
+charge utile du jeton, pas deviné au préfixe. Il tourne à chaque `npm.cmd run test`, donc aussi
+tous les matins sur la porte planifiée.
+
+### L'accident évité, le même jour
+
+Le premier `git add -A` après le retrait de la ligne a indexé **`mcp-server/.env`**. Un motif
+`.env` sans ancre porte sur toute la profondeur de l'arbre : le retirer ne désignorait pas *un*
+fichier, il en désignorait autant qu'il en existe. Celui-là ne portait que `SUPABASE_URL` et
+`SUPABASE_ANON_KEY`, et n'avait jamais figuré dans l'historique — rien n'a fuité. Mais c'est un
+fait sur ce fichier ce jour-là, pas sur la règle.
+
+D'où l'ancre : `.env` reste ignoré, et `!/.env` ne réadmet que celui de la racine. Le test le
+tient, démontré rouge en indexant `mcp-server/.env` de force puis vert après retrait —
+`git ls-files '*.env'` doit rendre exactement `.env`, et `mcp-server/.env` doit rester ignoré.
+
+### Mesures après
+
+| | Avant, 2 septembre | Après |
+| --- | --- | --- |
+| Bundle publié | `const zL=void 0,ob=void 0` — 0 occurrence de la référence de projet | référence présente dans `index-DX8ZO1QB.js` et `App-uI7Bjffv.js`, plus aucun couple `void 0` |
+| Tests unitaires | 301 | **315** |
+| Chunks | entrée unique de 771 180 octets | entrée `index-DX8ZO1QB.js` 163,74 ko + `App-uI7Bjffv.js` 580,96 ko + `MapView-BiNyeJsQ.js` 159,17 ko |
+| Build sans configuration | produisait un bundle muet | **sortie 1**, les deux clés nommées |
+
+`typecheck` ✓ · `test` **315** ✓ · `build` ✓ · `build:dev` ✓. `verify:mcp` non relancé : ni
+`src/core/` ni `mcp-server/` touchés.
+
+### Ce que la règle ne rattrape pas
+
+- **`npm.cmd run build:dev` n'a pas de crochet `prebuild:dev`**, et un constructeur qui appelle
+  `vite build` en direct saute les crochets npm. La garde 2 ne tourne alors pas — c'est la garde
+  3, à l'intérieur du bundle, qui reste. Elle ne répare rien, elle rend lisible.
+- **Un secret déjà committé une fois reste dans l'historique.** La règle arrête l'habitude, pas
+  l'accident déjà poussé. Le remède serait alors une purge d'historique et une rotation de clé, pas un commit de correction — ce que la ligne de `.gitignore` disait déjà, et qui reste vrai pour tout ce qui n'est pas ces deux valeurs-ci.
+- **Rien ici ne vérifie que la page publiée s'affiche.** Les trois gardes portent sur le bundle
+  produit, pas sur ce que Lovable publie ensuite. Un contrôle de bout en bout resterait à écrire.

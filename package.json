@@ -7,7 +7,7 @@
   "scripts": {
     "predev": "tsx scripts/generate-sitemap.ts",
     "dev": "vite",
-    "prebuild": "tsx scripts/generate-sitemap.ts",
+    "prebuild": "tsx scripts/build/envGuard.ts && tsx scripts/generate-sitemap.ts",
     "typecheck": "tsc --build",
     "build": "vite build",
     "build:dev": "vite build --mode development",

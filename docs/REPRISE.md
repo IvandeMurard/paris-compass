@@ -19,7 +19,7 @@ Le reste du contexte est dans `docs/PLAN.md` (backlog, décisions produit),
 de la source), `eval/FAILURE_MODES.md` (le contrat d'évaluation) et `docs/JOURNAL.md`
 (le récit des sessions passées).
 
-## L'état mesuré le plus récent — 1er septembre 2026, après clôture de `#70`
+## L'état mesuré le plus récent — 2 septembre 2026, après le §32 (écran blanc en production)
 
 **C'est le seul état que cette page porte** : les relevés antérieurs sont dans
 `docs/REPRISE-ARCHIVE.md`, et quand deux se contredisent c'est le plus daté qui a tort. Ce qui
@@ -28,12 +28,12 @@ a bougé les 31 août et 1er septembre, et rien d'autre :
 | Mesure | Valeur, mesurée le 31 août 2026, sauf mention du 1er septembre |
 | --- | --- |
 | Ledger distant `supabase_migrations` | **47** — inchangé, ni `#69` ni `#71` **n'ont posé de migration** : les deux défauts étaient dans les lanceurs, pas dans le schéma |
-| Tests unitaires | **301**, mesurés le 1er septembre 2026 — 273 après `#71`, puis 299 avec `scripts/porte/cadences.test.ts`, la réconciliation distant/migrations et deux cas ajoutés de part et d'autre dans `scripts/ingest/workflow.test.ts` et `scripts/porte/workflow.test.ts`, puis **301** en tranchant les cadences sans seuil |
+| Tests unitaires | **315**, mesurés le 2 septembre 2026 — 273 après `#71`, puis 299 avec `scripts/porte/cadences.test.ts`, la réconciliation distant/migrations et deux cas ajoutés de part et d'autre dans `scripts/ingest/workflow.test.ts` et `scripts/porte/workflow.test.ts`, puis **301** en tranchant les cadences sans seuil, puis **315** le 2 septembre 2026 avec les 14 tests de `scripts/build/envPublic.test.ts` |
 | **Sources et cadences** | **8 sources dans `compass_source_freshness()`, 8 entrées `cron`**, mesuré le 1er septembre 2026. Les huit du distant sont exactement les huit que les migrations déclarent — recoupé par `freshness`, zéro écart. Entretien : **1 par `schedule`** (`bodacc`), 1 par `workflow-dispatch` (`geography`), 6 depuis un terminal. Les cadences les plus lentes n'ont pas encore eu leur tour, donc `freshness` sort en **3** et le dira jusqu'à ce qu'elles l'aient eu |
 | Invariants | **37** — inchangé. Trois d'entre eux, `I1`, `I2` et `I7`, sont **joués en 22 instructions** au lieu d'une. Même population, toutes les tranches jouées |
 | **Coût des trois bras distants** (le quatrième, `freshness`, est **un aller-retour** : une RPC, aucun balayage) | Deux passages. `eval` **306 s** puis **299 s** (bras A seul 240 s) · `eval:anon` **5 s** deux fois · `verify:mcp` **114 s** puis **227 s** — **425 s puis 531 s**. L'écart est entièrement `verify:mcp`, et c'est Overpass : les contrôles suspendus attendent des miroirs publics à 429 et 504, chacun avec son délai. C'est ce chiffre-là qui dimensionne la cadence de la porte planifiée, **pas les 115 s de `#69`**, qui étaient `I1` seul avant son découpage |
 | **Secrets de dépôt** | **`DATABASE_URL` seul.** `SUPABASE_URL` et `SUPABASE_ANON_KEY` **manquent**, donc `eval:anon` et `verify:mcp` n'ont pas de clé sur un runner. Le workflow s'arrête là-dessus en le nommant, avant de dépenser dix minutes |
-| Portes | `typecheck` ✓ · `test` **301** ✓ (1er septembre) · `freshness` **8 sources, 0 en retard, 0 écart, 4 sans seuil par décision**, sortie 3 (1er septembre) · `eval` **deux passages, deux fois au bout**, sortie 3 sur les **11 avertissements de baseline** habituels, **zéro sur l'horloge** · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 39 verts, 0 échec, 2 suspendus** (Overpass 429 puis 504), sortie 0 · `porte:sabotage` **PASS, quatre actes** · `build` et `build:dev` ✓, hashes inchangés (`index-DKJzmj15.js`, `MapView-8C8F8Ymz.js`) — rien dans `src/` |
+| Portes | `typecheck` ✓ · `test` **315** ✓ (2 septembre) · `freshness` **8 sources, 0 en retard, 0 écart, 4 sans seuil par décision**, sortie 3 (1er septembre) · `eval` **deux passages, deux fois au bout**, sortie 3 sur les **11 avertissements de baseline** habituels, **zéro sur l'horloge** · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 39 verts, 0 échec, 2 suspendus** (Overpass 429 puis 504), sortie 0 · `porte:sabotage` **PASS, quatre actes** · `build` et `build:dev` ✓ (2 septembre), **hashes changés** : `index-DX8ZO1QB.js`, `App-uI7Bjffv.js` (chunk neuf), `MapView-BiNyeJsQ.js` — `src/main.tsx` charge `App` dynamiquement depuis le §32, et `src/pages/Index.tsx` a bougé côté Lovable |
 
 **La porte tourne toute seule depuis le 31 août** — `.github/workflows/porte.yml`, tous les
 jours à 07:29 UTC, neuf bras : `typecheck`, `test`, `build`, `build:dev`, `sessions:check`,
@@ -594,15 +594,24 @@ Les points **1, 3, 4, 8, 9, 10 et 11 sont rayés** et sont partis dans
    Ne pas confondre avec un score de confiance en pourcentage : le refus reste
    entier. C'est la *traçabilité* qui devient autonome, pas la certitude.
 
-7. **Vérifier le premier build Lovable après la montée du 16 août —
-   à partir du 1er septembre 2026.** Hors file d'attente : ce n'est pas un
-   chantier, c'est un contrôle à faire **une fois**, puis à rayer.
+7. **Vérifier le premier build Lovable après la montée du 16 août.** Hors file
+   d'attente : ce n'est pas un chantier, c'est un contrôle à faire **une fois**,
+   puis à rayer.
 
-   *Pourquoi cette date.* Lovable n'est pas disponible avant le 1er septembre.
-   Le code est poussé depuis le 16 août et attend là ; il n'y a rien à faire
-   dans l'intervalle, et rien qui se dégrade en attendant. Ce délai de deux
-   semaines est la raison d'être de ce point : sans lui, le contrôle serait
-   oublié d'ici là.
+   **Deux tiers faits le 2 septembre 2026 ; le dernier ne peut pas l'être d'ici.**
+   Lovable a été ouvert — cinq commits sont arrivés sur `origin/main`. Donc *son build
+   termine* : il a produit et publié `index-DZV_6s4n.js`, récupéré et lu depuis ce poste.
+   Et *l'aperçu s'affiche* de son côté, puisque c'est la comparaison aperçu / page publiée
+   qui lui a fait voir la panne (`.lovable/plan.md`). Reste le troisième point, que seul
+   quelqu'un devant leur éditeur peut voir : **la sélection d'un composant dans l'éditeur
+   visuel** — le seul symptôme qui signerait `lovable-tagger` 1.1.7 → 1.3.3.
+
+   *Ne pas confondre les deux pannes.* L'écran blanc du 2 septembre n'a rien à voir avec
+   cette montée : c'était `.env` ignoré par git, `DIAGNOSTIC.md` §32. Un `git revert` de
+   la montée n'y aurait rien changé, et l'aurait fait chercher au mauvais endroit.
+
+   *Il n'y a pas d'échéance*, contrairement à ce que ce point disait — précisé par Ivan
+   le 31 août, voir `docs/SESSIONS.md`. La date du 1er septembre était fausse.
 
    *Pourquoi ce point existe.* Sur les quatre paquets montés, trois ne servent
    qu'ici (`vite`, `vitest`, `@vitejs/plugin-react-swc`) et sont vérifiés en
@@ -627,6 +636,23 @@ Les points **1, 3, 4, 8, 9, 10 et 11 sont rayés** et sont partis dans
    le temps de chercher la bonne version de `lovable-tagger`.
 
    *Une fois vérifié*, supprimer ce point 7 : il n'aura plus lieu d'être.
+
+12. **Contrôler la page publiée après republication — ouvert depuis le 2 septembre 2026.**
+    Le dépôt est réparé et démontré (`DIAGNOSTIC.md` §32) ; la production, elle, sert encore
+    le bundle d'avant tant que Lovable n'a pas rebâti. Ce point ne se ferme pas sur un test
+    vert, il se ferme sur une page qui s'affiche :
+
+    ```bash
+    curl -s https://paris-compass.lovable.app/ | grep -o 'src="[^"]*\.js"'
+    curl -s https://paris-compass.lovable.app/assets/<le chunk>.js \
+      | grep -c 'dbefhvmyfmmhjeetdddu'      # doit valoir 1 ou plus, pas 0
+    ```
+
+    Puis la carte au navigateur. Si le compte vaut encore 0 après une republication, la garde
+    `prebuild` n'a pas tourné — c'est-à-dire que Lovable n'appelle pas `npm run build` mais
+    `vite build` en direct, et c'est **cette** conclusion qu'il faudra écrire ici, parce
+    qu'elle change où doit vivre la règle.
+
 
 ## Ce qu'il ne faut pas faire
 

@@ -370,3 +370,79 @@ dans les dernières 24 h ? » reste juste. Une vérification « a-t-elle tourné
 fausse un jour sur deux. Et le créneau déclaré est une *intention*, pas une mesure — l'écrire
 comme une heure d'exécution serait le même défaut qu'un chiffre sans sa date.
 
+
+---
+
+## Un défaut du build publié ne se reproduit pas sur ce poste : `.env.local` le masque — 2 septembre 2026
+
+La production a rendu une page blanche pendant que `npm.cmd run dev` et `npm.cmd run build`
+étaient au vert ici, le même jour, sur le même arbre. Ce n'était pas une intermittence : Vite
+charge `.env.local`, qui porte `VITE_SUPABASE_URL` et `VITE_SUPABASE_PUBLISHABLE_KEY` sur cette
+machine. Le build publié part d'un clone du dépôt, où ce fichier n'existe pas — et à l'époque
+`.env` non plus. Deux environnements, deux résultats, aucun moyen de voir le second depuis le
+premier.
+
+**Ce qui a tranché, et qui coûte trente secondes :** aller lire le bundle publié plutôt que
+raisonner dessus.
+
+```bash
+curl -s https://paris-compass.lovable.app/ | grep -o 'src="[^"]*\.js"'
+curl -s https://paris-compass.lovable.app/assets/<le chunk>.js > /tmp/pc.js
+grep -c 'dbefhvmyfmmhjeetdddu' /tmp/pc.js     # 0 = la valeur n'a pas été figée au build
+grep -o 'const [A-Za-z$_]*=void 0,[A-Za-z$_]*=void 0' /tmp/pc.js
+```
+
+Une variable Vite absente au build ne laisse **aucune trace d'erreur** : elle devient `void 0`
+dans le bundle, et c'est le consommateur en aval qui lève, loin de la cause. Chercher le
+symptôme dans le code ne mène nulle part ; chercher la valeur dans l'artefact tranche tout de
+suite. Voir `DIAGNOSTIC.md` §32.
+
+Corollaire : **une vérification faite en local ne dit rien de la production** tant qu'elle
+s'appuie sur un fichier que le dépôt ne porte pas. C'est ce que la garde `prebuild` mesure
+désormais avec le `loadEnv` de Vite, et ce que `scripts/build/envPublic.test.ts` empêche de
+redevenir vrai.
+
+---
+
+## Une garde placée sous un `import` statique ne tourne jamais — 2 septembre 2026
+
+Les imports ES sont hissés et évalués **avant la première instruction du module**. Écrire dans
+`src/main.tsx` :
+
+```tsx
+import App from './App.tsx'                    // App atteint le client Supabase…
+if (!import.meta.env.VITE_SUPABASE_URL) { … }  // …donc on n'arrive jamais ici
+```
+
+donne une garde inatteignable dès que le module importé lève à l'évaluation — ce que fait
+`src/integrations/supabase/client.ts`, qui appelle `createClient` au niveau du module. La garde
+se lit comme correcte, se teste mal, et ne protège rien.
+
+Le contournement est un `import()` dynamique après le contrôle. Il a un coût réel — une requête
+avant le premier rendu, et un chunk séparé — à annoncer plutôt qu'à découvrir.
+
+**La forme générale du piège :** un correctif situé en aval d'une levée à l'import n'est pas
+« un correctif qui ne marche pas », c'est un correctif jamais exécuté. Deux commits successifs
+s'y sont perdus avant qu'on regarde le bundle.
+
+---
+
+## Un motif `.env` dans `.gitignore` n'a pas de racine : le retirer les désignore tous — 2 septembre 2026
+
+`.gitignore` traite un motif sans `/` comme s'appliquant **à toute la profondeur de l'arbre**.
+La ligne `.env` couvrait donc aussi `mcp-server/.env`, et la retirer pour suivre celui de la
+racine a désignoré les deux d'un coup : le premier `git add -A` a indexé `mcp-server/.env`.
+
+Ce jour-là il ne portait qu'une URL et une clé anonyme, et n'avait jamais été committé. C'est
+de la chance, pas une règle.
+
+**La forme correcte est une exception ancrée**, l'ignorance étant conservée :
+
+```gitignore
+.env
+!/.env      # la racine seulement — le `/` initial est ce qui ancre
+```
+
+Et le contrôle qui ne dépend de personne : après toute modification de `.gitignore`, lire
+`git status --short` **avant** de committer, et vérifier ce que `git ls-files '*.env'` rend.
+Tenu par `scripts/build/envPublic.test.ts` depuis le même jour.
