@@ -5,7 +5,8 @@
 // Four arms, run in order, cheapest first:
 //   A — invariants (eval/invariants.sql), each must return zero rows — except a
 //       `@census` block, whose rows are a population to be checked for coverage
-//   B — ingestion baselines (eval/baselines/ingestion.json), drift over 1% fails
+//   B — ingestion baselines (eval/baselines/ingestion.json): a count fails over 1% drift,
+//       a quantile fails when the figure the product publishes changes — scripts/eval/drift.ts
 //   C — golden cases (eval/golden.jsonl), hand-verified chronologies
 //   E — the anon window budget (eval/baselines/anon-budget.json): every radius
 //       function anon may call, measured at the maximum radius the product
@@ -30,6 +31,7 @@ import { resolve } from "path"
 import type { Client } from "pg"
 
 import { connect, connectionTarget, log } from "../ingest/lib/db"
+import { type Attendu, verdictEcart } from "./drift"
 import { runBudget } from "./budget"
 import { runInvariantsArm } from "./invariants"
 import { isUnreachable, unreachableCode } from "./upstream"
@@ -79,15 +81,16 @@ async function runInvariants(client: Client): Promise<void> {
 // B — ingestion baselines
 // ---------------------------------------------------------------------------
 // A change is not necessarily a fault — the APUR can republish — but it must
-// never pass unnoticed. Beyond 1% it stops being a source correction and becomes
-// a change in how the pipeline behaves.
-
-const DRIFT_FAIL = 0.01
+// never pass unnoticed. What « unnoticed » means is not the same for every
+// figure, and that decision lives in scripts/eval/drift.ts, with its own tests:
+// a count is judged on a percentage, a quantile on the figure the product
+// publishes. The second rule was added on 2 September 2026, after a median sat
+// on a step of its own distribution and blocked the gate — DIAGNOSTIC.md §34.
 
 interface Baseline {
   measured_on: string
   note: string
-  counts: Record<string, { value: number; sql: string }>
+  counts: Record<string, Attendu & { sql: string }>
 }
 
 /** Actual values measured this run, keyed by baseline name — `confiance_*` feeds runConfidenceHistory. */
@@ -106,9 +109,8 @@ async function runBaselines(client: Client): Promise<Record<string, number>> {
       pass(name, `${actual}`)
       continue
     }
-    const drift = Math.abs(actual - expected.value) / Math.max(expected.value, 1)
-    const detail = `attendu ${expected.value}, mesuré ${actual} (${(drift * 100).toFixed(2)}%)`
-    if (drift > DRIFT_FAIL) fail(name, detail)
+    const { bloquant, detail } = verdictEcart(expected, actual)
+    if (bloquant) fail(name, detail)
     else warn(name, detail)
   }
   return actuals

@@ -28,12 +28,12 @@ a bougé les 31 août et 1er septembre, et rien d'autre :
 | Mesure | Valeur, mesurée le 31 août 2026, sauf mention du 1er septembre |
 | --- | --- |
 | Ledger distant `supabase_migrations` | **47** — inchangé, ni `#69` ni `#71` **n'ont posé de migration** : les deux défauts étaient dans les lanceurs, pas dans le schéma |
-| Tests unitaires | **325**, mesurés le 2 septembre 2026 — 273 après `#71`, puis 299 avec `scripts/porte/cadences.test.ts`, la réconciliation distant/migrations et deux cas ajoutés de part et d'autre dans `scripts/ingest/workflow.test.ts` et `scripts/porte/workflow.test.ts`, puis **301** en tranchant les cadences sans seuil, puis **325** le 2 septembre 2026 avec les 14 tests de `scripts/build/envPublic.test.ts` , les 6 de `scripts/porte/publie.test.ts` et les 4 de `scripts/esbuildInvocation.test.ts` |
+| Tests unitaires | **331**, mesurés le 2 septembre 2026 — 273 après `#71`, puis 299 avec `scripts/porte/cadences.test.ts`, la réconciliation distant/migrations et deux cas ajoutés de part et d'autre dans `scripts/ingest/workflow.test.ts` et `scripts/porte/workflow.test.ts`, puis **301** en tranchant les cadences sans seuil, puis **325** le 2 septembre 2026 avec les 14 tests de `scripts/build/envPublic.test.ts` , les 6 de `scripts/porte/publie.test.ts` , les 4 de `scripts/esbuildInvocation.test.ts` et les 6 de `scripts/eval/drift.test.ts` |
 | **Sources et cadences** | **8 sources dans `compass_source_freshness()`, 8 entrées `cron`**, mesuré le 1er septembre 2026. Les huit du distant sont exactement les huit que les migrations déclarent — recoupé par `freshness`, zéro écart. Entretien : **1 par `schedule`** (`bodacc`), 1 par `workflow-dispatch` (`geography`), 6 depuis un terminal. Les cadences les plus lentes n'ont pas encore eu leur tour, donc `freshness` sort en **3** et le dira jusqu'à ce qu'elles l'aient eu |
 | Invariants | **37** — inchangé. Trois d'entre eux, `I1`, `I2` et `I7`, sont **joués en 22 instructions** au lieu d'une. Même population, toutes les tranches jouées |
 | **Coût des trois bras distants** (le quatrième, `freshness`, est **un aller-retour** : une RPC, aucun balayage) | Deux passages. `eval` **306 s** puis **299 s** (bras A seul 240 s) · `eval:anon` **5 s** deux fois · `verify:mcp` **114 s** puis **227 s** — **425 s puis 531 s**. L'écart est entièrement `verify:mcp`, et c'est Overpass : les contrôles suspendus attendent des miroirs publics à 429 et 504, chacun avec son délai. C'est ce chiffre-là qui dimensionne la cadence de la porte planifiée, **pas les 115 s de `#69`**, qui étaient `I1` seul avant son découpage |
 | **Secrets de dépôt** | **`DATABASE_URL` seul.** `SUPABASE_URL` et `SUPABASE_ANON_KEY` **manquent**, donc `eval:anon` et `verify:mcp` n'ont pas de clé sur un runner. Le workflow s'arrête là-dessus en le nommant, avant de dépenser dix minutes |
-| Portes | `typecheck` ✓ · `test` **325** ✓ (2 septembre) · `freshness` **8 sources, 0 en retard, 0 écart, 4 sans seuil par décision**, sortie 3 (1er septembre) · `eval` **sortie 1 le 2 septembre** — `prix_median_local_identifiable` dérive de 1,33 % au-dessus du seuil bloquant, non traité, point 14 (les 31 août et 1er septembre : deux passages au bout, sortie 3 sur les 11 avertissements habituels) · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 40 verts, 0 échec, 1 suspendu**, sortie 0, **remesuré le 2 septembre après le paquet MCP** (39/2 plus tôt le même jour : un miroir Overpass est revenu) · `porte:sabotage` **PASS, quatre actes** · `porte:publie` **PASS contre la production, sortie 0** (2 septembre) · `build` et `build:dev` ✓ (2 septembre), **hashes changés** : `index-DX8ZO1QB.js`, `App-uI7Bjffv.js` (chunk neuf), `MapView-BiNyeJsQ.js` — `src/main.tsx` charge `App` dynamiquement depuis le §32, et `src/pages/Index.tsx` a bougé côté Lovable |
+| Portes | `typecheck` ✓ · `test` **331** ✓ (2 septembre) · `freshness` **8 sources, 0 en retard, 0 écart, 4 sans seuil par décision**, sortie 3 (1er septembre) · `eval` **sortie 3, zéro échec, 11 avertissements**, rejoué le 2 septembre après le §34 — `prix_median_local_identifiable` reste à 1,33 % en avertissement, chiffre publié inchangé · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 40 verts, 0 échec, 1 suspendu**, sortie 0, **remesuré le 2 septembre après le paquet MCP** (39/2 plus tôt le même jour : un miroir Overpass est revenu) · `porte:sabotage` **PASS, quatre actes** · `porte:publie` **PASS contre la production, sortie 0** (2 septembre) · `build` et `build:dev` ✓ (2 septembre), **hashes changés** : `index-DX8ZO1QB.js`, `App-uI7Bjffv.js` (chunk neuf), `MapView-BiNyeJsQ.js` — `src/main.tsx` charge `App` dynamiquement depuis le §32, et `src/pages/Index.tsx` a bougé côté Lovable |
 
 **La porte tourne toute seule depuis le 31 août** — `.github/workflows/porte.yml`, tous les
 jours à 07:29 UTC, dix bras : `typecheck`, `test`, `build`, `build:dev`, `sessions:check`,
@@ -705,7 +705,7 @@ Les points **1, 3, 4, 8, 9, 10 et 11 sont rayés** et sont partis dans
     Ce que ça ne règle pas : ce rouge a attendu deux jours sans lecteur. La porte sait ouvrir
     une issue ; rien ne garantit qu'elle soit lue.
 
-14. **`eval` est rouge depuis le 2 septembre 2026, et personne ne l'avait vu.** Sortie **1**,
+14. ~~**`eval` est rouge depuis le 2 septembre 2026, et personne ne l'avait vu.**~~ Sortie **1**,
     donc un vrai échec et non les 11 avertissements de baseline habituels :
 
     ```
@@ -717,16 +717,45 @@ Les points **1, 3, 4, 8, 9, 10 et 11 sont rayés** et sont partis dans
     le soir même en cherchant autre chose — c'est ce qui a motivé
     [`#77`](https://github.com/IvandeMurard/paris-compass/issues/77).
 
-    **Non traité, et volontairement.** La médiane a bougé de 1,33 % au-dessus du seuil bloquant,
-    très probablement par le rechargement BODACC quotidien : de nouvelles ventes publiées
-    déplacent la médiane. Mais « probablement » n'est pas une mesure, et **regeler une baseline
-    pour éteindre un rouge est exactement ce que la doctrine interdit** — c'est une décision, pas
-    un correctif.
+    **Traité le 2 septembre 2026 — et ce n'était pas une dérive de données, mais un défaut de la
+    règle qui les juge.** `DIAGNOSTIC.md` §34.
 
-    Ce qui la rend urgente plutôt que cosmétique : **ce chiffre est publié.** Le `README` annonce
-    « 160 000 € » comme médiane du fonds parisien, et `docs/PERIMETRE.md` s'appuie dessus. Une
-    baseline qui dérive sans décision laisse vieillir une affirmation à l'écran — le défaut que
-    `Measured<T>` existe pour empêcher, revenu par la porte de service.
+    Le bras B comparait **toutes** les baselines au même seuil de 1 %, dont le commentaire
+    donnait la raison : au-delà, ce n'est plus une correction de source mais un changement de
+    pipeline. Juste — *pour un comptage*. La médiane n'en est pas un : mesuré sur le distant, une
+    population qui passe de 5 942 à 5 959 cessions (**+0,29 %**) déplace la médiane de
+    160 868 à 163 000 € (**+1,33 %**), parce que les prix de fonds se massent sur les nombres
+    ronds — `150 000` revient 130 fois, `180 000` 88 fois, `160 000` 63 fois — et que la médiane
+    est assise sur une marche. Dix-sept cessions déplacent le rang médian de huit positions, et
+    huit positions valent 5 000 € à cet endroit.
+
+    **Le seuil était faux dans les deux sens**, et le second est le grave : une médiane passant
+    de 164 999 à 165 001 € bouge de 0,001 %, donc passe en simple avertissement — alors qu'elle
+    fait basculer le chiffre publié au `README` de 160 000 à 170 000 €. Le produit aurait affirmé
+    un prix que la base ne portait plus, porte au vert.
+
+    Une baseline porte donc désormais `publie: { pas, valeur }`, et `scripts/eval/drift.ts` juge
+    un quantile sur le changement du **chiffre publié**, pas sur un pourcentage. Ce n'est pas un
+    desserrage : la règle devient plus stricte là où le produit mentirait.
+
+    **Vérifié** le 2 septembre 2026, `eval` rejoué en entier :
+
+    ```
+    WARN  prix_median_local_identifiable — attendu 160868, mesuré 163000 (1.33%) — quantile, chiffre publié inchangé à 160000
+    AVERTISSEMENT — 11 écart(s) sous le seuil bloquant
+    ```
+
+    Sortie **3, zéro échec** — l'état du 31 août et du 1er septembre.
+
+    **La baseline n'a pas été regelée, délibérément.** L'avertissement à 1,33 % reste, et il est
+    honnête : la valeur brute a bougé. `note_regel` autorise le regel à trois conditions, mais
+    impose de remesurer **toutes** les valeurs à la reprise du gel — jamais de les reporter
+    depuis un pourcentage. C'est un acte daté et justifié, pas l'effet de bord d'un correctif de
+    règle. À faire un jour, en le disant.
+
+    *Ce qui reste ouvert et que ce correctif ne touche pas :* les prix par métier du `README` —
+    250 000 €, 220 000 €, 86 000 €, 50 000 € — ne sont sous aucune baseline. Ils peuvent vieillir
+    en silence, exactement comme la médiane l'aurait fait.
 
 15. **Publier `paris-compass-mcp` — tout est prêt, il manque `npm publish`.** Direction donnée
     par Ivan le 2 septembre 2026 : « le MCP doit être publié ». Ticket

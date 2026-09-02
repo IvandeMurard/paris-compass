@@ -1,11 +1,11 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte trente-trois au 2 septembre 2026**, et la phrase
+« quatre défauts, par ordre de gravité » : il en porte trente-quatre au 2 septembre 2026**, et la phrase
 est restée fausse trois semaines.
 
 Découpé en deux le 31 août 2026, comme `docs/REPRISE.md` la veille : cette page ne garde que
-**ce qui est encore ouvert**. Les vingt-neuf défauts clos sont dans
+**ce qui est encore ouvert**. Les trente défauts clos sont dans
 [`DIAGNOSTIC-CORRIGES.md`](./DIAGNOSTIC-CORRIGES.md), **avec leur numérotation d'origine** —
 `docs/REPRISE.md`, `docs/PERIMETRE.md`, `eval/FAILURE_MODES.md` et les tickets y renvoient par
 leur numéro de section.
@@ -56,6 +56,7 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 31 | Une cadence ajoutée à l'énumération et jamais à la table de tolérance | clos le 1er septembre, `#70` | corrigés |
 | 32 | La configuration publique du front ignorée par git — bundle publié sans clé, page blanche | clos le 2 septembre 2026 | corrigés |
 | 33 | `verify:mcp` lançait esbuild par `node`, ce qui n'est juste que sur Windows | corrigé le 2 septembre 2026, preuve attendue au prochain passage planifié | corrigés |
+| 34 | Une tolérance de comptage appliquée à un quantile — bloquante sur une marche, muette sur ce qui change le chiffre publié | clos le 2 septembre 2026 | corrigés |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |

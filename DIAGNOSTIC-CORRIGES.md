@@ -2885,3 +2885,98 @@ reviendrait à signer une mesure qu'on n'a pas prise.
 
 Et il ne dit rien de la raison pour laquelle ce rouge a attendu deux jours sans lecteur. La
 porte sait ouvrir une issue ; rien ne garantit qu'elle soit lue.
+
+---
+
+## 34. Une tolérance de comptage appliquée à un quantile — le 2 septembre 2026
+
+**Fichiers :** `scripts/eval/run.ts` (la constante `DRIFT_FAIL`, appliquée à tout),
+`eval/baselines/ingestion.json`, et le module neuf `scripts/eval/drift.ts`.
+
+**Clos le 2 septembre 2026, sans migration** — le défaut était dans la règle qui juge la base,
+pas dans la base.
+
+### Ce qui était faux
+
+La porte du 2 septembre a rendu un rouge bloquant :
+
+```
+FAIL  prix_median_local_identifiable — attendu 160868, mesuré 163000 (1.33%)
+```
+
+Le bras B comparait **toutes** les baselines au même seuil, `DRIFT_FAIL = 0.01`, dont le
+commentaire donnait la raison : « au-delà de 1 %, ce n'est plus une correction de source mais un
+changement de comportement du pipeline ». Ce raisonnement est juste — **pour un comptage**. Un
+comptage ne bouge que si des lignes entrent ou sortent.
+
+`prix_median_local_identifiable` n'est pas un comptage. Mesuré sur le distant le 2 septembre
+2026 :
+
+| | Gelé le 17 août | Mesuré le 2 septembre | Écart |
+| --- | ---: | ---: | ---: |
+| `cessions_local_identifiable` (la population) | 5 942 | 5 959 | **+0,29 %** |
+| `prix_median_local_identifiable` | 160 868 € | 163 000 € | **+1,33 %** |
+
+Dix-sept cessions de plus déplacent la médiane de 2 132 €. Le mécanisme se lit dans la
+distribution — les rangs autour de la position médiane, mesurés le même jour :
+
+```
+  rang 2971 : 160000      rang 2980 : 163000   ← la médiane, n = 5959
+  rang 2972 : 160000      rang 2981 : 164174
+  rang 2973 : 160000      rang 2982 : 165000
+  rang 2974 : 160736      rang 2983 : 165000
+```
+
+Les prix de fonds se massent sur les nombres ronds — entre 140 000 et 190 000 €, `150 000` revient
+**130 fois**, `180 000` **88 fois**, `160 000` **63 fois**, et entre les paliers la densité est
+mince. **La médiane est assise sur une marche d'escalier** : huit positions de rang valent ici
+5 000 €. Une population qui bouge de 0,29 % fait donc sauter la médiane de plusieurs pour cent,
+sans que rien du pipeline n'ait changé.
+
+### Le défaut était dans les deux sens, et le second est le grave
+
+- **Trop bruyante** — un rouge bloquant sur une marche, qui exige une décision là où il n'y a
+  qu'une republication de la DILA. C'est le rouge du 2 septembre.
+- **Trop silencieuse** — une médiane passant de 164 999 à 165 001 € bouge de **0,001 %**, donc
+  sous tous les seuils, en simple avertissement. Elle fait pourtant basculer le chiffre publié
+  au `README` de **160 000 à 170 000 €**. Le produit aurait affirmé un prix que la base ne
+  portait plus, et la porte serait restée verte.
+
+### Ce qui a été fait
+
+`eval/baselines/ingestion.json` dit lui-même, dans `note_prix`, ce que ces nombres protègent :
+« les prix publiés dans le README sortent de ces deux mesures ». L'invariant utile n'est donc pas
+« la médiane brute a peu bougé », c'est **« le chiffre publié n'a pas changé sans qu'on le
+sache »**.
+
+Une baseline peut désormais porter un bloc `publie` — `{ pas, valeur }`, la précision à laquelle
+le produit l'affiche. `scripts/eval/drift.ts` en tire la règle :
+
+- **comptage** — inchangé, 1 % d'écart bloque ;
+- **quantile** — bloque quand `round(mesure / pas) * pas` cesse d'égaler `publie.valeur`, quel que
+  soit l'écart brut ; sinon avertissement, l'écart brut restant affiché.
+
+**Ce n'est pas un desserrage de seuil.** La règle devient plus stricte exactement là où le produit
+mentirait — un écart de 0,001 % bloque désormais s'il fait basculer l'arrondi — et cesse de crier
+là où il ne ment pas. Le message d'un blocage nomme l'ancien et le nouveau chiffre publié et
+demande la mise à jour du `README` et de `/methodologie` **avant** tout regel.
+
+`scripts/eval/drift.test.ts`, 6 tests, joue les deux sens sur les nombres réels du 2 septembre —
+la marche à +1,33 % qui ne doit plus bloquer, et le passage 164 999 → 165 001 qui doit bloquer.
+
+### Ce qui n'a délibérément pas été fait
+
+**La baseline n'a pas été regelée.** La médiane continuera d'afficher son écart de 1,33 % en
+avertissement, et c'est honnête : la valeur brute *a* bougé. Regeler est permis par
+`note_regel`, à trois conditions, mais impose de remesurer **toutes** les valeurs à la reprise du
+gel — « jamais reportée depuis un pourcentage de dérive ». C'est un acte délibéré, daté et
+justifié, pas un effet de bord d'un correctif de règle.
+
+### Ce que la règle ne rattrape pas
+
+- **Un arrondi n'est pas une mesure de dispersion.** Une médiane qui oscillerait autour d'une
+  frontière d'arrondi ferait clignoter la porte d'un passage à l'autre. Ce n'est pas le cas
+  aujourd'hui — 163 000 est à mi-palier — mais rien ici ne l'empêche.
+- **Seule la médiane porte `publie`.** Les prix par métier du `README` — 250 000 €, 220 000 €,
+  86 000 €, 50 000 € — ne sont sous aucune baseline. Ils peuvent vieillir en silence, et cette
+  correction ne change rien pour eux.
