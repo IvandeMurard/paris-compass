@@ -11,6 +11,12 @@ node_modules
 dist
 dist-ssr
 
+# Archives de `npm pack`. `scripts/mcp-paquet.mjs` en produit une à chaque contrôle
+# d'avant-publication et la retire derrière lui ; cette ligne est le filet pour la fois où il
+# meurt en route. Une archive committée serait un artefact de build dans un dépôt de sources,
+# et surtout une version figée que plus rien ne reconstruit.
+*.tgz
+
 # Cache incrémental de `tsc --build` (voir le script `typecheck`).
 *.tsbuildinfo
 

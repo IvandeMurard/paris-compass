@@ -1,12 +1,30 @@
 {
-  "name": "@paris-compass/mcp-server",
-  "private": true,
+  "name": "paris-compass-mcp",
   "version": "0.1.0",
   "type": "module",
-  "description": "MCP server exposing Compass's scoring core to an agent — the same trust boundary as an anonymous visitor, never a privileged connection.",
+  "description": "MCP server for Compass: address-level context on Paris commercial premises, from open data — what traded on a shopfront before, how the street turns over, what sources say and how sure they are. Anonymous read-only access, the same trust boundary as a visitor of the site.",
+  "license": "Apache-2.0",
+  "author": "Ivan de Murard",
+  "homepage": "https://github.com/IvandeMurard/paris-compass/tree/main/mcp-server#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IvandeMurard/paris-compass.git",
+    "directory": "mcp-server"
+  },
+  "bugs": "https://github.com/IvandeMurard/paris-compass/issues",
+  "keywords": ["mcp", "modelcontextprotocol", "paris", "open-data", "retail", "commercial-property", "bodacc", "apur"],
+  "bin": {
+    "paris-compass-mcp": "dist/server.mjs"
+  },
+  "files": ["dist", "README.md"],
+  "engines": {
+    "node": ">=20.12"
+  },
   "scripts": {
     "start": "tsx src/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "node build.mjs",
+    "prepack": "npm run typecheck && npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

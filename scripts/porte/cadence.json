@@ -26,7 +26,8 @@
     "eval:sabotage": "Écrit sur le distant. Chaque acte vit dans une transaction annulée, mais une écriture jouée sans personne devant reste une écriture non surveillée sur une base partagée. Il se joue à la main, quand la règle de retenue de licence bouge.",
     "porte:sabotage": "Démontre la règle de #71, il ne mesure pas l'état du dépôt : ses trois actes sont joués à chaque `npm run test` par scripts/porte/*.test.ts, qui est planifié. Le script existe pour qu'un humain puisse voir la démonstration se dérouler.",
     "sessions": "Réécrit la table d'ordre de docs/SESSIONS.md — une écriture dans le dépôt, qui appartient à la session ayant fermé l'issue. C'est `sessions:check`, planifié, qui dit sans rien écrire si la table a dérivé.",
-    "brief": "Assemble le prompt d'une session et la liste de ce qu'elle doit lire. Aucun verdict."
+    "brief": "Assemble le prompt d'une session et la liste de ce qu'elle doit lire. Aucun verdict.",
+    "mcp:paquet": "Empaquette le serveur MCP, installe l'archive dans un répertoire neuf hors du dépôt, et parle MCP au binaire installé. Un `npm pack` et une installation réseau à chaque passage, pour un artefact qui ne bouge qu'au moment d'une publication : le planifier chaque matin dépenserait ça contre un état immobile. Il se joue à la main avant `npm publish`, et c'est là qu'il décide quelque chose. Ce que le paquet contient reste gardé en continu par `verify:mcp` et `build`, tous deux planifiés."
   },
   "_lisez-moi-sources": [
     "`sources` est vide, et c'est le resultat de #70 : les huit sources de compass_source_freshness()",

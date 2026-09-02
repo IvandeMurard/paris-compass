@@ -33,7 +33,7 @@ a bougé les 31 août et 1er septembre, et rien d'autre :
 | Invariants | **37** — inchangé. Trois d'entre eux, `I1`, `I2` et `I7`, sont **joués en 22 instructions** au lieu d'une. Même population, toutes les tranches jouées |
 | **Coût des trois bras distants** (le quatrième, `freshness`, est **un aller-retour** : une RPC, aucun balayage) | Deux passages. `eval` **306 s** puis **299 s** (bras A seul 240 s) · `eval:anon` **5 s** deux fois · `verify:mcp` **114 s** puis **227 s** — **425 s puis 531 s**. L'écart est entièrement `verify:mcp`, et c'est Overpass : les contrôles suspendus attendent des miroirs publics à 429 et 504, chacun avec son délai. C'est ce chiffre-là qui dimensionne la cadence de la porte planifiée, **pas les 115 s de `#69`**, qui étaient `I1` seul avant son découpage |
 | **Secrets de dépôt** | **`DATABASE_URL` seul.** `SUPABASE_URL` et `SUPABASE_ANON_KEY` **manquent**, donc `eval:anon` et `verify:mcp` n'ont pas de clé sur un runner. Le workflow s'arrête là-dessus en le nommant, avant de dépenser dix minutes |
-| Portes | `typecheck` ✓ · `test` **325** ✓ (2 septembre) · `freshness` **8 sources, 0 en retard, 0 écart, 4 sans seuil par décision**, sortie 3 (1er septembre) · `eval` **sortie 1 le 2 septembre** — `prix_median_local_identifiable` dérive de 1,33 % au-dessus du seuil bloquant, non traité, point 14 (les 31 août et 1er septembre : deux passages au bout, sortie 3 sur les 11 avertissements habituels) · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 39 verts, 0 échec, 2 suspendus** (Overpass 429 puis 504), sortie 0, **remesuré le 2 septembre après le §33** · `porte:sabotage` **PASS, quatre actes** · `porte:publie` **PASS contre la production, sortie 0** (2 septembre) · `build` et `build:dev` ✓ (2 septembre), **hashes changés** : `index-DX8ZO1QB.js`, `App-uI7Bjffv.js` (chunk neuf), `MapView-BiNyeJsQ.js` — `src/main.tsx` charge `App` dynamiquement depuis le §32, et `src/pages/Index.tsx` a bougé côté Lovable |
+| Portes | `typecheck` ✓ · `test` **325** ✓ (2 septembre) · `freshness` **8 sources, 0 en retard, 0 écart, 4 sans seuil par décision**, sortie 3 (1er septembre) · `eval` **sortie 1 le 2 septembre** — `prix_median_local_identifiable` dérive de 1,33 % au-dessus du seuil bloquant, non traité, point 14 (les 31 août et 1er septembre : deux passages au bout, sortie 3 sur les 11 avertissements habituels) · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 40 verts, 0 échec, 1 suspendu**, sortie 0, **remesuré le 2 septembre après le paquet MCP** (39/2 plus tôt le même jour : un miroir Overpass est revenu) · `porte:sabotage` **PASS, quatre actes** · `porte:publie` **PASS contre la production, sortie 0** (2 septembre) · `build` et `build:dev` ✓ (2 septembre), **hashes changés** : `index-DX8ZO1QB.js`, `App-uI7Bjffv.js` (chunk neuf), `MapView-BiNyeJsQ.js` — `src/main.tsx` charge `App` dynamiquement depuis le §32, et `src/pages/Index.tsx` a bougé côté Lovable |
 
 **La porte tourne toute seule depuis le 31 août** — `.github/workflows/porte.yml`, tous les
 jours à 07:29 UTC, dix bras : `typecheck`, `test`, `build`, `build:dev`, `sessions:check`,
@@ -727,6 +727,49 @@ Les points **1, 3, 4, 8, 9, 10 et 11 sont rayés** et sont partis dans
     « 160 000 € » comme médiane du fonds parisien, et `docs/PERIMETRE.md` s'appuie dessus. Une
     baseline qui dérive sans décision laisse vieillir une affirmation à l'écran — le défaut que
     `Measured<T>` existe pour empêcher, revenu par la porte de service.
+
+15. **Publier `paris-compass-mcp` — tout est prêt, il manque `npm publish`.** Direction donnée
+    par Ivan le 2 septembre 2026 : « le MCP doit être publié ». Ticket
+    [`#35`](https://github.com/IvandeMurard/paris-compass/issues/35), qui reste **ouvert** — son
+    « Fait quand » exige qu'un agent extérieur atteigne les outils, ce qui n'est vrai qu'une fois
+    l'archive sur le registre.
+
+    **Ce qui est fait et démontré**, le 2 septembre 2026 :
+
+    - `mcp-server/package.json` est publiable — nom **`paris-compass-mcp`** (non scopé, vérifié
+      libre), `bin`, `files`, `license`, `repository`, `engines: >=20.12`, et un `prepack` qui
+      typecheck puis construit ;
+    - `mcp-server/build.mjs` replie `../src/core` dans `dist/server.mjs` avec le shebang que
+      `bin` exige. Sans ce repli, le paquet s'installe et ne démarre pas : le noyau partagé
+      n'existe pas hors du dépôt ;
+    - `src/supabase.ts` porte l'URL et la clé publiable du projet public, surchargeables par
+      l'environnement. Sans ça, le « Fait quand » est irréalisable : un agent extérieur n'a aucun
+      moyen d'obtenir ces valeurs ;
+    - `npm.cmd run mcp:paquet` — **PASS, sortie 0** : archive empaquetée, installée dans un
+      répertoire neuf hors du dépôt, **sans aucune configuration**, puis interrogée en JSON-RPC
+      sans le SDK. 6 outils annoncés, et les quatre que `#35` nomme exercés pour de vrai.
+
+    **Ce que ce contrôle a trouvé du premier coup, et qui aurait été publié :** `prepublishOnly`
+    **ne tourne pas sur `npm pack`**. La première archive emportait un `dist/` périmé, construit
+    avant la dernière modification des sources — donc un paquet qui levait encore l'ancienne
+    erreur. Corrigé en passant à `prepack`, qui, lui, joue sur les deux.
+
+    **Ce qui reste, et que je ne peux pas faire :**
+
+    ```powershell
+    cd mcp-server
+    npm.cmd publish --access public     # demande les identifiants npm d'Ivan
+    ```
+
+    Puis rejouer `npm.cmd run mcp:paquet`, fermer `#35` avec la démonstration, et régénérer la
+    table. **Attention au caractère définitif** : npm n'autorise le retrait d'une version que
+    pendant 72 h, et un nom non scopé ne se transfère pas ensuite à une organisation. Le nom et
+    la version `0.1.0` sont donc des décisions qu'on ne reprend pas.
+
+    *Ce que le contrôle ne couvre pas :* il installe l'archive **locale**, pas celle du registre.
+    Un paquet publié sous un mauvais `access`, ou dont le registre servirait autre chose, ne
+    serait pas vu. Le rejouer après publication en installant `paris-compass-mcp` depuis npm
+    fermerait ce dernier écart.
 
 
 ## Ce qu'il ne faut pas faire

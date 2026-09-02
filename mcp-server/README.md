@@ -5,21 +5,60 @@ reached with the same trust boundary an anonymous visitor has: the Supabase anon
 a service key. `list_sources` describes only what these tools actually call — never a source
 no tool here touches.
 
-## Setup
+## Install
+
+Nothing to configure. The package carries the public project's read-only endpoint — the same
+URL and anonymous key the website already hands to every browser that opens it. There is no
+account to create and no key to request, because there is no key that is yours to keep.
+
+Add it to an MCP client's configuration:
+
+```json
+{
+  "mcpServers": {
+    "paris-compass": {
+      "command": "npx",
+      "args": ["-y", "paris-compass-mcp"]
+    }
+  }
+}
+```
+
+Claude Code, in one line:
+
+```bash
+claude mcp add paris-compass -- npx -y paris-compass-mcp
+```
+
+Node 20.12 or later. To read a different Supabase project — a derived deployment, `w7-kit` —
+set `SUPABASE_URL` and `SUPABASE_ANON_KEY` in the client's `env` block: the environment wins
+over the built-in values.
+
+### Ce qu'on peut lui demander
+
+Une fois branché, à coller tel quel dans une conversation avec l'agent :
+
+> Tu as accès au serveur MCP `paris-compass`, qui décrit les locaux commerciaux de Paris
+> intra-muros à partir de données publiques. Avant de répondre, appelle `list_sources` et
+> tiens-t'en à ce qu'il annonce : chaque chiffre porte sa source, sa licence, sa date et son
+> degré de certitude, et tu dois les citer. Ne combine jamais les axes en une note unique, et
+> ne comble jamais un trou par une estimation — « indéterminé » est une réponse valide, une
+> moyenne inventée n'en est pas une. Pour l'historique d'une vitrine : `find_premises` d'abord,
+> qui rend des candidats et non une correspondance, puis `trace_premise` sur le `location_id`
+> retenu.
+
+## Run from the repository
+
+For development in this repository, where the server runs from source rather than from the
+published bundle:
 
 ```powershell
 npm.cmd install
-copy .env.example .env
-# edit .env: same values as the app's VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY
-```
-
-## Run
-
-```powershell
 npm.cmd run start
 ```
 
 Speaks MCP over stdio. Point an MCP client at `npx tsx src/index.ts` from this directory.
+`.env` is optional here too — copy `.env.example` to `.env` only to override the public values.
 
 If `tsx` refuses to start — `spawn UNKNOWN`, errno `-4094` — it is not this package: an
 application-control policy on the development machine blocks the esbuild binary inside

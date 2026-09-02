@@ -6,3 +6,4 @@
 
 - [README](README.md): the six axes of context, data sources, evaluation gate (37 invariants, 24 baselines)
 - [Live app](https://paris-compass.lovable.app): no account needed
+- [MCP server](mcp-server/README.md): `npx -y paris-compass-mcp` — six tools over MCP, anonymous read-only, nothing to configure

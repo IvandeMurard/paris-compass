@@ -14,13 +14,30 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 const ENV_FILE = resolve(import.meta.dirname, "../.env")
 if (existsSync(ENV_FILE)) process.loadEnvFile(ENV_FILE)
 
-const url = process.env.SUPABASE_URL
-const anonKey = process.env.SUPABASE_ANON_KEY
+// Le projet public de Compass, écrit ici — délibérément, depuis le 2 septembre 2026, quand ce
+// serveur est devenu un paquet npm (#35).
+//
+// **Ces deux valeurs ne sont pas des secrets, et ne peuvent pas l'être** : le navigateur de
+// chaque visiteur du site les porte déjà, et le rôle `anon` est en lecture seule sous RLS — ce
+// que l'invariant I11 vérifie à chaque passage de `eval`. Les écrire ici est ce qui permet à un
+// agent extérieur — une collectivité, une CCI — de brancher le serveur sans connaître la
+// configuration d'un dépôt qu'il n'a pas lu. Les exiger de lui rendrait le « Fait quand » de
+// #35 littéralement irréalisable : il n'a aucun moyen de les obtenir.
+//
+// L'environnement prime, et c'est ce qui garde le paquet réutilisable : un dépôt dérivé
+// (`w7-kit`) pointe son propre projet sans republier, et `verify.ts` s'en sert pour jouer
+// « base injoignable » sans toucher au vrai.
+const PUBLIC_PROJECT_URL = "https://dbefhvmyfmmhjeetdddu.supabase.co"
+const PUBLIC_ANON_KEY = "sb_publishable_Bi93N6usVvRbJrVYb-45dw_jR4xsKOD"
+
+const url = process.env.SUPABASE_URL || PUBLIC_PROJECT_URL
+const anonKey = process.env.SUPABASE_ANON_KEY || PUBLIC_ANON_KEY
 
 if (!url || !anonKey) {
+  // Atteignable seulement si quelqu'un a vidé les constantes ci-dessus en publiant.
   throw new Error(
-    "SUPABASE_URL and SUPABASE_ANON_KEY are required (see mcp-server/.env.example). " +
-      "Same project and same anon key as the app's VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY.",
+    "SUPABASE_URL and SUPABASE_ANON_KEY resolved to nothing. The published package carries the " +
+      "public project's values; set both in the environment to point at another one.",
   )
 }
 

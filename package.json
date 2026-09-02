@@ -25,6 +25,7 @@
     "porte:publie": "tsx scripts/porte/publie.ts",
     "freshness": "tsx scripts/ingest/freshness.ts",
     "verify:mcp": "node scripts/verify-mcp.mjs",
+    "mcp:paquet": "node scripts/mcp-paquet.mjs",
     "smoke:mcp": "node scripts/verify-mcp.mjs --smoke",
     "test": "vitest run",
     "test:watch": "vitest",
