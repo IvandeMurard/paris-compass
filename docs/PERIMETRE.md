@@ -489,13 +489,34 @@ engagement :**
 
 | Segment | Modèle | Fourchette | Marché |
 |---|---|---|---|
-| Réseau de franchise | Export à l'unité ou abonnement | 15–30 €/fiche ; 99–299 €/mois | Quelques dizaines de comptes atteignables an 1 |
+| Réseau de franchise | Export à l'unité ou abonnement | 30–49 €/fiche ; 99–299 €/mois | Quelques dizaines de comptes atteignables an 1 |
 | Collectivité | Licence de données annuelle | 5 000–20 000 €/an selon périmètre | Poignée de cibles (SEMAEST, Mairie de Paris, CCI Paris IDF) |
-| MCP volume | Quota gratuit + palier payant | 0,01–0,05 €/appel, ou paliers 49–199 €/mois | Le plus scalable — pas de démarchage |
+| MCP volume | Quota gratuit + palier d'**analyses**, jamais d'appels | Stock mensuel d'analyses, paliers 49–199 €/mois | Le plus scalable — pas de démarchage |
 
 Le plus vérifiable en premier : le MCP, parce qu'il tourne déjà. Observer qui dépasse un usage
 raisonnable avant de construire quoi que ce soit ne coûte rien ; démarcher une collectivité ou un
 réseau de franchise coûte du temps avant même un ticket.
+
+**Deux corrections du 2 septembre 2026, après l'analyse de Gini** (`PLAN.md`, « Concurrence —
+Gini (MyTraffic) »). Le tableau ci-dessus les porte déjà.
+
+**L'unité facturée est l'analyse, pas l'appel.** Le chiffrage disait « 0,01–0,05 €/appel ». Gini
+facture la *conversation* — une analyse lancée, non reportable d'un mois sur l'autre — et cette
+unité-là résout gratuitement le garde-fou du §8. Y est écrit qu'il faut repérer les appels où
+Compass est réductible à un passe-plat et ne pas les facturer : à l'appel, le problème est
+insoluble, il faudrait classer chaque outil et le premier client sérieux contestera la
+classification. À l'analyse, il disparaît — un `list_sources` n'est pas une analyse. Les six
+outils restent donc libres au niveau de l'appel, et ce qui se facture est l'unité que le client
+reconnaît lui-même comme du travail. C'est aussi la réponse à l'objection du §1 : le preneur qui
+décide une à trois fois dans sa vie professionnelle n'achète pas un abonnement, il achète un
+stock d'analyses.
+
+**Le prix monte de 15–30 à 30–49 €/fiche.** L'offre d'entrée de Gini est à 249 €/mois pour cinq
+conversations, soit ~50 € l'analyse, sur un segment qu'elle nomme « entrepreneurs, analystes solo,
+petits opérateurs et franchisés » — c'est-à-dire le persona du §1, à un prix de marché prouvé.
+Être trois fois moins cher se lit « produit moindre » plus souvent que « meilleur rapport ».
+Reste une hypothèse non validée, au même titre que le reste de ce tableau, et à revérifier avant
+tout engagement.
 
 ---
 

@@ -455,6 +455,13 @@ deux sorties : **c'est le même contenu que renverra le serveur MCP** (4.1) à u
 Google Sheets en direct demanderait une connexion de compte pour peu de gain : un fichier
 téléchargé se colle dans Sheets en deux secondes.
 
+**Priorisé le 2 septembre 2026 : ce chantier passe devant les branchements de sources
+supplémentaires.** Trois raisons qui tiennent ensemble et pas séparément — son prérequis est levé
+depuis le 12 août et il n'attend que le déploiement ; c'est le seul produit payant identifié pour
+le persona du §1 (`PERIMETRE.md` §10) ; et le format est validé par le marché, l'*Artifact
+Factory* de Gini vendant exactement ça — un livrable partageable plutôt qu'un tableau de bord,
+parce que la décision passe par un tiers. Une source de plus n'a aucune de ces trois propriétés.
+
 ### 2.7 — La fiche locale : le consommateur qui manque — **branchée le 24 août**
 
 > **Fait le 24 août 2026**, par le ticket `w0-fiche` (#8), qui redisait cette section : la
@@ -493,14 +500,54 @@ trancher**, et la mesure est publiée sur la page Méthodologie.
 **Débloquée par le déploiement, comme tout ce qui touche la base.** À faire dans la foulée —
 **aucun des quatre n'est fait au 24 août** :
 
-- **Le dénominateur par couche** (le vol assumé à Aino) : afficher « 12 commerces alimentaires
-  dans 800 m » et pas seulement « 64/100 ». Un décompte est refaisable par le lecteur, un
-  score ne l'est pas. `compass_premises_within` renvoie déjà `total_matched`.
+- **Le dénominateur par couche** (emprunté à Aino, et assumé comme tel) : afficher « 12 commerces
+  alimentaires dans 800 m » et pas seulement « 64/100 ». Un décompte est refaisable par le
+  lecteur, un score ne l'est pas. `compass_premises_within` renvoie déjà `total_matched`.
+
+  **Élargi le 2 septembre 2026, et c'est devenu une décision plutôt qu'une amélioration.**
+  L'analyse de Gini a resserré la revendication du produit : nous ne vendons plus
+  « l'interprétation » mais **l'interprétation vérifiable** (`PERIMETRE.md` §9). Or afficher une
+  provenance n'est pas permettre une re-dérivation. « 77 % des cafés de 2017 encore en activité
+  six ans après » arrive attribué à APUR BDCom, ODbL, `derived` — un lecteur sait d'où ça vient,
+  il ne peut pas le refaire, donc il ne peut pas le contester. **Tout chiffre `derived` porte
+  désormais son N et son périmètre de calcul**, pas seulement les décomptes par couche : c'est
+  le périmètre commun 2017∩2023 qui transforme un effondrement apparent de 27 % en −3 % réels, et
+  le taire rend le chiffre juste indéfendable. À faire **avant** la publication du case study :
+  sans ça, le case study repose sur une promesse que le produit ne tient pas encore.
 - **Les cinq scores par catégorie**, calculés pour chaque local et jamais affichés — la carte
   montre trois chiffres sur huit.
 - **La troncature à 120 locaux**, à afficher plutôt qu'à taire (voir `DIAGNOSTIC.md`).
 - **L'air par local et non par vue** : `useAreaEnvironment` calcule un indice au centre de la
   carte, qui est ensuite présenté sur chaque fiche comme s'il lui appartenait.
+
+---
+
+### 2.8 — Les hypothèses typées — **décidé le 2 septembre 2026**
+
+`Measured<T>` porte déjà le champ : `note?: string`, « pourquoi le chiffre doit être lu avec
+prudence — troncature, proxy, échantillon faible ». Le manque n'est donc pas un champ, c'est sa
+forme, et les trois défauts sont liés :
+
+- il est **optionnel**, donc absent par défaut ;
+- il est en **texte libre**, donc invérifiable — précisément ce que le produit refuse ailleurs ;
+- `isReliable()` écrase toute note en « pas fiable », ce qui décourage d'en écrire une.
+
+Le chantier : passer la réserve à une **liste typée** de familles d'hypothèses — `perimetre_commun`,
+`adresse_partagee`, `millesime_decale`, `proxy`, `echantillon_faible` — en gardant un champ libre
+à côté pour ce qui ne rentre dans aucune. L'enjeu n'est pas cosmétique : **une hypothèse typée est
+testable par un invariant, une phrase libre ne l'est pas.** C'est la même bascule du déclaratif
+vers le mécanique que `Measured<T>` a déjà faite pour la source, appliquée à la réserve.
+
+Et `isReliable()` change de définition en conséquence : une hypothèse déclarée n'est plus un
+disqualifiant, elle est une condition de lecture. Ce qui disqualifie reste `value === null` et
+la méthode `estimated`.
+
+Origine de la décision : Gini annonce la triade complète — *« sources, assumptions, and confidence
+level »* (`PLAN.md`, « Concurrence — Gini (MyTraffic) »). Nous avons les sources et les quatre
+niveaux ; les hypothèses existent mais ne sont ni obligatoires ni exploitables.
+
+**Ticket à part entière, jamais glissé dans un autre chantier** : ça touche le noyau, donc la
+page Méthodologie (règle de synchronisation `scoring.ts` ↔ `Methodology.tsx`), donc la porte.
 
 ---
 
@@ -1077,12 +1124,12 @@ thèse de Compass. Nous avons la version plus forte de cet engagement (niveaux c
 licences bloquantes, `Measured<T>` qui rend la règle mécanique) et l'énonçons dans un README
 quand eux en font une accroche. **Produit supérieur, discours inférieur.** À corriger.
 
-**À voler.** Le décompte par couche : ils écrivent « Parks: 43 features, OpenStreetMap ». Ils
+**À reprendre.** Le décompte par couche : ils écrivent « Parks: 43 features, OpenStreetMap ». Ils
 affichent le **dénominateur**. Compass affiche `source · millésime · méthode` mais pas
 *combien d'éléments ont été comptés*. « 12 commerces alimentaires dans 800 m » est refaisable
 par le lecteur ; « alimentation 64/100 » ne l'est pas. Peu de travail, très aligné.
 
-**À voler aussi.** Le format sériel numéroté, un cas d'usage par publication.
+**À reprendre aussi.** Le format sériel numéroté, un cas d'usage par publication.
 
 **À ne pas copier.** Leur généralité horizontale : un outil pour des professionnels qui savent
 déjà faire du SIG et veulent aller plus vite. Compass est vertical — une décision, une
@@ -1198,7 +1245,7 @@ rue, ne peut pas voir le pas de redressement, ne peut pas rejouer le calcul, et 
 qu'un chiffre de l'an dernier a changé parce que la calibration a été refaite. Rien de tout ça
 n'est caché par malice ; c'est structurellement invisible parce que la donnée est fermée.
 
-### À voler
+### À reprendre
 
 - **Les hypothèses et le niveau de confiance, en plus des sources.** Ils annoncent la triade
   complète : *« Every Gini output includes its sources, its assumptions, and its confidence
@@ -1264,6 +1311,11 @@ et plus seulement contre des builders.
   la projection : un bail engage sur neuf ans, l'environnement est autant temporel que spatial.
 - **Protocole de comptage piéton manuel**, publié comme outil autonome — vingt minutes sur le
   trottoir, méthode d'extrapolation incluse. Transforme un trou de données en méthode.
+  **Étendu le 2 septembre 2026** : le publier avec la méthodologie comparée du flux piéton acheté
+  — panel de mobiles, SDK tiers, redressement, biais reconnus et biais mesurés (« Concurrence —
+  Gini (MyTraffic) »). C'est le contenu qui *démontre* le refus au lieu de l'annoncer. **Après le
+  case study, pas avant**, et sans rallonger le README : l'argument y tient déjà en trois
+  paragraphes, cette page est son développement, pas son doublon.
 - ~~Vérifier si les déclarations de cession du droit de préemption commercial parisien sont
   publiées en open data.~~ **Remonté en §5.6 le 12 août** : c'est l'équivalent ouvert et amont
   de l'annonce commerciale, donc mieux qu'un différé.
