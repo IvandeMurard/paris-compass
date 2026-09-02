@@ -55,11 +55,12 @@ npm.cmd run build:dev   # mode development — seul chemin qui charge lovable-ta
 Smart App Control bloquait le binaire natif de `@swc/core` sur cette machine, et il n'a **ni
 liste d'autorisation ni exception par fichier** : on ne peut pas lui faire accepter ce
 fichier-là, et le désactiver est irréversible sans réinstaller Windows. **Depuis, le blocage a
-disparu** — remesuré deux fois, le 28 et le 31 août 2026 : `require('@swc/core').transformSync`
-rend du code, et `npm.cmd run build` / `npm.cmd run build:dev` vont au bout en produisant des
-hashes identiques à `build:local` (`index-DKJzmj15.js`, `MapView-8C8F8Ymz.js`,
-`index-C7sT89I7.css`, les trois mesures). Rien n'explique la disparition — pas de changement
-connu de la politique Smart App Control entre les deux dates — donc le blocage peut revenir.
+disparu** — remesuré trois fois, le 28 août, le 31 août et le 2 septembre 2026 :
+`require('@swc/core').transformSync` rend du code, et `npm.cmd run build` / `npm.cmd run
+build:dev` vont au bout en produisant des hashes identiques à `build:local`
+(`index-DKJzmj15.js`, `MapView-8C8F8Ymz.js`, `index-C7sT89I7.css`, les trois mesures). Rien
+n'explique la disparition — pas de changement connu de la politique Smart App Control entre
+les dates — donc le blocage peut revenir.
 Un second chemin de build reste en place pour ce cas, sans SWC :
 
 ```powershell

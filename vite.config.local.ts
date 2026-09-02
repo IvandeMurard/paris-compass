@@ -11,12 +11,12 @@ import { componentTagger } from "lovable-tagger";
 // without reinstalling Windows. So the build was made to stop needing that binary rather than
 // the machine made to accept it.
 //
-// **The block is gone, as of two later measurements.** Remeasured 28 and 31 August 2026:
-// `require('@swc/core').transformSync(...)` returns code, and `npm run build` / `build:dev` both
-// complete and produce the same chunk hashes as `build:local` below (`index-DKJzmj15.js`,
-// `MapView-8C8F8Ymz.js`, `index-C7sT89I7.css`, all three dates). Nothing explains why — no known
-// Smart App Control policy change between the 26th and the 28th — so this file stays: the block
-// can return without warning, same as it appeared without one.
+// **The block is gone, as of three later measurements.** Remeasured 28 and 31 August, and
+// 2 September 2026: `require('@swc/core').transformSync(...)` returns code, and `npm run build`
+// / `build:dev` both complete and produce the same chunk hashes as `build:local` below
+// (`index-DKJzmj15.js`, `MapView-8C8F8Ymz.js`, `index-C7sT89I7.css`, all three dates). Nothing
+// explains why — no known Smart App Control policy change since the 26th — so this file stays:
+// the block can return without warning, same as it appeared without one.
 //
 // **Why a separate file rather than an edit.** Exactly the reason `vitest.config.ts` gives:
 // `vite.config.ts` is also edited by Lovable, which resumes on 1 September and would revert
@@ -34,8 +34,8 @@ import { componentTagger } from "lovable-tagger";
 //  1. On 26 August, a bundle built here was not byte-identical to the one Lovable and any CI
 //     produce through SWC — 1 114.64 kB against 1 112.62 kB, measured the same day on the same
 //     tree. Since the block lifted, that gap is closed: `build` and `build:local` have produced
-//     the same chunk hashes on 28 and 31 August. If Smart App Control blocks SWC again, treat
-//     this point as live again until remeasured.
+//     the same chunk hashes on 28, 31 August, and 2 September. If Smart App Control blocks SWC
+//     again, treat this point as live again until remeasured.
 //  2. **It does not cover what `build:dev` exists for, on this path.** CLAUDE.md keeps the
 //     second build because production mode does not mount `lovable-tagger`, so a broken Lovable
 //     link would pass unseen. Measured here on 26 August: building `--mode development` with
