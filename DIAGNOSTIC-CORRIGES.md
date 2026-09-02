@@ -2788,6 +2788,13 @@ tient, démontré rouge en indexant `mcp-server/.env` de force puis vert après 
 | Chunks | entrée unique de 771 180 octets | entrée `index-DX8ZO1QB.js` 163,74 ko + `App-uI7Bjffv.js` 580,96 ko + `MapView-BiNyeJsQ.js` 159,17 ko |
 | Build sans configuration | produisait un bundle muet | **sortie 1**, les deux clés nommées |
 
+**Et sur la production, après republication par Ivan le 2 septembre 2026** : le chunk d'entrée
+servi passe de `index-DZV_6s4n.js` (771 180 octets, référence absente) à `index-BDzDPi5T.js`
+(**163 738 octets, référence présente, aucun `void 0`, garde de `main.tsx` embarquée**). La
+chute de taille est le découpage d'`App` : elle prouve que le bundle publié vient de ce dépôt.
+Reste inconnu, faute d'accès au journal de build de Lovable : si la garde `prebuild` a tourné
+là-bas — voir le point 12 de `docs/REPRISE.md`.
+
 `typecheck` ✓ · `test` **315** ✓ · `build` ✓ · `build:dev` ✓. `verify:mcp` non relancé : ni
 `src/core/` ni `mcp-server/` touchés.
 

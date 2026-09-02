@@ -637,21 +637,33 @@ Les points **1, 3, 4, 8, 9, 10 et 11 sont rayés** et sont partis dans
 
    *Une fois vérifié*, supprimer ce point 7 : il n'aura plus lieu d'être.
 
-12. **Contrôler la page publiée après republication — ouvert depuis le 2 septembre 2026.**
-    Le dépôt est réparé et démontré (`DIAGNOSTIC.md` §32) ; la production, elle, sert encore
-    le bundle d'avant tant que Lovable n'a pas rebâti. Ce point ne se ferme pas sur un test
-    vert, il se ferme sur une page qui s'affiche :
+12. ~~**Contrôler la page publiée après republication.**~~ **Fait le 2 septembre 2026, la
+    production est réparée.** Ivan a republié depuis Lovable ; mesuré sur l'artefact servi
+    juste après :
 
-    ```bash
-    curl -s https://paris-compass.lovable.app/ | grep -o 'src="[^"]*\.js"'
-    curl -s https://paris-compass.lovable.app/assets/<le chunk>.js \
-      | grep -c 'dbefhvmyfmmhjeetdddu'      # doit valoir 1 ou plus, pas 0
+    | | Avant republication | Après |
+    | --- | --- | --- |
+    | Chunk d'entrée servi | `index-DZV_6s4n.js`, 771 180 octets | `index-BDzDPi5T.js`, **163 738 octets** |
+    | Référence de projet dans le bundle | **0** occurrence | **1** |
+    | Couple `void 0` à la place du client | présent | **aucun** |
+    | Garde de configuration de `src/main.tsx` | absente | **présente** |
+
+    L'entrée est passée de 771 ko à 164 ko parce que le découpage d'`App` a survécu au build
+    de Lovable : c'est la preuve que le bundle publié vient bien de ce dépôt, et pas d'un
+    artefact plus ancien.
+
+    **Ce que ça ne dit pas, et qui reste ouvert.** Que les valeurs soient arrivées ne prouve
+    pas que la garde `prebuild` ait tourné : elles peuvent venir de `.env` sans que
+    `scripts/build/envGuard.ts` ait été appelé, si Lovable invoque `vite build` plutôt que
+    `npm run build`. La réponse tient en une ligne à chercher dans leur journal de build :
+
+    ```
+    Configuration du front présente en mode « production » : VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY.
     ```
 
-    Puis la carte au navigateur. Si le compte vaut encore 0 après une republication, la garde
-    `prebuild` n'a pas tourné — c'est-à-dire que Lovable n'appelle pas `npm run build` mais
-    `vite build` en direct, et c'est **cette** conclusion qu'il faudra écrire ici, parce
-    qu'elle change où doit vivre la règle.
+    Absente, la garde 2 ne protège pas le chemin de publication et seule celle de `main.tsx`
+    tient. À consigner ici dans les deux cas — c'est ce qui décide si la règle est au bon
+    endroit.
 
 
 ## Ce qu'il ne faut pas faire
