@@ -499,6 +499,22 @@ bascule quand l'APUR répond.
 
 ---
 
+**On pousse sur `main` sans passer par une PR, pour l'instant.** Décidé par Ivan le 2 septembre
+2026, après trois passages en force signalés. GitHub porte une règle « Changes must be made
+through a pull request » sur `main` ; les droits d'administration la contournent, et le message
+`Bypassed rule violations` apparaît à chaque poussée. **Ce n'est pas un incident, c'est la
+décision** — l'écrire ici évite qu'une session suivante le lise comme une dérive à corriger.
+
+*Pourquoi elle tient.* La machinerie du dépôt suppose des poussées directes : `sessions:check`
+recoupe la table committée à l'état GitHub, donc fermer une issue en laissant la table dans une
+PR non fusionnée met la porte au rouge le lendemain matin pour rien. Et `docs/SESSIONS.md` dit
+« pousser à la fin de chaque session, toujours ».
+
+*Ce que ça coûte, et qu'il faut savoir avant de changer d'avis.* Aucune relecture avant `main`,
+et le seul filet est la porte planifiée — qui juge après coup, une fois par jour. Le jour où
+quelqu'un d'autre écrit dans ce dépôt, cette décision est à reprendre.
+
+
 ## La suite, par ordre
 
 Les points **1, 3, 4, 8, 9, 10 et 11 sont rayés** et sont partis dans
