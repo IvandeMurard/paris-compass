@@ -11,6 +11,7 @@ import { geocode } from '@/services/opendata/geocoding';
 import Seo from '@/components/Seo';
 import { SITE_URL } from '@/content/site';
 import { useLocale } from '@/i18n/locale';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Leaflet and its layer code only ever run inside MapView, so the map is loaded on demand:
 // that keeps the mapping library out of the bundle the page has to parse before it can paint
@@ -29,6 +30,7 @@ const IndexContent = () => {
   const { t, locale } = useLocale();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  const isMobile = useIsMobile();
 
   // Handle window resize to auto-show sidebar on desktop
   useEffect(() => {
@@ -97,44 +99,46 @@ const IndexContent = () => {
 
           {/* Main content area */}
           <div className="flex-1 min-h-0 overflow-hidden ml-0 md:ml-80">
-            {/* Desktop view with tabs */}
-            <div className="hidden md:flex h-full flex-col">
-              <Tabs defaultValue="map" className="flex-1 min-h-0 flex flex-col">
-                <div className="px-4 py-2 flex justify-between items-center border-b shrink-0">
-                  <TabsList>
-                    <TabsTrigger value="map" className="flex items-center">
-                      <MapPin size={16} className="mr-1" /> {t('view.map')}
-                    </TabsTrigger>
-                    <TabsTrigger value="list" className="flex items-center">
-                      <LayoutGrid size={16} className="mr-1" /> {t('view.list')}
-                    </TabsTrigger>
-                  </TabsList>
+            {/* Mount exactly one responsive map. Keeping both variants in the DOM made two
+                Leaflet instances fetch and update the same viewport, even when one was hidden. */}
+            {isMobile ? (
+              <div className="h-full">
+                {viewMode === 'map' ? (
+                  <div className="h-full">
+                    <MapPanel />
+                  </div>
+                ) : (
+                  <div className="h-full overflow-auto">
+                    <PropertyList />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex h-full flex-col">
+                <Tabs defaultValue="map" className="flex flex-1 min-h-0 flex-col">
+                  <div className="flex shrink-0 items-center justify-between border-b px-4 py-2">
+                    <TabsList>
+                      <TabsTrigger value="map" className="flex items-center">
+                        <MapPin size={16} className="mr-1" /> {t('view.map')}
+                      </TabsTrigger>
+                      <TabsTrigger value="list" className="flex items-center">
+                        <LayoutGrid size={16} className="mr-1" /> {t('view.list')}
+                      </TabsTrigger>
+                    </TabsList>
 
-                  <NaturalLanguageSearch onSearch={handleSearch} className="w-96" />
-                </div>
+                    <NaturalLanguageSearch onSearch={handleSearch} className="w-96" />
+                  </div>
 
-                <TabsContent value="map" className="flex-1 min-h-0 mt-0">
-                  <MapPanel />
-                </TabsContent>
+                  <TabsContent value="map" className="mt-0 min-h-0 flex-1">
+                    <MapPanel />
+                  </TabsContent>
 
-                <TabsContent value="list" className="flex-1 min-h-0 overflow-auto mt-0">
-                  <PropertyList />
-                </TabsContent>
-              </Tabs>
-            </div>
-
-            {/* Mobile view (conditional rendering) */}
-            <div className="md:hidden h-full">
-              {viewMode === 'map' ? (
-                <div className="h-full">
-                  <MapPanel />
-                </div>
-              ) : (
-                <div className="h-full overflow-auto">
-                  <PropertyList />
-                </div>
-              )}
-            </div>
+                  <TabsContent value="list" className="mt-0 min-h-0 flex-1 overflow-auto">
+                    <PropertyList />
+                  </TabsContent>
+                </Tabs>
+              </div>
+            )}
           </div>
         </div>
       </div>
