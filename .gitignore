@@ -35,6 +35,9 @@ dist-ssr
 # anonyme, mais la prochaine fois n'est pas garantie de s'en tenir là.
 .env
 !/.env
+# Sert `mcp-server/.env.example`, suivi depuis le 16 août : un motif sans `/` porte sur toute
+# la profondeur, donc cette négation n'est pas orpheline. Vérifié le 2 septembre 2026 — la racine
+# n'a pas de `.env.example`, et n'en a plus besoin depuis que `.env` est suivi.
 !.env.example
 
 # Sauvegardes de base. Ce dépôt est public : un dump embarque le schéma `auth`

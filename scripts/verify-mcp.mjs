@@ -9,7 +9,9 @@
 // tsx. Two reasons, both measured: `npx tsx` does not start on the machine this repository is
 // developed on (an application-control policy blocks esbuild 0.28.2 inside
 // mcp-server/node_modules — docs/REPRISE.md), and a gate that only runs where tsx happens to
-// work is a gate that will be skipped. The root esbuild 0.25.12 runs, and `node` always does.
+// work is a gate that will be skipped. The root esbuild 0.25.12 runs everywhere — but HOW it is
+// launched is not the same everywhere, and assuming it was cost this arm two days: see #74 and
+// scripts/esbuildInvocation.mjs.
 //
 // The typecheck is not the root `tsc --build`: mcp-server/tsconfig.json is its own project, and
 // a stricter one — `strict: true` and `noUnusedLocals`, against the app project's `strict:
@@ -20,6 +22,8 @@ import { spawnSync } from "child_process"
 import { existsSync } from "fs"
 import { dirname, join, resolve } from "path"
 import { fileURLToPath } from "url"
+
+import { esbuildInvocation } from "./esbuildInvocation.mjs"
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const MCP = join(ROOT, "mcp-server")
@@ -71,10 +75,17 @@ step("typecheck du serveur MCP (strict, ../src/core compris)", process.execPath,
 const smoke = process.argv.includes("--smoke")
 const runner = smoke ? "smoke-test" : "verify"
 
-const esbuild = join(ROOT, "node_modules", "esbuild", "bin", "esbuild")
+// esbuild ships `bin/esbuild` as a Node shim on Windows and as the native binary everywhere
+// else, so `node <that path>` is right on one system and fatal on the others — #74, which held
+// this arm red from 1 to 2 September 2026. The invocation is READ from the file rather than
+// deduced from `process.platform`; scripts/esbuildInvocation.mjs holds the rule and plays both
+// branches on whichever machine runs the tests.
+const { command: esbuildCommand, args: esbuildArgs } = esbuildInvocation(
+  join(ROOT, "node_modules", "esbuild", "bin", "esbuild"),
+)
 for (const [entry, out] of [["index", "server"], [runner, runner]]) {
-  step(`build ${entry}.ts`, process.execPath, [
-    esbuild,
+  step(`build ${entry}.ts`, esbuildCommand, [
+    ...esbuildArgs,
     join(MCP, "src", `${entry}.ts`),
     "--bundle",
     "--platform=node",

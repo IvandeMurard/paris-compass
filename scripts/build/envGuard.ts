@@ -11,10 +11,14 @@
 // there is reverted — the same reason `vitest.config.ts` and `vite.config.local.ts` exist as
 // separate files. The `prebuild` hook is ours.
 //
-// **What it does not catch,** and this is the real limit: `npm.cmd run build:dev` has no
-// `prebuild:dev` hook, and a builder invoking `vite build` directly skips npm's hooks entirely.
-// If Lovable ever publishes that way, this guard never runs — which is why the second line of
-// defence is `src/main.tsx`, inside the bundle itself, where no build path can bypass it.
+// **What it does not catch,** and this is the real limit: a builder invoking `vite build`
+// directly skips npm's hooks entirely. If Lovable ever publishes that way, this guard never
+// runs — which is why the second line of defence is `src/main.tsx`, inside the bundle itself,
+// where no build path can bypass it.
+//
+// `build:dev` was named in that paragraph until 2 September 2026, wrongly: npm does honour a
+// `prebuild:dev` hook — measured, not assumed — and the script now carries one. A limit written
+// from memory is how a hole gets left open on purpose.
 
 import { loadEnv } from "vite"
 

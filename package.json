@@ -10,6 +10,7 @@
     "prebuild": "tsx scripts/build/envGuard.ts && tsx scripts/generate-sitemap.ts",
     "typecheck": "tsc --build",
     "build": "vite build",
+    "prebuild:dev": "tsx scripts/build/envGuard.ts development && tsx scripts/generate-sitemap.ts",
     "build:dev": "vite build --mode development",
     "dev:local": "vite --config vite.config.local.ts",
     "build:local": "vite build --config vite.config.local.ts",

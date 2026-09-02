@@ -2800,10 +2800,88 @@ là-bas — voir le point 12 de `docs/REPRISE.md`.
 
 ### Ce que la règle ne rattrape pas
 
-- **`npm.cmd run build:dev` n'a pas de crochet `prebuild:dev`**, et un constructeur qui appelle
-  `vite build` en direct saute les crochets npm. La garde 2 ne tourne alors pas — c'est la garde
-  3, à l'intérieur du bundle, qui reste. Elle ne répare rien, elle rend lisible.
+- **Un constructeur qui appelle `vite build` en direct saute les crochets npm**, et la garde 2 ne
+  tourne alors pas — c'est la garde 3, à l'intérieur du bundle, qui reste. Elle ne répare rien,
+  elle rend lisible. *Rectifié le 2 septembre 2026 : ce point affirmait aussi que `build:dev`
+  n'avait pas de crochet `prebuild:dev`. C'était faux — npm en joue un, mesuré, et le script en
+  porte un depuis.*
 - **Un secret déjà committé une fois reste dans l'historique.** La règle arrête l'habitude, pas
   l'accident déjà poussé. Le remède serait alors une purge d'historique et une rotation de clé, pas un commit de correction — ce que la ligne de `.gitignore` disait déjà, et qui reste vrai pour tout ce qui n'est pas ces deux valeurs-ci.
 - **Rien ici ne vérifie que la page publiée s'affiche.** Les trois gardes portent sur le bundle
   produit, pas sur ce que Lovable publie ensuite. Un contrôle de bout en bout resterait à écrire.
+
+---
+
+## 33. `verify:mcp` lançait esbuild par `node`, ce qui n'est juste que sur Windows — le 2 septembre 2026
+
+**Fichiers :** `scripts/verify-mcp.mjs`, et le module neuf `scripts/esbuildInvocation.mjs`.
+
+**Corrigé le 2 septembre 2026, sans migration.** [`#74`](https://github.com/IvandeMurard/paris-compass/issues/74)
+reste ouverte jusqu'au prochain passage planifié : la preuve de ce correctif se prend sur un
+runner Linux, et il n'y en a pas ici.
+
+### Ce qui était faux
+
+La porte planifiée a ouvert son premier `porte-rouge` le 1er septembre 2026. `verify:mcp`
+sortait en **1** à l'étape « build index.ts » :
+
+```
+/home/runner/work/paris-compass/paris-compass/node_modules/esbuild/bin/esbuild:1
+ELF^B^A^A
+SyntaxError: Invalid or unexpected token
+```
+
+Node lisait un binaire natif comme du JavaScript. La ligne en cause :
+
+```js
+const esbuild = join(ROOT, "node_modules", "esbuild", "bin", "esbuild")
+step(`build ${entry}.ts`, process.execPath, [esbuild, …])
+```
+
+**`node_modules/esbuild/bin/esbuild` n'est pas le même objet selon le système.** Sur Windows,
+c'est un script Node — mesuré sur ce poste le 2 septembre : `Node.js script executable, ASCII
+text`, commençant par `#!/usr/bin/env node`. Partout ailleurs, l'installation d'esbuild y copie
+le binaire natif, et `node` tombe sur l'en-tête `ELF`.
+
+**Ce qui rend ce défaut instructif** : la ligne n'était pas une faute de frappe. Elle était
+*juste*, sur le seul système où elle a été écrite et mesurée. Le commentaire d'en-tête de
+`verify-mcp.mjs` l'affirmait même explicitement — « `node` always does » — et cette phrase était
+vraie en local et fausse partout ailleurs. Une règle éprouvée sur une seule plateforme est une
+règle non éprouvée.
+
+**Deux jours de garde perdus.** Entre le 1er et le 2 septembre, un bras sur dix était rouge :
+la surface MCP — les six outils, la frontière de confiance `I11`, le chemin anonyme — n'était
+plus gardée. Et personne ne l'a su : l'issue a été trouvée le 2 septembre en cherchant autre
+chose.
+
+### Ce qui a été fait
+
+La décision se prend **en lisant le fichier**, pas en lisant `process.platform` :
+
+```js
+export function isNodeScript(path) {
+  // `latin1` plutôt que `utf8` : un binaire n'est pas de l'UTF-8 valide, et le décodage
+  // remplacerait les octets par U+FFFD avant qu'on ait pu les regarder.
+  return readFileSync(path, "latin1").startsWith("#!")
+}
+```
+
+Ce qui compte n'est pas le système d'exploitation mais « script ou binaire », et c'est une
+propriété du fichier — donc mesurable. Passer par la plateforme aurait été une supposition de
+plus sur l'empaquetage d'un tiers, c'est-à-dire la classe d'erreur qui a produit ce défaut.
+
+**Le module est séparé, et sans effet de bord, pour une raison précise :** `verify-mcp.mjs`
+s'exécute dès qu'on l'importe. Une détection qui vit dedans ne peut être éprouvée qu'en jouant
+la porte entière contre le distant — donc jamais sur les deux branches, puisqu'une machine n'a
+qu'un système. Extraite, elle se joue en mémoire : `scripts/esbuildInvocation.test.ts`, 4 tests,
+avec un shim `#!` et un ELF64 synthétiques, **les deux branches sur la même machine**.
+
+### Ce que le correctif ne prouve pas
+
+Il est démontré sur la branche Windows de bout en bout, et sur la branche binaire en mémoire.
+**Il n'est pas démontré sur un runner** — c'est le passage planifié du 3 septembre, ou un
+`workflow_dispatch`, qui le dira. `#74` reste ouverte jusque-là : la fermer maintenant
+reviendrait à signer une mesure qu'on n'a pas prise.
+
+Et il ne dit rien de la raison pour laquelle ce rouge a attendu deux jours sans lecteur. La
+porte sait ouvrir une issue ; rien ne garantit qu'elle soit lue.
