@@ -28,12 +28,12 @@ a bougé les 31 août et 1er septembre, et rien d'autre :
 | Mesure | Valeur, mesurée le 31 août 2026, sauf mention du 1er septembre |
 | --- | --- |
 | Ledger distant `supabase_migrations` | **47** — inchangé, ni `#69` ni `#71` **n'ont posé de migration** : les deux défauts étaient dans les lanceurs, pas dans le schéma |
-| Tests unitaires | **331**, mesurés le 2 septembre 2026 — 273 après `#71`, puis 299 avec `scripts/porte/cadences.test.ts`, la réconciliation distant/migrations et deux cas ajoutés de part et d'autre dans `scripts/ingest/workflow.test.ts` et `scripts/porte/workflow.test.ts`, puis **301** en tranchant les cadences sans seuil, puis **325** le 2 septembre 2026 avec les 14 tests de `scripts/build/envPublic.test.ts` , les 6 de `scripts/porte/publie.test.ts` , les 4 de `scripts/esbuildInvocation.test.ts` et les 6 de `scripts/eval/drift.test.ts` |
+| Tests unitaires | **335**, mesurés le 3 septembre 2026 — 273 après `#71`, puis 299 avec `scripts/porte/cadences.test.ts`, la réconciliation distant/migrations et deux cas ajoutés de part et d'autre dans `scripts/ingest/workflow.test.ts` et `scripts/porte/workflow.test.ts`, puis **301** en tranchant les cadences sans seuil, puis **325** le 2 septembre 2026 avec les 14 tests de `scripts/build/envPublic.test.ts` , les 6 de `scripts/porte/publie.test.ts` , les 4 de `scripts/esbuildInvocation.test.ts` , les 6 de `scripts/eval/drift.test.ts` et les 4 de `scripts/mcpRegistry.test.ts` |
 | **Sources et cadences** | **8 sources dans `compass_source_freshness()`, 8 entrées `cron`**, mesuré le 1er septembre 2026. Les huit du distant sont exactement les huit que les migrations déclarent — recoupé par `freshness`, zéro écart. Entretien : **1 par `schedule`** (`bodacc`), 1 par `workflow-dispatch` (`geography`), 6 depuis un terminal. Les cadences les plus lentes n'ont pas encore eu leur tour, donc `freshness` sort en **3** et le dira jusqu'à ce qu'elles l'aient eu |
 | Invariants | **37** — inchangé. Trois d'entre eux, `I1`, `I2` et `I7`, sont **joués en 22 instructions** au lieu d'une. Même population, toutes les tranches jouées |
 | **Coût des trois bras distants** (le quatrième, `freshness`, est **un aller-retour** : une RPC, aucun balayage) | Deux passages. `eval` **306 s** puis **299 s** (bras A seul 240 s) · `eval:anon` **5 s** deux fois · `verify:mcp` **114 s** puis **227 s** — **425 s puis 531 s**. L'écart est entièrement `verify:mcp`, et c'est Overpass : les contrôles suspendus attendent des miroirs publics à 429 et 504, chacun avec son délai. C'est ce chiffre-là qui dimensionne la cadence de la porte planifiée, **pas les 115 s de `#69`**, qui étaient `I1` seul avant son découpage |
 | **Secrets de dépôt** | **`DATABASE_URL` seul.** `SUPABASE_URL` et `SUPABASE_ANON_KEY` **manquent**, donc `eval:anon` et `verify:mcp` n'ont pas de clé sur un runner. Le workflow s'arrête là-dessus en le nommant, avant de dépenser dix minutes |
-| Portes | `typecheck` ✓ · `test` **331** ✓ (2 septembre) · `freshness` **8 sources, 0 en retard, 0 écart, 4 sans seuil par décision**, sortie 3 (1er septembre) · `eval` **sortie 3, zéro échec, 11 avertissements**, rejoué le 2 septembre après le §34 — `prix_median_local_identifiable` reste à 1,33 % en avertissement, chiffre publié inchangé · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 40 verts, 0 échec, 1 suspendu**, sortie 0, **remesuré le 2 septembre après le paquet MCP** (39/2 plus tôt le même jour : un miroir Overpass est revenu) · `porte:sabotage` **PASS, quatre actes** · `porte:publie` **PASS contre la production, sortie 0** (2 septembre) · `build` et `build:dev` ✓ (2 septembre), **hashes changés** : `index-DX8ZO1QB.js`, `App-uI7Bjffv.js` (chunk neuf), `MapView-BiNyeJsQ.js` — `src/main.tsx` charge `App` dynamiquement depuis le §32, et `src/pages/Index.tsx` a bougé côté Lovable |
+| Portes | `typecheck` ✓ · `test` **335** ✓ (3 septembre) · `freshness` **8 sources, 0 en retard, 0 écart, 4 sans seuil par décision**, sortie 3 (1er septembre) · `eval` **sortie 3, zéro échec, 11 avertissements**, rejoué le 2 septembre après le §34 — `prix_median_local_identifiable` reste à 1,33 % en avertissement, chiffre publié inchangé · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 40 verts, 0 échec, 1 suspendu**, sortie 0, **remesuré le 2 septembre après le paquet MCP** (39/2 plus tôt le même jour : un miroir Overpass est revenu) · `porte:sabotage` **PASS, quatre actes** · `porte:publie` **PASS contre la production, sortie 0** (2 septembre) · `build` et `build:dev` ✓ (2 septembre), **hashes changés** : `index-DX8ZO1QB.js`, `App-uI7Bjffv.js` (chunk neuf), `MapView-BiNyeJsQ.js` — `src/main.tsx` charge `App` dynamiquement depuis le §32, et `src/pages/Index.tsx` a bougé côté Lovable |
 
 **Le passage du 3 septembre 2026 est le premier entièrement au vert** —
 [`33753907840`](https://github.com/IvandeMurard/paris-compass/actions/runs/33753907840), 12:12 UTC :
@@ -65,6 +65,47 @@ la résout.
 
 
 ## Environnement — ce qui ne tourne pas sur ce poste, et le contournement
+
+### Retrouver ou reprendre une session de travail — mesuré le 3 septembre 2026
+
+**Les sessions du CLI sont locales. Elles n'apparaissent ni sur claude.ai ni dans Claude
+Desktop.** Vérifié ce jour-là : `AppData\Roaming\Claude\claude-code-sessions\`, le dossier qui se
+synchronise vers le web, ne contient qu'une entrée du 16 juin — rien des sessions de ce projet.
+Chercher l'historique dans l'application est donc une impasse, et ce n'est pas une panne.
+
+Il vit ici, un fichier par session :
+
+```powershell
+Get-ChildItem "$env:USERPROFILE\.claude\projects\C--Users-ivand\*.jsonl" |
+  Sort-Object LastWriteTime -Descending | Select-Object -First 5 Name, Length, LastWriteTime
+```
+
+**Le piège du répertoire.** Le nom du dossier encode le répertoire courant de la session, pas le
+dépôt. Les sessions de septembre 2026 sur Compass ont tourné depuis `C:\Users\ivand` — donc
+`C--Users-ivand`, et **pas** `C--Users-ivand-Documents-GitHub-paris-compass`. `claude --resume`
+ne propose que les sessions du répertoire d'où on le lance : lancé depuis le dépôt, il ne montrera
+rien de celles-là.
+
+```powershell
+cd C:\Users\ivand
+claude --resume 3556551b-2a6f-4216-bd93-2041f4d0f44a   # la session du 2-3 septembre 2026
+claude --continue                                       # la plus récente, sans choisir
+```
+
+Drapeaux voisins, vérifiés au `--help` le 3 septembre : `--fork-session` reprend en créant un
+identifiant neuf, ce qui laisse l'original intact ; `--remote-control [nom]` ouvre la session au
+pilotage depuis l'application mobile ou web — **mais le poste doit rester allumé**, ce n'est pas
+une synchronisation.
+
+**Ce que la reprise ne rend pas.** Le contexte ancien est compacté au fil de la conversation :
+reprendre une longue session donne le fil et les décisions, pas chaque message d'origine. Le
+`.jsonl`, lui, garde tout — c'est la source si l'on cherche un détail précis. Et un
+`--fork-session` sur une session de 3 Mo repart de la même compaction.
+
+**La vraie continuité n'est pas la session, c'est le dépôt.** C'est la raison d'être de la règle
+du prompt commun : *ce qui n'existe qu'au chat meurt avec la session*. Un chiffre remesuré va
+dans le fichier qui le portait, un défaut dans `DIAGNOSTIC.md`, un piège dans
+`docs/REPRISE-PIEGES.md`. Une session perdue ne doit coûter que du confort.
 
 ### `npm.cmd run lint` ne tourne plus — constaté le 24 août
 
@@ -808,6 +849,32 @@ Les points **1, 3, 4, 8, 9, 10 et 11 sont rayés** et sont partis dans
     et une installation réseau chaque matin dépenseraient ça contre un artefact qui ne bouge
     qu'à la publication. Une version publiée qui se casserait après coup, un dépendant retiré du
     registre par exemple, ne serait pas vue. À rejouer à la main avant chaque publication.
+
+16. **Publier `0.1.1` sur npm, puis inscrire le serveur au registre MCP — prêt, non fait.**
+    Tout est en place au 3 septembre 2026 ; il manque deux commandes, et elles demandent tes
+    identifiants. La suite exacte est dans **`mcp-server/PUBLISHING.md`**.
+
+    *Pourquoi une `0.1.1`.* Trois paramètres n'avaient aucune description — `radius_m` de
+    `compare_locations` et d'`explain_score`, `limit` de `find_premises` — donc trois valeurs
+    qu'un agent devinait. Mesuré : **15/18 paramètres décrits**, désormais **18/18**. Et le
+    serveur annonçait `0.1.0` à `initialize` alors que le paquet était monté : la version venait
+    d'une constante recopiée dans `src/index.ts`. Elle vient maintenant de `package.json`, donc
+    la dérive est impossible plutôt que surveillée.
+
+    *Ce que le registre ajoute.* npm rend le serveur **accessible** ; le registre MCP le rend
+    **détectable** — c'est là que les clients cherchent. Il n'héberge que des métadonnées et
+    vérifie que le paquet npm porte le `mcpName` déclaré, d'où `mcp-server/server.json` et le
+    champ ajouté au manifeste. `scripts/mcpRegistry.test.ts` refuse d'avance le désaccord entre
+    les deux fichiers, qui est l'erreur que le registre ne rend qu'**après** la publication npm.
+
+    *Le nom de registre est `io.github.ivandemurard/paris-compass-mcp`.* Si
+    `mcp-publisher publish` répond « You do not have permission », c'est la casse du login GitHub
+    qui ne correspond pas : aligner les deux fichiers sur ce que `mcp-publisher init` génère.
+
+    *Ce qui reste à décider, et qui n'est pas technique :* les descriptions de `lat` et `lng` sont
+    en français quand tout le reste de la surface est en anglais. Un agent s'en accommode ; un
+    lecteur humain du registre y verra une négligence. À trancher avant que le serveur ait des
+    utilisateurs.
 
 
 ## Ce qu'il ne faut pas faire

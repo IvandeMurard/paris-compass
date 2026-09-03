@@ -4,6 +4,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 
+import pkg from "../package.json" with { type: "json" }
+
 import { registerCompareLocations } from "./tools/compareLocations"
 import { registerExplainScore } from "./tools/explainScore"
 import { registerFindPremises } from "./tools/findPremises"
@@ -11,7 +13,10 @@ import { registerListSources } from "./tools/listSources"
 import { registerScoreLocation } from "./tools/scoreLocation"
 import { registerTracePremise } from "./tools/tracePremise"
 
-const server = new McpServer({ name: "paris-compass", version: "0.1.0" })
+// La version vient de `package.json`, jamais recopiée : un agent lit celle-ci à `initialize`, et
+// deux endroits à tenir en phase dérivent toujours — mesuré le 3 septembre 2026, où le paquet
+// était passé en 0.1.1 pendant que le serveur annonçait encore 0.1.0.
+const server = new McpServer({ name: "paris-compass", version: pkg.version })
 
 registerListSources(server)
 registerScoreLocation(server)

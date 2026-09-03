@@ -1,6 +1,7 @@
 {
   "name": "paris-compass-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "mcpName": "io.github.ivandemurard/paris-compass-mcp",
   "type": "module",
   "description": "MCP server for Compass: address-level context on Paris commercial premises, from open data — what traded on a shopfront before, how the street turns over, what sources say and how sure they are. Anonymous read-only access, the same trust boundary as a visitor of the site.",
   "license": "Apache-2.0",
@@ -12,11 +13,23 @@
     "directory": "mcp-server"
   },
   "bugs": "https://github.com/IvandeMurard/paris-compass/issues",
-  "keywords": ["mcp", "modelcontextprotocol", "paris", "open-data", "retail", "commercial-property", "bodacc", "apur"],
+  "keywords": [
+    "mcp",
+    "modelcontextprotocol",
+    "paris",
+    "open-data",
+    "retail",
+    "commercial-property",
+    "bodacc",
+    "apur"
+  ],
   "bin": {
     "paris-compass-mcp": "dist/server.mjs"
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "engines": {
     "node": ">=20.12"
   },

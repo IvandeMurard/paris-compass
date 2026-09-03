@@ -1,0 +1,36 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.ivandemurard/paris-compass-mcp",
+  "description": "Address-level context on Paris commercial premises, from open data: what traded on a shopfront before, how the street turns over, what each source says and how sure it is. Anonymous read-only, no key to obtain.",
+  "repository": {
+    "url": "https://github.com/IvandeMurard/paris-compass",
+    "source": "github"
+  },
+  "version": "0.1.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "paris-compass-mcp",
+      "version": "0.1.1",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "SUPABASE_URL",
+          "description": "Optional. The server carries the public Compass project, so nothing is required to run it. Set this only to read a different Supabase project — a derived deployment.",
+          "isRequired": false,
+          "isSecret": false,
+          "format": "string"
+        },
+        {
+          "name": "SUPABASE_ANON_KEY",
+          "description": "Optional, and never a service key. The anonymous publishable key, read-only under row level security — the same trust boundary a visitor of the website has.",
+          "isRequired": false,
+          "isSecret": false,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

@@ -21,7 +21,15 @@ const point = z.object({
 const inputShape = {
   a: point.describe("First location"),
   b: point.describe("Second location"),
-  radius_m: z.number().positive().max(2000).default(AMENITY_RADIUS_M),
+  radius_m: z
+    .number()
+    .positive()
+    .max(2000)
+    .default(AMENITY_RADIUS_M)
+    .describe(
+      "Search radius in metres, applied to BOTH points so the two score sets stay comparable. " +
+        "Capped at 2000 (compass_max_radius_m).",
+    ),
   vintage_year: z
     .union([z.literal(2017), z.literal(2020), z.literal(2023)])
     .default(2023)

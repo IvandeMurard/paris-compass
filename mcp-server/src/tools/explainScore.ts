@@ -18,7 +18,15 @@ const inputShape = {
   lat: z.number().min(PARIS_BOUNDS.latMin).max(PARIS_BOUNDS.latMax).describe(LAT_DESCRIPTION),
   lng: z.number().min(PARIS_BOUNDS.lngMin).max(PARIS_BOUNDS.lngMax).describe(LNG_DESCRIPTION),
   metric: z.enum(METRICS).describe("Which axis of score_location to explain in detail."),
-  radius_m: z.number().positive().max(2000).default(AMENITY_RADIUS_M),
+  radius_m: z
+    .number()
+    .positive()
+    .max(2000)
+    .default(AMENITY_RADIUS_M)
+    .describe(
+      "Search radius in metres. Pass the same value score_location was called with, otherwise the " +
+        "explanation describes a different question. Capped at 2000 (compass_max_radius_m).",
+    ),
   vintage_year: z
     .union([z.literal(2017), z.literal(2020), z.literal(2023)])
     .default(2023)

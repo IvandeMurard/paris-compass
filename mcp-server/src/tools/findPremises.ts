@@ -61,7 +61,16 @@ const inputShape = {
         "call identifies a shopfront, it does not describe a neighbourhood. Widen it only when " +
         "the coordinates are approximate.",
     ),
-  limit: z.number().int().positive().max(200).default(50),
+  limit: z
+    .number()
+    .int()
+    .positive()
+    .max(200)
+    .default(50)
+    .describe(
+      "Maximum premises returned, capped at 200. `total_matched` carries the count BEFORE this cut, " +
+        "so a truncated answer still has its denominator.",
+    ),
 }
 
 export function registerFindPremises(server: McpServer): void {

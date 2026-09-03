@@ -22,6 +22,7 @@ Volontairement **non importés** ici : ce fichier est chargé à chaque session,
 | `docs/BDCOM.md` | Pièges vérifiés de la source BDCom : coordonnées empilées, identifiant de local stable entre millésimes mais réattribué dans moins de 0,1 % des cas, périmètres et licences qui diffèrent selon le millésime. **Obligatoire avant toute migration touchant BDCom.** |
 | `DIAGNOSTIC.md` | **Avant de corriger un bug.** Les défauts encore ouverts, et surtout **l'index des trente** : il dit, pour chaque numéro de section, son état et dans lequel des deux fichiers elle vit. Un renvoi « `DIAGNOSTIC.md` §N » écrit ailleurs se résout là. |
 | `DIAGNOSTIC-CORRIGES.md` | Les défauts clos, numérotation d'origine conservée. **Ne se lit pas en entier** : l'index de `DIAGNOSTIC.md` dit quelle section ouvrir. Chaque section porte la mesure du défaut et celle du correctif — c'est ce qui permet de recouper une régression plus tard. |
+| `mcp-server/PUBLISHING.md` | **Avant de publier le serveur MCP**, sur npm ou au registre. La suite exacte en PowerShell, les deux registres et pourquoi cet ordre, et le tableau des messages d'erreur avec leur cause réelle. |
 | `README.md` | Ce que le produit fait, refuse de faire, et ne peut pas savoir. |
 
 **Ces documents se lisent par section, pas en entier.** Repérer au `grep -n '^#'` ou sur un mot-clé,
@@ -39,16 +40,30 @@ Les deux fichiers lus à chaque session ont été découpés le 31 août : `REPR
 Windows + PowerShell. La politique d'exécution bloque `npm.ps1` : **toujours écrire `npm.cmd`**.
 
 ```powershell
+# Le code, à chaque session
 npm.cmd install
-npm.cmd run typecheck   # tsc --build
-npm.cmd run test        # vitest
-npm.cmd run dev
-npm.cmd run build       # production
-npm.cmd run porte:sabotage  # demontre la porte planifiee : bras non planifie, rouge, panne amont
+npm.cmd run typecheck       # tsc --build, `scripts/` compris
+npm.cmd run test            # vitest — inclut la règle des bras : un script npm neuf et non classé passe au rouge
+npm.cmd run dev             # serveur de développement
+npm.cmd run build           # production ; `prebuild` refuse de bâtir sans la configuration du front
+npm.cmd run build:dev       # mode development — seul chemin qui charge lovable-tagger
+
+# Les bras qui interrogent le distant. Lents, et c'est normal : ils attendent des miroirs publics.
+npm.cmd run eval            # invariants, baselines, jeu doré, budget anon — ~5 min
+npm.cmd run eval:anon       # ce qu'un visiteur sans clé atteint vraiment — ~5 s
+npm.cmd run verify:mcp      # les six outils MCP contre le distant — 2 à 4 min
+npm.cmd run freshness       # les huit sources et leurs cadences
+npm.cmd run porte:publie    # la page publiée porte-t-elle sa configuration
+npm.cmd run porte:sabotage  # demontre la porte : bras non planifie, rouge, panne amont
+
+# Le serveur MCP publié — voir mcp-server/PUBLISHING.md pour la suite complète
+npm.cmd run mcp:paquet              # empaquette, installe hors du dépôt, parle MCP au binaire installé
+npm.cmd run mcp:paquet -- --registre  # la même chose, sur ce que npm sert vraiment
+
+# La file des sessions
 npm.cmd run brief <ticket>  # assemble le prompt d'une session et ce qu'elle doit lire
-npm.cmd run sessions    # regenere le tableau d'ordre de docs/SESSIONS.md depuis GitHub
+npm.cmd run sessions        # regenere le tableau d'ordre de docs/SESSIONS.md depuis GitHub
 npm.cmd run sessions:check  # recoupe la table committee a l'etat GitHub, sort en 1 si elle a derive
-npm.cmd run build:dev   # mode development — seul chemin qui charge lovable-tagger
 ```
 
 **Si `vite` refuse de démarrer sur « Failed to load native binding ».** Le 26 août 2026, Windows
