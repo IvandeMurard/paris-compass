@@ -130,21 +130,40 @@ function rate(reponse) {
   return Boolean(reponse.error) || reponse.result?.isError === true || texte(reponse).trim() === ""
 }
 
-async function main() {
-  out("── npm pack")
-  const archive = npm(["pack", "--silent"], MCP).split(/\r?\n/).pop()
-  out(`  ${archive}`)
+/**
+ * `--registre` installe ce que npm sert, au lieu de ce que `npm pack` vient de fabriquer.
+ *
+ * L'écart entre les deux est réel et c'est le §32 une fois de plus : une archive locale prouve
+ * que l'empaquetage est juste, jamais que la publication l'est. Un mauvais `access`, un `files`
+ * modifié entre l'essai et la publication, une version qui n'est pas celle qu'on croit —
+ * rien de tout ça ne se voit depuis un `.tgz` posé à côté de soi. Sans le drapeau, le contrôle
+ * reste jouable avant publication, quand il n'y a encore rien sur le registre.
+ */
+const REGISTRE = process.argv.includes("--registre")
 
-  // Ne rien laisser derrière, quelle que soit la sortie. `.gitignore` empêche l'archive d'être
-  // committée ; il n'empêche pas quelqu'un de publier plus tard une version figée trouvée là.
-  // Le bac d'installation, lui, reste dans le temporaire du système : c'est ce qu'on ouvre
-  // quand ce contrôle rougit.
-  process.on("exit", () => rmSync(join(MCP, archive), { force: true }))
+async function main() {
+  let source
+  if (REGISTRE) {
+    const publiee = npm(["view", "paris-compass-mcp", "version"], MCP)
+    out(`── registre npm\n  paris-compass-mcp@${publiee}`)
+    source = "paris-compass-mcp"
+  } else {
+    out("── npm pack")
+    const archive = npm(["pack", "--silent"], MCP).split(/\r?\n/).pop()
+    out(`  ${archive}`)
+    source = join(MCP, archive)
+
+    // Ne rien laisser derrière, quelle que soit la sortie. `.gitignore` empêche l'archive d'être
+    // committée ; il n'empêche pas quelqu'un de publier plus tard une version figée trouvée là.
+    // Le bac d'installation, lui, reste dans le temporaire du système : c'est ce qu'on ouvre
+    // quand ce contrôle rougit.
+    process.on("exit", () => rmSync(source, { force: true }))
+  }
 
   const bac = mkdtempSync(join(tmpdir(), "compass-mcp-"))
   out(`\n── installation hors du dépôt\n  ${bac}`)
   npm(["init", "-y"], bac)
-  npm(["install", join(MCP, archive), "--no-audit", "--no-fund"], bac)
+  npm(["install", source, "--no-audit", "--no-fund"], bac)
 
   const installe = join(bac, "node_modules", "paris-compass-mcp")
   const serveur = join(installe, "dist", "server.mjs")

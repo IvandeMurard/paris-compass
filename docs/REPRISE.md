@@ -757,48 +757,39 @@ Les points **1, 3, 4, 8, 9, 10 et 11 sont rayés** et sont partis dans
     250 000 €, 220 000 €, 86 000 €, 50 000 € — ne sont sous aucune baseline. Ils peuvent vieillir
     en silence, exactement comme la médiane l'aurait fait.
 
-15. **Publier `paris-compass-mcp` — tout est prêt, il manque `npm publish`.** Direction donnée
-    par Ivan le 2 septembre 2026 : « le MCP doit être publié ». Ticket
-    [`#35`](https://github.com/IvandeMurard/paris-compass/issues/35), qui reste **ouvert** — son
-    « Fait quand » exige qu'un agent extérieur atteigne les outils, ce qui n'est vrai qu'une fois
-    l'archive sur le registre.
+15. ~~**Publier `paris-compass-mcp`.**~~ **Fait le 3 septembre 2026** —
+    [`paris-compass-mcp@0.1.0`](https://www.npmjs.com/package/paris-compass-mcp), et
+    [`#35`](https://github.com/IvandeMurard/paris-compass/issues/35) est fermée avec sa
+    démonstration.
 
-    **Ce qui est fait et démontré**, le 2 septembre 2026 :
+    **Démontré sur ce que npm sert**, pas sur l'arbre : `npm.cmd run mcp:paquet -- --registre`
+    installe le paquet depuis le registre dans un répertoire neuf hors du dépôt, puis
+    l'interroge en JSON-RPC sans le SDK — s'en servir prouverait que notre client sait parler à
+    notre serveur, pas que le protocole passe. **PASS, sortie 0**, 6 outils annoncés, les quatre
+    du « Fait quand » exercés, **aucune configuration** dans le bac d'installation.
 
-    - `mcp-server/package.json` est publiable — nom **`paris-compass-mcp`** (non scopé, vérifié
-      libre), `bin`, `files`, `license`, `repository`, `engines: >=20.12`, et un `prepack` qui
-      typecheck puis construit ;
-    - `mcp-server/build.mjs` replie `../src/core` dans `dist/server.mjs` avec le shebang que
-      `bin` exige. Sans ce repli, le paquet s'installe et ne démarre pas : le noyau partagé
-      n'existe pas hors du dépôt ;
-    - `src/supabase.ts` porte l'URL et la clé publiable du projet public, surchargeables par
-      l'environnement. Sans ça, le « Fait quand » est irréalisable : un agent extérieur n'a aucun
-      moyen d'obtenir ces valeurs ;
-    - `npm.cmd run mcp:paquet` — **PASS, sortie 0** : archive empaquetée, installée dans un
-      répertoire neuf hors du dépôt, **sans aucune configuration**, puis interrogée en JSON-RPC
-      sans le SDK. 6 outils annoncés, et les quatre que `#35` nomme exercés pour de vrai.
+    **Deux défauts trouvés en chemin, qui auraient été publiés :**
 
-    **Ce que ce contrôle a trouvé du premier coup, et qui aurait été publié :** `prepublishOnly`
-    **ne tourne pas sur `npm pack`**. La première archive emportait un `dist/` périmé, construit
-    avant la dernière modification des sources — donc un paquet qui levait encore l'ancienne
-    erreur. Corrigé en passant à `prepack`, qui, lui, joue sur les deux.
+    - `prepublishOnly` **ne tourne pas sur `npm pack`**. La première archive emportait un `dist/`
+      périmé et levait encore l'ancienne erreur de configuration. Corrigé en `prepack`. Sans le
+      contrôle d'avant-publication, c'est ce paquet-là qui serait sur npm ;
+    - le contrôle ne regardait que l'archive **locale**, ce qui prouve l'empaquetage et jamais la
+      publication — le §32 une fois de plus. Le drapeau `--registre` ferme cet écart.
 
-    **Ce qui reste, et que je ne peux pas faire :**
+    **La 2FA d'npm a bloqué deux tentatives**, et la sortie est le navigateur :
+    `npm.cmd publish --access public --auth-type=web`. Un OTP npm ne s'envoie jamais par
+    courriel — c'est un code TOTP de l'application appairée, ou un passkey, et dans le second cas
+    le prompt `Enter OTP:` ne peut rien recevoir. Compte `compass222`, 2FA en `auth-and-writes`.
 
-    ```powershell
-    cd mcp-server
-    npm.cmd publish --access public     # demande les identifiants npm d'Ivan
-    ```
+    *Ce qui reste ouvert, et qui n'est pas rien :* **le compte npm a été créé le 2 septembre à
+    17:40 et sa 2FA activée neuf minutes plus tard.** Si les codes de récupération n'ont pas été
+    conservés, le paquet dépend d'un seul appareil. À vérifier avant qu'il y ait des
+    utilisateurs, pas après.
 
-    Puis rejouer `npm.cmd run mcp:paquet`, fermer `#35` avec la démonstration, et régénérer la
-    table. **Attention au caractère définitif** : npm n'autorise le retrait d'une version que
-    pendant 72 h, et un nom non scopé ne se transfère pas ensuite à une organisation. Le nom et
-    la version `0.1.0` sont donc des décisions qu'on ne reprend pas.
-
-    *Ce que le contrôle ne couvre pas :* il installe l'archive **locale**, pas celle du registre.
-    Un paquet publié sous un mauvais `access`, ou dont le registre servirait autre chose, ne
-    serait pas vu. Le rejouer après publication en installant `paris-compass-mcp` depuis npm
-    fermerait ce dernier écart.
+    *Et ce qu'aucun bras ne couvre :* `mcp:paquet` est excusé dans `cadence.json` — un `npm pack`
+    et une installation réseau chaque matin dépenseraient ça contre un artefact qui ne bouge
+    qu'à la publication. Une version publiée qui se casserait après coup, un dépendant retiré du
+    registre par exemple, ne serait pas vue. À rejouer à la main avant chaque publication.
 
 
 ## Ce qu'il ne faut pas faire

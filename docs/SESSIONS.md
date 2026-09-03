@@ -155,7 +155,7 @@ fautive.
 
 <!-- BEGIN sessions -- généré par `npm.cmd run sessions`, ne pas éditer à la main -->
 
-*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 02/09/2026.*
+*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 03/09/2026.*
 
 | # | Ticket | Issue | État | Prio | Modèle |
 | --- | --- | --- | --- | --- | --- |
@@ -180,7 +180,7 @@ fautive.
 | 19 | `w1-ppri` | [#13](https://github.com/IvandeMurard/paris-compass/issues/13) | ouvert | P1 | Opus 5 |
 | ~~20~~ | ~~`w1-dia`~~ | [#12](https://github.com/IvandeMurard/paris-compass/issues/12) | **fait** | P1 | Opus 5 |
 
-**Hors de cette file : 28 tickets ouverts**, à prendre après la vague 0 — 
+**Hors de cette file : 27 tickets ouverts**, à prendre après la vague 0 — 
 le détail par vague est dans [`PLAN-ACTION-VACANCE.md`](./PLAN-ACTION-VACANCE.md).
 
 <!-- END sessions -->
