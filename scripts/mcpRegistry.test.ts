@@ -29,9 +29,18 @@ const paquet = JSON.parse(readFileSync(resolve(ROOT, "mcp-server/package.json"),
 
 const serveur = JSON.parse(readFileSync(resolve(ROOT, "mcp-server/server.json"), "utf8")) as {
   name: string
+  description: string
   version: string
   packages: { registryType: string; identifier: string; version: string }[]
 }
+
+/**
+ * Le plafond que le registre applique, mesuré le 3 septembre 2026 en s'y cognant : il rend
+ * `422 Unprocessable Entity — expected length <= 100` sur `body.description`, et seulement au
+ * moment du `publish`. Écrit ici parce qu'une limite découverte en production et laissée dans un
+ * terminal se redécouvre à la publication suivante.
+ */
+const DESCRIPTION_MAX = 100
 
 describe("les deux manifestes du serveur MCP disent la même chose", () => {
   it("le nom de registre est déclaré des deux côtés, à l'identique", () => {
@@ -56,5 +65,13 @@ describe("les deux manifestes du serveur MCP disent la même chose", () => {
   it("le paquet npm désigné est bien celui que ce dépôt publie", () => {
     const npmPackage = serveur.packages.find((p) => p.registryType === "npm")
     expect(npmPackage!.identifier).toBe(paquet.name)
+  })
+
+  it("la description tient sous le plafond du registre", () => {
+    // Une description écrite pour un lecteur humain déborde sans prévenir : la première faisait
+    // 209 caractères et n'a été refusée qu'au `publish`, après la publication npm.
+    expect(serveur.description.length).toBeLessThanOrEqual(DESCRIPTION_MAX)
+    // Et elle doit dire quelque chose : un champ vidé pour passer la limite passerait ce test.
+    expect(serveur.description.length).toBeGreaterThan(30)
   })
 })

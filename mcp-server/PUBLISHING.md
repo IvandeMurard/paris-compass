@@ -108,6 +108,7 @@ curl.exe "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github
 | `403 … Two-factor authentication … is required` | 2FA exigée : reprendre avec `--auth-type=web` |
 | `Registry validation failed for package` | `mcpName` de `package.json` ≠ `name` de `server.json`, ou paquet npm pas encore publié dans cette version |
 | `You do not have permission to publish this server` | le nom ne commence pas par `io.github.<login>/`, ou le compte GitHub connecté n'est pas celui-là |
+| `422 … expected length <= 100` sur `body.description` | la description de `server.json` dépasse 100 caractères. Mesuré le 3 septembre 2026 en s'y cognant ; `npm.cmd run test` le refuse désormais d'avance |
 | `Invalid or expired Registry JWT token` | rejouer `mcp-publisher login github` |
 
 ## Ce que rien ici ne garantit
