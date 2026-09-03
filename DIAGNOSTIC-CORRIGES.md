@@ -2886,6 +2886,11 @@ reviendrait à signer une mesure qu'on n'a pas prise.
 Et il ne dit rien de la raison pour laquelle ce rouge a attendu deux jours sans lecteur. La
 porte sait ouvrir une issue ; rien ne garantit qu'elle soit lue.
 
+**Preuve obtenue le 3 septembre 2026** — passage planifié `33753907840`, 12:12 UTC, le premier à
+tourner avec le correctif. `verify:mcp` : **41 contrôles, 39 au vert, 0 en échec**, 2 suspendus
+(Overpass). La détection par lecture du fichier tient sur le runner Linux comme sur ce poste.
+C'est la mesure que cette section annonçait ne pas pouvoir prendre, et elle clôt le §33.
+
 ---
 
 ## 34. Une tolérance de comptage appliquée à un quantile — le 2 septembre 2026

@@ -19,7 +19,7 @@ Le reste du contexte est dans `docs/PLAN.md` (backlog, décisions produit),
 de la source), `eval/FAILURE_MODES.md` (le contrat d'évaluation) et `docs/JOURNAL.md`
 (le récit des sessions passées).
 
-## L'état mesuré le plus récent — 2 septembre 2026, après le §32 (écran blanc en production)
+## L'état mesuré le plus récent — 3 septembre 2026, après le passage planifié qui valide les §33 et §34
 
 **C'est le seul état que cette page porte** : les relevés antérieurs sont dans
 `docs/REPRISE-ARCHIVE.md`, et quand deux se contredisent c'est le plus daté qui a tort. Ce qui
@@ -34,6 +34,14 @@ a bougé les 31 août et 1er septembre, et rien d'autre :
 | **Coût des trois bras distants** (le quatrième, `freshness`, est **un aller-retour** : une RPC, aucun balayage) | Deux passages. `eval` **306 s** puis **299 s** (bras A seul 240 s) · `eval:anon` **5 s** deux fois · `verify:mcp` **114 s** puis **227 s** — **425 s puis 531 s**. L'écart est entièrement `verify:mcp`, et c'est Overpass : les contrôles suspendus attendent des miroirs publics à 429 et 504, chacun avec son délai. C'est ce chiffre-là qui dimensionne la cadence de la porte planifiée, **pas les 115 s de `#69`**, qui étaient `I1` seul avant son découpage |
 | **Secrets de dépôt** | **`DATABASE_URL` seul.** `SUPABASE_URL` et `SUPABASE_ANON_KEY` **manquent**, donc `eval:anon` et `verify:mcp` n'ont pas de clé sur un runner. Le workflow s'arrête là-dessus en le nommant, avant de dépenser dix minutes |
 | Portes | `typecheck` ✓ · `test` **331** ✓ (2 septembre) · `freshness` **8 sources, 0 en retard, 0 écart, 4 sans seuil par décision**, sortie 3 (1er septembre) · `eval` **sortie 3, zéro échec, 11 avertissements**, rejoué le 2 septembre après le §34 — `prix_median_local_identifiable` reste à 1,33 % en avertissement, chiffre publié inchangé · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 40 verts, 0 échec, 1 suspendu**, sortie 0, **remesuré le 2 septembre après le paquet MCP** (39/2 plus tôt le même jour : un miroir Overpass est revenu) · `porte:sabotage` **PASS, quatre actes** · `porte:publie` **PASS contre la production, sortie 0** (2 septembre) · `build` et `build:dev` ✓ (2 septembre), **hashes changés** : `index-DX8ZO1QB.js`, `App-uI7Bjffv.js` (chunk neuf), `MapView-BiNyeJsQ.js` — `src/main.tsx` charge `App` dynamiquement depuis le §32, et `src/pages/Index.tsx` a bougé côté Lovable |
+
+**Le passage du 3 septembre 2026 est le premier entièrement au vert** —
+[`33753907840`](https://github.com/IvandeMurard/paris-compass/actions/runs/33753907840), 12:12 UTC :
+**8 bras sur 10 au vert, « Décision requise : aucune »**, les deux autres en « changé sans
+décision » (`freshness`, et `eval` avec ses 11 avertissements). C'est la mesure qui vaut, parce
+qu'elle est prise sur un runner et non sur ce poste : elle valide le §33 — `verify:mcp` **41
+contrôles, 39 au vert, 0 en échec** — que Windows ne pouvait pas éprouver, et le §34. Et
+`porte:publie`, le dixième bras, y sort vert à sa première exécution planifiée.
 
 **La porte tourne toute seule depuis le 31 août** — `.github/workflows/porte.yml`, tous les
 jours à 07:29 UTC, dix bras : `typecheck`, `test`, `build`, `build:dev`, `sessions:check`,
@@ -681,7 +689,7 @@ Les points **1, 3, 4, 8, 9, 10 et 11 sont rayés** et sont partis dans
     tient. À consigner ici dans les deux cas — c'est ce qui décide si la règle est au bon
     endroit.
 
-13. **Un rouge de la porte est ouvert et sans preneur — [`#74`](https://github.com/IvandeMurard/paris-compass/issues/74), du 1er septembre 2026.**
+13. ~~**Un rouge de la porte est ouvert et sans preneur — [`#74`](https://github.com/IvandeMurard/paris-compass/issues/74), du 1er septembre 2026.**~~ **Fermé le 3 septembre 2026.**
     Repéré le 2 septembre en cherchant autre chose, ce qui est déjà le symptôme : personne
     n'était allé voir. `verify:mcp` sort en **1** sur le runner, à l'étape « build index.ts » :
 
@@ -698,12 +706,22 @@ Les points **1, 3, 4, 8, 9, 10 et 11 sont rayés** et sont partis dans
     lisant `process.platform` ; `scripts/esbuildInvocation.mjs` porte la règle, et ses 4 tests
     jouent **les deux branches sur la même machine**, ce qu'aucun poste ne pouvait faire seul.
 
-    **`#74` reste ouverte**, et c'est délibéré : la preuve se prend sur un runner Linux. Le
-    passage planifié du 3 septembre, ou un `workflow_dispatch`, la fermera. La fermer avant
-    reviendrait à signer une mesure qu'on n'a pas prise.
+    **Preuve obtenue, et `#74` est fermée.** Passage planifié
+    [`33753907840`](https://github.com/IvandeMurard/paris-compass/actions/runs/33753907840),
+    3 septembre 2026 à 12:12 UTC — le premier à tourner avec les deux correctifs :
 
-    Ce que ça ne règle pas : ce rouge a attendu deux jours sans lecteur. La porte sait ouvrir
-    une issue ; rien ne garantit qu'elle soit lue.
+    ```
+    **Rien à faire.** 8 bras sur 10 au vert le 3 septembre 2026.
+    **Changé, sans décision requise.** freshness · eval (11 avertissements)
+    **Décision requise.** Aucune.
+    ```
+
+    `verify:mcp` : **41 contrôles, 39 au vert, 0 en échec**, 2 suspendus (Overpass). C'est la
+    mesure que ce poste ne pouvait pas prendre — une machine n'a qu'un système d'exploitation.
+    Et `porte:publie`, le dixième bras, sort vert à son premier passage planifié.
+
+    Ce que ça ne règle pas : ce rouge avait attendu deux jours sans lecteur, et c'est
+    [`#77`](https://github.com/IvandeMurard/paris-compass/issues/77) qui porte ce défaut-là.
 
 14. ~~**`eval` est rouge depuis le 2 septembre 2026, et personne ne l'avait vu.**~~ Sortie **1**,
     donc un vrai échec et non les 11 avertissements de baseline habituels :

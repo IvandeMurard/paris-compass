@@ -55,7 +55,7 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 30 | La porte mourait dans son premier bras | clos le 31 août, `#69` | corrigés |
 | 31 | Une cadence ajoutée à l'énumération et jamais à la table de tolérance | clos le 1er septembre, `#70` | corrigés |
 | 32 | La configuration publique du front ignorée par git — bundle publié sans clé, page blanche | clos le 2 septembre 2026 | corrigés |
-| 33 | `verify:mcp` lançait esbuild par `node`, ce qui n'est juste que sur Windows | corrigé le 2 septembre 2026, preuve attendue au prochain passage planifié | corrigés |
+| 33 | `verify:mcp` lançait esbuild par `node`, ce qui n'est juste que sur Windows | clos le 2 septembre 2026, prouvé sur le runner le 3 | corrigés |
 | 34 | Une tolérance de comptage appliquée à un quantile — bloquante sur une marche, muette sur ce qui change le chiffre publié | clos le 2 septembre 2026 | corrigés |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
