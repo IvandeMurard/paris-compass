@@ -43,7 +43,7 @@ Il a déjà attrapé un `dist/` périmé qui serait parti sur npm.
 ## 3. Publier sur npm
 
 ```powershell
-cd C:SERSIVANDDOCUMENTSGITHUBPARIS-COMPASSMCP-SERVER   # CHEMIN ENTIER : NE PAS SUPPOSER D'Où L'ON PART
+cd C:\Users\ivand\Documents\GitHub\paris-compass\mcp-server   # chemin entier : ne pas supposer d'où l'on part
 npm.cmd publish --access public --auth-type=web
 ```
 
@@ -59,7 +59,7 @@ calculé sur l'heure. `w32tm /resync` en administrateur.
 Puis vérifier ce que le registre sert vraiment, et non ce qu'on croit avoir envoyé :
 
 ```powershell
-cd C:SERSIVANDDOCUMENTSGITHUBPARIS-COMPASS
+cd C:\Users\ivand\Documents\GitHub\paris-compass
 npm.cmd view paris-compass-mcp version
 npm.cmd run mcp:paquet -- --registre
 ```
