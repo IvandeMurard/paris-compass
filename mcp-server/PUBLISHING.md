@@ -43,7 +43,7 @@ Il a déjà attrapé un `dist/` périmé qui serait parti sur npm.
 ## 3. Publier sur npm
 
 ```powershell
-cd mcp-server
+cd C:SERSIVANDDOCUMENTSGITHUBPARIS-COMPASSMCP-SERVER   # CHEMIN ENTIER : NE PAS SUPPOSER D'Où L'ON PART
 npm.cmd publish --access public --auth-type=web
 ```
 
@@ -59,7 +59,7 @@ calculé sur l'heure. `w32tm /resync` en administrateur.
 Puis vérifier ce que le registre sert vraiment, et non ce qu'on croit avoir envoyé :
 
 ```powershell
-cd ..
+cd C:SERSIVANDDOCUMENTSGITHUBPARIS-COMPASS
 npm.cmd view paris-compass-mcp version
 npm.cmd run mcp:paquet -- --registre
 ```
@@ -69,26 +69,30 @@ locale prouve que l'empaquetage est juste, jamais que la publication l'est.
 
 ## 4. Publier au registre MCP
 
-Une seule fois, installer l'outil :
+Une seule fois, installer l'outil — **hors du dépôt**, pour ne pas déposer un binaire dans un
+arbre de sources. Vérifié le 3 septembre 2026 : la version `v1.8.1` publie bien un
+`mcp-publisher_windows_arm64.tar.gz`, donc ce poste n'a pas besoin d'émulation.
 
 ```powershell
 $arch = if ([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture -eq "Arm64") { "arm64" } else { "amd64" }
-Invoke-WebRequest -Uri "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_windows_$arch.tar.gz" -OutFile "mcp-publisher.tar.gz"
-tar xf mcp-publisher.tar.gz mcp-publisher.exe
-Remove-Item mcp-publisher.tar.gz
+$tools = "$env:USERPROFILE\Tools"
+New-Item -ItemType Directory -Force $tools | Out-Null
+Invoke-WebRequest "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_windows_$arch.tar.gz" -OutFile "$env:TEMP\mcp-publisher.tar.gz"
+tar xf "$env:TEMP\mcp-publisher.tar.gz" -C $tools mcp-publisher.exe
+Remove-Item "$env:TEMP\mcp-publisher.tar.gz"
+& "$tools\mcp-publisher.exe" --help
 ```
 
-**Ce poste est en ARM64** : la détection ci-dessus le gère, mais si l'archive `arm64` n'existe pas
-encore côté projet, `amd64` tourne sous émulation. Déplacer `mcp-publisher.exe` dans un dossier du
-`PATH`, ou l'appeler par son chemin.
-
-Ensuite, depuis `mcp-server/` :
+Puis, **depuis `mcp-server/`** — et le chemin est écrit en entier exprès : l'outil n'est pas dans
+le `PATH`, et un chemin relatif dépend de l'endroit d'où on part.
 
 ```powershell
-cd mcp-server
-..\mcp-publisher.exe login github      # code d'appareil à saisir sur github.com/login/device
-..\mcp-publisher.exe publish
+& "$env:USERPROFILE\Tools\mcp-publisher.exe" login github   # code d'appareil sur github.com/login/device
+& "$env:USERPROFILE\Tools\mcp-publisher.exe" publish
 ```
+
+**L'esperluette `&` est obligatoire** devant un chemin entre guillemets : sans elle, PowerShell
+lit la chaîne au lieu de l'exécuter.
 
 Vérifier :
 
