@@ -850,26 +850,31 @@ Les points **1, 3, 4, 8, 9, 10 et 11 sont rayés** et sont partis dans
     qu'à la publication. Une version publiée qui se casserait après coup, un dépendant retiré du
     registre par exemple, ne serait pas vue. À rejouer à la main avant chaque publication.
 
-16. **Publier `0.1.1` sur npm, puis inscrire le serveur au registre MCP — prêt, non fait.**
-    Tout est en place au 3 septembre 2026 ; il manque deux commandes, et elles demandent tes
-    identifiants. La suite exacte est dans **`mcp-server/PUBLISHING.md`**.
+16. **`0.1.1` est sur npm — reste l'inscription au registre MCP.**
 
-    *Pourquoi une `0.1.1`.* Trois paramètres n'avaient aucune description — `radius_m` de
-    `compare_locations` et d'`explain_score`, `limit` de `find_premises` — donc trois valeurs
-    qu'un agent devinait. Mesuré : **15/18 paramètres décrits**, désormais **18/18**. Et le
-    serveur annonçait `0.1.0` à `initialize` alors que le paquet était monté : la version venait
-    d'une constante recopiée dans `src/index.ts`. Elle vient maintenant de `package.json`, donc
-    la dérive est impossible plutôt que surveillée.
+    **La moitié npm est faite le 3 septembre 2026**, et vérifiée sur ce que le registre sert :
+    `version = 0.1.1`, `mcpName = io.github.ivandemurard/paris-compass-mcp`, et
+    `npm.cmd run mcp:paquet -- --registre` rend **PASS, sortie 0**, avec
+    `initialize → paris-compass 0.1.1`. Le champ que le registre MCP contrôle est donc bien sur
+    npm : cette validation-là passera.
 
-    *Ce que le registre ajoute.* npm rend le serveur **accessible** ; le registre MCP le rend
-    **détectable** — c'est là que les clients cherchent. Il n'héberge que des métadonnées et
-    vérifie que le paquet npm porte le `mcpName` déclaré, d'où `mcp-server/server.json` et le
-    champ ajouté au manifeste. `scripts/mcpRegistry.test.ts` refuse d'avance le désaccord entre
-    les deux fichiers, qui est l'erreur que le registre ne rend qu'**après** la publication npm.
+    **Reste une commande**, et elle demande une authentification GitHub. Installation de
+    `mcp-publisher` et suite exacte dans **`mcp-server/PUBLISHING.md`** :
 
-    *Le nom de registre est `io.github.ivandemurard/paris-compass-mcp`.* Si
-    `mcp-publisher publish` répond « You do not have permission », c'est la casse du login GitHub
-    qui ne correspond pas : aligner les deux fichiers sur ce que `mcp-publisher init` génère.
+    ```powershell
+    cd mcp-server
+    ..\mcp-publisher.exe login github
+    ..\mcp-publisher.exe publish
+    curl.exe "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.ivandemurard/paris-compass-mcp"
+    ```
+
+    *Ce que ça ajoute.* npm rend le serveur **accessible** ; le registre le rend **détectable** —
+    c'est là que les clients MCP cherchent. Il n'héberge que des métadonnées et pointe vers npm.
+
+    *Si `publish` répond « You do not have permission »*, c'est la casse du login GitHub qui ne
+    correspond pas au préfixe : aligner `mcp-server/server.json` et le `mcpName` du manifeste sur
+    ce que `mcp-publisher init` génère. `scripts/mcpRegistry.test.ts` garde les deux fichiers
+    d'accord entre eux, mais il ne peut rien dire du compte connecté.
 
     *Ce qui reste à décider, et qui n'est pas technique :* les descriptions de `lat` et `lng` sont
     en français quand tout le reste de la surface est en anglais. Un agent s'en accommode ; un
