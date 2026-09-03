@@ -1,17 +1,17 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.ivandemurard/paris-compass-mcp",
+  "name": "io.github.IvandeMurard/paris-compass-mcp",
   "description": "Paris commercial premises from open data: shopfront history, street turnover, sourced figures.",
   "repository": {
     "url": "https://github.com/IvandeMurard/paris-compass",
     "source": "github"
   },
-  "version": "0.1.1",
+  "version": "0.1.2",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "paris-compass-mcp",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "transport": {
         "type": "stdio"
       },

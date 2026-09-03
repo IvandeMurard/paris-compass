@@ -10,9 +10,11 @@
 // C'est exactement la forme de #70 et #71 : deux endroits à tenir en phase, et rien qui le dise.
 // Ici, le désaccord passe `npm.cmd run test` au rouge, donc aussi la porte planifiée.
 //
-// Ce que ce test ne rattrape pas : il compare les fichiers entre eux, jamais au registre. Un nom
-// déjà pris par quelqu'un d'autre, ou un compte GitHub qui ne correspond pas au préfixe, ne se
-// voient qu'à la publication.
+// Ce que ce test ne rattrape pas : il compare les fichiers entre eux et au dépôt, jamais au
+// registre. Un nom déjà pris par quelqu'un d'autre, un compte GitHub connecté qui n'est pas le
+// propriétaire du dépôt, ou une contrainte du schéma que personne n'a encore rencontrée, ne se
+// voient qu'à la publication. Les trois règles ci-dessous sont d'ailleurs toutes nées comme ça —
+// d'un refus du registre, le 3 septembre 2026, chacun découvert après la publication npm.
 
 import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
@@ -28,6 +30,7 @@ const paquet = JSON.parse(readFileSync(resolve(ROOT, "mcp-server/package.json"),
 }
 
 const serveur = JSON.parse(readFileSync(resolve(ROOT, "mcp-server/server.json"), "utf8")) as {
+  repository: { url: string }
   name: string
   description: string
   version: string
@@ -53,6 +56,19 @@ describe("les deux manifestes du serveur MCP disent la même chose", () => {
     // « You do not have permission to publish this server » sinon — et le message ne dit pas
     // que c'est le préfixe qui cloche.
     expect(serveur.name.startsWith("io.github.")).toBe(true)
+  })
+
+  it("l'espace de noms reprend le propriétaire du dépôt, casse comprise", () => {
+    // Le 3 septembre 2026, `publish` a rendu un 403 : « You have permission to publish:
+    // io.github.IvandeMurard/*. Attempting to publish: io.github.ivandemurard/… ». Le registre
+    // compare à la casse du login GitHub, alors que la convention DNS pousse aux minuscules —
+    // et le paquet npm portant le mauvais nom, il a fallu republier pour corriger.
+    //
+    // Le propriétaire du dépôt EST ce login : le recouper ici rend le piège impossible sans
+    // avoir à écrire le login une seconde fois quelque part.
+    const proprietaire = /^https:\/\/github\.com\/([^/]+)\//.exec(`${serveur.repository.url}/`)?.[1]
+    expect(proprietaire).toBeDefined()
+    expect(serveur.name).toBe(`io.github.${proprietaire}/${paquet.name}`)
   })
 
   it("les trois versions avancent ensemble", () => {
