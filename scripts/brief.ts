@@ -12,6 +12,8 @@ import { readFileSync, readdirSync, existsSync } from "fs"
 import { execFileSync } from "child_process"
 import { resolve } from "path"
 
+import { etatCourant } from "./porte/etat"
+
 const SESSIONS = resolve("docs/SESSIONS.md")
 const TICKETS = resolve("docs/tickets")
 
@@ -103,6 +105,26 @@ function main() {
   const extra = consignes(doc, id)
   if (extra) parts.push(extra)
 
+  // Un rouge en retard passe AVANT le ticket : la session qui commence doit savoir qu'elle
+  // hérite d'une décision, pas la découvrir en fin de course. En dessous du seuil, rien —
+  // sinon le bloc devient le décor que le prompt commun est déjà accusé d'être.
+  // La mesure qui justifie CET endroit-là plutôt qu'un canal de plus est en tête de
+  // scripts/porte/etat.ts : la notification arrive, et elle n'est pas ce qui déclenche
+  // la lecture — c'est une session qui l'est.
+  const rouges = etatCourant()
+  if (rouges.code === 1) {
+    parts.push(
+      [
+        "AVANT LE TICKET — la porte a un rouge ouvert depuis plus d'un jour :",
+        "",
+        ...rouges.lignes,
+        "",
+        "Lis-le. S'il relève de ton ticket, traite-le ; sinon dis-le dans ton résumé et laisse",
+        "l'issue ouverte — mais ne commence pas comme s'il n'existait pas.",
+      ].join("\n"),
+    )
+  }
+
   parts.push(
     [
       "Ce qu'il faut lire, et rien de plus :",
@@ -145,6 +167,10 @@ function main() {
         `       CLAUDE.md est chargé tout seul, le prompt se paie à chaque session.\n`,
     )
   }
+
+  // Le dernier mot de la sortie, sur stderr comme la note du prompt commun : ce n'est pas du
+  // texte à coller, c'est ce que la personne devant le terminal doit voir avant de coller.
+  process.stderr.write(rouges.lignes.join("\n") + "\n")
 }
 
 main()

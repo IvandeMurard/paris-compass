@@ -508,3 +508,26 @@ n'est tenue par rien : c'est `freshness`, a posteriori, qui la pose — quatre m
 Jamais élargir `TOLERANCE_DAYS` pour éteindre ce rouge : le retard était réel.
 
 ---
+
+**`gh issue list --label` répond en retard de quelques secondes après un changement d'état —
+5 septembre 2026.** `gh issue reopen 74` rend `✓ Reopened`, et `npm.cmd run porte:etat` lancé
+dans la foulée a répondu **« aucun rouge ouvert »**. Le même `gh issue list --label porte-rouge
+--state open` joué à la main dix secondes plus tard rendait bien `#74`. La liste passe par
+l'index de recherche de GitHub, qui est cohérent *à terme* ; `gh issue view <n>`, lui, lit
+l'issue elle-même et répond juste tout de suite.
+
+Conséquence pratique, et elle vaut pour toute démonstration de `w1-porte-lue` (#77) : **ne pas
+conclure d'un `porte:etat` joué dans la seconde qui suit un `reopen` ou un `close`.** Attendre,
+ou recouper au `gh issue view`. Le piège est doux — il rend un **vert**, c'est-à-dire
+exactement la forme d'erreur que `porte:etat` existe pour empêcher.
+
+**`npm.cmd run <script> -- --drapeau valeur` ne passe pas les arguments depuis Git Bash —
+5 septembre 2026.** Sur ce poste, `npm.cmd run porte:signal -- --corps fichier.md` échoue sur
+`'C:\Program' n'est pas reconnu en tant que commande interne ou externe` : le `--` traverse le
+shim `.cmd` et le chemin de l'interpréteur, qui contient une espace, part sans guillemets.
+Depuis PowerShell la même ligne marche — c'est ce que `CLAUDE.md` documente et il n'y a rien à
+y corriger.
+
+Le contournement, quand on est dans Git Bash : appeler le script directement, sans passer par
+npm — `npx tsx scripts/porte/signal.ts --corps … --titre … --label …`. Ne concerne que les
+scripts qui prennent des drapeaux : `porte:signal`, `porte:rapport`, `mcp:paquet --registre`.

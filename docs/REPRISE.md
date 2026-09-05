@@ -28,12 +28,12 @@ a bougé les 31 août et 1er septembre, et rien d'autre :
 | Mesure | Valeur, mesurée le 31 août 2026, sauf mention du 1er septembre |
 | --- | --- |
 | Ledger distant `supabase_migrations` | **47** — inchangé, ni `#69` ni `#71` **n'ont posé de migration** : les deux défauts étaient dans les lanceurs, pas dans le schéma |
-| Tests unitaires | **351**, mesurés le 5 septembre 2026 — dont les 14 de `scripts/porte/catalogue.test.ts`. **Le chiffre de 335 daté du 3 septembre était déjà faux** : remesuré sans le fichier neuf, le dépôt en portait **337**. Historique : 273 après `#71` , puis 299 avec `scripts/porte/cadences.test.ts`, la réconciliation distant/migrations et deux cas ajoutés de part et d'autre dans `scripts/ingest/workflow.test.ts` et `scripts/porte/workflow.test.ts`, puis **301** en tranchant les cadences sans seuil, puis **325** le 2 septembre 2026 avec les 14 tests de `scripts/build/envPublic.test.ts` , les 6 de `scripts/porte/publie.test.ts` , les 4 de `scripts/esbuildInvocation.test.ts` , les 6 de `scripts/eval/drift.test.ts` et les 4 de `scripts/mcpRegistry.test.ts` |
+| Tests unitaires | **366**, mesurés le 5 septembre 2026 — dont les 15 de `scripts/porte/etat.test.ts` ajoutés par `w1-porte-lue` (#77) et les 14 de `scripts/porte/catalogue.test.ts`. **Le chiffre de 335 daté du 3 septembre était déjà faux** : remesuré sans le fichier neuf, le dépôt en portait **337**. Historique : 273 après `#71` , puis 299 avec `scripts/porte/cadences.test.ts`, la réconciliation distant/migrations et deux cas ajoutés de part et d'autre dans `scripts/ingest/workflow.test.ts` et `scripts/porte/workflow.test.ts`, puis **301** en tranchant les cadences sans seuil, puis **325** le 2 septembre 2026 avec les 14 tests de `scripts/build/envPublic.test.ts` , les 6 de `scripts/porte/publie.test.ts` , les 4 de `scripts/esbuildInvocation.test.ts` , les 6 de `scripts/eval/drift.test.ts` et les 4 de `scripts/mcpRegistry.test.ts` |
 | **Sources et cadences** | **8 sources dans `compass_source_freshness()`, 8 entrées `cron`**, mesuré le 1er septembre 2026. Les huit du distant sont exactement les huit que les migrations déclarent — recoupé par `freshness`, zéro écart. Entretien remesuré le 5 septembre 2026 : **3 par `schedule`** (`bodacc`, `sirene`, `sirene_stock`), **2 par `workflow-dispatch`** (`geography`, `chantiers`), 3 depuis un terminal — le relevé du 1er septembre disait 1 / 1 / 6 et deux crons mensuels ont eu leur tour depuis. Les cadences les plus lentes n'ont toujours pas eu le leur, donc `freshness` sort en **3** et le dira jusqu'à ce qu'elles l'aient eu |
 | Invariants | **38** — `I38` ajouté le 5 septembre 2026 par `w1-catalogue`, sur la table de codes des chantiers ; mesuré à **0 ligne** sur le distant, et démontré à **2 lignes** sous sabotage en transaction annulée, volume inchangé à 120 chantiers — **le rechargement du 5 septembre a porté la table à 113 lignes**, et `I38` reste à 0 sur ce contenu-là. Trois d'entre eux, `I1`, `I2` et `I7`, sont **joués en 22 instructions** au lieu d'une. Même population, toutes les tranches jouées |
 | **Coût des trois bras distants** (le quatrième, `freshness`, est **un aller-retour** : une RPC, aucun balayage) | Deux passages. `eval` **306 s** puis **299 s** (bras A seul 240 s) · `eval:anon` **5 s** deux fois · `verify:mcp` **114 s** puis **227 s** — **425 s puis 531 s**. L'écart est entièrement `verify:mcp`, et c'est Overpass : les contrôles suspendus attendent des miroirs publics à 429 et 504, chacun avec son délai. C'est ce chiffre-là qui dimensionne la cadence de la porte planifiée, **pas les 115 s de `#69`**, qui étaient `I1` seul avant son découpage |
 | **Secrets de dépôt** | **`DATABASE_URL` seul.** `SUPABASE_URL` et `SUPABASE_ANON_KEY` **manquent**, donc `eval:anon` et `verify:mcp` n'ont pas de clé sur un runner. Le workflow s'arrête là-dessus en le nommant, avant de dépenser dix minutes |
-| Portes | `typecheck` ✓ · `test` **351** ✓ (5 septembre) · `freshness` **8 sources, 0 en retard, 0 écart, 4 sans seuil par décision**, sortie 3, **remesuré le 5 septembre après le rechargement de `chantiers`** — `chantiers` était passé en retard le 4 (voir `docs/REPRISE-PIEGES.md`, le trou entre une cadence déclarée et sa première occurrence) · `eval` **sortie 3, zéro échec, 11 avertissements**, rejoué le 5 septembre après le rechargement de `chantiers` — `I38` au vert en 0,0 s sur les 113 lignes neuves ; `prix_median_local_identifiable` est passé de 1,33 % à **1,69 %** d'écart brut, toujours en avertissement et **chiffre publié inchangé à 160 000** · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 40 verts, 0 échec, 1 suspendu**, sortie 0, **remesuré le 2 septembre après le paquet MCP** (39/2 plus tôt le même jour : un miroir Overpass est revenu) · `porte:sabotage` **PASS, quatre actes** · `porte:publie` **PASS contre la production, sortie 0** (2 septembre) · `build` et `build:dev` ✓ (2 septembre), **hashes changés** : `index-DX8ZO1QB.js`, `App-uI7Bjffv.js` (chunk neuf), `MapView-BiNyeJsQ.js` — `src/main.tsx` charge `App` dynamiquement depuis le §32, et `src/pages/Index.tsx` a bougé côté Lovable |
+| Portes | `typecheck` ✓ · `test` **366** ✓ (5 septembre) · `porte:etat` **0 sur un dépôt sans rouge ouvert, 1 démontré sur `#74` rouverte** (5 septembre) · `freshness` **8 sources, 0 en retard, 0 écart, 4 sans seuil par décision**, sortie 3, **remesuré le 5 septembre après le rechargement de `chantiers`** — `chantiers` était passé en retard le 4 (voir `docs/REPRISE-PIEGES.md`, le trou entre une cadence déclarée et sa première occurrence) · `eval` **sortie 3, zéro échec, 11 avertissements**, rejoué le 5 septembre après le rechargement de `chantiers` — `I38` au vert en 0,0 s sur les 113 lignes neuves ; `prix_median_local_identifiable` est passé de 1,33 % à **1,69 %** d'écart brut, toujours en avertissement et **chiffre publié inchangé à 160 000** · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 40 verts, 0 échec, 1 suspendu**, sortie 0, **remesuré le 2 septembre après le paquet MCP** (39/2 plus tôt le même jour : un miroir Overpass est revenu) · `porte:sabotage` **PASS, quatre actes** · `porte:publie` **PASS contre la production, sortie 0** (2 septembre) · `build` ✓ **remesuré le 5 septembre** : `index-z86I-NBQ.js`, `App-PPJJEVRR.js`, un avertissement de taille de chunk et rien d'autre. Ce n'est pas le relevé du 2 septembre (`index-DX8ZO1QB.js`, `App-uI7Bjffv.js`, `MapView-BiNyeJsQ.js`), et l'écart n'est pas attribuable à cette session — `w1-porte-lue` n'a touché que `scripts/` et la documentation. `build:dev` ✓ (2 septembre), non rejoué le 5 : aucune montée de `vite` entre les deux |
 
 **Le passage du 3 septembre 2026 est le premier entièrement au vert** —
 [`33753907840`](https://github.com/IvandeMurard/paris-compass/actions/runs/33753907840), 12:12 UTC :
@@ -405,6 +405,28 @@ décision requise** nommé et daté, **décision requise** avec la mesure, sa da
 attendue — est écrit une fois dans `scripts/porte/report.ts` et **réutilisé** par le cron
 d'ingestion, et par `w1-catalogue` (#73) quand il passera. Trois protocoles qui produisent
 trois formats de rapport, c'est trois choses à lire, donc zéro chose lue.
+
+
+**Un rouge se lit au démarrage d'une session, et la notification n'y est pour rien.** Tranché
+le 5 septembre 2026 en fermant `w1-porte-lue`
+([#77](https://github.com/IvandeMurard/paris-compass/issues/77)), et tranché **sur mesure** :
+la piste d'un second canal — courrier, Slack, webhook — est écartée parce que l'API de GitHub
+dit que la notification n'a jamais manqué. Le dépôt est `subscribed` depuis le 27 juin, le fil
+d'inbox de `#74` existe, et le fil de `#78` était encore `unread` **après** que l'issue eut été
+trouvée et fermée. Un canal de plus aurait multiplié l'endroit où personne ne lit.
+
+- **La destination est le prompt de session**, parce que c'est là que quelqu'un se tient déjà :
+  les deux rouges de septembre ont été traités pendant une session, aucun par sa notification.
+  `npm.cmd run brief` joue `porte:etat` tout seul — au-delà d'un jour le rouge entre dans le
+  prompt collé, en deçà il reste sur `stderr`. Aucune discipline n'est demandée.
+- **L'escalade est rare et déclarée : paliers 2 et 7 jours, jamais quotidienne.** C'est la règle
+  que `scripts/porte/signal.ts` s'était déjà donnée en refusant d'ouvrir une seconde issue,
+  appliquée un cran plus haut au titre. Les paliers vivent une seule fois, dans
+  `scripts/porte/etat.ts`, et `etat.test.ts` refuse une seconde copie : deux tables de seuils
+  sont deux seuils.
+- **Ce que ça ne rattrape pas, et c'est entier** : une semaine sans session reste une semaine
+  sans lecteur. Une porte ne peut pas voir sa propre absence, et elle ne peut pas non plus se
+  faire lire.
 
 
 **Une source du catalogue est vérifiée, ou porte une raison écrite de ne pas l'être.**
@@ -982,6 +1004,15 @@ script n'est ni joué par un workflow qui porte un `on.schedule`, ni nommé dans
 `scripts/porte/cadence.json` avec une **raison écrite**. C'est voulu, et c'est le trou de `#70`
 un cran plus haut : six bras en six mois dont un que personne ne lance. Une raison qui se
 résume à « pas besoin » est le début de la complaisance que `#71` refuse.
+
+Ne pas répondre à « personne n'a lu l'alerte » en ajoutant un canal. Mesuré le 5 septembre
+2026 : la notification GitHub arrivait, et elle n'était pas lue — le fil d'inbox de `#78` était
+encore `unread` après que l'issue eut été trouvée **et fermée**. Un courrier, un Slack ou un
+webhook de plus ajoute une dépendance et un secret pour multiplier l'endroit où personne ne
+lit. La réponse est de faire tomber l'alerte là où quelqu'un se tient déjà — le prompt de
+session, `npm.cmd run brief`, qui joue `porte:etat` — et de ne jamais escalader plus souvent
+qu'aux paliers déclarés dans `scripts/porte/etat.ts`. Une alerte quotidienne sur onze bras est
+du bruit en trois semaines, et le bruit est comment un contrôle finit désactivé. `#77`.
 
 Ne pas forcer `enable_nestloop = off` sur les fonctions de rayon, ni globalement ni
 sur les quatre sans distinction de rayon : le hachage vaut −81 % de pages à 2 000 m

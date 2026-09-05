@@ -19,6 +19,7 @@
 import { execFileSync } from "child_process"
 import { readFileSync } from "fs"
 
+import { ageEnHeures, PALIERS_JOURS, titreEscalade } from "./etat"
 import { carriesDatabaseIdentifier } from "./redaction"
 
 function argument(flag: string, fallback?: string): string {
@@ -37,6 +38,29 @@ function gh(args: string[], input?: string): string {
     input,
     maxBuffer: 16 * 1024 * 1024,
   }).trim()
+}
+
+/**
+ * Carry the age in the title, at the steps `etat.ts` declares and nowhere else — w1-porte-lue
+ * (#77).
+ *
+ * The comment above has already gone out; this adds no notification of its own on the mornings
+ * it changes nothing, and `titreEscalade` is idempotent, so it changes nothing on all but two
+ * mornings of an issue's whole life. Renaming every morning would rebuild, one level up, the
+ * very filter this file refuses: what it wrote about a second issue holds for a second title.
+ *
+ * What it does NOT catch, and `porte:etat` is the answer: this runs only on a morning the gate
+ * is red. An issue left open while the gate goes green never ages in its own title. The reader
+ * computes the age live; the title is a convenience for the issue list, not the measure.
+ */
+function escalade(issue: { number: number; title: string; createdAt: string }): void {
+  const jours = ageEnHeures(issue.createdAt, new Date()) / 24
+  const voulu = titreEscalade(issue.title, jours)
+  if (voulu === issue.title) return
+  gh(["issue", "edit", String(issue.number), "--title", voulu])
+  process.stdout.write(
+    `Titre porté à « ${voulu} » — paliers ${PALIERS_JOURS.join(" et ")} jours, jamais quotidien.\n`,
+  )
 }
 
 function main(): void {
@@ -62,12 +86,16 @@ function main(): void {
     // Already exists.
   }
 
-  const open = gh(["issue", "list", "--label", label, "--state", "open", "--limit", "1", "--json", "number"])
-  const existing = (JSON.parse(open || "[]") as { number: number }[])[0]
+  const open = gh([
+    "issue", "list", "--label", label, "--state", "open", "--limit", "1",
+    "--json", "number,title,createdAt",
+  ])
+  const existing = (JSON.parse(open || "[]") as { number: number; title: string; createdAt: string }[])[0]
 
   if (existing) {
     gh(["issue", "comment", String(existing.number), "--body-file", "-"], body)
     process.stdout.write(`Commenté sur l'issue #${existing.number} — un rouge ouvert le reste.\n`)
+    escalade(existing)
     return
   }
 

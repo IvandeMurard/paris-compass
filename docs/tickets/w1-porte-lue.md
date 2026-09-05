@@ -81,3 +81,114 @@ ci-dessus ne fait lire un dépôt qui n'a plus de session pendant un mois — et
 toute façon les workflows planifiés d'un dépôt public après 60 jours sans activité, ce que
 `porte.yml` note déjà. Une porte ne peut pas voir sa propre absence, et elle ne peut pas non
 plus se faire lire.
+
+---
+
+## Fait le 5 septembre 2026
+
+### 1. La cause, mesurée — pas déduite
+
+Les deux visages du ticket appellent des correctifs opposés, et une question à Ivan n'a pas été
+nécessaire : l'API de GitHub porte la réponse. Mesuré le 5 septembre 2026.
+
+| Ce qu'on demande | Ce que GitHub répond |
+| --- | --- |
+| `repos/IvandeMurard/paris-compass/subscription` | `subscribed: true`, `ignored: false`, **depuis le 27 juin 2026** |
+| Fil d'inbox de `#74` | **existe**, `reason: subscribed` — la notification a bien été produite |
+| `#74` ouverte / premier geste humain | 1er sept. 12:49 UTC → 2 sept. **15:58 UTC** : **27 h 09** |
+| Fil d'inbox de `#78` | `unread: true` — **encore non lu** alors que l'issue avait été trouvée **et fermée** (5 sept., 11:33 → 13:15) |
+
+**Verdict : la notification arrive, et elle n'est pas ce qui déclenche la lecture.** La ligne
+`#78` est la démonstration décisive : l'issue a été traitée en 1 h 42 par un chemin qui n'est
+jamais passé par la notification, et la notification est restée non lue **après** la fermeture.
+La piste 3 du ticket — un second canal — est donc écartée sur mesure et non sur intuition :
+elle multiplierait l'endroit où personne ne lit.
+
+**Où Ivan se tient déjà**, mesuré de la même façon : les deux rouges ont été traités **pendant
+une session**, et une session commence par `npm.cmd run brief <ticket>`, dont la sortie est le
+prompt collé tel quel. C'est le seul point du dispositif que personne ne peut sauter.
+
+### 2. Ce qui a été écrit
+
+- **`npm.cmd run porte:etat`** (`scripts/porte/etat.ts` + `etat-dire.ts`) — les issues
+  `porte-rouge` ouvertes et leur âge, un appel `gh`, aucune base, aucun secret. Codes de sortie
+  dans la grammaire de `report.ts` : **0** aucun rouge · **3** un rouge du jour même · **1** un
+  rouge de plus d'un jour. Un `gh` absent ou non authentifié rend « INDÉTERMINÉ » et **jamais**
+  un vert : un silence pris pour un vert est exactement le défaut visé.
+- **`scripts/brief.ts` le joue tout seul.** Au-delà du seuil, le rouge entre **dans le prompt
+  collé**, avant le ticket ; en deçà, il reste sur `stderr`, comme la note du prompt commun.
+  Aucune discipline requise : la seule façon de ne pas le voir est de ne pas ouvrir de session.
+- **`scripts/porte/signal.ts` porte l'âge dans le titre**, aux paliers **2 et 7 jours**.
+  `titreEscalade` est idempotent et remplace le palier au lieu de l'empiler : **deux écritures
+  de titre sur la vie entière d'une issue**, jamais une par matin. Les paliers sont déclarés une
+  fois dans `etat.ts` et lus par les deux côtés — `etat.test.ts` refuse une seconde copie.
+- **`CLAUDE.md`** nomme `porte:etat` à côté de `brief`, et porte la règle et sa mesure.
+- **`scripts/porte/cadence.json`** classe `porte:etat` dans `unscheduled` avec sa raison : le
+  planifier serait circulaire — la porte de 07:29 relirait ses propres rouges devant personne.
+
+### 3. Démontré, pas supposé
+
+**Critère 2 — un rouge de plus d'un jour est visible sans ouvrir GitHub.** `#74` (ouverte le
+1er septembre, donc 4 j 1 h) rouverte deux minutes, chemin de démarrage joué :
+
+```
+$ npm.cmd run porte:etat
+[porte] 1 rouge(s) ouvert(s) depuis plus de 1 jour — DÉCISION REQUISE
+        #74   4 j  1 h  Porte planifiée — décision requise
+        gh issue view 74 --comments
+$ echo $LASTEXITCODE
+1
+
+$ npm.cmd run brief w1-porte-lue      # ligne 91 du prompt À COLLER, avant le ticket
+AVANT LE TICKET — la porte a un rouge ouvert depuis plus d'un jour :
+
+[porte] 1 rouge(s) ouvert(s) depuis plus de 1 jour — DÉCISION REQUISE
+        #74   4 j  1 h  Porte planifiée — décision requise
+        gh issue view 74 --comments
+
+Lis-le. S'il relève de ton ticket, traite-le ; sinon dis-le dans ton résumé et laisse
+l'issue ouverte — mais ne commence pas comme s'il n'existait pas.
+```
+
+et la même chose en dernière ligne de `stderr`, après la note du prompt commun.
+
+**Critère 3 — pas une notification par jour pour le même défaut.** `signal.ts` joué deux fois
+de suite sur `#74`, même issue, même âge :
+
+```
+1er passage : Commenté sur l'issue #74 — un rouge ouvert le reste.
+              Titre porté à « … — ouverte depuis 2 jours » — paliers 2 et 7 jours, jamais quotidien.
+2e passage  : Commenté sur l'issue #74 — un rouge ouvert le reste.
+              (aucune ligne de titre — rien n'a été réécrit)
+```
+
+Les deux commentaires de démonstration et le titre restauré sont sur `#74`, qui a été refermée.
+Les quinze tests de `scripts/porte/etat.test.ts` jouent le reste : la bascule 3 → 1 à l'heure
+exacte du seuil, l'idempotence, le remplacement du palier au lieu de l'empilement, et le fait
+qu'un titre ne prend que **trois formes en soixante matins**.
+
+**Critère 4 — les deux rouges qui ont motivé le ticket.** Tous deux déjà traités et consignés
+avant cette session, vérifié : `#74` était le §33 (`verify:mcp` lançait esbuild par `node`),
+clos le 2 septembre et **prouvé sur le runner le 3** ; le FAIL
+`prix_median_local_identifiable` du 2 septembre est le §34, clos le même jour — la tolérance de
+comptage appliquée à un quantile — et `docs/REPRISE.md` porte le rejeu du 5 septembre : passé à
+1,69 % d'écart brut, **en avertissement**, chiffre publié inchangé à 160 000.
+
+### Ce que la règle ne rattrape pas
+
+C'est la limite annoncée dans « Comment », et elle est entière :
+
+- **Une semaine sans session reste une semaine sans lecteur.** `porte:etat` ne sert que
+  quelqu'un qui ouvre une session. Rien ici ne fait lire un dépôt que personne n'ouvre — et
+  GitHub désactive de toute façon les workflows planifiés d'un dépôt public après 60 jours sans
+  activité, ce que `porte.yml` note déjà.
+- **L'escalade par le titre ne tourne que les matins où la porte est rouge.** Une issue laissée
+  ouverte pendant que la porte repasse au vert ne vieillit jamais dans son propre titre. Le
+  lecteur, lui, calcule l'âge en direct : le titre est une commodité pour la liste d'issues, pas
+  la mesure.
+- **Une session lancée sans `brief`** — `claude --resume`, ou le prompt recollé de mémoire — ne
+  voit rien. `CLAUDE.md`, chargé tout seul, nomme `porte:etat` pour ce cas, mais c'est de la
+  vigilance et non une porte : la même chose que `porte:etat` est là pour remplacer.
+- **`porte:etat` ne juge rien.** Il dit qu'une issue est ouverte et depuis quand, pas si le
+  défaut derrière est encore réel. Une issue oubliée ouverte sur un défaut corrigé produira un
+  rouge de lecture parfaitement fidèle et parfaitement inutile — la fermer est un geste humain.

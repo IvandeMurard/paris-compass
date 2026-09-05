@@ -62,7 +62,8 @@ npm.cmd run mcp:paquet              # empaquette, installe hors du dépôt, parl
 npm.cmd run mcp:paquet -- --registre  # la même chose, sur ce que npm sert vraiment
 
 # La file des sessions
-npm.cmd run brief <ticket>  # assemble le prompt d'une session et ce qu'elle doit lire
+npm.cmd run porte:etat      # les rouges ouverts et leur age, sans ouvrir GitHub — 0 aucun, 3 ouvert du jour, 1 en retard
+npm.cmd run brief <ticket>  # assemble le prompt d'une session et ce qu'elle doit lire ; joue porte:etat tout seul
 npm.cmd run sessions        # regenere le tableau d'ordre de docs/SESSIONS.md depuis GitHub
 npm.cmd run sessions:check  # recoupe la table committee a l'etat GitHub, sort en 1 si elle a derive
 ```
@@ -137,6 +138,18 @@ où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lova
   `scripts/porte/cadence.json` ; sinon `test` échoue. Et une tolérance de
   `scripts/ingest/lib/cadence.ts` ne se monte **jamais** pour éteindre un « EN RETARD » : le
   seuil dit depuis quand on n'a pas vérifié, le monter ne rafraîchit rien.
+- **Un rouge de la porte se lit au démarrage d'une session, pas dans une notification** — `#77`,
+  le 5 septembre 2026. Mesuré ce jour-là : la notification GitHub n'est pas absente — le dépôt
+  est `subscribed` depuis le 27 juin et le fil d'inbox de `#74` existe — elle est **reçue et
+  non lue**. `#74` a attendu 27 h ; le fil de `#78` était encore `unread` **après** que l'issue
+  eut été trouvée et fermée. Ce qui déclenche une lecture, c'est une session. Donc
+  `npm.cmd run porte:etat` dit les rouges ouverts et leur âge, et `npm.cmd run brief` le joue
+  tout seul : au-delà d'un jour le rouge entre dans le prompt collé, en deçà il reste sur
+  stderr. L'escalade par le titre est aux paliers **2 et 7 jours**, jamais quotidienne — une
+  alerte qui prévient chaque matin du même défaut est celle qu'on finit par filtrer, et c'est
+  déjà la règle de `scripts/porte/signal.ts`. **Ce que ça ne rattrape pas** : une semaine sans
+  session reste une semaine sans lecteur, et rien ici ne fait lire un dépôt que personne
+  n'ouvre.
 - **Ne pas lancer `npm audit fix --force`** : cela remonterait des versions majeures et casserait
   le build. Et ne pas confondre ce que l'outil **propose** avec ce qui **corrige** : `audit fix
   --force` vise toujours la dernière majeure publiée, jamais la plus petite version qui suffit.

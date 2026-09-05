@@ -21,6 +21,7 @@
     "eval:sabotage": "tsx scripts/eval/census-sabotage.ts",
     "porte:rapport": "tsx scripts/porte/rapport.ts",
     "porte:signal": "tsx scripts/porte/signal.ts",
+    "porte:etat": "tsx scripts/porte/etat-dire.ts",
     "porte:sabotage": "tsx scripts/porte/sabotage.ts",
     "porte:publie": "tsx scripts/porte/publie.ts",
     "catalogue": "tsx scripts/porte/catalogue-verify.ts",
