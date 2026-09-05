@@ -630,6 +630,16 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 
 ## Catalogue des sources
 
+**Trente-cinq lignes, et c'est la population d'un contrôle** depuis `w1-catalogue`
+([#73](https://github.com/IvandeMurard/paris-compass/issues/73)), le 5 septembre 2026 — le
+ticket en annonçait « trente », comptées à vue. `scripts/porte/catalogue.ts` lit ce tableau et
+exige que chaque source non refusée porte soit une vérification dans
+`scripts/porte/catalogue.json`, soit une raison écrite de ne pas en avoir. **Une ligne ajoutée
+ici sans l'un ou l'autre fait échouer `npm.cmd run test`.** Trois statuts sortent de la
+population — `refusée` et `écartée` : un refus est une décision, pas une panne à surveiller.
+Le colonne `Statut` n'accepte que les mots que `STATUSES` connaît ; un mot neuf est un rouge,
+jamais un rangement dans le voisin.
+
 | Source | Producteur | Statut | Licence | Granularité | Phrase | Piège |
 | --- | --- | --- | --- | --- | --- | --- |
 | OpenStreetMap (Overpass) | Contributeurs OSM | connectée | ODbL | POI, voirie | Aménités, commerces tagués, parfois shop=vacant. | shop=vacant mal tenu. Ne pas en faire un taux de vacance. |
@@ -640,8 +650,8 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 | BDCom 2017 / 2020 / 2023 | APUR | ingérée | 2017–2020 personnalisée (non redistribuable) · 2023 ODbL | local à vitrine, identifiant stable | Fleuriste 2017 → fleuriste 2020 → disparu en 2023. Rotation rapportée au tronçon. | Vacance 2023 non calculable. 2017/2020 withheld à l'anonyme. Ne pas comparer les effectifs bruts (84k → 60k). |
 | BODACC | DILA | ingérée | Licence Ouverte | adresse, pas le local | Cession de fonds avec prix, procédure collective — signal que ça se libère, des mois avant l'annonce. | Nomme une adresse. 69 % des locaux partagent le numéro → probable, pas établi. |
 | Sirene géolocalisé | INSEE | ingérée | Licence Ouverte 2.0 | établissement, pas le local | Corroboration, dates de création/cessation en continu. | Un SIRET n'est pas une vitrine. Un local peut être vide avec SIRET ouvert. |
-| PLU linéaires protégés (plub_protcom) | Ville de Paris | planifiée | Open data Paris | linéaire de façade | Sur ce linéaire, le RDC ne peut pas changer de destination. | Informatif, sans valeur réglementaire. Pas encore ingéré. |
-| Chantiers de voirie | Ville de Paris | planifiée | Open data Paris | polygone + dates | 40 m d'un chantier perturbant, sept. 2026 → mars 2027. | Fait d'exposition, jamais une prévision d'impact sur le CA. |
+| PLU linéaires protégés (plub_protcom) | Ville de Paris | planifiée | ODbL (déclarée par le portail, mesurée le 05/09/2026) | linéaire de façade | Sur ce linéaire, le RDC ne peut pas changer de destination. | Informatif, sans valeur réglementaire. Pas encore ingéré. |
+| Chantiers de voirie | Ville de Paris | planifiée | ODbL (déclarée par le portail, mesurée le 05/09/2026) | polygone + dates | 40 m d'un chantier perturbant, sept. 2026 → mars 2027. | Fait d'exposition, jamais une prévision d'impact sur le CA. |
 | Terrasses et étalages | Ville de Paris | ingérée · affichée | ODbL (mesuré le 26/08) | autorisation géolocalisée, rattachée par numéro de rue | Une terrasse permanente est déjà autorisée sur cette façade — trois états, `inconnu` quand plusieurs locaux partagent le numéro. | Autorisation ≠ terrasse installée aujourd'hui : ni date de délivrance, ni expiration, ni statut dans la source. |
 | DIA / droit de préemption commercial | Ville de Paris | **écartée — non publiée, vérifié le 27/08** | aucune — seul le périmètre d'application est en open data | — | — | Les DIA elles-mêmes ne sont pas publiées ; seules les parcelles soumises au droit le sont (`plu-annexes-droit-de-preemption-urbain-renforce`). Piste close, `w1-dia`. |
 | Validations transport IDFM | Île-de-France Mobilités | planifiée | Open data IDFM | station, horaire, depuis 2015 | Entrées comptées à la station la plus proche, profil horaire. | Ce n'est pas le trottoir de la vitrine. |

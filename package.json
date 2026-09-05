@@ -23,6 +23,7 @@
     "porte:signal": "tsx scripts/porte/signal.ts",
     "porte:sabotage": "tsx scripts/porte/sabotage.ts",
     "porte:publie": "tsx scripts/porte/publie.ts",
+    "catalogue": "tsx scripts/porte/catalogue-verify.ts",
     "freshness": "tsx scripts/ingest/freshness.ts",
     "verify:mcp": "node scripts/verify-mcp.mjs",
     "mcp:paquet": "node scripts/mcp-paquet.mjs",

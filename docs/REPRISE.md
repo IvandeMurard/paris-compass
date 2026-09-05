@@ -28,9 +28,9 @@ a bougé les 31 août et 1er septembre, et rien d'autre :
 | Mesure | Valeur, mesurée le 31 août 2026, sauf mention du 1er septembre |
 | --- | --- |
 | Ledger distant `supabase_migrations` | **47** — inchangé, ni `#69` ni `#71` **n'ont posé de migration** : les deux défauts étaient dans les lanceurs, pas dans le schéma |
-| Tests unitaires | **335**, mesurés le 3 septembre 2026 — 273 après `#71`, puis 299 avec `scripts/porte/cadences.test.ts`, la réconciliation distant/migrations et deux cas ajoutés de part et d'autre dans `scripts/ingest/workflow.test.ts` et `scripts/porte/workflow.test.ts`, puis **301** en tranchant les cadences sans seuil, puis **325** le 2 septembre 2026 avec les 14 tests de `scripts/build/envPublic.test.ts` , les 6 de `scripts/porte/publie.test.ts` , les 4 de `scripts/esbuildInvocation.test.ts` , les 6 de `scripts/eval/drift.test.ts` et les 4 de `scripts/mcpRegistry.test.ts` |
+| Tests unitaires | **351**, mesurés le 5 septembre 2026 — dont les 14 de `scripts/porte/catalogue.test.ts`. **Le chiffre de 335 daté du 3 septembre était déjà faux** : remesuré sans le fichier neuf, le dépôt en portait **337**. Historique : 273 après `#71` , puis 299 avec `scripts/porte/cadences.test.ts`, la réconciliation distant/migrations et deux cas ajoutés de part et d'autre dans `scripts/ingest/workflow.test.ts` et `scripts/porte/workflow.test.ts`, puis **301** en tranchant les cadences sans seuil, puis **325** le 2 septembre 2026 avec les 14 tests de `scripts/build/envPublic.test.ts` , les 6 de `scripts/porte/publie.test.ts` , les 4 de `scripts/esbuildInvocation.test.ts` , les 6 de `scripts/eval/drift.test.ts` et les 4 de `scripts/mcpRegistry.test.ts` |
 | **Sources et cadences** | **8 sources dans `compass_source_freshness()`, 8 entrées `cron`**, mesuré le 1er septembre 2026. Les huit du distant sont exactement les huit que les migrations déclarent — recoupé par `freshness`, zéro écart. Entretien : **1 par `schedule`** (`bodacc`), 1 par `workflow-dispatch` (`geography`), 6 depuis un terminal. Les cadences les plus lentes n'ont pas encore eu leur tour, donc `freshness` sort en **3** et le dira jusqu'à ce qu'elles l'aient eu |
-| Invariants | **37** — inchangé. Trois d'entre eux, `I1`, `I2` et `I7`, sont **joués en 22 instructions** au lieu d'une. Même population, toutes les tranches jouées |
+| Invariants | **38** — `I38` ajouté le 5 septembre 2026 par `w1-catalogue`, sur la table de codes des chantiers ; mesuré à **0 ligne** sur le distant, et démontré à **2 lignes** sous sabotage en transaction annulée, volume inchangé à 120 chantiers. Trois d'entre eux, `I1`, `I2` et `I7`, sont **joués en 22 instructions** au lieu d'une. Même population, toutes les tranches jouées |
 | **Coût des trois bras distants** (le quatrième, `freshness`, est **un aller-retour** : une RPC, aucun balayage) | Deux passages. `eval` **306 s** puis **299 s** (bras A seul 240 s) · `eval:anon` **5 s** deux fois · `verify:mcp` **114 s** puis **227 s** — **425 s puis 531 s**. L'écart est entièrement `verify:mcp`, et c'est Overpass : les contrôles suspendus attendent des miroirs publics à 429 et 504, chacun avec son délai. C'est ce chiffre-là qui dimensionne la cadence de la porte planifiée, **pas les 115 s de `#69`**, qui étaient `I1` seul avant son découpage |
 | **Secrets de dépôt** | **`DATABASE_URL` seul.** `SUPABASE_URL` et `SUPABASE_ANON_KEY` **manquent**, donc `eval:anon` et `verify:mcp` n'ont pas de clé sur un runner. Le workflow s'arrête là-dessus en le nommant, avant de dépenser dix minutes |
 | Portes | `typecheck` ✓ · `test` **335** ✓ (3 septembre) · `freshness` **8 sources, 0 en retard, 0 écart, 4 sans seuil par décision**, sortie 3 (1er septembre) · `eval` **sortie 3, zéro échec, 11 avertissements**, rejoué le 2 septembre après le §34 — `prix_median_local_identifiable` reste à 1,33 % en avertissement, chiffre publié inchangé · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 40 verts, 0 échec, 1 suspendu**, sortie 0, **remesuré le 2 septembre après le paquet MCP** (39/2 plus tôt le même jour : un miroir Overpass est revenu) · `porte:sabotage` **PASS, quatre actes** · `porte:publie` **PASS contre la production, sortie 0** (2 septembre) · `build` et `build:dev` ✓ (2 septembre), **hashes changés** : `index-DX8ZO1QB.js`, `App-uI7Bjffv.js` (chunk neuf), `MapView-BiNyeJsQ.js` — `src/main.tsx` charge `App` dynamiquement depuis le §32, et `src/pages/Index.tsx` a bougé côté Lovable |
@@ -44,8 +44,10 @@ contrôles, 39 au vert, 0 en échec** — que Windows ne pouvait pas éprouver, 
 `porte:publie`, le dixième bras, y sort vert à sa première exécution planifiée.
 
 **La porte tourne toute seule depuis le 31 août** — `.github/workflows/porte.yml`, tous les
-jours à 07:29 UTC, dix bras : `typecheck`, `test`, `build`, `build:dev`, `sessions:check`,
-`freshness`, `eval`, `eval:anon`, `verify:mcp`, `porte:publie`. Un rouge ouvre une issue `porte-rouge` ; une panne amont
+jours à 07:29 UTC, **onze bras** depuis le 5 septembre 2026 : `typecheck`, `test`, `build`,
+`build:dev`, `sessions:check`, `freshness`, `eval`, `eval:anon`, `verify:mcp`, `porte:publie`,
+`catalogue`. Le onzième est le seul qui interroge les **producteurs** plutôt que le produit ;
+il ne porte aucun secret, et c'est voulu — il doit voir ce qu'un tiers voit. Un rouge ouvre une issue `porte-rouge` ; une panne amont
 n'en ouvre pas. Le cron d'ingestion signale ses échecs **sur le même canal**. Le détail, les
 mesures et ce que la règle ne rattrape pas :
 [`#71`](https://github.com/IvandeMurard/paris-compass/issues/71).
@@ -403,6 +405,39 @@ décision requise** nommé et daté, **décision requise** avec la mesure, sa da
 attendue — est écrit une fois dans `scripts/porte/report.ts` et **réutilisé** par le cron
 d'ingestion, et par `w1-catalogue` (#73) quand il passera. Trois protocoles qui produisent
 trois formats de rapport, c'est trois choses à lire, donc zéro chose lue.
+
+
+**Une source du catalogue est vérifiée, ou porte une raison écrite de ne pas l'être.**
+Tranché le 5 septembre 2026 en fermant `w1-catalogue`
+([#73](https://github.com/IvandeMurard/paris-compass/issues/73)). Troisième application de
+« énumérer, pas lister », après les scripts (`#71`) et les sources d'ingestion (`#70`), et la
+première dont la population vit dans de la **prose** : le tableau « Catalogue des sources » de
+`docs/PLAN-ACTION-VACANCE.md`, **trente-cinq lignes** — le ticket en annonçait trente.
+
+- **VÉRIFIER et TESTER sont deux protocoles, et l'ordre compte.** Vérifier, c'est demander à
+  la source si elle répond encore et déclare encore la licence qu'on a consignée : c'est
+  `npm.cmd run catalogue`, onze sondes, aucune base. Tester, c'est demander si ce qu'on reçoit
+  veut encore dire ce qu'on en a mappé : c'est un invariant, et il ne peut vivre qu'au contact
+  des données — `I22` pour le pont NAF depuis le 25 août, `I38` pour la table de codes des
+  chantiers depuis ce jour-là.
+- **Un refus n'est pas interrogé.** `refusée` et `écartée` sortent de la population : demander
+  chaque matin à SeLoger si ses CGU interdisent toujours la réutilisation est une alerte qui ne
+  peut jamais dire autre chose, et ce dépôt a déjà tranché sur ce qu'il advient de celles-là.
+- **Un champ de licence vide ne confirme rien.** Deux des trois sources ingérées ne publient
+  aucune licence là où le produit les lit — `copyrightText` vide chez l'APUR, `license: null`
+  chez BODACC, mesurés le 5 septembre 2026. `licence-attendue: null` n'est donc légal
+  qu'accompagné d'une phrase disant d'où vient alors la licence. Détail dans
+  `docs/REPRISE-PIEGES.md`.
+- **Le compte rendu n'est pas redéfini.** `scripts/porte/report.ts` l'a écrit une fois pour
+  `#71` ; le catalogue le réutilise, titre changé. Trois lignes quand tout va bien — démontré
+  dans les deux états le 5 septembre, dont un provoqué.
+
+**Ce que la règle ne rattrape pas, et il faut le nommer** : une source qui répond, sous la
+bonne licence, avec les bonnes colonnes, et dont le **contenu** est faux. La vérification porte
+sur la forme et la déclaration. Trois des onze sondes ne vérifient qu'une joignabilité, faute
+d'un champ de licence à l'endpoint, et elles le disent. Et `I38` n'attrape pas un code qui
+existe en changeant de sens — la même limite que `I22`, qui est celle de toute règle qui ne
+remplace pas d'avoir lu.
 
 
 **Une cadence est une propriété de la source, et une source sans cadence est un rouge.**
@@ -934,6 +969,13 @@ n'a ni entrée `cron` dans un workflow planifié, ni raison écrite dans le bloc
 `scripts/ingest/lib/cadence.ts` pour éteindre un « EN RETARD » : le seuil dit depuis quand
 nous n'avons pas vérifié, et le monter ne rafraîchit rien — c'est le même geste que desserrer
 une baseline, refusé une fois pour toutes. `#70`.
+
+Ne pas ajouter une source au catalogue de `docs/PLAN-ACTION-VACANCE.md` sans la vérifier ni
+écrire pourquoi elle ne l'est pas. Depuis le 5 septembre 2026, `npm.cmd run test` échoue tant
+qu'une ligne de ce tableau n'a ni entrée dans `verifications` de `scripts/porte/catalogue.json`,
+ni raison dans `sans-verification`. Et ne pas épingler la **page** d'un portail à la place de
+son endpoint : recouper une page par une autre page ne recoupe rien, c'est la règle de
+`CLAUDE.md` et le test la tient. `#73`.
 
 Ne pas ajouter un script à `package.json` sans le classer. `npm.cmd run test` échoue tant qu'un
 script n'est ni joué par un workflow qui porte un `on.schedule`, ni nommé dans

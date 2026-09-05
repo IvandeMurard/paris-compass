@@ -53,6 +53,7 @@ npm.cmd run eval            # invariants, baselines, jeu doré, budget anon — 
 npm.cmd run eval:anon       # ce qu'un visiteur sans clé atteint vraiment — ~5 s
 npm.cmd run verify:mcp      # les six outils MCP contre le distant — 2 à 4 min
 npm.cmd run freshness       # les huit sources et leurs cadences
+npm.cmd run catalogue       # les 35 sources du catalogue : l'endpoint repond-il, la licence tient-elle
 npm.cmd run porte:publie    # la page publiée porte-t-elle sa configuration
 npm.cmd run porte:sabotage  # demontre la porte : bras non planifie, rouge, panne amont
 
@@ -123,6 +124,13 @@ où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lova
   rapport éteindrait les alertes là où personne ne le verrait. Corollaire mécanique : un script
   ajouté à `package.json` fait échouer `test` tant qu'il n'est ni planifié ni justifié dans
   `scripts/porte/cadence.json`.
+- **Une source du catalogue porte sa vérification, et c'est encore la même règle** — `#73`,
+  le 5 septembre 2026. Toute ligne du tableau « Catalogue des sources » de
+  `docs/PLAN-ACTION-VACANCE.md` doit avoir une sonde dans `scripts/porte/catalogue.json`, ou
+  une raison écrite de ne pas en avoir ; sinon `test` échoue. Les statuts `refusée` et
+  `écartée` sortent de la population : un refus est une décision, pas une panne à surveiller.
+  Et **une sonde épingle un endpoint, jamais la page du portail qui en parle** — recouper une
+  page par une autre page ne recoupe rien.
 - **Une source d'ingestion aussi porte sa cadence, et c'est la même règle** — `#70`, le
   1er septembre 2026. Une source insérée dans `ingestion_run` par une migration doit avoir son
   entrée `cron` dans un workflow planifié, ou sa raison écrite dans le bloc `sources` de

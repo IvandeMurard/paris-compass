@@ -1,0 +1,119 @@
+{
+  "_lisez-moi": [
+    "Comment chaque source du catalogue est VERIFIEE, ou pourquoi elle ne l'est pas — w1-catalogue (#73).",
+    "La population est le tableau « Catalogue des sources » de docs/PLAN-ACTION-VACANCE.md, lu par",
+    "scripts/porte/catalogue.ts. Chaque source non refusee doit etre classee exactement une fois :",
+    "une entree dans `verifications`, ou une raison ecrite dans `sans-verification`. Jamais un silence.",
+    "C'est la meme regle que cadence.json applique aux scripts (#71) et aux sources d'ingestion (#70),",
+    "et elle est jouee par scripts/porte/catalogue.test.ts a chaque `npm.cmd run test`.",
+    "",
+    "VERIFIER n'est pas TESTER. Ici on demande a la source si elle repond encore et si elle declare",
+    "encore la licence qu'on a consignee. Que la donnee recue veuille encore dire ce qu'on en a mappe",
+    "est l'autre protocole, et il vit dans eval/invariants.sql — I22 pour le pont NAF, I38 pour la",
+    "table de codes des chantiers.",
+    "",
+    "`licence-attendue` est le texte que le champ de licence de l'endpoint doit encore porter, mot pour",
+    "mot. `null` n'est legal qu'avec `licence-non-lisible` : un endpoint qui ne publie pas de licence",
+    "est un fait a consigner, pas un controle en moins — et c'est le cas de deux sources ingerees.",
+    "Une raison qui se resume a « pas besoin » est le debut de la complaisance que #71 refuse."
+  ],
+
+  "verifications": {
+    "OpenStreetMap (Overpass)": {
+      "lecture": "http",
+      "endpoint": "https://overpass-api.de/api/interpreter?data=%5Bout%3Ajson%5D%3Bout%20count%3B",
+      "licence-attendue": null,
+      "licence-non-lisible": "Overpass rend la donnée, jamais sa licence : l'ODbL d'OSM est déclarée par la fondation sur openstreetmap.org/copyright, pas par le miroir. Ce qui est vérifié ici est donc la joignabilité du miroir principal, et rien d'autre. Le `User-Agent` est obligatoire — sans lui Overpass rend 406, et c'est ce qui a rendu le miroir principal du serveur MCP injoignable sans que rien ne le signale (docs/REPRISE-PIEGES.md).",
+      "note": "Miroir principal de src/services/opendata/overpass.ts et de mcp-server/. Un 429 ou un 504 d'un miroir public est une panne amont, pas un rouge."
+    },
+    "Base Adresse Nationale": {
+      "lecture": "http",
+      "endpoint": "https://api-adresse.data.gouv.fr/search/?q=1+rue+de+rivoli+paris&limit=1",
+      "licence-attendue": null,
+      "licence-non-lisible": "L'API de géocodage ne porte pas de champ de licence ; la Licence Ouverte 2.0 est déclarée sur la fiche data.gouv du jeu BAN, qui n'est pas l'endpoint que le produit appelle. Vérifier la fiche plutôt que l'appel réel ferait recouper une page par une autre page, ce que CLAUDE.md interdit.",
+      "note": "L'endpoint exact de src/services/opendata/geocoding.ts."
+    },
+    "Encadrement des loyers (OLAP)": {
+      "lecture": "opendatasoft",
+      "endpoint": "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/logement-encadrement-des-loyers",
+      "licence-attendue": "Open Database License (ODbL)",
+      "note": "Le jeu que src/services/opendata/neighbourhood.ts interroge. Rappel doctrinal : c'est un loyer d'habitation, jamais un loyer commercial."
+    },
+    "CAMS Europe (Open-Meteo)": {
+      "lecture": "http",
+      "endpoint": "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=48.86&longitude=2.35&current=european_aqi",
+      "licence-attendue": null,
+      "licence-non-lisible": "La réponse d'Open-Meteo ne porte pas de champ de licence ; le CC BY 4.0 est annoncé sur leur documentation. Joignabilité seule.",
+      "note": "L'endpoint exact de src/services/opendata/environment.ts."
+    },
+    "Géorisques": {
+      "lecture": "http",
+      "endpoint": "https://georisques.gouv.fr/api/v1/resultats_rapport_risque?latlon=2.35000,48.86000&rayon=1000",
+      "licence-attendue": null,
+      "licence-non-lisible": "L'API ne porte pas de champ de licence. Ce qui est surveillé ici est l'endpoint lui-même : une API `v1` d'un service public est exactement ce qui disparaît sans préavis, et c'est le mode de panne de #56.",
+      "note": "L'endpoint exact de src/services/opendata/environment.ts, avec le point du 4e arrondissement."
+    },
+    "BDCom 2017 / 2020 / 2023": {
+      "lecture": "arcgis",
+      "endpoint": "https://carto2.apur.org/apur/rest/services/BDCOM/bdcom2023/MapServer/0",
+      "licence-attendue": null,
+      "licence-non-lisible": "Mesuré le 5 septembre 2026 : la couche répond avec `copyrightText` VIDE. L'ODbL du millésime 2023, et la licence personnalisée de 2017 et 2020, viennent d'une lecture humaine et d'un échange avec l'APUR — pas du service. Ce qui est vérifié ici est donc que la couche répond encore et porte encore son nom, ce qui est précisément ce que #56 a manqué.",
+      "note": "Le même service que bdcom_vintage.source_url pour 2023, et que scripts/ingest/bdcom.ts interroge."
+    },
+    "BODACC": {
+      "lecture": "opendatasoft",
+      "endpoint": "https://bodacc-datadila.opendatasoft.com/api/explore/v2.1/catalog/datasets/annonces-commerciales",
+      "licence-attendue": null,
+      "licence-non-lisible": "Mesuré le 5 septembre 2026 : la fiche du portail rend `license: null`. La « Licence Ouverte » que le catalogue et `source_licence` annoncent vient de la DILA, pas de ce portail. Le portail ne peut donc pas la corroborer, et le dire vaut mieux que d'attendre d'un champ vide qu'il confirme quelque chose.",
+      "note": "Le jeu que scripts/ingest/bodacc.ts interroge."
+    },
+    "Sirene géolocalisé": {
+      "lecture": "datagouv",
+      "endpoint": "https://www.data.gouv.fr/api/1/datasets/geolocalisation-des-etablissements-du-repertoire-sirene-pour-les-etudes-statistiques/",
+      "licence-attendue": "lov2",
+      "note": "La fiche que scripts/ingest/sirene.ts lit pour trouver sa ressource — c'est-à-dire l'endroit exact où #56 s'est produit le 25 août 2026, l'INSEE remplaçant sa ressource au lieu de l'archiver. `lov2` est le code data.gouv de la Licence Ouverte 2.0."
+    },
+    "PLU linéaires protégés (plub_protcom)": {
+      "lecture": "opendatasoft",
+      "endpoint": "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/plub_protcom",
+      "licence-attendue": "Open Database License (ODbL)",
+      "note": "Le jeu que scripts/ingest/plu.ts interroge. Le catalogue écrivait « Open data Paris », qui n'est pas une licence : le portail déclare l'ODbL, mesuré le 5 septembre 2026."
+    },
+    "Chantiers de voirie": {
+      "lecture": "opendatasoft",
+      "endpoint": "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/chantiers-perturbants",
+      "licence-attendue": "Open Database License (ODbL)",
+      "note": "Le jeu que scripts/ingest/chantiers.ts interroge, et celui dont la table de codes est testée par I38."
+    },
+    "Terrasses et étalages": {
+      "lecture": "opendatasoft",
+      "endpoint": "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/terrasses-autorisations",
+      "licence-attendue": "Open Database License (ODbL)",
+      "note": "Le jeu que scripts/ingest/terrasses.ts interroge. Le catalogue disait « ODbL (mesuré le 26/08) » ; le portail le confirme toujours le 5 septembre 2026."
+    }
+  },
+
+  "sans-verification": {
+    "Validations transport IDFM": "Planifiée, aucun endpoint épinglé : `w2-idfm` n'a pas encore choisi entre le portail IDFM et data.gouv, et vérifier un jeu qu'on n'a pas retenu ne dirait rien de celui qu'on retiendra. À basculer dans `verifications` le jour où le ticket épingle une ressource.",
+    "Mobiliscope": "Planifiée, aucun endpoint épinglé — `w2-mobiliscope`. Les données sont distribuées par téléchargement depuis le site du CNRS, sans API de catalogue à interroger : la vérification devra porter sur l'archive elle-même, ce qui est un contrôle à écrire, pas un endpoint à ajouter.",
+    "Filosofi carroyé 200 m": "Planifiée, aucun endpoint épinglé — `w2-filosofi`. Même famille que Sirene sur data.gouv, donc vérifiable le jour où la ressource est choisie ; l'épingler d'avance reviendrait à consigner une URL que personne n'a chargée.",
+    "Base permanente des équipements": "Planifiée, aucun endpoint épinglé — `w2-bpe-marches-velo`.",
+    "Marchés alimentaires": "Planifiée, aucun endpoint épinglé — `w2-bpe-marches-velo`. Le jeu existe sur opendata.paris.fr et sera vérifiable comme les quatre autres jeux parisiens, mais aucun identifiant n'a été retenu.",
+    "Comptages vélo permanents": "Planifiée, aucun endpoint épinglé — `w2-bpe-marches-velo`.",
+    "Airparif": "Nouvelle, aucun endpoint épinglé — `w2-air-bruit`. Airparif demande une clé d'API, et une vérification quotidienne consommerait un quota avant même que la source soit branchée.",
+    "Bruitparif": "Nouvelle pour ce contrôle, aucun endpoint épinglé — `w2-air-bruit`. Le catalogue écrit « Open data air-bruit », qui n'est pas une licence : c'est un écart à corriger dans le catalogue, pas une vérification à programmer.",
+    "Mapillary (imagerie de rue)": "Nouvelle, aucun endpoint épinglé — `w3-mapillary`. L'API demande un jeton, et la question ouverte est l'attribution CC-BY par millésime, qui se lit dans les conditions et non dans une réponse HTTP.",
+    "Meublés touristiques (changement d'usage)": "Nouvelle, aucun endpoint épinglé — `w4-meubles`.",
+    "Effectifs scolaires": "Nouvelle, aucun endpoint épinglé — `w4-ecoles`.",
+    "ABF / monuments / SPR": "Nouvelle, aucun endpoint épinglé — `w4-abf`. Plusieurs producteurs (État, Ville) pour une seule ligne de catalogue : vérifier l'un des trois laisserait croire que les trois le sont, ce qui est pire que ne rien vérifier.",
+    "ERP / accessibilité PMR": "Nouvelle, aucun endpoint épinglé — `w4-erp-copro-ads`. La licence du catalogue dit « selon registre », donc il n'y a pas une licence à recouper mais autant qu'il y a de registres.",
+    "Registre des copropriétés (ANCOL)": "Nouvelle, aucun endpoint épinglé — `w4-erp-copro-ads`. Licence « selon API », même raison.",
+    "Autorisations d'urbanisme (ADS Paris)": "Planifiée, aucun endpoint épinglé — `w4-erp-copro-ads`.",
+    "Fréquentation équipements": "Nouvelle, aucun endpoint épinglé — `w4-frequentation`.",
+    "Sitadel": "Planifiée, aucun endpoint épinglé — la source n'a pas encore de ticket à elle.",
+    "DVF": "Planifiée, aucun endpoint épinglé — `w7-foncier` la cite en voisine, aucun ticket ne la porte.",
+    "GTFS IDFM": "Planifiée, aucun endpoint épinglé — même portail que les validations IDFM, même raison de ne pas l'épingler d'avance.",
+    "Comptes RNE / INPI": "Nouvelle, aucun endpoint épinglé — `w7-inpi`. L'accès passe par un compte INPI, donc une vérification anonyme ne dirait rien de ce que le produit atteindrait.",
+    "Fichiers fonciers / MAJIC": "Statut `partenariat` : l'accès est restreint aux acteurs publics et passe par une convention Ville / APUR / Cerema. Il n'y a pas d'endpoint anonyme à interroger, et la couche ouverte EmpCom est écartée pour grossièreté, pas pour indisponibilité. Ce qui débloquerait cette ligne est une signature, pas une requête."
+  }
+}

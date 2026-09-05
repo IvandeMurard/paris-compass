@@ -446,3 +446,30 @@ de la chance, pas une règle.
 Et le contrôle qui ne dépend de personne : après toute modification de `.gitignore`, lire
 `git status --short` **avant** de committer, et vérifier ce que `git ls-files '*.env'` rend.
 Tenu par `scripts/build/envPublic.test.ts` depuis le même jour.
+
+## Un champ de licence vide n'est pas une licence confirmée — 5 septembre 2026
+
+Écrit en posant les onze sondes de `w1-catalogue` (#73). Deux des trois sources **ingérées** ne
+publient aucune licence à l'endroit où le produit les lit, mesuré ce jour-là :
+
+| Source | Endpoint | Ce qu'il rend |
+| --- | --- | --- |
+| BDCom 2023 | `carto2.apur.org/.../BDCOM/bdcom2023/MapServer/0?f=json` | `copyrightText: ""` |
+| BODACC | `bodacc-datadila.opendatasoft.com/api/.../annonces-commerciales` | `license: null` |
+
+Une comparaison naïve — « le champ ne contredit pas ce qu'on a consigné, donc c'est vérifié » —
+aurait rendu ces deux sondes vertes pour toujours, y compris le jour où l'APUR change de
+licence. **Un champ absent ne confirme rien**, et le prendre pour une confirmation est la même
+faute que lire une absence comme un « non », que ce dépôt a déjà séparée six fois
+(`DIAGNOSTIC.md` §9 à §16).
+
+D'où la règle de `scripts/porte/catalogue.json` : `licence-attendue: null` n'est légal
+**qu'accompagné** de `licence-non-lisible`, une phrase qui dit d'où vient alors la licence — un
+échange avec l'APUR, la DILA — et ce que la sonde vérifie réellement à la place. Une sonde sans
+l'un ni l'autre est rendue `contradictoire`, donc rouge, par `scripts/porte/catalogue.test.ts`.
+
+Le corollaire vaut pour toute source à venir : **avant d'écrire qu'une licence est vérifiée,
+regarder si l'endpoint la publie**. Trois des onze sondes ne vérifient qu'une joignabilité, et
+elles le disent — c'est moins que ce qu'on voudrait, et c'est ce qui est vrai.
+
+---

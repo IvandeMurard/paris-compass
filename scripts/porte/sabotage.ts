@@ -1,9 +1,10 @@
 // The proof that the scheduled gate actually closes the door — w1-porte-planifiee (#71), then
-// w1-cadence (#70) one level down, on the sources rather than on the scripts.
+// w1-cadence (#70) one level down on the ingestion sources, then w1-catalogue (#73) one level
+// further out on the catalogue itself.
 //
 //   npm.cmd run porte:sabotage
 //
-// Four acts, on the model of `eval:sabotage`: a rule nobody plays is a comment, and the rules
+// Five acts, on the model of `eval:sabotage`: a rule nobody plays is a comment, and the rules
 // here claim things about an arm that does not exist yet and about an outage that has not
 // happened yet. Nothing touches the database and nothing touches a file — the acts run against
 // the real modules with substituted inputs, because a proof that runs a COPY of the check
@@ -21,13 +22,24 @@
 //      no cron. Same shape as act one, one level down: this is the hole #70 closes, and the
 //      four sources that fell into it between 25 and 31 August 2026 looked exactly like the
 //      probe used here.
+//   5. UNE SOURCE AU CATALOGUE — a dataset written into the catalogue table of
+//      docs/PLAN-ACTION-VACANCE.md and cross-checked by nothing. Same shape again, one level
+//      further out: this is the hole w1-catalogue (#73) closes, and every one of the
+//      thirty-five rows in that table looked exactly like the probe on the day it was written.
 //
-// A fourth thing is checked in passing, because the repository is public: neither the red nor
+// One more thing is checked in passing, because the repository is public: neither the red nor
 // the outage may carry a database identifier out of the machine.
 //
 // Exit codes follow the runner's convention: 0 PASS, 1 FAIL, 2 ERROR.
 
 import { classifyArms, readExcuses, readScripts, readWorkflows } from "./arms"
+import {
+  classifyCatalogue,
+  estClasse,
+  readCatalogue,
+  readProbes,
+  type CatalogueEntry,
+} from "./catalogue"
 import {
   classifySources,
   readDeclaredSources,
@@ -256,11 +268,111 @@ function acteQuatre(): void {
   }
 }
 
-out("Sabotage de la porte planifiée — quatre actes, aucun accès à la base, aucun fichier écrit")
+/**
+ * A source written into the catalogue the way a candidate dataset actually arrives: plausible,
+ * named, given a status and a licence, and cross-checked by nothing. Every row of that table
+ * looked exactly like this on the day it was written.
+ */
+const CATALOGUE_PROBE: CatalogueEntry = {
+  name: "Registre des enseignes (sonde)",
+  producteur: "Ville de Paris",
+  statutBrut: "nouvelle",
+  canonical: "nouvelle",
+  affichee: false,
+  licence: "Open data Paris",
+}
+
+function acteCinq(): void {
+  out("\nActe 5 — une source ajoutée au catalogue, vérifiée par personne")
+
+  const entries = readCatalogue()
+  const { verifications, "sans-verification": excuses } = readProbes()
+
+  const clean = classifyCatalogue(entries, verifications, excuses)
+  const silentBefore = clean.filter((v) => !estClasse(v.state))
+  if (silentBefore.length === 0) {
+    pass("état de départ", `${clean.length} sources au catalogue, toutes classées — la porte est au vert`)
+  } else {
+    fail(
+      "état de départ",
+      `${silentBefore.length} source(s) déjà sans classement (${silentBefore.map((v) => v.name).join(", ")}) : ` +
+        "le sabotage ne prouverait rien puisque la porte est déjà rouge",
+    )
+  }
+
+  const sabotaged = classifyCatalogue([...entries, CATALOGUE_PROBE], verifications, excuses)
+  const probe = sabotaged.find((v) => v.name === CATALOGUE_PROBE.name)
+  if (probe?.state === "muette") {
+    pass(CATALOGUE_PROBE.name, "passe au rouge — licence annoncée, et rien ne la recoupe")
+  } else {
+    fail(
+      CATALOGUE_PROBE.name,
+      `attendu « muette », obtenu « ${probe?.state ?? "absente"} » : la règle ne voit pas la source ajoutée`,
+    )
+  }
+
+  const others = sabotaged.filter((v) => v.name !== CATALOGUE_PROBE.name)
+  if (others.every((v) => estClasse(v.state))) {
+    pass("les autres sources", "restent au vert — le rouge vient de la sonde, pas d'une règle cassée")
+  } else {
+    fail("les autres sources", "le sabotage a rougi autre chose que la sonde")
+  }
+
+  // The counter-test, again: a check that went red on every input would pass this act and be
+  // worth nothing.
+  const restored = classifyCatalogue(entries, verifications, excuses)
+  if (restored.every((v) => estClasse(v.state))) {
+    pass("sonde retirée", "la porte revient au vert")
+  } else {
+    fail("sonde retirée", "la porte reste rouge sans la sonde — le rouge ne venait pas d'elle")
+  }
+
+  // And the direction the catalogue makes possible and the two populations above did not: a
+  // refusal is a decision, not an outage to watch. Asking SeLoger every morning whether its
+  // terms still forbid reuse is an alert that can only ever say the same thing.
+  const refusee: CatalogueEntry = {
+    ...CATALOGUE_PROBE,
+    name: "Portail d'annonces (sonde)",
+    statutBrut: "refusée",
+    canonical: "refusee",
+    licence: "CGU, réutilisation interdite",
+  }
+  const horsPopulation = classifyCatalogue([refusee], {}, {})
+  if (horsPopulation[0]?.state === "hors-population") {
+    pass("source refusée", "n'est pas interrogée — un refus est une décision, pas une panne à surveiller")
+  } else {
+    fail("source refusée", `attendu « hors-population », obtenu « ${horsPopulation[0]?.state ?? "absente"} »`)
+  }
+
+  // The report of a red catalogue, built by the SAME module as the gate's — #73 reuses #71
+  // rather than describing the three blocks a second time.
+  const rapport = buildReport(
+    [
+      {
+        name: "catalogue",
+        exitCode: EXIT.fail,
+        output: `ÉCHEC — 1 source du catalogue sans vérification ni raison écrite : ${CATALOGUE_PROBE.name}`,
+        expected:
+          "vérifier la source, ou écrire dans `sans-verification` de scripts/porte/catalogue.json " +
+          "pourquoi elle ne l'est pas.",
+      },
+    ],
+    ON,
+    "Catalogue des sources",
+  )
+  if (rapport.decisionRequired && /catalogue\.json/.test(rapport.markdown)) {
+    pass("compte rendu", "le même que celui de la porte, et il nomme la décision attendue")
+  } else {
+    fail("compte rendu", "le rapport du catalogue ne nomme pas la décision attendue")
+  }
+}
+
+out("Sabotage de la porte planifiée — cinq actes, aucun accès à la base, aucun fichier écrit")
 acteUn()
 acteDeux()
 acteTrois()
 acteQuatre()
+acteCinq()
 
 out("")
 if (failures > 0) {
@@ -269,6 +381,6 @@ if (failures > 0) {
 } else {
   out(
     "PASS — un bras non planifié rougit, un rouge crie, une panne amont ne crie pas, " +
-      "une source sans cadence rougit",
+      "une source sans cadence rougit, une source du catalogue sans vérification rougit",
   )
 }

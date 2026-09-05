@@ -1,4 +1,5 @@
-# Scheduled gate — w1-porte-planifiee (#71), then the freshness arm of w1-cadence (#70).
+# Scheduled gate — w1-porte-planifiee (#71), then the freshness arm of w1-cadence (#70) and
+# the catalogue arm of w1-catalogue (#73).
 #
 # The evaluation protocol was written, proven, and played by nobody: `eval`, `eval:anon` and
 # `verify:mcp` all waited for a hand. Between two sessions nothing said whether the remote was
@@ -215,6 +216,19 @@ jobs:
           npm run porte:publie > "$PORTE/publie.log" 2>&1 && code=0 || code=$?
           cat "$PORTE/publie.log"
           printf 'porte:publie\t%s\t%s\n' "$code" "$PORTE/publie.log" >> "$PORTE/bras.tsv"
+
+      # Le onzième bras, et le seul qui interroge les producteurs plutôt que le produit —
+      # w1-catalogue (#73). Il demande à onze endpoints s'ils répondent encore et déclarent
+      # encore la licence que le catalogue a consignée : c'est le mode de panne de #56, où
+      # l'INSEE a remplacé sa ressource au lieu de l'archiver et où personne ne l'a su avant
+      # de lancer le chargeur. Aucun secret : tout ce qu'il interroge est public, et c'est
+      # voulu — il doit voir ce qu'un tiers voit. Un portail à 429 ou à 504 rend 3 et non un
+      # rouge, pour la même raison que partout ailleurs ici.
+      - name: catalogue
+        run: |
+          npm run catalogue > "$PORTE/catalogue.log" 2>&1 && code=0 || code=$?
+          cat "$PORTE/catalogue.log"
+          printf 'catalogue\t%s\t%s\n' "$code" "$PORTE/catalogue.log" >> "$PORTE/bras.tsv"
 
       # ── Le compte rendu ─────────────────────────────────────────────────────────────────
 

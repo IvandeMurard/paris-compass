@@ -1156,3 +1156,87 @@ where exists (select 1 from unnest(f.sorties) a where a like '%licence')
   and (select count(*) from unnest(f.entrees) a where a like '%vintage%') >= 2
   and f.prosrc !~ 'compass_derived_licence'
 limit 20;
+
+-- ===========================================================================
+-- w1-catalogue (#73) — TESTER : ce qu'on reçoit veut-il encore dire ce qu'on
+-- en a mappé
+-- ===========================================================================
+-- VÉRIFIER et TESTER ne sont pas la même chose, et l'ordre compte. Vérifier,
+-- c'est demander à la source si elle répond encore et déclare encore la licence
+-- qu'on a consignée — c'est `npm.cmd run catalogue`, et cela ne touche pas la
+-- base. Tester, c'est demander si ce qu'on en reçoit veut encore dire ce qu'on
+-- en a mappé, et cela ne peut se demander qu'ici.
+--
+-- Les 24 baselines couvrent le VOLUME : un effondrement se voit. Elles ne voient
+-- pas un code qui change de sens à volume constant, et c'est exactement ce qui
+-- est arrivé le 25 août 2026 avec le pont NAF (DIAGNOSTIC.md §20) : `101` lu
+-- comme Alimentaire quand la nomenclature dit Grand magasin, et `114` qui
+-- n'existe pas. Volume inchangé, sens faux. I22 est né de là, sur une seule
+-- nomenclature ; celui-ci est le même geste sur une autre.
+
+-- @invariant I38 :: la nomenclature de codes des chantiers sort du domaine que la source documente
+-- La généralisation de I22 à une seconde nomenclature, et le premier test de ce
+-- type portant sur une source RECHARGÉE périodiquement plutôt que sur une table
+-- écrite une fois par migration.
+--
+-- Trois colonnes de `chantier_perturbant` portent des codes que la Ville de Paris
+-- documente elle-même dans la « Description des codes » du jeu
+-- chantiers-perturbants, lue le 25 août 2026 et recopiée dans
+-- scripts/ingest/chantiers.ts et dans la migration 20260825000007 :
+--
+--   statut               1 à venir · 2 en cours · 3 suspendu · 4 prolongé · 5 terminé
+--   typologie            1 Ville · 2 Concessionnaire · 3 Privé
+--   niveau_perturbation  1 très perturbant · 2 perturbant
+--
+-- `statut_label` est résolu UNE FOIS au chargement, à partir de cette table, et
+-- stocké. C'est ce qui rend la dérive silencieuse possible : le jour où la Ville
+-- réattribue un code, le chargeur écrit l'ancien libellé sur la nouvelle
+-- signification et rien, ni le volume ni un `not null`, ne bronche.
+--
+-- POURQUOI ICI ET PAS SEULEMENT DANS LE CHARGEUR. `chantiers.ts` lève déjà sur un
+-- `statut` inconnu — mais une garde sur le chemin du chargeur ne protège que le
+-- chargeur. Elle ne dit rien de l'état DÉJÀ stocké, elle ne voit pas une écriture
+-- faite depuis psql ou la console Supabase, et elle ne protège pas l'appelant qui
+-- lit la table par PostgREST en direct. La règle vit là où la valeur est produite
+-- et conservée, pas seulement là où elle entre.
+--
+-- CE QUE I38 NE RATTRAPE PAS, et c'est la même limite que I22 : un code qui
+-- EXISTE mais nomme autre chose. Si la Ville garde le code 3 en changeant sa
+-- définition de « suspendu » à « annulé », les cinq codes sont toujours là, le
+-- libellé stocké est toujours celui du chargeur, et rien ici ne s'en aperçoit.
+-- Seule une lecture de la fiche du jeu l'attrape, et aucune règle ne remplace
+-- d'avoir lu. `impact_circulation` est délibérément absent : ses quatre valeurs
+-- (RESTREINTE, BARRAGE_TOTAL, SENS_UNIQUE, IMPASSE) sont un vocabulaire OBSERVÉ
+-- le 25 août 2026, pas une table de codes que la source publie — en faire un
+-- domaine reviendrait à traiter notre propre relevé comme une nomenclature, ce
+-- que ce ticket refuse ailleurs.
+--
+-- Mesuré le 5 septembre 2026 sur le distant : 120 chantiers, statuts 1, 2 et 4
+-- présents avec les libellés attendus, typologies 1 à 3, niveaux 1 et 2 — zéro
+-- ligne hors domaine.
+with statut(code, libelle) as (
+  values (1, 'à venir'), (2, 'en cours'), (3, 'suspendu'), (4, 'prolongé'), (5, 'terminé')
+), typologie(code) as (
+  values (1), (2), (3)
+), niveau(code) as (
+  values (1), (2)
+)
+select 'statut' as colonne, c.statut::text as valeur, c.statut_label as libelle_stocke,
+       count(*)::bigint as lignes
+  from public.chantier_perturbant c
+  left join statut s on s.code = c.statut
+ where s.code is null or s.libelle is distinct from c.statut_label
+ group by 1, 2, 3
+union all
+select 'typologie', c.typologie::text, null, count(*)::bigint
+  from public.chantier_perturbant c
+ where c.typologie is not null
+   and not exists (select 1 from typologie t where t.code = c.typologie)
+ group by 1, 2, 3
+union all
+select 'niveau_perturbation', c.niveau_perturbation::text, null, count(*)::bigint
+  from public.chantier_perturbant c
+ where c.niveau_perturbation is not null
+   and not exists (select 1 from niveau n where n.code = c.niveau_perturbation)
+ group by 1, 2, 3
+limit 20;

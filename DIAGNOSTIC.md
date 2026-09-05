@@ -1,7 +1,7 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte trente-quatre au 2 septembre 2026**, et la phrase
+« quatre défauts, par ordre de gravité » : il en porte trente-cinq au 5 septembre 2026**, et la phrase
 est restée fausse trois semaines.
 
 Découpé en deux le 31 août 2026, comme `docs/REPRISE.md` la veille : cette page ne garde que
@@ -57,6 +57,7 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 32 | La configuration publique du front ignorée par git — bundle publié sans clé, page blanche | clos le 2 septembre 2026 | corrigés |
 | 33 | `verify:mcp` lançait esbuild par `node`, ce qui n'est juste que sur Windows | clos le 2 septembre 2026, prouvé sur le runner le 3 | corrigés |
 | 34 | Une tolérance de comptage appliquée à un quantile — bloquante sur une marche, muette sur ce qui change le chiffre publié | clos le 2 septembre 2026 | corrigés |
+| 35 | Un fourre-tout de mappage : une typologie de terrasse que personne n'a lue devient « permanente » | **ouvert** — trouvé le 5 septembre 2026 par `w1-catalogue`, [#79](https://github.com/IvandeMurard/paris-compass/issues/79) | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -239,6 +240,89 @@ base spatiale de la phase 2 et sortir ce calcul du navigateur. Le refactor du no
   étant construit une fois, changer de langue doit reconstruire les couches, sinon les
   popups gardent la précédente. Les valeurs OpenStreetMap qui y entrent sont désormais
   **échappées** : ces popups sont des chaînes HTML, là où React protège partout ailleurs.
+
+---
+
+---
+
+## 35. Un fourre-tout de mappage : une typologie de terrasse que personne n'a lue devient « permanente »
+
+**Trouvé le 5 septembre 2026 en écrivant `w1-catalogue`
+([#73](https://github.com/IvandeMurard/paris-compass/issues/73)) — porté par
+[#79](https://github.com/IvandeMurard/paris-compass/issues/79). C'est exactement la
+classe de défaut que le ticket existe pour rendre visible : volume inchangé, sens faux.**
+Aucune baseline ne pouvait le voir — le nombre de lignes est juste, c'est ce que chacune
+*veut dire* qui ne l'est pas.
+
+`scripts/ingest/terrasses.ts` dérive `categorie` du champ libre `typologie` de la source :
+
+```ts
+if (upper.includes("ESTIVALE")) return "estivale"
+if (upper.includes("TALAGE")) return "etalage"
+return "permanente"          // <- le fourre-tout
+```
+
+Le commentaire au-dessus dit que le vocabulaire a été lu le 25 août 2026 sur la page
+réglementaire de la Ville, et que « ESTIVALE » et « (É)TALAGE » sont des sous-chaînes que la
+source écrit elle-même. C'est vrai. Ce qui n'a pas été lu, c'est **ce que contient le reste**.
+
+**Mesuré le 5 septembre 2026 sur le distant.** La colonne `typologie` porte **32 valeurs
+distinctes**. Quatre d'entre elles ne nomment ni une terrasse ni un étalage, et tombent
+pourtant en `permanente` :
+
+| `typologie` | Lignes | Ce que le produit en dit |
+| --- | ---: | --- |
+| `COMMERCE ACCESSOIRE` | 303 | « terrasse permanente » |
+| `PLANCHER MOBILE` | 246 | « terrasse permanente » |
+| `JARDINIÈRE` | 7 | « terrasse permanente » |
+| `ECRAN PARALLÈLE À LA FAÇADE` | 2 | « terrasse permanente » |
+
+**558 autorisations**, sur 24 237. Une jardinière n'est pas une terrasse, et un écran
+parallèle à la façade non plus.
+
+**Ce que ça produit à l'écran.** `src/i18n/terrasseText.ts` rend « Type autorisé : terrasse
+permanente ». Mesuré le même jour, en ne comptant que les locaux dont le `terrasse_permanente`
+ne repose sur **aucune** autorisation nommant une terrasse :
+
+| | Locaux |
+| --- | ---: |
+| `terrasse_permanente = true` en tout | 14 818 |
+| dont `terrasse_status = 'oui'` — attribué sans ambiguïté à ce local | 2 776 |
+| **`permanente` reposant seulement sur du hors-vocabulaire** | **61** |
+| **dont `terrasse_status = 'oui'`** | **6** |
+
+Six fiches affirment sans réserve « Terrasse ou étalage autorisé à cette adresse — Type
+autorisé : terrasse permanente » là où la Ville a autorisé une jardinière, un plancher mobile
+ou un commerce accessoire. C'est petit, et c'est précisément le genre de chiffre qu'un contrôle
+de volume ne verra jamais bouger.
+
+**Ce qui n'est PAS le correctif.** Remapper les quatre valeurs à la main referait le geste du
+25 août : une lecture de la nomenclature du jour, sans rien qui attrape la cinquième. Et
+`w1-catalogue` interdit à son propre protocole de remapper un code hors domaine — il détecte et
+signale, il ne décide pas.
+
+**Ce qu'il faut, et pourquoi c'est une décision et pas un correctif mécanique.** Il faut
+énumérer le vocabulaire plutôt que le laisser tomber dans une branche par défaut : une valeur
+inconnue doit rougir, comme `chantiers.ts` lève déjà sur un `statut` inconnu. Mais décider ce
+que `COMMERCE ACCESSOIRE` devient change **ce que la fiche dit à un preneur**, et il n'y a pas
+de bonne réponse dans les trois catégories existantes : ni terrasse, ni étalage. Une quatrième
+catégorie oblige à trancher ce que `terrasse_status` vaut pour un local qui n'a que
+ça — « non », qui est vrai pour un panneau intitulé « Terrasse et étalage », mais qui tait une
+autorisation réelle. C'est un arbitrage de produit.
+
+**La limite de ce constat**, et elle vaut d'être écrite : les 28 autres valeurs n'ont été
+jugées que sur leur libellé. `CONTRE TERRASSE SUR TROTTOIR` est classée `permanente` parce
+qu'elle ne dit pas « estivale » — c'est plausible et ce n'est pas vérifié. Seule la Ville peut
+dire si une contre-terrasse sans mention de saison est annuelle.
+
+Reproduire :
+
+```sql
+select typologie, categorie, count(*)
+  from public.terrasse_autorisation
+ where categorie = 'permanente' and upper(typologie) !~ 'TERRASSE'
+ group by 1, 2 order by 3 desc;
+```
 
 ---
 
