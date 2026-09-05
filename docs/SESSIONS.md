@@ -176,10 +176,11 @@ fautive.
 | ~~15~~ | ~~`w1-cadence`~~ | [#70](https://github.com/IvandeMurard/paris-compass/issues/70) | **fait** | P1 | Opus 5 |
 | ~~16~~ | ~~`w1-porte-planifiee`~~ | [#71](https://github.com/IvandeMurard/paris-compass/issues/71) | **fait** | P1 | Opus 5 |
 | ~~17~~ | ~~`w1-porte-lue`~~ | [#77](https://github.com/IvandeMurard/paris-compass/issues/77) | **fait** | P1 | Opus 5 |
-| ~~18~~ | ~~`w1-observabilite`~~ | [#72](https://github.com/IvandeMurard/paris-compass/issues/72) | **fait** | P1 | Opus 5 |
+| 18 | `w1-observabilite` | [#81](https://github.com/IvandeMurard/paris-compass/issues/81) | ouvert | P1 | Opus 5 |
 | ~~19~~ | ~~`w1-catalogue`~~ | [#73](https://github.com/IvandeMurard/paris-compass/issues/73) | **fait** | P1 | Opus 5 |
-| 20 | `w1-ppri` | [#13](https://github.com/IvandeMurard/paris-compass/issues/13) | ouvert | P1 | Opus 5 |
-| ~~21~~ | ~~`w1-dia`~~ | [#12](https://github.com/IvandeMurard/paris-compass/issues/12) | **fait** | P1 | Opus 5 |
+| 20 | `w1-observabilite-echappement` | [#81](https://github.com/IvandeMurard/paris-compass/issues/81) | ouvert | P1 | Opus 5 |
+| 21 | `w1-ppri` | [#13](https://github.com/IvandeMurard/paris-compass/issues/13) | ouvert | P1 | Opus 5 |
+| ~~22~~ | ~~`w1-dia`~~ | [#12](https://github.com/IvandeMurard/paris-compass/issues/12) | **fait** | P1 | Opus 5 |
 
 **Hors de cette file : 26 tickets ouverts**, à prendre après la vague 0 — 
 le détail par vague est dans [`PLAN-ACTION-VACANCE.md`](./PLAN-ACTION-VACANCE.md).

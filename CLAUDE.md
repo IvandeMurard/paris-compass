@@ -118,8 +118,10 @@ où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lova
   côtés dans une même session. `git pull` avant de commencer, pousser avant de rouvrir Lovable.
   Ne pas toucher `.lovable/`.
 - **Un rouge de la porte se corrige dans le bras, jamais dans le rapport.** Depuis le 31 août
-  2026 les dix bras tournent seuls chaque matin (`.github/workflows/porte.yml`) et un rouge
-  ouvre une issue. Le rapport ne lit que le code de sortie — 0, 3, 1, 2 — et jamais le texte :
+  2026 les bras de `.github/workflows/porte.yml` tournent seuls chaque matin et un rouge
+  ouvre une issue. **Le nombre n'est pas écrit ici volontairement** : il disait « dix » le
+  5 septembre alors que `#73` en avait ajouté un onzième, et il aurait rouillé de nouveau au
+  douzième. Le fichier le dit, et lui ne se trompe pas. Le rapport ne lit que le code de sortie — 0, 3, 1, 2 — et jamais le texte :
   la seule place légitime pour décider qu'une chose cesse d'être un échec est
   `scripts/eval/upstream.ts`, dans le bras qui tient l'erreur et son `code`. Assouplir le
   rapport éteindrait les alertes là où personne ne le verrait. Corollaire mécanique : un script

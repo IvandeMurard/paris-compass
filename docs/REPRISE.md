@@ -362,6 +362,24 @@ refaire sur tout nouveau projet avant `supabase db push`.
 
 ## Décisions qui ne se déduisent pas du code
 
+**`compass_question_summary()` reste exécutable par `anon`.** Tranché par Ivan le
+5 septembre 2026, sur `w1-observabilite` (#72).
+
+La raison n'est pas celle qui avait été avancée. Retirer le `grant` ne coûte pas « une ligne
+de migration » : **`I11` échoue dès qu'une fonction `compass_*` n'est pas exécutable par
+`anon`**, sa population étant `compass\_%` sans exception. Le retirer passerait donc la porte
+au rouge, et le vrai coût serait une migration *plus* un amendement à l'invariant qui encode
+« aucun chiffre n'existe que côté privilégié ». C'est cher, et ce n'est pas réversible au sens
+où on l'entendait.
+
+Ce que la fonction expose le permet : un dénombrement par jour et par quartier, retenu sous
+effectif 2 (`I41`), sans identité, sans session, sans ordre d'arrivée. Et le produit n'a aucun
+trafic — la table est à zéro ligne.
+
+Révisable si l'usage agrégé devenait une question commerciale, ce que `docs/PERIMETRE.md`
+écarte aujourd'hui. Ce serait alors un ticket, pas une ligne.
+
+
 **Le back-end, les données et le MCP passent avant le front.** Direction donnée par Ivan le
 31 août 2026. Ce qui est prioritaire, dans l'ordre : la fiabilité, la rapidité et la solidité
 du socle ; l'accessibilité et le maintien en condition opérationnelle des API et du MCP ;

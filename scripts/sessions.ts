@@ -68,6 +68,11 @@ const ORDER = [
   "w1-porte-lue",
   "w1-observabilite",
   "w1-catalogue",
+  // Quatrieme application de "enumerer, pas lister", nee de #72 : la porte se comptait
+  // elle-meme. Le rapport de #72 conclut qu'aucun invariant ne peut voir l'absence — vrai
+  // a l'execution, faux a la declaration : le fichier qui appelle PostgREST est sur le
+  // disque et porte ou ne porte pas l'echappement.
+  "w1-observabilite-echappement",
   "w1-ppri",
   "w1-dia",
 ]
