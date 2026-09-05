@@ -27,7 +27,7 @@
 //             expected behaviour was never established freezes the present state as reference.
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js"
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
+import { StdioClientTransport, getDefaultEnvironment } from "@modelcontextprotocol/sdk/client/stdio.js"
 
 // Longer than the 70 000 ms abort overpass.ts sets on each mirror. The SDK's own default is
 // 60 000, which is *shorter*: a mirror answering at 65 s produced a client-side timeout instead
@@ -117,7 +117,15 @@ async function openClient(env?: Record<string, string>): Promise<Client> {
       args: [SERVER_ENTRY],
       // StdioClientTransport does not inherit the parent environment, so the server's own
       // .env is what supplies SUPABASE_URL unless a case deliberately overrides it.
-      env: env ? { ...(process.env as Record<string, string>), ...env } : undefined,
+      //
+      // COMPASS_OBSERVABILITE est posé dans les deux branches — w1-observabilite (#72). Ce
+      // bras appelle les vrais outils contre la vraie base : sans lui, la porte se compterait
+      // elle-même dans le journal d'usage tous les matins. Il est ajouté à la branche qui
+      // n'héritait de rien SANS lui faire hériter du reste, pour que ce qui est éprouvé ici ne
+      // change pas : le serveur lit toujours son propre .env.
+      env: env
+        ? { ...(process.env as Record<string, string>), ...env, COMPASS_OBSERVABILITE: "off" }
+        : { ...getDefaultEnvironment(), COMPASS_OBSERVABILITE: "off" },
     }),
   )
   return client

@@ -25,12 +25,46 @@ import {
   type ScoringIndex,
 } from "../../src/core"
 import { fetchOverpassAmenities } from "./overpass"
+import type { QuestionOutcome } from "./record"
 import { supabase } from "./supabase"
+
+/**
+ * Une couche indisponible, avec son MOTIF STRUCTURÉ — w1-observabilite (#72).
+ *
+ * Le motif ne se relit pas dans le message. `#61` a refusé de classer une panne sur une chaîne
+ * de caractères, et la règle vaut ici : « retenue de licence », « hors corpus » et « source
+ * injoignable » ne mènent pas à la même action — un courrier à l'APUR, une source hors Paris,
+ * un miroir — et les distinguer par un `includes()` sur une phrase anglaise reviendrait à
+ * suspendre le journal à une reformulation. Le motif est donc porté par le jet, à l'endroit
+ * exact où la cause est connue.
+ *
+ * C'est aussi le premier pas du « motif structuré » que docs/REPRISE.md appelle au point 6 de
+ * « La suite » : un agent qui s'auto-évalue a besoin de la règle déclenchée, pas d'une phrase.
+ */
+export class LayerUnavailable extends Error {
+  constructor(
+    message: string,
+    readonly motif: QuestionOutcome,
+  ) {
+    super(message)
+    this.name = "LayerUnavailable"
+  }
+}
+
+/** Le motif d'un échec dont personne n'a nommé la cause : la source n'a pas répondu. */
+export function motifOf(reason: unknown): QuestionOutcome {
+  return reason instanceof LayerUnavailable ? reason.motif : "source_injoignable"
+}
 
 export interface ContextResult {
   index: ScoringIndex
-  /** Which layers failed to load, and why — surfaced to the caller, never swallowed. */
-  failures: { layer: Layer; reason: string }[]
+  /**
+   * Which layers failed to load, and why — surfaced to the caller, never swallowed.
+   *
+   * `motif` est la même cause, sous une forme qu'une machine peut lire : `reason` explique à
+   * un humain, `motif` se compte. Les deux, jamais l'un à la place de l'autre.
+   */
+  failures: { layer: Layer; reason: string; motif: QuestionOutcome }[]
   /** Where each layer came from. Passed straight to `scoreLocation`. */
   origins: LayerOrigins
 }
@@ -105,11 +139,12 @@ async function fetchPremises(
   // proxy would come back as a measured zero — a licence restriction reported as
   // an absence of shops. See 20260816000001_scoring_context_withholding.sql.
   if (rows.some((r) => r.withheld)) {
-    throw new Error(
+    throw new LayerUnavailable(
       `BDCom ${vintageYear} is not publicly redistributable — its licence has not been ` +
         `read, so this caller receives neither its contents nor its counts. Scores that ` +
         `depend on the premises layer are unknown for this vintage, not zero. ` +
         `Vintage 2023 is ODbL and can be scored; call list_sources for the licence of each.`,
+      "retenue_licence",
     )
   }
 
@@ -123,11 +158,12 @@ async function fetchPremises(
   // BDCom premise within 400 m — a true empty radius inside Paris. Treating every empty result
   // as "unknown" would destroy the one answer the data gives with certainty.
   if (rows.some((r) => r.out_of_corpus)) {
-    throw new Error(
+    throw new LayerUnavailable(
       `This point lies outside the BDCom corpus, which covers Paris intra-muros only — it is ` +
         `in none of the 80 quartiers. Premises are unknown here, not absent: no door-to-door ` +
         `survey was carried out at this address. Scores that depend on the premises layer are ` +
         `unavailable rather than zero.`,
+      "hors_corpus",
     )
   }
 
@@ -166,7 +202,7 @@ export async function buildNeighbourhoodContext(
   ])
 
   const loaded: Layer[] = []
-  const failures: { layer: Layer; reason: string }[] = []
+  const failures: { layer: Layer; reason: string; motif: QuestionOutcome }[] = []
 
   const amenities = amenitiesResult.status === "fulfilled" ? amenitiesResult.value.amenities : []
   const roads = amenitiesResult.status === "fulfilled" ? amenitiesResult.value.roads : []
@@ -174,7 +210,10 @@ export async function buildNeighbourhoodContext(
     loaded.push("amenities", "roads")
   } else {
     const reason = amenitiesResult.reason instanceof Error ? amenitiesResult.reason.message : String(amenitiesResult.reason)
-    failures.push({ layer: "amenities", reason }, { layer: "roads", reason })
+    // Overpass est du HTTP vers un tiers : un échec ici est par définition une source
+    // injoignable, et c'est le seul motif que la base ne pourra jamais apprendre seule.
+    const motif = motifOf(amenitiesResult.reason)
+    failures.push({ layer: "amenities", reason, motif }, { layer: "roads", reason, motif })
   }
 
   const premises = premisesResult.status === "fulfilled" ? premisesResult.value : []
@@ -186,10 +225,10 @@ export async function buildNeighbourhoodContext(
   }
   if (premisesResult.status === "rejected") {
     const reason = premisesResult.reason instanceof Error ? premisesResult.reason.message : String(premisesResult.reason)
-    failures.push({ layer: "premises", reason })
+    failures.push({ layer: "premises", reason, motif: motifOf(premisesResult.reason) })
   } else if (originResult.status === "rejected") {
     const reason = originResult.reason instanceof Error ? originResult.reason.message : String(originResult.reason)
-    failures.push({ layer: "premises", reason })
+    failures.push({ layer: "premises", reason, motif: motifOf(originResult.reason) })
   }
 
   // Overpass answers with the current state of the map, so the query date is the vintage.

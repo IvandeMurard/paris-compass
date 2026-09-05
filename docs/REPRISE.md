@@ -27,13 +27,13 @@ a bougé les 31 août et 1er septembre, et rien d'autre :
 
 | Mesure | Valeur, mesurée le 31 août 2026, sauf mention du 1er septembre |
 | --- | --- |
-| Ledger distant `supabase_migrations` | **47** — inchangé, ni `#69` ni `#71` **n'ont posé de migration** : les deux défauts étaient dans les lanceurs, pas dans le schéma |
+| Ledger distant `supabase_migrations` | **52** — mesuré le 5 septembre 2026 après `w1-observabilite` (#72), qui en pose **cinq** : `…0001` le journal des questions, puis quatre qui la finissent et dont **trois viennent de défauts que seule une exécution a montrés** — `…0002` le cast d'enum (un `case` ne se convertit pas tout seul), `…0003` l'échappement de la porte (elle se comptait elle-même, dix seaux sur un produit sans trafic), `…0004` la volatilité (derrière PostgREST, une fonction `STABLE` tourne en lecture seule et ne journalise rien, en silence), `…0005` la latence, omise. Les trois pièges sont dans `docs/REPRISE-PIEGES.md`. Il était à **47** depuis le 31 août : ni `#69`, ni `#70`, ni `#71`, ni `#73` n'avaient posé de migration |
 | Tests unitaires | **366**, mesurés le 5 septembre 2026 — dont les 15 de `scripts/porte/etat.test.ts` ajoutés par `w1-porte-lue` (#77) et les 14 de `scripts/porte/catalogue.test.ts`. **Le chiffre de 335 daté du 3 septembre était déjà faux** : remesuré sans le fichier neuf, le dépôt en portait **337**. Historique : 273 après `#71` , puis 299 avec `scripts/porte/cadences.test.ts`, la réconciliation distant/migrations et deux cas ajoutés de part et d'autre dans `scripts/ingest/workflow.test.ts` et `scripts/porte/workflow.test.ts`, puis **301** en tranchant les cadences sans seuil, puis **325** le 2 septembre 2026 avec les 14 tests de `scripts/build/envPublic.test.ts` , les 6 de `scripts/porte/publie.test.ts` , les 4 de `scripts/esbuildInvocation.test.ts` , les 6 de `scripts/eval/drift.test.ts` et les 4 de `scripts/mcpRegistry.test.ts` |
 | **Sources et cadences** | **8 sources dans `compass_source_freshness()`, 8 entrées `cron`**, mesuré le 1er septembre 2026. Les huit du distant sont exactement les huit que les migrations déclarent — recoupé par `freshness`, zéro écart. Entretien remesuré le 5 septembre 2026 : **3 par `schedule`** (`bodacc`, `sirene`, `sirene_stock`), **2 par `workflow-dispatch`** (`geography`, `chantiers`), 3 depuis un terminal — le relevé du 1er septembre disait 1 / 1 / 6 et deux crons mensuels ont eu leur tour depuis. Les cadences les plus lentes n'ont toujours pas eu le leur, donc `freshness` sort en **3** et le dira jusqu'à ce qu'elles l'aient eu |
-| Invariants | **38** — `I38` ajouté le 5 septembre 2026 par `w1-catalogue`, sur la table de codes des chantiers ; mesuré à **0 ligne** sur le distant, et démontré à **2 lignes** sous sabotage en transaction annulée, volume inchangé à 120 chantiers — **le rechargement du 5 septembre a porté la table à 113 lignes**, et `I38` reste à 0 sur ce contenu-là. Trois d'entre eux, `I1`, `I2` et `I7`, sont **joués en 22 instructions** au lieu d'une. Même population, toutes les tranches jouées |
+| Invariants | **41** — `I39`, `I40` et `I41` ajoutés le 5 septembre 2026 par `w1-observabilite` (#72) : la rétention du journal, l'énumération de ses colonnes, et la retenue du quartier d'une question unique. Les trois sont **joués sous sabotage** dans l'acte 5 de `eval:sabotage`, en transaction annulée — colonne `ip` ajoutée, clé étrangère du quartier retirée, ligne de 400 jours insérée : les trois rougissent, et l'écriture suivante purge la ligne périmée d'elle-même. Le recensement de `I24` est passé de **6 à 7 fonctions** (`compass_question_summary` y entre d'office, `DIAGNOSTIC.md` §37), toutes couvertes. **38** — `I38` ajouté le 5 septembre 2026 par `w1-catalogue`, sur la table de codes des chantiers ; mesuré à **0 ligne** sur le distant, et démontré à **2 lignes** sous sabotage en transaction annulée, volume inchangé à 120 chantiers — **le rechargement du 5 septembre a porté la table à 113 lignes**, et `I38` reste à 0 sur ce contenu-là. Trois d'entre eux, `I1`, `I2` et `I7`, sont **joués en 22 instructions** au lieu d'une. Même population, toutes les tranches jouées |
 | **Coût des trois bras distants** (le quatrième, `freshness`, est **un aller-retour** : une RPC, aucun balayage) | Deux passages. `eval` **306 s** puis **299 s** (bras A seul 240 s) · `eval:anon` **5 s** deux fois · `verify:mcp` **114 s** puis **227 s** — **425 s puis 531 s**. L'écart est entièrement `verify:mcp`, et c'est Overpass : les contrôles suspendus attendent des miroirs publics à 429 et 504, chacun avec son délai. C'est ce chiffre-là qui dimensionne la cadence de la porte planifiée, **pas les 115 s de `#69`**, qui étaient `I1` seul avant son découpage |
 | **Secrets de dépôt** | **`DATABASE_URL` seul.** `SUPABASE_URL` et `SUPABASE_ANON_KEY` **manquent**, donc `eval:anon` et `verify:mcp` n'ont pas de clé sur un runner. Le workflow s'arrête là-dessus en le nommant, avant de dépenser dix minutes |
-| Portes | `typecheck` ✓ · `test` **366** ✓ (5 septembre) · `porte:etat` **0 sur un dépôt sans rouge ouvert, 1 démontré sur `#74` rouverte** (5 septembre) · `freshness` **8 sources, 0 en retard, 0 écart, 4 sans seuil par décision**, sortie 3, **remesuré le 5 septembre après le rechargement de `chantiers`** — `chantiers` était passé en retard le 4 (voir `docs/REPRISE-PIEGES.md`, le trou entre une cadence déclarée et sa première occurrence) · `eval` **sortie 3, zéro échec, 11 avertissements**, rejoué le 5 septembre après le rechargement de `chantiers` — `I38` au vert en 0,0 s sur les 113 lignes neuves ; `prix_median_local_identifiable` est passé de 1,33 % à **1,69 %** d'écart brut, toujours en avertissement et **chiffre publié inchangé à 160 000** · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 40 verts, 0 échec, 1 suspendu**, sortie 0, **remesuré le 2 septembre après le paquet MCP** (39/2 plus tôt le même jour : un miroir Overpass est revenu) · `porte:sabotage` **PASS, quatre actes** · `porte:publie` **PASS contre la production, sortie 0** (2 septembre) · `build` ✓ **remesuré le 5 septembre** : `index-z86I-NBQ.js`, `App-PPJJEVRR.js`, un avertissement de taille de chunk et rien d'autre. Ce n'est pas le relevé du 2 septembre (`index-DX8ZO1QB.js`, `App-uI7Bjffv.js`, `MapView-BiNyeJsQ.js`), et l'écart n'est pas attribuable à cette session — `w1-porte-lue` n'a touché que `scripts/` et la documentation. `build:dev` ✓ (2 septembre), non rejoué le 5 : aucune montée de `vite` entre les deux |
+| Portes | `typecheck` ✓ · `test` **366** ✓ (5 septembre) · `porte:etat` **0 sur un dépôt sans rouge ouvert, 1 démontré sur `#74` rouverte** (5 septembre) · `freshness` **8 sources, 0 en retard, 0 écart, 4 sans seuil par décision**, sortie 3, **remesuré le 5 septembre après le rechargement de `chantiers`** — `chantiers` était passé en retard le 4 (voir `docs/REPRISE-PIEGES.md`, le trou entre une cadence déclarée et sa première occurrence) · `eval` **sortie 3, zéro échec, 11 avertissements**, remesuré le 5 septembre 2026 après `w1-observabilite` — 41 invariants, dont les trois neufs au vert, et `porte:sabotage`/`eval:sabotage` **PASS en sept actes** · `prix_median_local_identifiable` mesuré à **163 587** (1,69 %), toujours en avertissement et chiffre publié inchangé à 160 000 ; rejoué le 5 septembre après le rechargement de `chantiers` — `I38` au vert en 0,0 s sur les 113 lignes neuves ; `prix_median_local_identifiable` est passé de 1,33 % à **1,69 %** d'écart brut, toujours en avertissement et **chiffre publié inchangé à 160 000** · `eval:anon` **PASS, 15 contrôles**, sortie 0 · `verify:mcp` **41 contrôles, 40 verts, 0 échec, 1 suspendu**, sortie 0, **remesuré le 5 septembre 2026 après l'instrumentation du serveur MCP** (#72) — et **41 au vert, 0 suspendu** une heure plus tôt le même jour, un miroir Overpass allant et venant dans la journée : la différence est amont, pas dans le dépôt (39/2 plus tôt le même jour : un miroir Overpass est revenu) · `porte:sabotage` **PASS, quatre actes** · `eval:sabotage` **PASS, cinq actes, sept sabotages** (5 septembre) · `porte:publie` **PASS contre la production, sortie 0** (2 septembre) · `build` ✓ **remesuré le 5 septembre** : `index-z86I-NBQ.js`, `App-PPJJEVRR.js`, un avertissement de taille de chunk et rien d'autre. Ce n'est pas le relevé du 2 septembre (`index-DX8ZO1QB.js`, `App-uI7Bjffv.js`, `MapView-BiNyeJsQ.js`), et l'écart n'est pas attribuable à cette session — `w1-porte-lue` n'a touché que `scripts/` et la documentation. `build:dev` ✓ (2 septembre), non rejoué le 5 : aucune montée de `vite` entre les deux |
 
 **Le passage du 3 septembre 2026 est le premier entièrement au vert** —
 [`33753907840`](https://github.com/IvandeMurard/paris-compass/actions/runs/33753907840), 12:12 UTC :
@@ -427,6 +427,77 @@ trouvée et fermée. Un canal de plus aurait multiplié l'endroit où personne n
 - **Ce que ça ne rattrape pas, et c'est entier** : une semaine sans session reste une semaine
   sans lecteur. Une porte ne peut pas voir sa propre absence, et elle ne peut pas non plus se
   faire lire.
+
+
+**Le journal classe des questions, et il n'a pas de colonne pour classer des gens.** Tranché le
+5 septembre 2026 en fermant `w1-observabilite`
+([#72](https://github.com/IvandeMurard/paris-compass/issues/72)). Quatre décisions, chacune avec
+sa raison, parce qu'aucune ne se déduit du code.
+
+- **Des dénombrements, pas des appels.** `question_tally` porte des seaux — (jour, surface,
+  fonction ou outil, axe, tranche de rayon, millésime, quartier, issue) et un effectif — jamais
+  une ligne par appel. Une table à une ligne par appel se recoud : deux lignes de la même heure,
+  au même endroit, avec des identifiants consécutifs sont un parcours sans qu'aucune colonne ne
+  nomme personne, et **la clé primaire aurait suffi** — un `bigserial` publie l'ordre d'arrivée,
+  qui est la moitié d'un parcours. Il n'existe donc aucune ligne brute à rendre et rien à
+  ordonner. **Ce que ça ne rattrape pas** : la co-occurrence reste visible. Un jour où deux seaux
+  seulement portent `appels = 1`, un lecteur peut *conjecturer* une même personne ; il ne peut
+  pas l'établir. C'est une limite du volume, pas du schéma, et elle est à son maximum
+  aujourd'hui, où le trafic est nul.
+- **La coordonnée est au QUARTIER, et c'est une clé étrangère.** Les trois choix étaient la
+  coordonnée brute — c'est une adresse —, le tronçon — 25 094 pour Paris, soit une adresse à
+  quelques portes près, et personne ne branchera une source parce qu'un tronçon est mal servi —
+  et le quartier, 80 polygones, qui répond exactement à « quels quartiers sont demandés et mal
+  servis ». La granularité n'est pas une politesse de l'écrivain : `quartier_code` **référence**
+  `public.quartier(code)`, il n'existe aucune colonne capable de porter une latitude, et
+  `compass_record_question` prend un point pour n'en garder qu'un quartier — **l'appelant ne
+  peut pas demander plus fin, il n'y a ni paramètre ni colonne pour cela**. `I40` recense les
+  colonnes contre une liste blanche et refuse le retrait de la clé étrangère : c'est ce qui fait
+  qu'un rechargement ne peut pas réintroduire l'état fautif.
+- **Le jour, pas l'heure.** L'heure aurait rendu la co-occurrence bien plus parlante et n'achète
+  que la chronologie fine d'un incident — le tableau de bord que ce ticket diffère tant qu'il n'y
+  a rien à nourrir.
+- **La rétention est de 180 jours, et la purge vit dans l'écriture.** Six mois pour une raison qui
+  tient au sujet : le journal sert à choisir la **prochaine source**, et un dénombrement ne dit
+  « ce quartier est mal servi » que contre le corpus qui l'a mal servi. Huit sources sont arrivées
+  entre le 25 août et le 5 septembre 2026 ; à ce rythme, un compte de plus de six mois est un
+  compte sur un autre produit. `compass_record_question` purge en ouvrant un seau d'un jour neuf
+  — donc une sauvegarde ancienne restaurée dans la table ne survit pas au premier appel qui suit,
+  démontré. **Ce que ça ne rattrape pas** : la purge est mue par l'usage, et un journal qui cesse
+  d'être écrit cesse d'être purgé. D'où `I39`, qui tourne dans la porte quotidienne et ne dépend
+  de personne.
+
+**L'écriture vit dans la base, et les deux exceptions sont nommées.** C'est `DIAGNOSTIC.md` §9 à
+§12 transposé : une garde sur le chemin de l'écran ne protège que l'écran. Les fonctions
+`compass_premises_within` et `compass_scoring_context_within` journalisent elles-mêmes, donc le
+front, le serveur MCP **et l'agent qui appelle PostgREST en direct** sont comptés par la même
+ligne de code. Deux faits échappent à la base et sont écrits par le serveur MCP, faute d'autre
+producteur possible : le **nom de l'outil** — la base voit `compass_scoring_context_within`, pas
+`score_location` — et une **source tierce injoignable**, puisqu'un appel Overpass qui échoue
+n'atteint jamais la base. Le front fait les mêmes appels Overpass et n'est pas instrumenté : un
+axe `n/a` faute de miroir, côté navigateur, ne laisse aucune trace. C'est la direction du 31 août
+— back-end, données et MCP avant le front — et c'est écrit plutôt que tu.
+
+**Un motif d'échec est structuré, jamais relu dans un message.** `LayerUnavailable`
+(`mcp-server/src/context.ts`) porte son `motif` depuis l'endroit exact où la cause est connue.
+Classer « retenue de licence », « hors corpus » et « source injoignable » par un `includes()` sur
+une phrase anglaise aurait suspendu le journal à une reformulation — ce que
+[`#61`](https://github.com/IvandeMurard/paris-compass/issues/61) a déjà refusé pour les pannes
+amont. Les trois ne mènent pas à la même action : un courrier à l'APUR, une source hors Paris, un
+miroir.
+
+**L'agrégat est lisible publiquement, et il ne devient jamais un chiffre.** `docs/PERIMETRE.md`
+écarte déjà de *revendre* l'usage agrégé et interdit qu'un fait appris de l'usage s'affiche —
+il n'a pas de source publique, donc la règle `Measured<T>` le sort de l'écran. Ce qui est livré
+ici est un signal de priorisation : il décide **ce qu'on branche ensuite**, jamais ce qu'un
+visiteur voit ni dans quel ordre. Le `grant` à `anon` est la moitié réversible de la décision —
+il se retire en une ligne sans toucher au schéma, l'inverse n'est pas vrai.
+
+**Ce que le journal ne mesure pas, et c'est entier** : un axe jamais demandé parce que le produit
+ne le propose pas ne laisse aucune trace. Il mesure la **demande exprimée**, pas la demande
+empêchée. Et il n'y a aucun trafic : ce chantier livre le tuyau, il ne produira aucun signal tant
+que personne n'utilisera le produit — ce qui est le but, un tuyau posé après l'usage perd les
+premières semaines.
 
 
 **Une source du catalogue est vérifiée, ou porte une raison écrite de ne pas l'être.**

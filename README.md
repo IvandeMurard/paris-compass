@@ -98,7 +98,7 @@ Today's composition across the corpus — this is the quality metric, and improv
 
 That 36.7% is structural, not laziness: BODACC names an *address*, BDCom names a *unit*, and 69% of units share their street number. No public data will say which of eight shopfronts was sold.
 
-A gate runs the whole corpus against **37 invariants, 24 frozen baselines and 8 hand-verified chronologies** before anything ships — counted 2 September 2026 with `grep -c '^-- @invariant ' eval/invariants.sql`. Most of them check what the functions return; one checks what they *are* — a function exposing an `observed` column must be `SECURITY DEFINER`, because row-level security silently turns a withheld row into "never surveyed".
+A gate runs the whole corpus against **41 invariants, 24 frozen baselines and 8 hand-verified chronologies** before anything ships — recounted 5 September 2026 with `grep -c '^-- @invariant ' eval/invariants.sql`; this line said 37, counted 2 September, and four have landed since. Most of them check what the functions return; one checks what they *are* — a function exposing an `observed` column must be `SECURITY DEFINER`, because row-level security silently turns a withheld row into "never surveyed".
 
 ---
 

@@ -116,11 +116,25 @@ async function control(label: string, body: (label: string) => Promise<void>): P
   }
 }
 
-/** One HTTP call, timed. Every request of this arm goes through here. */
+/**
+ * One HTTP call, timed. Every request of this arm goes through here.
+ *
+ * ET AUCUNE N'EST COMPTÉE DANS LE JOURNAL D'USAGE — w1-observabilite (#72). Ce bras appelle
+ * avec la vraie clé publiable, donc ses appels COMMITENT : sans cet en-tête, `question_tally`
+ * enregistrerait quinze questions par matin, toujours au même point, et le quartier le plus
+ * demandé du produit serait celui que la porte interroge. Mesuré le 5 septembre 2026 : dix
+ * seaux écrits sur un produit sans aucun trafic. L'en-tête est déclaratif et se pose ici, à
+ * l'endroit unique par lequel ce bras passe — un second chemin qui l'oublierait se compterait
+ * de nouveau, et rien ne pourrait le voir.
+ */
 async function request(path: string, what: string, init?: RequestInit): Promise<Response> {
   const started = performance.now()
+  const horsMesure: RequestInit = {
+    ...init,
+    headers: { ...(init?.headers as Record<string, string> | undefined), "x-compass-observabilite": "off" },
+  }
   try {
-    return await fetch(`${BASE}/rest/v1/${path}`, init)
+    return await fetch(`${BASE}/rest/v1/${path}`, horsMesure)
   } finally {
     const ms = performance.now() - started
     if (ms > slowest.ms) slowest = { what, ms }

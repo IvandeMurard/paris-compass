@@ -21,6 +21,13 @@
 //   3. THE DECISION REVERTED — compass_caller_is_privileged() put back to
 //      `<> 'anon'`, which makes `authenticated` privileged again. I33 must turn
 //      red and I34 must stay green, because a decision nobody plays is prose.
+//   5. LE JOURNAL DES QUESTIONS - w1-observabilite (#72). Des questions ecrites
+//      pour de vrai, puis trois sabotages : une colonne `ip` ajoutee et la cle
+//      etrangere du quartier retiree (I40 rouge deux fois), et une ligne plus
+//      vieille que la retention (I39 rouge, puis purgee par l'ecriture suivante).
+//      C'est la seule demonstration qui montre les deux moities : la regle
+//      structurelle, et le fait qu'un rechargement ne lui survit pas.
+//
 //   4. THE POLICY LOOSENED — one extra permissive SELECT policy on
 //      premise_observation, the kind somebody adds to "let the map read premises".
 //      Permissive policies are ORed, so `anon` starts seeing 2017 and 2020. The
@@ -258,6 +265,136 @@ async function sabotaged<T>(client: Client, ddl: string, work: () => Promise<T>)
   }
 }
 
+/**
+ * Acte 5 — le journal des questions, w1-observabilite (#72).
+ *
+ * Tout tient dans UNE transaction annulée : les écritures sont réelles — c'est
+ * `compass_record_question` qui est appelée, jamais une copie — et rien n'en reste.
+ */
+async function acteJournal(client: Client): Promise<void> {
+  out("\nActe 5 — le journal des questions : ce qu'il enregistre, et ce qu'il refuse de porter")
+  await client.query("begin")
+  try {
+    const q = (issue: string, lat: number, lng: number, r: number, axe: string, ms: number) =>
+      client.query(
+        `select public.compass_record_question('rpc', 'compass_premises_within', $1::public.question_outcome,
+           $2, $3, $4, 2023::smallint, $5, $6)`,
+        [issue, lat, lng, r, axe, ms],
+      )
+    // Deux questions au même endroit, une retenue, un point hors de Paris.
+    await q("repondu", 48.8566, 2.3522, 800, "premises", 42)
+    await q("repondu", 48.8571, 2.353, 800, "premises", 51)
+    await q("retenue_licence", 48.8566, 2.3522, 800, "premises", 9)
+    await q("vide", 48.7, 2.2, 800, "premises", 12)
+
+    const lignes = await client.query<Record<string, unknown>>(
+      "select * from public.question_tally order by appelee, issue",
+    )
+    // 1. « aucune combinaison ne permet de recoudre deux requêtes en un parcours ».
+    //    La démonstration est structurelle et non statistique : un parcours a besoin
+    //    d'au moins un lien — une identité, une session, un ordre d'arrivée, un
+    //    horodatage plus fin que le seau — et on énumère ce que la table peut porter.
+    const colonnes = Object.keys(lignes.rows[0] ?? {})
+    // Ancre aux deux bouts, delibere : un motif lache attrape `latence_ms_total` sur les trois
+    // lettres de `lat` et transforme la demonstration en bruit. Ce sont des NOMS COMPLETS qui
+    // sont refuses, comme I40 raisonne sur des noms complets.
+    const recouseurs = colonnes.filter((c) =>
+      /^(id|.*_id|ip|.*_ip|session.*|user.*|client.*|trace.*|token.*|lat|lng|latitude|longitude|heure|.*_heure|horodat.*|ordre|rang)$/i.test(
+        c,
+      ),
+    )
+    if (recouseurs.length === 0)
+      pass(
+        "aucune colonne ne recoud",
+        `${lignes.rowCount} seau(x), colonnes : ${colonnes.join(", ")} — ni identité, ni session, ` +
+          "ni ordre d'arrivée, ni horodatage plus fin que le jour",
+      )
+    else fail("aucune colonne ne recoud", `colonnes suspectes : ${recouseurs.join(", ")}`)
+
+    // 2. Les deux questions du même endroit ont FUSIONNÉ. Il n'existe pas deux lignes
+    //    à ordonner, donc rien à recoudre même par co-occurrence exacte.
+    const fusion = await client.query<{ appels: string }>(
+      "select appels from public.question_tally where issue = 'repondu'",
+    )
+    if (fusion.rowCount === 1 && fusion.rows[0].appels === "2")
+      pass("deux questions, un seau", "appels = 2 sur une seule ligne — il n'y a pas deux lignes à ordonner")
+    else fail("deux questions, un seau", `${fusion.rowCount} ligne(s) : ${JSON.stringify(fusion.rows)}`)
+
+    // 3. Un axe n/a est compté AVEC SA RAISON, et les raisons ne se confondent pas.
+    const raisons = await client.query<{ issue: string; quartier_code: string | null }>(
+      "select issue, quartier_code from public.question_tally order by issue",
+    )
+    const vues = raisons.rows.map((r) => r.issue)
+    const horsCorpus = raisons.rows.find((r) => r.issue === "hors_corpus")
+    if (vues.includes("retenue_licence") && horsCorpus && horsCorpus.quartier_code === null)
+      pass(
+        "chaque n/a porte sa raison",
+        `${vues.join(", ")} — et le point de Massy, écrit « vide » par l'appelant, est requalifié ` +
+          "« hors_corpus » : la base résout le quartier, donc elle sait ce que l'appelant ignorait",
+      )
+    else fail("chaque n/a porte sa raison", JSON.stringify(raisons.rows))
+
+    // 4. Le résumé rend un agrégat, retient le quartier d'un seau unique, et I41 le tient.
+    const i41 = await playOne(client, "I41", true)
+    await client.query("savepoint resume")
+    await client.query("select set_config('request.jwt.claims', $1, true)", [JSON.stringify({ role: "anon" })])
+    const vu = await client.query<{ quartier_code: string | null; withheld: boolean; appels: string }>(
+      "select quartier_code, withheld, appels from public.compass_question_summary() order by appels desc",
+    )
+    await client.query("rollback to savepoint resume")
+    const singleton = vu.rows.find((r) => r.appels === "1")
+    if (i41.length === 0 && singleton && singleton.quartier_code === null && singleton.withheld)
+      pass(
+        "le résumé retient le quartier d'une question unique",
+        `I41 vert, et l'appelant anonyme lit ${vu.rowCount} agrégat(s) dont un à effectif 1 : ` +
+          "quartier retenu, withheld = true — la retenue est annoncée, jamais muette",
+      )
+    else fail("le résumé retient le quartier d'une question unique", `I41 ${i41.length} · ${JSON.stringify(vu.rows)}`)
+
+    // 5. SABOTAGE — une colonne d'identité ajoutée, comme le ferait une migration
+    //    écrite de bonne foi pour « déboguer un cas ». I40 doit rougir.
+    await client.query("savepoint colonne")
+    await client.query("alter table public.question_tally add column ip inet")
+    const i40ip = await playOne(client, "I40", true)
+    await client.query("rollback to savepoint colonne")
+    if (i40ip.length === 1) pass("I40 sur une colonne ajoutée", `rouge : ${JSON.stringify(i40ip[0])}`)
+    else fail("I40 sur une colonne ajoutée", `${i40ip.length} ligne(s) — une colonne « ip » a passé l'énumération`)
+
+    // 6. SABOTAGE — la clé étrangère retirée. La granularité redevient une discipline,
+    //    ce qui n'en est pas une : I40 doit rougir aussi.
+    await client.query("savepoint fk")
+    await client.query("alter table public.question_tally drop constraint question_tally_quartier_code_fkey")
+    const i40fk = await playOne(client, "I40", true)
+    await client.query("rollback to savepoint fk")
+    if (i40fk.length === 1) pass("I40 sur la contrainte retirée", `rouge : ${JSON.stringify(i40fk[0])}`)
+    else fail("I40 sur la contrainte retirée", `${i40fk.length} ligne(s) — la granularité n'est plus gardée`)
+
+    // 7. SABOTAGE — une ligne plus vieille que la rétention, comme en laisserait une
+    //    sauvegarde restaurée. I39 rougit ; puis l'écriture suivante la purge d'elle-même,
+    //    ce qui est la réponse à « est-ce que ça survit à un rechargement ».
+    await client.query(
+      `insert into public.question_tally (jour, surface, appelee, issue, appels)
+       values (current_date - 400, 'rpc', 'compass_premises_within', 'repondu', 7)`,
+    )
+    const i39 = await playOne(client, "I39", true)
+    if (i39.length === 1) pass("I39 sur une ligne périmée", `rouge : ${JSON.stringify(i39[0])}`)
+    else fail("I39 sur une ligne périmée", `${i39.length} ligne(s) — la rétention n'est pas gardée`)
+
+    await q("repondu", 48.83, 2.39, 250, "premises", 30)
+    const i39apres = await playOne(client, "I39", true)
+    const reste = await client.query("select 1 from public.question_tally where jour < current_date - 300")
+    if (i39apres.length === 0 && reste.rowCount === 0)
+      pass(
+        "la purge vit dans le producteur",
+        "l'écriture suivante a emporté la ligne de 400 jours — une sauvegarde ancienne restaurée " +
+          "ici ne survit pas au premier appel qui la suit",
+      )
+    else fail("la purge vit dans le producteur", `I39 ${i39apres.length} ligne(s), reste ${reste.rowCount}`)
+  } finally {
+    await client.query("rollback")
+  }
+}
+
 async function main(): Promise<void> {
   const target = connectionTarget()
   log("CIBLE", target)
@@ -434,6 +571,13 @@ async function main(): Promise<void> {
           `une transaction a laissé quelque chose`,
       )
 
+    await acteJournal(client)
+
+    const journalReste = await client.query("select 1 from public.question_tally")
+    if (journalReste.rowCount === 0)
+      pass("nettoyage", "aucune question de sabotage n'est restée dans question_tally")
+    else fail("nettoyage", `${journalReste.rowCount} ligne(s) ont survécu au rollback de l'acte 5`)
+
     const stillThere = await client.query(
       `select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
         where n.nspname = 'public' and p.proname in ('compass_sabotage_probe', 'compass_sabotage_claim')`,
@@ -469,8 +613,9 @@ async function main(): Promise<void> {
 
   out(
     failures === 0
-      ? `\nPASS — une fonction sans test de retenue, une qui le recopie, la décision annulée et ` +
-          `une politique élargie : les quatre font passer la porte au rouge — ${target}`
+      ? `\nPASS — une fonction sans test de retenue, une qui le recopie, la décision annulée, ` +
+          `une politique élargie, une colonne d'identité, une granularité dégardée et une ligne ` +
+          `périmée : les sept font passer la porte au rouge — ${target}`
       : `\nFAIL — ${failures} contrôle(s) en échec — ${target}`,
   )
   process.exit(failures === 0 ? 0 : 1)

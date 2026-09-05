@@ -64,8 +64,8 @@ export function registerCompareLocations(server: McpServer): void {
     },
     async ({ a, b, radius_m, vintage_year }) => {
       const [scoredA, scoredB] = await Promise.all([
-        scorePoint(a.lat, a.lng, radius_m, vintage_year),
-        scorePoint(b.lat, b.lng, radius_m, vintage_year),
+        scorePoint(a.lat, a.lng, radius_m, vintage_year, "compare_locations"),
+        scorePoint(b.lat, b.lng, radius_m, vintage_year, "compare_locations"),
       ])
       return {
         content: [

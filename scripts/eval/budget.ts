@@ -197,6 +197,14 @@ async function radiusFunctions(client: Client): Promise<string[]> {
       where n.nspname = 'public'
         and p.proname like 'compass\\_%'
         and 'p_radius_m' = any(p.proargnames)
+        -- Et qui rendent quelque chose a lire. Ce bras explique un select sur la fonction :
+        -- une fonction qui rend void n'a rien a selectionner, et son cout n'est pas celui
+        -- d'une carte qui n'apparait pas. Ajoute le 5 septembre 2026 avec
+        -- compass_record_question (#72), qui prend un rayon pour le RANGER EN TRANCHE et ne
+        -- s'en sert jamais pour choisir des lignes : l'inscrire ici aurait produit un budget
+        -- mesure sur des arguments nuls, c'est-a-dire un vert qui ne dit rien — « la pire
+        -- espece de porte », selon l'en-tete de ce fichier.
+        and p.prorettype <> 'void'::regtype
         and has_function_privilege('anon', p.oid, 'execute')
       order by 1`,
   )

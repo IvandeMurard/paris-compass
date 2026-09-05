@@ -41,6 +41,18 @@ if (!url || !anonKey) {
   )
 }
 
+/**
+ * Hors mesure — w1-observabilite (#72).
+ *
+ * `verify:mcp` appelle les vrais outils contre la vraie base avec la vraie clé publiable : ses
+ * quarante et un contrôles COMMITENT, donc sans cet en-tête la porte se compterait elle-même
+ * dans `question_tally` tous les matins, au même point et au même rayon. L'échappement est
+ * déclaratif et volontaire, et c'est un réglage d'ENVIRONNEMENT et non un défaut : un agent qui
+ * installe le paquet ne pose rien et est compté, ce qui est le but.
+ */
+const horsMesure = process.env.COMPASS_OBSERVABILITE === "off"
+
 export const supabase: SupabaseClient = createClient(url, anonKey, {
   auth: { persistSession: false },
+  ...(horsMesure ? { global: { headers: { "x-compass-observabilite": "off" } } } : {}),
 })

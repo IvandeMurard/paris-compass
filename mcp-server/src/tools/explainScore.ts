@@ -63,7 +63,7 @@ export function registerExplainScore(server: McpServer): void {
       inputSchema: inputShape,
     },
     async ({ lat, lng, metric, radius_m, vintage_year }) => {
-      const { scores, failures } = await scorePoint(lat, lng, radius_m, vintage_year)
+      const { scores, failures } = await scorePoint(lat, lng, radius_m, vintage_year, "explain_score")
       const measured = scores[metric as keyof AreaScores]
       return {
         content: [

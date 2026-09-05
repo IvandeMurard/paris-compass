@@ -2985,3 +2985,42 @@ justifié, pas un effet de bord d'un correctif de règle.
 - **Seule la médiane porte `publie`.** Les prix par métier du `README` — 250 000 €, 220 000 €,
   86 000 €, 50 000 € — ne sont sous aucune baseline. Ils peuvent vieillir en silence, et cette
   correction ne change rien pour eux.
+
+---
+
+## 37. `I23` ne voyait pas une table restreinte par l'ABSENCE de politique — corrigé le 5 septembre 2026
+
+**Le défaut.** La population de `I23`, `I24` et `I32` — les fonctions `compass_*` qui lisent une
+table dont RLS peut retirer des lignes en silence — était définie par l'existence d'une
+politique `SELECT` dont le prédicat n'est pas `true`. Une table portant RLS et **aucune
+politique `SELECT`** n'y entrait pas.
+
+C'est pourtant le retrait silencieux dans sa forme la plus complète : RLS active sans politique
+vide la table pour tout rôle non privilégié, à 100 %. La règle attrapait le cas partiel et
+laissait passer le cas total, parce qu'elle avait été écrite sur la table qui l'avait motivée —
+`premise_observation`, qui porte des politiques — plutôt que sur la propriété qu'elle
+protégeait.
+
+**Mesuré le 5 septembre 2026 sur `dbefhvmyfmmhjeetdddu`** : deux tables étaient dans cet angle
+mort, `stg_bdcom_2023` et `stg_bdcom_od`, l'une et l'autre avec `policies_total = 0`. Aucune
+fonction `compass_*` ne les lit, donc **aucun défaut n'était en cours** — l'angle mort n'avait
+pas encore coûté, et c'est la seule raison pour laquelle il était encore là.
+
+**Le correctif.** La population s'écrit désormais sur les deux façons d'être restreinte, dans
+les trois blocs qui la partagent. Elle est en même temps **rétrécie** aux fonctions qui rendent
+autre chose que `void` : un écrivain n'a pas d'appelant à qui annoncer une retenue, et
+`compass_record_question` — qui écrit dans `question_tally` sans rien rendre — faisait rougir
+les trois invariants pour une exigence qui n'a aucun sens sur elle. La population est donc
+« ce qui est **rendu** », jamais « ce qui est **touché** ».
+
+**Ce que ça change tout de suite.** `compass_question_summary` entre d'office dans la population
+— la table qu'elle lit porte RLS sans politique — donc elle est **tenue** d'être
+`SECURITY DEFINER`, de porter une colonne `withheld` et d'être couverte par un invariant
+`@as anon`. C'est `I41`. Le recensement de `I24` est passé de **6 à 7 fonctions**, mesuré le
+5 septembre 2026, toutes couvertes.
+
+**Ce que la règle ne rattrape pas.** Les mêmes limites qu'avant, plus une : elle lit `prosrc`,
+donc une fonction qui atteindrait la table par une vue ou du SQL dynamique reste invisible
+(inchangé) ; et une fonction qui écrit *et* rend quelque chose est jugée sur ce qu'elle rend, ce
+qui est correct, mais une divulgation par **message d'erreur** n'est lue par aucun de ces trois
+invariants.

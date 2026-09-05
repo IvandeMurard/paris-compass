@@ -558,11 +558,21 @@ with restricted as (
   from pg_class c
   join pg_namespace n on n.oid = c.relnamespace
   where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity
-    and exists (
-      select 1 from pg_policy p
-       where p.polrelid = c.oid
-         and p.polcmd in ('r', '*')
-         and coalesce(pg_get_expr(p.polqual, p.polrelid), '') <> 'true')
+    -- Deux facons d'etre restreinte, et la seconde manquait — w1-observabilite (#72).
+    and (
+      -- (a) une politique SELECT existe et retire des lignes.
+      exists (
+        select 1 from pg_policy p
+         where p.polrelid = c.oid
+           and p.polcmd in ('r', '*')
+           and coalesce(pg_get_expr(p.polqual, p.polrelid), '') <> 'true')
+      -- (b) RLS est active et AUCUNE politique SELECT n'existe : la table est vide pour tout
+      -- role non privilegie. C'est le cas le plus dur de retrait silencieux, et la population
+      -- d'origine ne le voyait pas — elle exigeait une politique. DIAGNOSTIC.md §37.
+      or not exists (
+        select 1 from pg_policy p
+         where p.polrelid = c.oid and p.polcmd in ('r', '*'))
+    )
 )
 select p.proname, p.prosecdef as security_definer, r.relname as restricted_table
 from pg_proc p
@@ -570,6 +580,13 @@ join pg_namespace n on n.oid = p.pronamespace
 join restricted r on p.prosrc ~ ('\y' || r.relname || '\y')
 where n.nspname = 'public'
   and p.proname like 'compass\_%'
+  -- ET QUI RENDENT QUELQUE CHOSE. Une fonction qui rend `void` n'a pas d'appelant a qui
+  -- annoncer une retenue : elle ne rend aucune ligne, donc elle n'en retient aucune. Ajoute le
+  -- 5 septembre 2026 avec `compass_record_question` (#72), qui ECRIT dans une table restreinte
+  -- et ne lit rien vers l'exterieur — la population est « ce qui est RENDU », pas « ce qui est
+  -- touche ». Ce que ca ne rattrape pas : un ecrivain qui divulguerait par son message
+  -- d'erreur. Aucune regle ici ne lit un message d'erreur.
+  and p.prorettype <> 'void'::regtype
   and (not p.prosecdef or not ('withheld' = any(p.proargnames)))
 limit 20;
 
@@ -602,11 +619,21 @@ with restricted as (
   from pg_class c
   join pg_namespace n on n.oid = c.relnamespace
   where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity
-    and exists (
-      select 1 from pg_policy p
-       where p.polrelid = c.oid
-         and p.polcmd in ('r', '*')
-         and coalesce(pg_get_expr(p.polqual, p.polrelid), '') <> 'true')
+    -- Deux facons d'etre restreinte, et la seconde manquait — w1-observabilite (#72).
+    and (
+      -- (a) une politique SELECT existe et retire des lignes.
+      exists (
+        select 1 from pg_policy p
+         where p.polrelid = c.oid
+           and p.polcmd in ('r', '*')
+           and coalesce(pg_get_expr(p.polqual, p.polrelid), '') <> 'true')
+      -- (b) RLS est active et AUCUNE politique SELECT n'existe : la table est vide pour tout
+      -- role non privilegie. C'est le cas le plus dur de retrait silencieux, et la population
+      -- d'origine ne le voyait pas — elle exigeait une politique. DIAGNOSTIC.md §37.
+      or not exists (
+        select 1 from pg_policy p
+         where p.polrelid = c.oid and p.polcmd in ('r', '*'))
+    )
 )
 select distinct p.proname
 from pg_proc p
@@ -614,6 +641,13 @@ join pg_namespace n on n.oid = p.pronamespace
 join restricted r on p.prosrc ~ ('\y' || r.relname || '\y')
 where n.nspname = 'public'
   and p.proname like 'compass\_%'
+  -- ET QUI RENDENT QUELQUE CHOSE. Une fonction qui rend `void` n'a pas d'appelant a qui
+  -- annoncer une retenue : elle ne rend aucune ligne, donc elle n'en retient aucune. Ajoute le
+  -- 5 septembre 2026 avec `compass_record_question` (#72), qui ECRIT dans une table restreinte
+  -- et ne lit rien vers l'exterieur — la population est « ce qui est RENDU », pas « ce qui est
+  -- touche ». Ce que ca ne rattrape pas : un ecrivain qui divulguerait par son message
+  -- d'erreur. Aucune regle ici ne lit un message d'erreur.
+  and p.prorettype <> 'void'::regtype
 order by 1;
 
 -- @invariant I25 :: un appelant anonyme reçoit un dénombrement là où un millésime est retenu, via compass_street_rotation
@@ -949,11 +983,21 @@ with restricted as (
   from pg_class c
   join pg_namespace n on n.oid = c.relnamespace
   where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity
-    and exists (
-      select 1 from pg_policy p
-       where p.polrelid = c.oid
-         and p.polcmd in ('r', '*')
-         and coalesce(pg_get_expr(p.polqual, p.polrelid), '') <> 'true')
+    -- Deux facons d'etre restreinte, et la seconde manquait — w1-observabilite (#72).
+    and (
+      -- (a) une politique SELECT existe et retire des lignes.
+      exists (
+        select 1 from pg_policy p
+         where p.polrelid = c.oid
+           and p.polcmd in ('r', '*')
+           and coalesce(pg_get_expr(p.polqual, p.polrelid), '') <> 'true')
+      -- (b) RLS est active et AUCUNE politique SELECT n'existe : la table est vide pour tout
+      -- role non privilegie. C'est le cas le plus dur de retrait silencieux, et la population
+      -- d'origine ne le voyait pas — elle exigeait une politique. DIAGNOSTIC.md §37.
+      or not exists (
+        select 1 from pg_policy p
+         where p.polrelid = c.oid and p.polcmd in ('r', '*'))
+    )
 )
 select p.proname, 'recopie le test : lit request.jwt.claims dans son corps' as raison
 from pg_proc p
@@ -970,6 +1014,9 @@ join pg_namespace n on n.oid = p.pronamespace
 join restricted r on p.prosrc ~ ('\y' || r.relname || '\y')
 where n.nspname = 'public'
   and p.proname like 'compass\_%'
+  -- Meme restriction de population que I23 et I24, meme raison : un ecrivain qui rend `void`
+  -- ne decide rien pour un appelant, donc il n'a pas de decision d'appelant a appeler. #72.
+  and p.prorettype <> 'void'::regtype
   and p.prosrc !~ 'compass_caller_is_privileged'
 limit 20;
 
@@ -1239,4 +1286,111 @@ select 'niveau_perturbation', c.niveau_perturbation::text, null, count(*)::bigin
  where c.niveau_perturbation is not null
    and not exists (select 1 from niveau n where n.code = c.niveau_perturbation)
  group by 1, 2, 3
+limit 20;
+
+-- @invariant I39 :: le journal d'usage garde une ligne au-delà de sa rétention
+-- w1-observabilite (#72). Un journal sans date de purge devient un stock, et la
+-- rétention est écrite : 180 jours, la raison en tête de 20260905000001.
+--
+-- POURQUOI UN INVARIANT ET PAS SEULEMENT LA PURGE. `compass_record_question`
+-- purge en ouvrant un seau d'un jour neuf, ce qui est la bonne place — la règle
+-- vit là où la valeur est produite, et une sauvegarde ancienne restaurée dans la
+-- table ne survit pas à l'écriture suivante. Mais cette purge est MUE PAR L'USAGE :
+-- un journal qui cesse d'être écrit cesse d'être purgé et garde ce qu'il avait.
+-- C'est l'état d'aujourd'hui, où le trafic est nul. Cet invariant, lui, tourne
+-- dans la porte quotidienne et ne dépend de personne.
+--
+-- Il lit `question_tally_retention_days()`, jamais le nombre : deux endroits qui
+-- portent 180 sont deux rétentions, et c'est la faute que §31 a coûtée sur les
+-- seuils de cadence.
+--
+-- CE QU'IL NE RATTRAPE PAS : il voit une ligne trop vieille, jamais une ligne qui
+-- n'aurait pas dû être écrite. Un seau écrit aujourd'hui avec un contenu fautif
+-- est dans sa fenêtre et passe — c'est le travail de I40.
+select t.jour,
+       current_date - t.jour            as age_jours,
+       public.question_tally_retention_days() as retention_jours,
+       t.appelee, t.issue, t.appels
+from public.question_tally t
+where t.jour < current_date - public.question_tally_retention_days()
+limit 20;
+
+-- @invariant I40 :: le journal d'usage porte une colonne hors de son énumération
+-- Le livrable doctrinal de w1-observabilite (#72), et la réponse à « est-ce que ça
+-- survit à un rechargement ». Corriger une donnée n'est pas corriger un défaut :
+-- vider une colonne `ip` ne sert à rien si la colonne existe encore, parce que la
+-- prochaine migration, le prochain import ou la prochaine console la remplira.
+--
+-- La règle porte donc sur la FORME et non sur le contenu. `question_tally` classe
+-- des requêtes, jamais des gens : les colonnes qu'elle a le droit de porter sont
+-- énumérées ici une fois, et toute colonne hors de cette liste est un rouge — que
+-- son nom soit `ip`, `session_id`, `user_id`, `lat`, `troncon_id` ou `heure`.
+--
+-- POURQUOI UNE LISTE BLANCHE ET NON UNE LISTE NOIRE. C'est la mécanique de
+-- `compass_caller_is_privileged()` (§26) : un laissez-passer nominatif refuse par
+-- défaut ce que personne n'a prévu, une liste noire laisse passer le nom auquel
+-- personne n'a pensé. `ip_hash`, `client_key`, `trace_id` ne sont sur aucune liste
+-- noire écrite d'avance et sont exactement ce qui arriverait.
+--
+-- Le second volet vise la granularité : `quartier_code` est une clé étrangère vers
+-- `public.quartier(code)`, dont la population est de 80 lignes. Retirer la
+-- contrainte rendrait la colonne capable de porter un tronçon — 25 094 valeurs,
+-- soit une adresse à quelques portes près. La contrainte EST la granularité, et
+-- une granularité qui ne tient qu'à la discipline de l'écrivain n'en est pas une.
+--
+-- CE QU'IL NE RATTRAPE PAS, et c'est entier : il lit des NOMS et un type. Une
+-- colonne nommée `axe` qui se mettrait à porter un identifiant de session le
+-- ferait sans que rien ici ne bronche — même limite que I22 et I38, celle de toute
+-- règle qui ne remplace pas d'avoir lu. Et il ne couvre que cette table : un
+-- journal parallèle créé ailleurs sort de la population.
+with permises(nom) as (
+  values ('jour'), ('surface'), ('appelee'), ('axe'), ('rayon_max_m'), ('millesime'),
+         ('quartier_code'), ('issue'), ('appels'), ('latence_ms_total'), ('latence_ms_max')
+)
+select a.attname as colonne, format_type(a.atttypid, a.atttypmod) as type,
+       'colonne hors de l''énumération de question_tally' as motif
+from pg_attribute a
+join pg_class c on c.oid = a.attrelid
+join pg_namespace n on n.oid = c.relnamespace
+where n.nspname = 'public' and c.relname = 'question_tally'
+  and a.attnum > 0 and not a.attisdropped
+  and not exists (select 1 from permises p where p.nom = a.attname)
+union all
+select 'quartier_code', 'clé étrangère absente',
+       'question_tally.quartier_code ne référence plus public.quartier : la granularité '
+       'n''est plus une contrainte'
+where not exists (
+  select 1
+  from pg_constraint k
+  join pg_class c  on c.oid = k.conrelid
+  join pg_class cf on cf.oid = k.confrelid
+  where k.contype = 'f' and c.relname = 'question_tally' and cf.relname = 'quartier'
+)
+limit 20;
+
+-- @invariant I41 :: le résumé d'usage rend un quartier sur un effectif d'une seule question
+-- @as anon
+-- La moitié de comportement, en face des deux moitiés structurelles ci-dessus, et
+-- la couverture que I24 exige : `compass_question_summary` lit `question_tally`,
+-- qui porte RLS sans aucune politique de lecture, donc elle entre d'office dans la
+-- population de I23 depuis que celle-ci voit ce cas-là.
+--
+-- La règle : devant un appelant public, un quartier dont l'effectif est UN ne sort
+-- pas. Un seau de quartier à un seul appel est ce que cette table a de plus proche
+-- d'une question unique, et le ticket interdit d'en rendre une. Le reste de la
+-- ligne sort entier et `withheld` le dit — une retenue muette redevient un
+-- silence, ce que §9 a coûté.
+--
+-- 2 n'est pas un seuil réglé : c'est le plus petit effectif qui ne soit pas un
+-- singleton, et il ne bougera pas avec le trafic. Un seuil qui se déplace serait
+-- l'analyse que ce ticket diffère tant qu'il n'y a rien à nourrir.
+--
+-- CE QU'IL NE RATTRAPE PAS : un quartier qui atteint 2 peut rester une personne
+-- qui a demandé deux fois. La règle écarte la ligne unique, elle ne fabrique pas
+-- de l'anonymat par le nombre — à trafic nul, aucune règle ne le peut. Et sur une
+-- table vide il passe sans rien éprouver : la démonstration se fait au sabotage,
+-- en transaction annulée, comme pour I38.
+select s.appelee, s.issue, s.quartier_code, s.appels, s.withheld
+from public.compass_question_summary() s
+where s.quartier_code is not null and s.appels < 2
 limit 20;

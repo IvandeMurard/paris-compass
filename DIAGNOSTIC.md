@@ -1,11 +1,11 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte trente-cinq au 5 septembre 2026**, et la phrase
-est restée fausse trois semaines.
+« quatre défauts, par ordre de gravité » : il en porte trente-sept au 5 septembre 2026**, et la
+phrase est restée fausse trois semaines.
 
 Découpé en deux le 31 août 2026, comme `docs/REPRISE.md` la veille : cette page ne garde que
-**ce qui est encore ouvert**. Les trente défauts clos sont dans
+**ce qui est encore ouvert**. Les trente-deux défauts clos sont dans
 [`DIAGNOSTIC-CORRIGES.md`](./DIAGNOSTIC-CORRIGES.md), **avec leur numérotation d'origine** —
 `docs/REPRISE.md`, `docs/PERIMETRE.md`, `eval/FAILURE_MODES.md` et les tickets y renvoient par
 leur numéro de section.
@@ -58,6 +58,8 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 33 | `verify:mcp` lançait esbuild par `node`, ce qui n'est juste que sur Windows | clos le 2 septembre 2026, prouvé sur le runner le 3 | corrigés |
 | 34 | Une tolérance de comptage appliquée à un quantile — bloquante sur une marche, muette sur ce qui change le chiffre publié | clos le 2 septembre 2026 | corrigés |
 | 35 | Un fourre-tout de mappage : une typologie de terrasse que personne n'a lue devient « permanente » | **ouvert** — trouvé le 5 septembre 2026 par `w1-catalogue`, [#79](https://github.com/IvandeMurard/paris-compass/issues/79) | ici |
+| 36 | `compass_premises_within` ne distingue pas un rayon vide d'un point hors corpus | **ouvert** — trouvé le 5 septembre 2026 par `w1-observabilite`, [#80](https://github.com/IvandeMurard/paris-compass/issues/80) | ici |
+| 37 | `I23` ne voyait pas une table restreinte par l'ABSENCE de politique | clos le 5 septembre 2026, `w1-observabilite` | corrigés |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -371,3 +373,40 @@ rayon, qui interroge un disque et non un rectangle — et qui ne dépend que du 
 
 ---
 
+---
+
+## 36. `compass_premises_within` ne distingue pas un rayon vide d'un point hors corpus — trouvé le 5 septembre 2026
+
+**Le défaut.** C'est §16 sur sa fonction voisine, et c'est la troisième fois que ce dépôt
+constate qu'une leçon apprise sur une fonction n'a pas été reportée sur l'autre — §9 le disait
+déjà en 2026-08 : « la leçon avait été apprise sur une fonction et jamais reportée sur sa
+voisine ».
+
+`compass_scoring_context_within` porte un marqueur `out_of_corpus` depuis `20260825000003` :
+un point qui n'est dans aucun des 80 quartiers reçoit une ligne qui le dit, au lieu de zéro
+ligne qui se lirait « il n'y a rien ici ». `compass_premises_within` — la fonction de la carte
+et de l'outil MCP `find_premises` — n'en a jamais reçu. Un point à Massy y rend **zéro ligne**,
+octet pour octet ce que rend un rayon réellement vide dans Paris.
+
+**Ce qui atténue, et qu'il faut dire pour ne pas surestimer le défaut.** §16 avait examiné
+`find_premises` et l'avait jugé honnête : zéro local BDCom à 18 km de Paris est *vrai*. Le
+défaut de §16 était `score_location`, qui calculait un `footfall` sur ce zéro. Ici, aucun
+chiffre n'est dérivé de l'absence : l'appelant reçoit une liste vide et n'en tire rien.
+
+**Ce qui reste, et pourquoi c'est ouvert.** L'appelant ne peut pas expliquer le vide. « Aucun
+local dans ce rayon » et « ce lieu n'est pas couvert par le recensement » sont deux réponses
+qui n'appellent pas la même suite — la seconde dit qu'il faut une source hors Paris, la
+première ne réclame rien. Un agent qui relaie la première là où la seconde est vraie affirme
+que Massy est un désert commercial.
+
+**Contourné pour le journal, pas corrigé pour l'appelant.** `compass_record_question`
+(`20260905000001`) résout déjà le quartier du point qu'on lui donne : elle sait donc, et elle
+requalifie un `vide` sans quartier en `hors_corpus`. Le journal ne confond pas les deux. **Ce
+qui reste ouvert est le chemin de l'appelant** : la fonction rend toujours zéro ligne sans rien
+dire, et la corriger est un **changement de type de retour** — `drop function` puis `create`,
+comme `20260825000003` a dû le faire — donc un chantier à part entière avec son propre
+invariant de comportement.
+
+*Mesuré le 5 septembre 2026 :* démontré dans l'acte 5 de `npm.cmd run eval:sabotage`, où un
+point à (48,70 · 2,20) écrit `vide` par son appelant ressort `hors_corpus` dans
+`question_tally`, quartier nul.

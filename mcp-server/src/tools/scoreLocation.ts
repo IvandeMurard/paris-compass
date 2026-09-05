@@ -47,7 +47,7 @@ export function registerScoreLocation(server: McpServer): void {
       inputSchema: inputShape,
     },
     async ({ lat, lng, radius_m, vintage_year }) => {
-      const { scores, failures } = await scorePoint(lat, lng, radius_m, vintage_year)
+      const { scores, failures } = await scorePoint(lat, lng, radius_m, vintage_year, "score_location")
       return {
         content: [
           {

@@ -531,3 +531,116 @@ y corriger.
 Le contournement, quand on est dans Git Bash : appeler le script directement, sans passer par
 npm — `npx tsx scripts/porte/signal.ts --corps … --titre … --label …`. Ne concerne que les
 scripts qui prennent des drapeaux : `porte:signal`, `porte:rapport`, `mcp:paquet --registre`.
+
+## Une fonction `STABLE` ne peut pas écrire — mais elle peut appeler une fonction qui écrit — 5 septembre 2026
+
+Mesuré sur `dbefhvmyfmmhjeetdddu` en montant le journal des questions (`w1-observabilite`, #72).
+Les deux moitiés comptent, et c'est la seconde qui débloque.
+
+```
+STABLE, insert direct dans le corps   → ERREUR : INSERT is not allowed in a non-volatile function
+STABLE → perform d'une fonction VOLATILE qui insère → OK, la ligne est écrite
+```
+
+**La volatilité n'est pas transitive.** Postgres pose le drapeau « lecture seule » de SPI par
+fonction, à partir de sa propre `provolatile` ; une fonction `VOLATILE` appelée depuis une
+`STABLE` retrouve le droit d'écrire dans son propre cadre.
+
+**Ce que ça évite, et c'est tout l'intérêt.** Les quatre fonctions de rayon sont
+`stable parallel safe`, et leurs budgets — `DIAGNOSTIC.md` §27 à §29, deux jours de mesures —
+tiennent à leurs plans. Les passer `volatile` pour qu'elles journalisent aurait été le geste
+évident et il aurait fallu tout remesurer. Elles restent `STABLE` et journalisent quand même.
+
+**Deuxième mesure, le même jour, et elle change la garde.** Dans une transaction `READ ONLY` —
+ce que PostgREST ouvre sur un `GET` — l'écriture est refusée. Un bloc
+`begin ... exception when others then null; end` **autour de l'insertion, dans la fonction qui
+écrit**, avale le refus : la réponse sort intacte et c'est la ligne de journal qui se perd.
+Vérifié dans les deux sens. La garde vit chez l'écrivain, une seule fois, plutôt que chez chaque
+appelant.
+
+**Ce que ça ne rattrape pas :** un plan parallèle. Une fonction `parallel safe` exécutée dans un
+worker ne peut ni écrire ni ouvrir de sous-transaction, donc pas même attraper l'erreur. En
+pratique l'appel PostgREST est planifié seul et l'appel au journal, qui passe par une fonction
+`VOLATILE`, n'est de toute façon jamais parallélisé — mais ce n'est pas une garantie écrite
+quelque part, c'est une propriété du planificateur.
+
+
+## Un `case` ne se convertit pas tout seul vers un enum, un littéral si — 5 septembre 2026
+
+Même journée, même chantier, et le défaut a survécu à une relecture parce qu'il ressemble à du
+code qui marche.
+
+```sql
+perform f('rpc', 'compass_premises_within', 'retenue_licence', ...);              -- passe
+perform f('rpc', 'compass_premises_within',
+          case when v = 0 then 'vide' else 'repondu' end, ...);                   -- ECHOUE
+```
+
+Un littéral nu reste de type `unknown`, et Postgres le résout vers l'enum sans rien dire. Un
+`case` n'est pas un littéral : ses branches sont d'abord résolues entre elles, il sort en `text`,
+et `text -> enum` n'est pas une conversion implicite. La résolution de fonction échoue alors sur
+un message qui montre une signature presque juste :
+
+```
+function public.compass_record_question(unknown, unknown, text, double precision,
+        double precision, double precision, smallint, unknown) does not exist
+```
+
+**Ce qui rend le piège coûteux, c'est quel chemin il casse.** Les deux branches de retenue
+passaient un littéral et fonctionnaient ; c'est le **chemin nominal** — la recherche ordinaire
+qui aboutit — qui levait. Un point hors corpus et un millésime retenu répondaient pendant qu'une
+requête normale échouait, ce qui est l'inverse de l'ordre dans lequel on cherche.
+
+Trouvé par `npm.cmd run eval`, cinq minutes après le début du bras A, et non par une relecture :
+la migration s'était appliquée sans une plainte, parce que plpgsql ne résout ses appels qu'à
+l'exécution. Correctif : `(case ... end)::public.question_outcome`. Migration `20260905000002`.
+
+## PostgREST choisit son mode de transaction sur la volatilité de la fonction, même en POST — 5 septembre 2026
+
+**Une fonction `STABLE` appelée par PostgREST tourne dans une transaction `READ ONLY`**, et
+donc ne peut rien écrire — pas même par une fonction `VOLATILE` intermédiaire, contrairement à
+ce qui marche sur une connexion directe (piège précédent). Le mode n'est pas décidé par le verbe
+HTTP : un `POST /rpc/f` sur une fonction `STABLE` est en lecture seule.
+
+Mesuré sur `dbefhvmyfmmhjeetdddu`, deux sondes jetables identiques appelées avec la vraie clé
+publiable :
+
+| Volatilité de la fonction | `current_setting('transaction_read_only')` |
+| --- | --- |
+| `STABLE` | **`on`** |
+| `VOLATILE` | `off` |
+
+**Ce qui a rendu ça coûteux, et c'est le §32 une fois de plus.** La preuve d'origine avait été
+prise par le pilote `pg`, donc sur le chemin **privilégié**, où la fonction `VOLATILE` appelée
+depuis une `STABLE` écrit bel et bien. Le chemin d'un visiteur n'avait pas été joué. Et le
+symptôme était **muet** : la garde `exception when others` de l'écrivain avalait le refus, la
+réponse sortait intacte, la table restait vide — c'est-à-dire exactement ce à quoi ressemble un
+produit sans trafic, ce que celui-ci est par ailleurs. Trouvé en appelant le produit comme un
+visiteur, trois appels avec la vraie clé, et non par une relecture.
+
+**La sortie est de rendre la fonction `VOLATILE`**, ce qui impose `PARALLEL UNSAFE` — une
+fonction qui écrit ne peut pas tourner dans un worker. Remesuré aussitôt sur le bras E : les
+pages ne bougent pas d'une unité (`compass_premises_within` 92 147, `compass_scoring_context_within`
+86 083, identiques à avant), parce que ces fonctions sont en plpgsql, jamais inlinées, et que
+leurs instructions internes sont planifiées pour elles-mêmes. Ce que la volatilité retire est
+autre chose : **PostgREST refuse désormais un `GET` sur ces fonctions** (405). Aucun appelant
+n'en fait — `supabase-js` poste par défaut — mais c'est une promesse d'API retirée.
+
+
+## PostgREST ne relit pas le catalogue tout seul : `notify pgrst, 'reload schema'` — 5 septembre 2026
+
+Payé deux fois dans la même heure, sous deux déguisements.
+
+- Une fonction **créée** puis appelée aussitôt rend **404 `PGRST202`**, avec un message qui
+  affirme qu'elle n'existe pas et suggère une fonction voisine. Elle existe : c'est le cache de
+  schéma de PostgREST qui ne l'a pas vue.
+- Une fonction **modifiée** — ici sa volatilité — continue d'être servie **avec l'ancienne
+  définition**. C'est le cas dangereux : rien n'échoue, l'API répond 200, et le comportement
+  reste celui d'avant la migration. Une migration appliquée n'est donc pas une migration servie.
+
+```sql
+notify pgrst, 'reload schema';   -- en fin de toute migration qui touche une signature,
+                                 -- une volatilité ou un droit d'exécution
+```
+
+Compter quelques secondes avant de vérifier. `supabase db push` ne l'émet pas.
