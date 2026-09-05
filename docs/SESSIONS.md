@@ -155,7 +155,7 @@ fautive.
 
 <!-- BEGIN sessions -- généré par `npm.cmd run sessions`, ne pas éditer à la main -->
 
-*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 03/09/2026.*
+*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 05/09/2026.*
 
 | # | Ticket | Issue | État | Prio | Modèle |
 | --- | --- | --- | --- | --- | --- |
@@ -176,7 +176,7 @@ fautive.
 | ~~15~~ | ~~`w1-cadence`~~ | [#70](https://github.com/IvandeMurard/paris-compass/issues/70) | **fait** | P1 | Opus 5 |
 | ~~16~~ | ~~`w1-porte-planifiee`~~ | [#71](https://github.com/IvandeMurard/paris-compass/issues/71) | **fait** | P1 | Opus 5 |
 | 17 | `w1-observabilite` | [#72](https://github.com/IvandeMurard/paris-compass/issues/72) | ouvert | P1 | Opus 5 |
-| 18 | `w1-catalogue` | [#73](https://github.com/IvandeMurard/paris-compass/issues/73) | ouvert | P1 | Opus 5 |
+| ~~18~~ | ~~`w1-catalogue`~~ | [#73](https://github.com/IvandeMurard/paris-compass/issues/73) | **fait** | P1 | Opus 5 |
 | 19 | `w1-ppri` | [#13](https://github.com/IvandeMurard/paris-compass/issues/13) | ouvert | P1 | Opus 5 |
 | ~~20~~ | ~~`w1-dia`~~ | [#12](https://github.com/IvandeMurard/paris-compass/issues/12) | **fait** | P1 | Opus 5 |
 
