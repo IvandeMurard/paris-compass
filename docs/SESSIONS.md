@@ -100,22 +100,14 @@ Avant de pousser, les portes — dans cet ordre, et ne pousse pas sur un rouge :
     npm.cmd run verify:mcp     # si tu as touché src/core/ ou mcp-server/
     npm.cmd run build          # et build:dev après toute montée de vite
 
-verify:mcp exerce les six outils MCP contre le distant : inventaire, provenance
-par couche, chemin anonyme, modes de panne. Il rend "panne" et non "échec" quand
-un miroir Overpass est indisponible — ça n'est pas un rouge. Il rend "défaut" sur
-les défauts déjà consignés, et passe au ROUGE si l'un d'eux disparaît : c'est
-voulu, ça veut dire qu'il faut fermer l'issue et mettre à jour DIAGNOSTIC.md.
+Un rouge que tu laisses derrière toi réveillera quelqu'un demain matin : les
+mêmes portes tournent seules chaque matin. CLAUDE.md dit comment les lire — une
+panne amont n'est pas un échec, et cette distinction se corrige dans le bras,
+jamais dans le rapport.
 
-Ces portes tournent aussi toutes seules, tous les matins a 07:29 UTC, sur
-.github/workflows/porte.yml : dix bras, un rouge ouvre une issue porte-rouge,
-une panne amont n'en ouvre pas. Consequence pour toi : un rouge que tu laisses
-derriere toi reveillera quelqu'un demain matin.
-
-Puis lance npm.cmd run sessions et commite ce qu'il change, et termine par
-npm.cmd run sessions:check : il recoupe la table committee a l'etat GitHub et
-sort en 1 si elle a derive. Si tu as touche a l'ordre, au modele ou aux
-consignes d'une session, c'est dans scripts/sessions.ts pour les deux premiers,
-dans docs/SESSIONS.md hors du bloc genere pour la troisieme.
+Puis npm.cmd run sessions, commite ce qu'il change, et termine par
+sessions:check. L'ordre et le modele se changent dans scripts/sessions.ts, les
+consignes d'une session dans docs/SESSIONS.md hors du bloc genere.
 
 Une source de donnees rejoint src/services/opendata/sources.ts le jour ou un
 ECRAN la lit, pas le jour ou elle est chargee. Si ton ticket met une source a
