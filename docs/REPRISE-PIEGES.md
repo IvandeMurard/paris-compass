@@ -473,3 +473,38 @@ regarder si l'endpoint la publie**. Trois des onze sondes ne vérifient qu'une j
 elles le disent — c'est moins que ce qu'on voudrait, et c'est ce qui est vrai.
 
 ---
+
+## Poser une cadence ne recharge rien : le trou entre la déclaration et la première occurrence — 5 septembre 2026
+
+**Ajouter un `cron` pour une source déjà chargée à la main ne remet pas son âge à zéro**, et le
+seuil compte ce délai comme du retard — à juste titre, puisque rien n'a vérifié la source
+pendant ce temps-là.
+
+Mesuré sur `chantiers`. Le créneau `- cron: "7 2 * * 2"` (mardi 02:07 UTC) est arrivé sur `main`
+avec [`3dfea1d`](https://github.com/IvandeMurard/paris-compass/commit/3dfea1d), **le mardi
+1er septembre à 08:14 UTC** — six heures après le créneau de ce mardi-là. Première occurrence
+possible : **mardi 8 septembre**. Entre-temps la copie restait celle du chargement manuel du
+25 août :
+
+| | |
+| --- | --- |
+| Tolérance `weekly` | 7 j + 3 de grâce = **10 j** (`scripts/ingest/lib/cadence.ts`) |
+| Dernier chargement | 25 août 2026, `run_by = manual` |
+| Seuil franchi | **4 septembre** |
+| Porte rouge | 5 septembre, [`#78`](https://github.com/IvandeMurard/paris-compass/issues/78) |
+| Premier cron | 8 septembre — la source y serait arrivée à **14 jours d'âge**, après quatre matins rouges |
+
+Recoupé sur `gh run list --workflow=ingestion.yml` : les seize passages depuis le 25 août n'ont
+chargé que `bodacc`, `sirene` et `sirene_stock`. Le cron `chantiers` n'a **jamais** tourné.
+
+**Le geste, le jour où l'on pose une cadence sur une source qui existe déjà** : la recharger une
+fois dans la foulée — `gh workflow run ingestion.yml -f source=<jeu>` — plutôt que d'attendre la
+première occurrence. Sinon la porte dira le retard, et elle aura raison.
+
+**Ce qui ne l'attrape pas, et pourquoi.** `scripts/porte/cadences.ts` démontre qu'un `cron`
+**nomme** chaque source ; il ne dit rien de la date à laquelle ce cron tombera pour la première
+fois, ni de l'âge de la copie ce jour-là. Les deux questions sont différentes, et la seconde
+n'est tenue par rien : c'est `freshness`, a posteriori, qui la pose — quatre matins trop tard.
+Jamais élargir `TOLERANCE_DAYS` pour éteindre ce rouge : le retard était réel.
+
+---
