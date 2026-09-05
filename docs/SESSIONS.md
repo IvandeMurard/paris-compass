@@ -72,6 +72,14 @@ des ta fermeture. Dis-le moi dans le resume. Une issue que tu ouvres en passant
 suit la meme regle. Si tu prefères que je ferme moi-meme, ne regenere pas : dis
 "table a regenerer apres fermeture" et npm.cmd run sessions:check me le rappellera.
 
+POSER UNE CADENCE NE RECHARGE RIEN. Si tu donnes un cron, un seuil ou une
+sonde à quelque chose qui existe déjà, recharge ou mesure une fois dans la
+foulée. Sinon la porte comptera comme du retard le trou entre ta déclaration et
+la première occurrence — et elle aura raison, puisque rien n'a vérifié pendant
+ce temps-là. Mesuré le 5 septembre : le cron chantiers de #70 est arrivé six
+heures après son créneau du mardi, première occurrence possible huit jours plus
+tard, porte rouge quatre matins entre les deux (docs/REPRISE-PIEGES.md).
+
 CORRIGER UNE DONNÉE N'EST PAS CORRIGER UN DÉFAUT. Avant de dire qu'un défaut est
 réglé, réponds à deux questions et écris les réponses :
 
@@ -175,12 +183,13 @@ fautive.
 | ~~14~~ | ~~`w1-licence-derivee`~~ | [#59](https://github.com/IvandeMurard/paris-compass/issues/59) | **fait** | P1 | Opus 5 |
 | ~~15~~ | ~~`w1-cadence`~~ | [#70](https://github.com/IvandeMurard/paris-compass/issues/70) | **fait** | P1 | Opus 5 |
 | ~~16~~ | ~~`w1-porte-planifiee`~~ | [#71](https://github.com/IvandeMurard/paris-compass/issues/71) | **fait** | P1 | Opus 5 |
-| 17 | `w1-observabilite` | [#72](https://github.com/IvandeMurard/paris-compass/issues/72) | ouvert | P1 | Opus 5 |
-| ~~18~~ | ~~`w1-catalogue`~~ | [#73](https://github.com/IvandeMurard/paris-compass/issues/73) | **fait** | P1 | Opus 5 |
-| 19 | `w1-ppri` | [#13](https://github.com/IvandeMurard/paris-compass/issues/13) | ouvert | P1 | Opus 5 |
-| ~~20~~ | ~~`w1-dia`~~ | [#12](https://github.com/IvandeMurard/paris-compass/issues/12) | **fait** | P1 | Opus 5 |
+| 17 | `w1-porte-lue` | [#77](https://github.com/IvandeMurard/paris-compass/issues/77) | ouvert | P1 | Opus 5 |
+| 18 | `w1-observabilite` | [#72](https://github.com/IvandeMurard/paris-compass/issues/72) | ouvert | P1 | Opus 5 |
+| ~~19~~ | ~~`w1-catalogue`~~ | [#73](https://github.com/IvandeMurard/paris-compass/issues/73) | **fait** | P1 | Opus 5 |
+| 20 | `w1-ppri` | [#13](https://github.com/IvandeMurard/paris-compass/issues/13) | ouvert | P1 | Opus 5 |
+| ~~21~~ | ~~`w1-dia`~~ | [#12](https://github.com/IvandeMurard/paris-compass/issues/12) | **fait** | P1 | Opus 5 |
 
-**Hors de cette file : 27 tickets ouverts**, à prendre après la vague 0 — 
+**Hors de cette file : 26 tickets ouverts**, à prendre après la vague 0 — 
 le détail par vague est dans [`PLAN-ACTION-VACANCE.md`](./PLAN-ACTION-VACANCE.md).
 
 <!-- END sessions -->

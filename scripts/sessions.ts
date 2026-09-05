@@ -61,6 +61,11 @@ const ORDER = [
   // #72 ouvre le tuyau d'observabilite avant qu'il y ait du trafic a observer.
   "w1-cadence",
   "w1-porte-planifiee",
+  // #77 avant #72, decide le 5 septembre. #71 et #73 ont bati une alerte qui part
+  // correctement et tombe ou personne ne se tient — #74 est restee deux jours non lue.
+  // Batir un troisieme producteur de signal avant que le premier atteigne quelqu'un
+  // ajoute du bruit a du bruit. Et #72 n'a aucun trafic a observer.
+  "w1-porte-lue",
   "w1-observabilite",
   "w1-catalogue",
   "w1-ppri",
