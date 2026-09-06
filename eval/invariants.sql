@@ -1496,3 +1496,154 @@ where not exists (
     and pg_get_constraintdef(x.oid) ~* 'nan'
 )
 limit 20;
+
+-- ===========================================================================
+-- w6-analyse (#50) — les quatre analyses que le schéma permettait déjà
+-- ===========================================================================
+-- Quatre fonctions naissent d'un coup, et toutes les quatre lisent
+-- `premise_observation` — la SEULE table restreinte parmi celles qu'elles
+-- touchent, mesuré le 6 septembre 2026 : toutes les autres politiques `select`
+-- ont pour qual `true`. Elles entrent donc d'office dans la population de I23 et
+-- de I24, et ces quatre invariants sont ce que I24 exige : un test `@as anon`
+-- qui APPELLE chacune. Une mention en commentaire ne vaut pas couverture.
+--
+-- La forme suit I25/I26 plutôt que de s'inventer : un invariant qui vérifie
+-- qu'on ne divulgue pas, un qui vérifie qu'on ne retient pas trop. Une version
+-- qui retiendrait tout satisfait le premier et fait échouer le second.
+
+-- @invariant I43 :: un appelant anonyme reçoit une matrice de transition dérivée d'un millésime retenu
+-- @as anon
+-- §6.1. La variante la plus simple à écrire et la plus facile à rater, parce que
+-- la bonne réponse ici est « rien, et voici pourquoi » plutôt qu'un nombre.
+--
+-- UNE TRANSITION DÉRIVE DE DEUX MILLÉSIMES, et un seul des trois est
+-- redistribuable. Les trois couples possibles — 2017→2020, 2017→2023, 2020→2023 —
+-- contiennent donc tous un millésime retenu, et il n'existe AUCUN couple servable
+-- à un appelant anonyme aujourd'hui. Ce n'est pas un défaut de la fonction, c'est
+-- l'état de la licence APUR ; le jour où elle répond, ce même invariant devient
+-- la garde qui empêche 2017 de sortir si seule 2020 a été autorisée.
+--
+-- Mesuré le 6 septembre 2026, 41 rue Berger (48,86197 / 2,34306), 150 m,
+-- 2020→2023 : appelant privilégié 14 couples de métiers dont 9 changements ;
+-- appelant anonyme UNE ligne, `withheld = true`, aucune colonne de contenu.
+select t.from_niv18, t.to_niv18, t.premises, t.withheld
+from public.compass_activity_transitions(48.8619711, 2.3430585, 150, 2020::smallint, 2023::smallint) t
+where t.withheld is distinct from true
+   or t.from_niv18 is not null or t.to_niv18 is not null
+   or t.from_label is not null or t.to_label is not null
+   or t.premises is not null
+limit 20;
+
+-- @invariant I44 :: un appelant anonyme reçoit un dénombrement de voie issu d'un millésime retenu
+-- @as anon
+-- §6.3, et c'est I25 transposé d'un tronçon à une voie — délibérément, parce que
+-- les deux fonctions répondent à la même question à deux grains et qu'un appelant
+-- ne doit pas avoir deux conventions à apprendre.
+--
+-- Deux exigences, la seconde étant celle qui se saute :
+--   un millésime retenu sort comme UNE ligne marquée, sans voie ni dénombrement ;
+--   un millésime rendu dont le PRÉCÉDENT est retenu porte `changed_since_previous`
+--     NUL — « ce qui a changé depuis 2020 » est un fait sur 2020, et répondre 0
+--     là est le zéro fabriqué de DIAGNOSTIC.md §19.
+--
+-- Mesuré le 6 septembre 2026, 41 rue Berger, 150 m : appelant privilégié, les
+-- trois millésimes sur 8 voies ; appelant anonyme, deux lignes marquées (2017,
+-- 2020) et 2023 servi avec `changed_since_previous` nul.
+with vintage as (
+  select v.year,
+         v.publicly_redistributable                             as odbl,
+         lag(v.year) over (order by v.year)                     as previous_year,
+         lag(v.publicly_redistributable) over (order by v.year) as previous_odbl
+  from public.bdcom_vintage v
+)
+select r.vintage_year, r.withheld, r.voie_id, r.premises, r.changed_since_previous
+from public.compass_voie_rotation(48.8619711, 2.3430585, 150) r
+join vintage vi on vi.year = r.vintage_year
+where case
+  when not vi.odbl then
+    r.withheld is distinct from true
+    or r.voie_id is not null or r.voie_name is not null or r.segments is not null
+    or r.premises is not null or r.vacant is not null
+    or r.changed_since_previous is not null
+  else
+    r.changed_since_previous is not null
+    and (vi.previous_year is null or not coalesce(vi.previous_odbl, false))
+end
+limit 20;
+
+-- @invariant I45 :: une retenue excessive sur la voie, ou un vide réel rendu comme un fait
+-- @as anon
+-- Le miroir de I44, et la moitié qui manquerait si on ne l'écrivait pas : retenir
+-- trop est une faute aussi. Le millésime ODbL doit sortir avec ses voies et ses
+-- dénombrements, et un rayon réellement vide ne doit produire aucune ligne de
+-- contenu — jamais une ligne à zéro, qui affirmerait une rue sans commerce.
+--
+-- Comme I26, le marqueur de retenue ne dépend pas du rayon : à 1 m sur Châtelet
+-- un appelant anonyme reçoit quand même les deux lignes marquées 2017 et 2020,
+-- qui n'affirment rien sur le lieu, et zéro ligne de contenu.
+select * from (
+  select 'millésime ODbL retenu ou vidé'::text as probleme, v.year::text as detail
+  from public.bdcom_vintage v
+  where v.publicly_redistributable
+    and not exists (
+      select 1 from public.compass_voie_rotation(48.8619711, 2.3430585, 150) r
+      where r.vintage_year = v.year
+        and r.withheld is not true
+        and r.voie_id is not null
+        and r.premises > 0)
+  union all
+  select 'contenu rendu sur un rayon réellement vide', r.vintage_year::text
+  from public.compass_voie_rotation(48.8566, 2.3522, 1) r
+  where r.withheld is not true
+) x
+limit 20;
+
+-- @invariant I46 :: un prix ou une part par métier sort d'un millésime retenu, ou publie un effectif sous le seuil
+-- @as anon
+-- §6.4 et §6.5 dans un seul invariant, parce que c'est une seule règle : le PRIX
+-- et les AVIS viennent de BODACC et sont ouverts, le MÉTIER vient de BDCom et
+-- peut être retenu. Servir un prix sans son métier répondrait à une autre
+-- question ; c'est donc le millésime du métier qui gouverne la ligne entière.
+--
+-- Sur le millésime 2023, ODbL, les deux fonctions servent un appelant anonyme —
+-- et c'est voulu : ce sont les premières analyses de cette famille qu'un visiteur
+-- reçoit vraiment. La garde porte alors sur le SEUIL : une médiane ou une part
+-- calculée sous `compass_survival_min_cohort()` décrirait le hasard autant que le
+-- métier, et le seuil est une colonne de la réponse plutôt qu'une convention.
+--
+-- Demandé sur 2017, les deux doivent rendre une ligne marquée et rien d'autre.
+-- Mesuré le 6 septembre 2026, 41 rue Berger : sur 2023, 6 métiers dont 3 servis
+-- et 3 sous le seuil à 800 m ; quartier des Halles, 6 métiers servis, part de
+-- ventes de 11,2 % à 32,2 %. Sur 2017, une ligne `withheld` de chaque côté.
+select * from (
+  select 'prix servi sur un millésime retenu'::text as probleme,
+         p.activity_label as detail
+  from public.compass_price_by_activity(48.8619711, 2.3430585, 800, 2017::smallint) p
+  where p.withheld is distinct from true
+     or p.activity_niv18 is not null or p.sales_n is not null
+     or p.median_price_eur is not null
+  union all
+  select 'part servie sur un millésime retenu', s.activity_label
+  from public.compass_sales_vs_collective(48.8619711, 2.3430585, 2017::smallint) s
+  where s.withheld is distinct from true
+     or s.activity_niv18 is not null or s.sales_n is not null
+     or s.sales_share is not null
+  union all
+  select 'médiane publiée sous le seuil', p.activity_label
+  from public.compass_price_by_activity(48.8619711, 2.3430585, 800) p
+  where p.median_price_eur is not null and p.sales_n < public.compass_survival_min_cohort()
+  union all
+  select 'part publiée sous le seuil', s.activity_label
+  from public.compass_sales_vs_collective(48.8619711, 2.3430585) s
+  where s.sales_share is not null and s.notices_n < public.compass_survival_min_cohort()
+  union all
+  -- Le contre-test : retenir tout satisferait les quatre clauses ci-dessus.
+  select 'millésime ODbL entièrement retenu', '2023'
+  where not exists (
+    select 1 from public.compass_price_by_activity(48.8619711, 2.3430585, 800) p
+    where p.withheld is not true and p.sales_n > 0)
+     or not exists (
+    select 1 from public.compass_sales_vs_collective(48.8619711, 2.3430585) s
+    where s.withheld is not true and s.notices_n > 0)
+) x
+limit 20;

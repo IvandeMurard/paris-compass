@@ -1,7 +1,7 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte trente-neuf au 6 septembre 2026**, et la
+« quatre défauts, par ordre de gravité » : il en porte quarante et un au 6 septembre 2026**, et la
 phrase est restée fausse trois semaines.
 
 Découpé en deux le 31 août 2026, comme `docs/REPRISE.md` la veille : cette page ne garde que
@@ -62,6 +62,8 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 37 | `I23` ne voyait pas une table restreinte par l'ABSENCE de politique | clos le 5 septembre 2026, `w1-observabilite` | corrigés |
 | 38 | Une absence de coordonnée rendue comme une coordonnée — quinze `POINT(NaN NaN)`, et aucune règle derrière | clos le 5 septembre 2026, `20260905000006` et `I42` | corrigés |
 | 39 | Deux migrations réécrites après leur application — le distant porte deux commentaires que le dépôt n'annonce plus | **ouvert** — trouvé le 6 septembre 2026 par `w1-ledger`, [#83](https://github.com/IvandeMurard/paris-compass/issues/83) | ici |
+| 40 | Quatre colonnes de texte BODACC portent de l'UTF-8 doublement encodé — 19 natures de jugement sont des doublons | **ouvert** — trouvé le 6 septembre 2026 par `w6-analyse`, [#88](https://github.com/IvandeMurard/paris-compass/issues/88) | ici |
+| 41 | Les quatre prix par métier du `README` ne sont reproductibles par aucune méthode | **ouvert** — trouvé le 6 septembre 2026 par `w6-analyse`, [#89](https://github.com/IvandeMurard/paris-compass/issues/89), décision Ivan | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -467,3 +469,96 @@ une poussée sur une base vivante pour deux phrases de commentaire.
 daté, pas un document qu'on entretient. La réécrire — même pour appliquer une règle du dépôt,
 même sans toucher au SQL — fait diverger silencieusement ce qui est déployé de ce qui est
 versionné. Écrit dans `docs/REPRISE.md`, « Ce qu'il ne faut pas faire ».
+
+## 40. Quatre colonnes de texte BODACC portent de l'UTF-8 doublement encodé — trouvé le 6 septembre 2026 par `w6-analyse`
+
+Mesuré le 6 septembre 2026 sur `dbefhvmyfmmhjeetdddu`, en instruisant §6.5 :
+
+| Colonne | Lignes portant `Ã` | Population |
+| --- | ---: | ---: |
+| `bodacc_judgment.nature` | **231** | 120 719 |
+| `bodacc_judgment.family` | **175** | 120 719 |
+| `bodacc_establishment.activity` | **210** | 165 000 environ |
+| `bodacc_announcement.trader_name` | **74** | 164 035 |
+
+C'est le motif classique : de l'UTF-8 lu comme du Latin-1 puis ré-encodé en UTF-8, si bien que
+`é` devient `Ã©`. Il vient de la source ou du chargeur, pas de l'affichage — la valeur est
+fausse **en base**, et un `select` la rend fausse à tout appelant.
+
+**Le coût réel n'est pas l'accent, c'est la CATÉGORIE.** `nature` porte **79 valeurs
+distinctes, dont 19 sont des doublons doublement encodés** de valeurs déjà présentes :
+« Jugement prononçant la résolution du plan de redressement et la liquidation judiciaire »
+(937 lignes) et « Jugement prononÃ§ant la rÃ©solution… » (3 lignes) sont deux catégories pour
+un seul fait. Toute lecture qui grouperait sur cette colonne compterait 79 natures là où il y
+en a 60, et répartirait le même jugement sur deux lignes.
+
+**C'est la raison mesurée pour laquelle `compass_sales_vs_collective` n'est pas nommée
+« ventes contre liquidations »**, comme le ticket le demandait. L'axe servi est l'énumération
+`bodacc_announcement.family` — `vente` contre `collective` — parce qu'elle est typée par le
+schéma. Restreindre `collective` aux seules liquidations exigerait de lire `nature`, donc de
+classer sur du texte libre : c'est le geste que
+[`#61`](https://github.com/IvandeMurard/paris-compass/issues/61) a refusé pour les pannes
+amont, et cette colonne montre pourquoi. Un deuxième piège l'accompagne, indépendant de
+l'encodage : « Liste des créances nées après le jugement d'ouverture d'une procédure de
+liquidation judiciaire » **contient le mot sans être une liquidation**. Un `ilike
+'%liquidation%'` compterait des listes de créances comme des morts d'entreprise.
+
+**Ce qui n'est pas fait, et pourquoi ce défaut reste ouvert.** Réparer les lignes est
+possible — la transformation est déterministe. Mais rien n'empêche le prochain chargement de
+les réintroduire, et la règle du dépôt est explicite : corriger une donnée n'est pas corriger
+un défaut. Le livrable serait un invariant recensant les colonnes de texte BODACC et refusant
+`Ã`, plus le point du chargeur où l'encodage se perd — que cette session n'a pas cherché. Suivi
+en [#88](https://github.com/IvandeMurard/paris-compass/issues/88).
+
+**Ce que ça ne dit pas.** 231 sur 120 719 est 0,19 % : le volume est petit, et aucune baseline
+ne l'aurait vu — elles comptent des lignes, et le compte est juste. C'est un défaut de **sens à
+volume constant**, exactement la famille que `I22` et `I38` existent pour attraper sur les
+nomenclatures. Aucune règle ne le couvre aujourd'hui sur BODACC.
+
+
+## 41. Les quatre prix par métier du `README` ne sont reproductibles par aucune méthode — trouvé le 6 septembre 2026 par `w6-analyse`
+
+`README.md` publie quatre prix médians de fonds par métier :
+
+| Food shop | Café / restaurant | Clothing | Personal services |
+| --- | --- | --- | --- |
+| 250 000 € | 220 000 € | 86 000 € | 50 000 € |
+
+**Aucune requête du dépôt ne les produit.** Les deux baselines gelées de
+`eval/baselines/ingestion.json` couvrent la médiane **toutes activités confondues**
+(`prix_median_local_identifiable`, 160 868 €) et sa population (5 942 cessions) — jamais le
+détail par métier. `note_prix` décrit la méthode en prose — groupé sur le code d'activité
+BDCom, restreint aux cessions dont le local est seul à son numéro — sans porter le SQL.
+
+Reconstruites le 6 septembre 2026 sur le distant, selon cette méthode, **quatre variantes du
+millésime dont on lit le métier** :
+
+| Métier (niv18) | 2023 | dernier millésime observé | 2017 | `README` |
+| --- | ---: | ---: | ---: | ---: |
+| Alimentaire | 230 000 | 220 000 | 230 000 | **250 000** |
+| Café et Restaurant | 210 000 | 210 000 | 220 000 | **220 000** |
+| Equipement de la personne | 120 000 | 120 000 | 105 000 | **86 000** |
+| Service aux particuliers | 50 000 | 50 000 | 50 000 | **50 000** |
+
+Aucune colonne ne reproduit les quatre. Le millésime 2017 en rend deux sur quatre
+(220 000 et 50 000) et manque les deux autres. **86 000 € n'est atteint par aucune variante**,
+ni au grain niv18 ni au grain niv47 — « Habillement » seul, le candidat le plus étroit pour
+« Clothing », mesure **103 100 €** sur 135 cessions.
+
+**Ce que ça veut dire, prudemment.** Ça ne prouve pas que les chiffres étaient faux le jour où
+ils ont été écrits : la méthode réellement employée n'existe nulle part, donc elle n'est pas
+recoupable, et c'est **ça** le défaut. Un chiffre publié dont personne ne peut rejouer le calcul
+ne peut être ni confirmé ni corrigé, et il vieillit sans que rien ne le dise —
+`docs/REPRISE-PIEGES.md` l'avait déjà nommé comme risque en fermant §34 : « les prix par métier
+du `README` ne sont sous aucune baseline. Ils peuvent vieillir en silence, exactement comme la
+médiane l'aurait fait. » Le risque est désormais mesuré.
+
+**Ce qui a été fait, et ce qui ne l'a pas été.** `compass_price_by_activity` (`w6-analyse`,
+#50) rend la médiane par métier avec son effectif, groupée sur le code d'activité BDCom : le
+chiffre devient reproductible, ce qui est la condition préalable pour le corriger. **Le
+`README` n'a pas été modifié** — un chiffre publié est une décision produit, pas l'effet de
+bord d'une migration, et le corriger demande de trancher quel millésime fait foi pour le métier
+d'un local vendu. Ce dernier point n'est pas une évidence : le métier de 2023 est celui d'après
+la vente, celui de 2017 celui d'avant, et les deux répondent à des questions différentes. Suivi
+en [#89](https://github.com/IvandeMurard/paris-compass/issues/89), qui attend une décision
+d'Ivan avant toute écriture.

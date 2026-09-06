@@ -814,3 +814,69 @@ ledger n'en a aucun. Sans le les retirer d'abord, **les 53 lignes divergeaient i
 un runner** — un verdict qui dépend du système d'exploitation, ce que `DIAGNOSTIC.md` §33 a déjà
 coûté une fois sur `esbuild`. Troisième occurrence de ce piège dans ce fichier ; c'est
 maintenant un réflexe à avoir avant d'écrire la première comparaison, pas après.
+
+## `ST_MakePoint` seul rend un point SANS SRID, et `ST_Contains` répond faux sans se plaindre — 6 septembre 2026
+
+Rencontré en instruisant `w6-analyse` (#50), et il coûte d'autant plus qu'il ne ressemble pas à
+une erreur : **la requête réussit, elle rend simplement zéro ligne.**
+
+```sql
+-- Zéro ligne. Le point est pourtant au centre du quartier des Halles.
+select q.id from public.quartier q
+where ST_Contains(q.geom::geometry, ST_MakePoint(2.34490, 48.86229));
+
+-- Une ligne, la bonne. La seule différence est le passage par geography.
+select q.id from public.quartier q
+where ST_Contains(q.geom::geometry, ST_MakePoint(2.34490, 48.86229)::geography::geometry);
+```
+
+`ST_MakePoint` rend une géométrie de **SRID 0**. `quartier.geom` est en 4326. Comparer deux
+SRID différents ne lève pas : PostGIS répond `false`. Le cast en `geography` pose le 4326, et
+c'est pour ça que toutes les fonctions du dépôt écrivent
+`v_point := ST_MakePoint(p_lng, p_lat)::geography` **avant** de s'en servir — la ligne existe
+dans `compass_survival_by_trade`, `compass_street_rotation` et les autres, et elle n'est pas
+décorative.
+
+**Le contrôle qui départage en une requête**, quand un prédicat géographique rend un vide
+suspect : `ST_Distance` ne se tait pas, lui.
+
+```sql
+select q.name, ST_Distance(q.geom, ST_MakePoint(2.34490, 48.86229)::geography) d
+from public.quartier q order by d limit 3;   -- Halles, 0
+```
+
+Une distance nulle avec un `ST_Contains` faux ne laisse qu'une explication, et ce n'est pas la
+géométrie.
+
+**Et l'ordre des arguments est l'autre moitié du piège** : `ST_MakePoint(lng, lat)`, la
+longitude **d'abord**. Inversé, le point tombe en Somalie, `ST_Contains` rend `false` de la même
+façon, et les deux fautes produisent le même symptôme — zéro ligne, aucune erreur. Vérifier le
+SRID avant de soupçonner l'ordre : le second se voit à `ST_Distance`, qui rend alors des
+millions de mètres au lieu de zéro.
+
+
+## Un `cross join` implicite après un `join` explicite est une erreur de syntaxe, pas un plan lent — 6 septembre 2026
+
+Même session. Écrit d'instinct, refusé par le planificateur :
+
+```sql
+-- ERREUR : invalid reference to FROM-clause entry for table "p"
+select ... from public.premise_location l, p
+join public.premise_observation o on o.location_id = l.id
+where ST_DWithin(l.geom, p.g, 250);
+```
+
+La virgule et le `join` explicite ne se mélangent pas dans cet ordre : `p` n'est pas visible
+depuis la clause `on` du `join`, qui est évaluée avant. La forme qui marche met le `cross join`
+en premier, explicitement :
+
+```sql
+select ... from public.premise_location l
+cross join p
+join public.premise_observation o on o.location_id = l.id
+where ST_DWithin(l.geom, p.g, 250);
+```
+
+Sans conséquence sur le résultat une fois corrigé — mais le message d'erreur
+(`errorMissingRTE`, `parse_relation.c`) ne nomme pas la cause, et il envoie chercher une faute
+de nom qui n'existe pas.
