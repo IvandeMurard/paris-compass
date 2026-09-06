@@ -4,7 +4,7 @@
 //
 //   npm.cmd run porte:sabotage
 //
-// Six acts, on the model of `eval:sabotage`: a rule nobody plays is a comment, and the rules
+// Seven acts, on the model of `eval:sabotage`: a rule nobody plays is a comment, and the rules
 // here claim things about an arm that does not exist yet and about an outage that has not
 // happened yet. Nothing touches the database and nothing touches a file — the acts run against
 // the real modules with substituted inputs, because a proof that runs a COPY of the check
@@ -30,6 +30,11 @@
 //      then the sharper half: an arm that HAD the escapement and lost it. This is the hole
 //      w1-observabilite-echappement (#81) closes, and #72 measured what falls into it — ten
 //      buckets on a product with no traffic, all at Châtelet, written by the gate itself.
+//   7. UNE MIGRATION POSÉE ET SUIVIE PAR PERSONNE — the remote carrying a schema the
+//      repository does not track. Not a hypothesis: it is 5 September 2026 replayed, when
+//      `20260905000006_geometrie_finie.sql` sat in the ledger for twenty-four hours while
+//      `supabase/migrations/` tracked 52 files, and eleven arms saw nothing because not one
+//      of them compared those two lists — w1-ledger (#82).
 //
 // One more thing is checked in passing, because the repository is public: neither the red nor
 // the outage may carry a database identifier out of the machine.
@@ -53,6 +58,15 @@ import {
   testsImportingClient,
   type Appelant,
 } from "./observabilite"
+import {
+  classifyLedger,
+  demandeUneDecision,
+  estApparie,
+  migrationsSuivies,
+  readDivergencesAdmises,
+  type LedgerRow,
+  type Migration,
+} from "./ledger"
 import {
   classifySources,
   readDeclaredSources,
@@ -510,13 +524,168 @@ function acteSix(): void {
   }
 }
 
-out("Sabotage de la porte planifiée — six actes, aucun accès à la base, aucun fichier écrit")
+
+/**
+ * The 5 September 2026 incident, in the shape the ledger held it.
+ *
+ * Not a strawman and not a fixture invented for the occasion: this is the row that actually sat
+ * on dbefhvmyfmmhjeetdddu for twenty-four hours, with the file present on disk and tracked by
+ * nobody. The statements are abridged — what is being proved here is that the comparison reacts
+ * to a missing FILE, and the body half is proved by the acts below it.
+ */
+const MIGRATION_POSEE: LedgerRow = {
+  version: "20260905000006",
+  name: "geometrie_finie",
+  statements: ["alter table public.premise_location alter column geom drop not null"],
+}
+
+/** The same migration, as git would carry it once somebody committed the file. */
+const MIGRATION_SUIVIE: Migration = {
+  version: "20260905000006",
+  name: "geometrie_finie",
+  path: "supabase/migrations/20260905000006_geometrie_finie.sql",
+  body: "alter table public.premise_location alter column geom drop not null;",
+}
+
+/**
+ * No recorded divergence, for the substituted rows.
+ *
+ * The real `ledger.json` names two migrations of 25 August that these fixtures do not carry,
+ * and handing it a one-row ledger would make both of them orphans — a red the sabotage caused
+ * rather than one it demonstrated. The repository's real table is asserted separately, at the
+ * end of the act, against the real tree.
+ */
+const AUCUNE = {}
+
+function acteSept(): void {
+  out("\nActe 7 — une migration posée sur le distant et suivie par personne, le 5 septembre rejoué")
+
+  // The state the repository is actually in, first: a sabotage played on a tree that is already
+  // red proves nothing, and acts one, four, five and six each open the same way.
+  const suivies = migrationsSuivies()
+  const admises = readDivergencesAdmises()
+  if (suivies.length >= 53) {
+    pass(
+      "état de départ",
+      `${suivies.length} migrations suivies par git, ${Object.keys(admises).length} divergence(s) consignée(s)`,
+    )
+  } else {
+    fail(
+      "état de départ",
+      `${suivies.length} migrations suivies : git ls-files ne rend plus l'arbre, la règle ne mesure rien`,
+    )
+  }
+
+  const sabote = classifyLedger([MIGRATION_POSEE], [], AUCUNE)
+  const manquante = sabote.find((v) => v.version === MIGRATION_POSEE.version)
+  if (manquante?.state === "absent-du-depot" && demandeUneDecision(manquante.state)) {
+    pass(
+      "le fichier retiré du suivi",
+      "passe au rouge et nomme l'identifiant — c'est le rouge qu'on aurait voulu voir le 5 septembre",
+    )
+  } else {
+    fail(
+      "le fichier retiré du suivi",
+      `attendu « absent-du-depot », obtenu « ${manquante?.state ?? "absent"} » : la règle ne voit pas l'incident`,
+    )
+  }
+
+  const remis = classifyLedger([MIGRATION_POSEE], [MIGRATION_SUIVIE], AUCUNE)
+  if (remis.every((v) => estApparie(v.state))) {
+    pass("le fichier remis au suivi", "la porte revient au vert — le rouge venait bien de l'écart")
+  } else {
+    fail(
+      "le fichier remis au suivi",
+      "la porte reste rouge une fois le fichier suivi : le rouge ne venait pas de lui",
+    )
+  }
+
+  // The other direction, and it must NOT wake anybody: a file written and not yet pushed is the
+  // normal state of a session in flight. Adding the two directions into one count would ask for
+  // a decision on the half that does not need one.
+  const enVol = classifyLedger([], [MIGRATION_SUIVIE], AUCUNE)
+  const attente = enVol.find((v) => v.version === MIGRATION_SUIVIE.version)
+  if (attente?.state === "absent-du-ledger" && !demandeUneDecision(attente.state)) {
+    pass("le sens inverse", "une migration écrite et pas encore posée est signalée sans réveiller personne")
+  } else {
+    fail("le sens inverse", `attendu « absent-du-ledger » sans décision, obtenu « ${attente?.state ?? "absent"} »`)
+  }
+
+  // The body half — the part `_cmp-fn.ts` took with it on 26 August, and the reason this arm
+  // goes past the identifiers at all. Same identifier, same name, one word of SQL changed.
+  const corpsChange: Migration = {
+    ...MIGRATION_SUIVIE,
+    body: "alter table public.premise_location alter column geom set not null;",
+  }
+  const diverge = classifyLedger([MIGRATION_POSEE], [corpsChange], AUCUNE)
+  const corpsVu = diverge.find((v) => v.version === MIGRATION_POSEE.version)
+  if (corpsVu?.state === "corps-diverge") {
+    pass("le corps modifié", "même identifiant, corps différent — le bras le voit et imprime les deux empreintes")
+  } else {
+    fail("le corps modifié", `attendu « corps-diverge », obtenu « ${corpsVu?.state ?? "absent"} »`)
+  }
+
+  // And the direction a table of recorded divergences always forgets: a reason that has stopped
+  // describing what is there. Acts one, four, five and six each check the orphan; this one adds
+  // the stale, because `ledger.json` pins fingerprints and prose does not age with them.
+  const perime = classifyLedger([MIGRATION_POSEE], [corpsChange], {
+    [MIGRATION_POSEE.version]: {
+      raison: "Consignée sur un état mesuré, et cet état a changé depuis.",
+      depot: "000000000000",
+      ledger: "000000000000",
+    },
+  })
+  const perimeVu = perime.find((v) => v.version === MIGRATION_POSEE.version)
+  if (perimeVu?.state === "corps-admis-perime") {
+    pass("la raison périmée", "ledger.json ne couvre plus un corps qui a bougé depuis qu'on l'a consigné")
+  } else {
+    fail("la raison périmée", `attendu « corps-admis-perime », obtenu « ${perimeVu?.state ?? "absent"} »`)
+  }
+
+  // The report of a red ledger, built by the SAME module as the gate's — #82 reuses #71 rather
+  // than describing the three blocks a sixth time.
+  const rapport = buildReport(
+    [
+      {
+        name: "ledger 20260905000006",
+        exitCode: EXIT.fail,
+        output:
+          "FAIL  absent-du-depot — « geometrie_finie » est posée sur le distant et aucun fichier " +
+          "suivi par git ne la porte",
+        expected:
+          "committer le fichier de migration manquant, ou dire pourquoi le schéma appliqué " +
+          "n'aura jamais de fichier. Regarder d'abord `git status supabase/migrations/`.",
+      },
+    ],
+    ON,
+    "Ledger de migrations",
+  )
+  if (rapport.decisionRequired && /git status/.test(rapport.markdown)) {
+    pass("compte rendu", "le même que celui de la porte, et il nomme la décision attendue")
+  } else {
+    fail("compte rendu", "le rapport du ledger ne nomme pas la décision attendue")
+  }
+
+  // Played once against the repository as it stands, not only against substituted rows: the
+  // acts above prove the rule reacts, this proves it is pointed at the real tree. The ledger
+  // side is absent by design — this script touches no database — so what is asserted is the
+  // half that needs none: every recorded divergence still names a tracked file.
+  const orphelines = Object.keys(admises).filter((v) => !suivies.some((m) => m.version === v))
+  if (orphelines.length === 0) {
+    pass("le dépôt tel qu'il est", "aucune divergence consignée ne nomme une migration disparue")
+  } else {
+    fail("le dépôt tel qu'il est", `divergence(s) consignée(s) sans fichier suivi : ${orphelines.join(", ")}`)
+  }
+}
+
+out("Sabotage de la porte planifiée — sept actes, aucun accès à la base, aucun fichier écrit")
 acteUn()
 acteDeux()
 acteTrois()
 acteQuatre()
 acteCinq()
 acteSix()
+acteSept()
 
 out("")
 if (failures > 0) {
@@ -526,6 +695,7 @@ if (failures > 0) {
   out(
     "PASS — un bras non planifié rougit, un rouge crie, une panne amont ne crie pas, " +
       "une source sans cadence rougit, une source du catalogue sans vérification rougit, " +
-      "un appelant de PostgREST sans échappement rougit",
+      "un appelant de PostgREST sans échappement rougit, une migration posée et suivie par " +
+      "personne rougit",
   )
 }

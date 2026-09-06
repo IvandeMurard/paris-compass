@@ -25,6 +25,7 @@
     "porte:sabotage": "tsx scripts/porte/sabotage.ts",
     "porte:publie": "tsx scripts/porte/publie.ts",
     "catalogue": "tsx scripts/porte/catalogue-verify.ts",
+    "ledger": "tsx scripts/porte/ledger-verify.ts",
     "freshness": "tsx scripts/ingest/freshness.ts",
     "verify:mcp": "node scripts/verify-mcp.mjs",
     "mcp:paquet": "node scripts/mcp-paquet.mjs",

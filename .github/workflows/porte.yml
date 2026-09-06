@@ -230,6 +230,21 @@ jobs:
           cat "$PORTE/catalogue.log"
           printf 'catalogue\t%s\t%s\n' "$code" "$PORTE/catalogue.log" >> "$PORTE/bras.tsv"
 
+      # Le douzième bras, et le seul qui recoupe le dépôt PAR le distant plutôt que l'un ou
+      # l'autre — w1-ledger (#82). Les onze autres regardent le dépôt ou le distant ; aucun ne
+      # comparait `supabase_migrations.schema_migrations` aux migrations suivies par git, et le
+      # 5 septembre 2026 le distant a porté vingt-quatre heures un schéma que le dépôt ignorait
+      # sans qu'un seul bras puisse le voir. Une requête sur une table de 53 lignes : aucun
+      # balayage, le même ordre de coût que `freshness`. Il porte DATABASE_URL parce que le
+      # ledger vit dans un schéma que la clé publiable n'atteint pas.
+      - name: ledger
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          npm run ledger > "$PORTE/ledger.log" 2>&1 && code=0 || code=$?
+          cat "$PORTE/ledger.log"
+          printf 'ledger\t%s\t%s\n' "$code" "$PORTE/ledger.log" >> "$PORTE/bras.tsv"
+
       # ── Le compte rendu ─────────────────────────────────────────────────────────────────
 
       - name: Compte rendu

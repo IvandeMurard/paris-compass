@@ -1,0 +1,34 @@
+{
+  "_lisez-moi": [
+    "Les migrations dont le corps posé sur le distant differe du fichier suivi par git, et POURQUOI",
+    "— w1-ledger (#82). La regle est dans scripts/porte/ledger.ts, jouee par le bras `npm.cmd run",
+    "ledger` contre le distant et par scripts/porte/ledger.test.ts pour la moitie qui n'a pas besoin",
+    "de base. Une divergence est soit absente d'ici — et le bras rougit —, soit consignee ici avec",
+    "sa raison ET les deux empreintes qu'elle couvre.",
+    "",
+    "Les empreintes sont ce qui empeche cette table d'etre un fourre-tout. Une raison couvre UN etat",
+    "mesure : le jour ou l'un des deux cotes rebouge, l'entree cesse de correspondre et le bras",
+    "rougit en disant lequel a bouge. Une raison sans empreinte serait une excuse a vie.",
+    "",
+    "`empreinte` = douze caracteres hexadecimaux de SHA-256 du corps normalise — espaces reduits,",
+    "`;` traite comme un espace, retours chariot Windows retires. `npm.cmd run ledger` imprime les",
+    "deux valeurs mesurees dans le detail de chaque rouge, il n'y a rien a calculer a la main.",
+    "",
+    "Ce qu'on n'ecrit PAS ici : une divergence qu'on n'a pas expliquee. Un corps different sans",
+    "cause etablie est soit un fichier reecrit apres son application — un fait du passe, qu'on",
+    "consigne —, soit un fichier suivi qui n'est pas celui qui a ete pose — un defaut, qu'on",
+    "corrige. Ranger le second ici serait la complaisance que #71 refuse."
+  ],
+  "corps-diverge": {
+    "20260825000002": {
+      "raison": "Fichier reecrit le 25 aout 2026 APRES son application, par le commit 89aa8ac, qui repasse en anglais les commentaires ecrits en francais — CLAUDE.md le demande. Mesure le 6 septembre 2026, statement par statement : rien d'executable ne differe, la divergence est entierement du commentaire, `--` et le texte du `comment on column public.ingestion_run.run_by`. Le distant porte donc ce commentaire de colonne en francais et le depot l'annonce en anglais. Irreparable par nature : le ledger garde le texte applique ce jour-la, et aucune migration ne peut reecrire une ligne du passe. DIAGNOSTIC.md §39.",
+      "depot": "27336c93b6ad",
+      "ledger": "ef22ff3f99e7"
+    },
+    "20260825000003": {
+      "raison": "Meme commit, meme geste, meme jour — 89aa8ac, le 25 aout 2026. Mesure le 6 septembre 2026 : hors commentaires et hors litteraux, le SQL est identique caractere pour caractere ; ce qui differe est le commentaire de tete, les commentaires `--` a l'interieur du corps plpgsql de `compass_scoring_context_within`, et le texte du `comment on function`. Irreparable pour la meme raison. DIAGNOSTIC.md §39.",
+      "depot": "35bf8d33a0ce",
+      "ledger": "391e44f3d86a"
+    }
+  }
+}
