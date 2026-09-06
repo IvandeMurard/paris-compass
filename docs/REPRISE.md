@@ -366,6 +366,38 @@ refaire sur tout nouveau projet avant `supabase db push`.
 
 ## Décisions qui ne se déduisent pas du code
 
+**Le métier d'un local vendu se lit sur le dernier millésime strictement antérieur à la
+cession.** Tranché par Ivan le 7 septembre 2026, sur `#89`, ouverte par `w6-analyse` (#50).
+
+Les deux options posées — 2017 ou 2023 — étaient fausses pour la même raison. Une cession
+BODACC vend le fonds **existant** : l'acheteur paie pour le commerce en place, son trafic et sa
+renommée, pas pour celui qu'il compte ouvrir. Le métier qui donne son prix est donc celui
+d'**avant**, ce qui écarte 2023. Mais 2017 n'est « avant » que pour une partie des cessions —
+une vente de 2022 a pour prédécesseur le millésime 2020 — et un millésime fixe redeviendrait
+faux le jour où BDCom 2026 arrive. C'est donc une **règle** et non un choix de colonne : elle
+survit au rechargement et à l'arrivée d'un millésime.
+
+**Mesuré le 7 septembre 2026** sur `dbefhvmyfmmhjeetdddu`, sur les 5 964 cessions à prix connu
+dont le local est seul à son numéro : **1 711 (28,7 %) n'ont aucun millésime antérieur** — ce
+sont exactement les ventes de 2015 à 2017 ; **4 091 ont un métier « d'avant » réellement
+observé**, contre 5 149 pour le métier 2023. La règle coûte donc 20,6 % de population, et les
+exclues sont les plus anciennes, soit les moins pertinentes pour un prix d'aujourd'hui.
+**L'écart médian entre le millésime retenu et la vente est de 2 ans** (moyenne 1,96).
+
+**La limite s'écrit plutôt qu'elle ne se masque.** Une cession sans prédécesseur sort de la
+population et est **comptée** — jamais rabattue sur 2017. Et « le métier d'avant » est en
+réalité *le métier au dernier passage BDCom avant la vente* : un local qui change d'occupant
+entre deux millésimes est invisible. C'est une limite de la cadence de BDCom — trois clichés,
+2017, 2020, 2023 — pas de la règle, et c'est le trou que `w3-mapillary` existe pour combler.
+
+**Ce que la décision change pour le produit** : rien sur les jeux de données, tout sur la
+prétention du chiffre. Si le prix vient du trafic et de la renommée du fonds en place, la
+variance à l'intérieur d'un métier est portée par le local et non par le métier. La médiane par
+métier est donc un **ordre de grandeur de catégorie, jamais une valorisation** — et elle sort
+avec son effectif et son écart de fraîcheur. `#89` ajoute un quatrième point à ce titre :
+recouper le libellé d'activité BODACC, qui décrit le fonds au moment de la vente, pour
+**compter les désaccords**. Recouper, jamais grouper : le champ est du texte libre.
+
 **Une session, une branche, une proposition — et `main` refuse la poussée directe.** Tranché
 par Ivan le 6 septembre 2026. C'est l'inverse de la décision du 27 août, et le renversement est
 assumé.

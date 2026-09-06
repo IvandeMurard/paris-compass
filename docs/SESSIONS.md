@@ -68,12 +68,12 @@ avec la session : un défaut trouvé va dans DIAGNOSTIC.md, un chiffre remesuré
 dans le fichier qui le portait, un piège dans docs/REPRISE-PIEGES.md. Ne me résume que
 ce que je ne peux pas lire dans le depot, et ce qui demande une decision.
 
-Puis envoie un recap a la session qui tient la file — SendMessage vers
-paris-compass-1e, ou ListAgents si ce nom a change. N'y mets QUE ce qu'elle doit
-faire et que tu n'as pas fait : issues a fermer ou ouvrir, ordre a changer,
-decision qui attend Ivan, revue due — regarde ton propre diff contre les quatre
-signes de « La revue » dans docs/SESSIONS.md, c'est toi qui les vois en premier.
-Le reste est deja dans le depot, et le lui redire est du bruit.
+Puis poste ton recap en commentaire de l'issue #92, la boite aux lettres de la
+file : son adresse ne change jamais, un nom de session si. N'y mets QUE ce que
+la file doit faire et que tu n'as pas fait : issues a fermer ou ouvrir, ordre a
+changer, decision qui attend Ivan, revue due — regarde ton diff contre les
+quatre signes de « La revue » dans docs/SESSIONS.md, tu les vois en premier.
+Le reste est deja dans le depot, et le redire est du bruit.
 
 L'etat GitHub n'est pas de la prose : la table d'ordre en est DERIVEE. Donc
 ferme l'issue toi-meme quand le "Fait quand" est demontre, avec la demonstration
