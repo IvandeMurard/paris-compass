@@ -65,6 +65,12 @@ avec la session : un défaut trouvé va dans DIAGNOSTIC.md, un chiffre remesuré
 dans le fichier qui le portait, un piège dans docs/REPRISE-PIEGES.md. Ne me résume que
 ce que je ne peux pas lire dans le depot, et ce qui demande une decision.
 
+Puis envoie un recap a la session qui tient la file — SendMessage vers
+paris-compass-1e, ou ListAgents si ce nom a change. N'y mets QUE ce qu'elle doit
+faire et que tu n'as pas fait : issues a fermer ou ouvrir, ordre a changer,
+decision qui attend Ivan. Le reste est deja dans le depot, et le lui redire est
+du bruit.
+
 L'etat GitHub n'est pas de la prose : la table d'ordre en est DERIVEE. Donc
 ferme l'issue toi-meme quand le "Fait quand" est demontre, avec la demonstration
 en commentaire, PUIS regenere la table — dans cet ordre, sinon elle est fausse
@@ -79,19 +85,6 @@ la première occurrence — et elle aura raison, puisque rien n'a vérifié pend
 ce temps-là. Mesuré le 5 septembre : le cron chantiers de #70 est arrivé six
 heures après son créneau du mardi, première occurrence possible huit jours plus
 tard, porte rouge quatre matins entre les deux (docs/REPRISE-PIEGES.md).
-
-CORRIGER UNE DONNÉE N'EST PAS CORRIGER UN DÉFAUT. Avant de dire qu'un défaut est
-réglé, réponds à deux questions et écris les réponses :
-
-  1. Est-ce que ça survit à un rechargement ? Si un chargeur, une migration ou
-     un import peut réintroduire l'état fautif, le correctif est provisoire.
-  2. Est-ce que ça protège un consommateur qui n'existe pas encore ? Une garde
-     sur le chemin de l'écran laisse passer l'agent qui appelle PostgREST en
-     direct. La règle vit là où la valeur est produite, pas là où elle s'affiche.
-
-Si les deux réponses ne sont pas oui, tu as encore un invariant, une contrainte
-ou un test à écrire — et c'est ça, le livrable, pas la ligne réparée. Dis
-explicitement ce que ta règle ne rattrape pas : elle a toujours une limite.
 
 Avant de pousser, les portes — dans cet ordre, et ne pousse pas sur un rouge :
 

@@ -163,6 +163,17 @@ où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lova
   déjà la règle de `scripts/porte/signal.ts`. **Ce que ça ne rattrape pas** : une semaine sans
   session reste une semaine sans lecteur, et rien ici ne fait lire un dépôt que personne
   n'ouvre.
+- **Corriger une donnée n'est pas corriger un défaut.** Avant de déclarer un défaut réglé,
+  répondre à deux questions et **écrire les réponses** : est-ce que ça survit à un
+  rechargement — si un chargeur, une migration ou un import peut réintroduire l'état fautif,
+  le correctif est provisoire ; et est-ce que ça protège un consommateur qui n'existe pas
+  encore — une garde sur le chemin de l'écran laisse passer l'agent qui appelle PostgREST en
+  direct. Si les deux réponses ne sont pas oui, il reste un invariant, une contrainte ou un
+  test à écrire, et **c'est lui le livrable, pas la ligne réparée**. Dire aussi ce que la règle
+  ne rattrape pas : elle a toujours une limite. Née du pont NAF (`DIAGNOSTIC.md` §20), réparé
+  dans ses lignes le 25 août sans que rien n'empêche qu'il redevienne faux ; déplacée ici
+  depuis le prompt commun le 6 septembre, parce qu'une doctrine se charge à chaque session
+  quand une procédure se colle.
 - **Ne jamais `git add -A` dans ce dépôt : stager par nom.** Des sessions parallèles et
   Lovable écrivent dans le même arbre, donc un balayage revendique du travail qui n'est pas le
   sien. C'est arrivé deux fois — `c861bac` le 26 août a emporté `.fn-dump/` et quatre
