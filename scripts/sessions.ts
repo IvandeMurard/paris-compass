@@ -73,6 +73,11 @@ const ORDER = [
   // a l'execution, faux a la declaration : le fichier qui appelle PostgREST est sur le
   // disque et porte ou ne porte pas l'echappement.
   "w1-observabilite-echappement",
+  // Ne le passe pas devant #81 sans raison : les deux sont des enumerations, mais
+  // celle-ci regarde le distant et non le depot, et elle est nee d'un incident reel —
+  // #68 a laisse le distant en avance d'une migration pendant vingt-quatre heures
+  // sans qu'aucun des onze bras puisse le voir.
+  "w1-ledger",
   "w1-ppri",
   "w1-dia",
 ]
