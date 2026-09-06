@@ -1,7 +1,7 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte trente-huit au 5 septembre 2026**, et la
+« quatre défauts, par ordre de gravité » : il en porte trente-neuf au 6 septembre 2026**, et la
 phrase est restée fausse trois semaines.
 
 Découpé en deux le 31 août 2026, comme `docs/REPRISE.md` la veille : cette page ne garde que
@@ -61,6 +61,7 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 36 | `compass_premises_within` ne distingue pas un rayon vide d'un point hors corpus | **ouvert** — trouvé le 5 septembre 2026 par `w1-observabilite`, [#80](https://github.com/IvandeMurard/paris-compass/issues/80) | ici |
 | 37 | `I23` ne voyait pas une table restreinte par l'ABSENCE de politique | clos le 5 septembre 2026, `w1-observabilite` | corrigés |
 | 38 | Une absence de coordonnée rendue comme une coordonnée — quinze `POINT(NaN NaN)`, et aucune règle derrière | clos le 5 septembre 2026, `20260905000006` et `I42` | corrigés |
+| 39 | Deux migrations réécrites après leur application — le distant porte deux commentaires que le dépôt n'annonce plus | **ouvert** — trouvé le 6 septembre 2026 par `w1-ledger` | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -411,3 +412,58 @@ invariant de comportement.
 *Mesuré le 5 septembre 2026 :* démontré dans l'acte 5 de `npm.cmd run eval:sabotage`, où un
 point à (48,70 · 2,20) écrit `vide` par son appelant ressort `hors_corpus` dans
 `question_tally`, quartier nul.
+
+## 39. Deux migrations réécrites après leur application — trouvé le 6 septembre 2026 par `w1-ledger`
+
+**Le défaut.** `20260825000002_ingestion_run_trigger.sql` et
+`20260825000003_scoring_context_out_of_corpus.sql` ont été **modifiées après avoir été posées
+sur le distant**, par le commit `89aa8ac` du 25 août 2026, dont le message le dit en toutes
+lettres : *« les commentaires que j'avais ecrits en francais repassent en anglais : CLAUDE.md le
+demande »*. Le fichier suivi par git n'est donc plus celui qui a été appliqué, et rien dans le
+dépôt ne pouvait le dire — c'est la moitié « corps » de `w1-ledger` (#82) qui l'a trouvé à sa
+première exécution.
+
+**Mesuré le 6 septembre 2026 sur `dbefhvmyfmmhjeetdddu`**, en comparant chaque fichier suivi au
+texte que `supabase_migrations.schema_migrations` a gardé de lui :
+
+| | Corps identique | Empreinte dépôt | Empreinte ledger |
+| --- | --- | --- | --- |
+| Les 51 autres migrations | **oui**, caractère pour caractère après normalisation | — | — |
+| `20260825000002` | non | `27336c93b6ad` | `ef22ff3f99e7` |
+| `20260825000003` | non | `35bf8d33a0ce` | `391e44f3d86a` |
+
+**Rien d'exécutable ne diffère, et c'est mesuré plutôt que supposé.** Statement par statement,
+la divergence est **entièrement du commentaire** :
+
+- `20260825000003` — hors commentaires `--` et hors littéraux, le SQL est identique caractère
+  pour caractère. Ce qui diffère : l'en-tête du fichier, les commentaires `--` **à l'intérieur
+  du corps plpgsql** de `compass_scoring_context_within`, et le texte du `comment on function`.
+- `20260825000002` — même chose, plus une reflow : le `comment on column
+  public.ingestion_run.run_by` est concaténé en **quatre** littéraux au ledger et en **trois**
+  dans le fichier. La chaîne finale diffère : le distant porte ce commentaire de colonne en
+  **français**, le dépôt l'annonce en **anglais**.
+
+**Ce qui est réellement faux aujourd'hui, et c'est petit.** Deux commentaires de catalogue —
+une colonne et une fonction — sont en français sur le distant quand le dépôt les déclare en
+anglais, et les commentaires internes du corps de `compass_scoring_context_within` tel que
+`pg_proc` le porte sont ceux d'avant la traduction. Aucun comportement n'en dépend : un
+commentaire ne s'exécute pas. Ce que ça coûte est de la lecture — quelqu'un qui interroge le
+catalogue pour comprendre `run_by` ne lit pas la phrase que le dépôt lui promet.
+
+**Ce qui est irréparable, et il faut le dire plutôt que de promettre une correction.** Le ledger
+garde le texte **appliqué ce jour-là**. Aucune migration future ne peut réécrire une ligne du
+passé, donc ces deux lignes divergeront de leur fichier pour toujours. C'est la raison d'être de
+`corps-diverge` dans `scripts/porte/ledger.json` : la divergence y est consignée avec sa cause et
+avec **les deux empreintes qu'elle couvre**, de sorte qu'elle cesse d'être excusée le jour où
+l'un des deux côtés rebouge. Une entrée sans empreinte aurait été une excuse à vie.
+
+**Ce qui reste ouvert, et qui est une décision.** Aligner l'**état vivant** — pas le ledger — est
+possible en une migration qui rejoue les deux `comment on` en anglais. Elle ne ferait pas
+disparaître les deux lignes de `ledger.json`, qui parlent du passé ; elle ferait seulement que
+le catalogue du distant dise ce que le dépôt annonce. Ça se décide, ça ne se déduit pas : c'est
+une poussée sur une base vivante pour deux phrases de commentaire.
+
+**La leçon, et elle est plus grande que ces deux fichiers.** Une migration posée est un fait
+daté, pas un document qu'on entretient. La réécrire — même pour appliquer une règle du dépôt,
+même sans toucher au SQL — fait diverger silencieusement ce qui est déployé de ce qui est
+versionné. Écrit dans `docs/REPRISE.md`, « Ce qu'il ne faut pas faire ».

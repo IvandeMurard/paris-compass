@@ -55,6 +55,7 @@ npm.cmd run verify:mcp      # les six outils MCP contre le distant — 2 à 4 mi
 npm.cmd run freshness       # les huit sources et leurs cadences
 npm.cmd run catalogue       # les 35 sources du catalogue : l'endpoint repond-il, la licence tient-elle
 npm.cmd run porte:publie    # la page publiée porte-t-elle sa configuration
+npm.cmd run ledger          # le ledger de migrations contre les migrations suivies par git
 npm.cmd run porte:sabotage  # demontre la porte : bras non planifie, rouge, panne amont
 
 # Le serveur MCP publié — voir mcp-server/PUBLISHING.md pour la suite complète
@@ -146,6 +147,20 @@ où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lova
   `question_tally` la pollue que git le suive ou non. **Ce que ça ne rattrape pas** : elle vérifie
   qu'un fichier *déclare* l'échappement, jamais qu'il l'*applique* à chaque appel, et un `curl`
   lancé hors du dépôt n'est vu par rien.
+- **Une migration posée est comparée à celle que le dépôt suit, et c'est encore la même règle** —
+  `#82`, le 6 septembre 2026. `supabase_migrations.schema_migrations` contre les fichiers de
+  `supabase/migrations/` **suivis par git** — pas ceux du disque : le 5 septembre le fichier était
+  là, non suivi, et le distant a porté vingt-quatre heures un schéma que le dépôt ignorait sans
+  qu'un seul des onze bras puisse le voir. `npm.cmd run ledger` les compare dans les deux sens et
+  ils ne veulent pas dire la même chose : posée et non suivie est un schéma que personne ne peut
+  reconstruire, donc un rouge ; suivie et non posée est du travail en vol, donc un simple signal.
+  Il compare aussi les **corps** — le ledger garde `statements text[]` — et une divergence non
+  consignée dans `corps-diverge` de `scripts/porte/ledger.json`, avec sa raison et l'empreinte de
+  chaque côté, est un rouge. **Corollaire** : ne jamais réécrire une migration déjà posée, même
+  sans toucher au SQL ; le ledger garde le texte du jour où elle est passée et la réécriture
+  diverge de lui pour toujours — c'est arrivé deux fois le 25 août (`DIAGNOSTIC.md` §39). **Ce que
+  ça ne rattrape pas** : un schéma modifié à la main sur le distant ne laisse aucune trace au
+  ledger, et ce bras ne le verra jamais.
 - **Une source d'ingestion aussi porte sa cadence, et c'est la même règle** — `#70`, le
   1er septembre 2026. Une source insérée dans `ingestion_run` par une migration doit avoir son
   entrée `cron` dans un workflow planifié, ou sa raison écrite dans le bloc `sources` de

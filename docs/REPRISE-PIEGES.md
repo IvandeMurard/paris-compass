@@ -775,3 +775,42 @@ workflows, parce qu'un workflow qui *explique* pourquoi il ne joue pas un script
 être lu comme le jouant. Même geste, une population plus loin — et ici deux fichiers en
 vivaient : `scripts/build/envGuard.ts` et `src/main.tsx` parlent de `createClient` sans jamais
 l'appeler.
+
+## Le ledger garde le TEXTE des migrations, et il ne se rejoint pas sur les points-virgules — 6 septembre 2026
+
+Deux mesures faites en écrivant `w1-ledger` (#82), et la première est une bonne nouvelle qu'il
+aurait été coûteux de ne pas aller chercher.
+
+**`supabase_migrations.schema_migrations` porte trois colonnes : `version`, `name`, et
+`statements text[]`.** Le ticket faisait de la comparaison des corps une promesse conditionnelle
+— *« à mesurer avant de promettre : si le ledger ne garde pas le texte, dire que le bras ne
+compare que les identifiants »*. Il le garde : mesuré le 6 septembre 2026 sur
+`dbefhvmyfmmhjeetdddu`, **53 lignes, aucune `statements` nulle, aucune vide**, la dernière à 20
+statements dont le premier est l'en-tête de commentaire du fichier. Le corps est donc comparable,
+et le contrôle que `_cmp-fn.ts` emportait avec lui le 26 août est reprenable.
+
+**Mais la reconstruction n'est pas un `join(";")`.** Le CLI ne conserve pas la place des
+points-virgules : il les mange au découpage et n'en remet aucun. Mesuré sur les 53 lignes, en
+comparant au fichier suivi après réduction des espaces :
+
+| Reconstruction | Identiques |
+| --- | ---: |
+| `statements.join(";")` | **0** / 53 |
+| `statements.join(";") + ";"` | **2** / 53 |
+| `statements.join(" ")`, `;` traité comme un espace | **51** / 53 |
+
+C'est la troisième qui est juste, et les deux lignes restantes ne sont pas du bruit de
+normalisation : ce sont deux migrations réellement réécrites après leur application
+(`DIAGNOSTIC.md` §39). La forme qui *semble* la plus fidèle — rejoindre sur `;` — aurait rendu
+53 divergences sur 53, donc un bras rouge dès sa naissance, donc un bras désactivé dans la
+semaine.
+
+*Ce que la normalisation retenue ne voit pas, et il faut le dire :* une différence qui ne
+tiendrait qu'à des espaces ou à la place d'un point-virgule. C'est le prix de la première ligne
+du tableau.
+
+**Et le retour chariot, une fois de plus.** Le fichier lu sur ce poste porte des `\r\n`, le
+ledger n'en a aucun. Sans le les retirer d'abord, **les 53 lignes divergeaient ici et aucune sur
+un runner** — un verdict qui dépend du système d'exploitation, ce que `DIAGNOSTIC.md` §33 a déjà
+coûté une fois sur `esbuild`. Troisième occurrence de ce piège dans ce fichier ; c'est
+maintenant un réflexe à avoir avant d'écrire la première comparaison, pas après.
