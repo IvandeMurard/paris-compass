@@ -152,6 +152,26 @@ où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lova
   déjà la règle de `scripts/porte/signal.ts`. **Ce que ça ne rattrape pas** : une semaine sans
   session reste une semaine sans lecteur, et rien ici ne fait lire un dépôt que personne
   n'ouvre.
+- **Ne jamais `git add -A` dans ce dépôt : stager par nom.** Des sessions parallèles et
+  Lovable écrivent dans le même arbre, donc un balayage revendique du travail qui n'est pas le
+  sien. C'est arrivé deux fois — `c861bac` le 26 août a emporté `.fn-dump/` et quatre
+  `scripts/eval/_*.ts`, `ffe217c` le 5 septembre a emporté `scripts/tmp-nan.ts`, le brouillon
+  d'une session en cours.
+
+  **Mesuré après coup** : tous les chemins emportés étaient en statut `A`, l'ajout d'un fichier
+  jusque-là non suivi, quand un commit ordinaire d'ici porte des `M`. Et un seuil de volume
+  n'aurait rien vu — le second balayage faisait six fichiers, une taille banale.
+
+  `.githooks/pre-commit` refuse donc un commit qui **ajoute** des fichiers, sauf accord
+  explicite : `COMPASS_AJOUTS=1 git commit …`. `npm install` pose `core.hooksPath` par le
+  script `prepare`, pour qu'un clone neuf hérite de la garde. **Ce que ça ne rattrape pas** :
+  la *modification* d'un fichier suivi faite par une autre session — git enregistre ce qui a
+  changé, jamais qui travaillait. Le stage par nom reste la règle ; le crochet ne retire que
+  l'accident qui s'est produit deux fois.
+
+  Symétrique et vérifié le 5 septembre : `be63054` annonçait dans son message une règle
+  `.gitignore` restée **non stagée**. Un commit dit ce qu'il porte, pas ce qu'on voulait y
+  mettre — relire `git diff --cached --name-only` avant de valider.
 - **Ne pas lancer `npm audit fix --force`** : cela remonterait des versions majeures et casserait
   le build. Et ne pas confondre ce que l'outil **propose** avec ce qui **corrige** : `audit fix
   --force` vise toujours la dernière majeure publiée, jamais la plus petite version qui suffit.

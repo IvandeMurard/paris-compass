@@ -34,7 +34,8 @@
     "preview": "vite preview",
     "sessions": "tsx scripts/sessions.ts",
     "sessions:check": "tsx scripts/sessions.ts --check",
-    "brief": "tsx scripts/brief.ts"
+    "brief": "tsx scripts/brief.ts",
+    "prepare": "git config core.hooksPath .githooks"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

@@ -1,0 +1,54 @@
+#!/bin/sh
+#
+# Refuses a commit that stages NEW files, unless adding them was deliberate.
+#
+# Why additions and not, say, a file count. Two commits swept another session's work into
+# this repository — c861bac on 26 August (.fn-dump/ and four scripts/eval/_*.ts) and ffe217c
+# on 5 September (scripts/tmp-nan.ts). Both came from `git add -A`. Measured afterwards:
+# every swept path was status A, an addition of a previously untracked file, while ordinary
+# commits here are M. And a size threshold would have missed the second one — it was six
+# files, an ordinary size.
+#
+# So the dangerous surface is precisely the untracked one: `git add -A` claims the whole
+# tree, which is false in a repository where parallel sessions and Lovable write at the same
+# time. Modifying a tracked file is something you did; adding an untracked one may be
+# something someone else did.
+#
+# The guard fires only when files are added, which is roughly one commit in three, and turns
+# adding into a deliberate act rather than a side effect.
+#
+#   COMPASS_AJOUTS=1 git commit ...     # yes, these new files are mine
+#
+# What this does NOT catch, and it matters: a *modification* to a tracked file that another
+# session made. Nothing here can tell that apart from one of yours — git records what changed,
+# never who was working. Staging by name rather than by sweep remains the rule; this only
+# removes the accident that has actually happened twice.
+
+ajouts=$(git diff --cached --name-only --diff-filter=A)
+
+[ -z "$ajouts" ] && exit 0
+
+if [ -n "$COMPASS_AJOUTS" ]; then
+  exit 0
+fi
+
+n=$(printf '%s\n' "$ajouts" | grep -c .)
+
+cat >&2 <<AVERTISSEMENT
+
+  Ce commit ajoute $n fichier(s) jusque-la non suivi(s) :
+
+$(printf '%s\n' "$ajouts" | sed 's/^/      /')
+
+  Deux commits ont deja emporte le travail d'une session parallele de cette facon
+  (c861bac le 26 aout, ffe217c le 5 septembre), et les deux venaient d'un git add -A.
+
+  Si ces fichiers sont bien les tiens :
+
+      COMPASS_AJOUTS=1 git commit ...
+
+  Sinon : git restore --staged <chemin> pour ceux qui ne le sont pas.
+
+AVERTISSEMENT
+
+exit 1

@@ -678,3 +678,41 @@ notify pgrst, 'reload schema';   -- en fin de toute migration qui touche une sig
 ```
 
 Compter quelques secondes avant de vérifier. `supabase db push` ne l'émet pas.
+
+---
+
+## `git add -A` emporte le travail des sessions parallèles — trois fois, 26 août au 5 septembre
+
+**Le dépôt n'a pas un seul écrivain.** Des sessions Claude tournent en parallèle et Lovable
+synchronise dans les deux sens : à tout instant, l'arbre porte du travail qui n'est pas celui de
+la session qui commite. Un `git add -A` revendique tout.
+
+**Les trois occurrences, et la troisième est l'inverse des deux premières :**
+
+| Commit | Date | Ce qui a été emporté, ou manqué |
+| --- | --- | --- |
+| `c861bac` | 26 août | `.fn-dump/` (8 fichiers) et quatre `scripts/eval/_*.ts`, d'une session travaillant sur `#58` |
+| `ffe217c` | 5 sept. | `scripts/tmp-nan.ts`, le brouillon de la session `#68` **alors en cours** |
+| `be63054` | 5 sept. | l'inverse — le message annonçait une règle `.gitignore` restée **non stagée**, jamais commitée |
+
+**Ce qui distingue les deux premiers, mesuré et non supposé** : tous les chemins emportés étaient
+en statut `A` — l'ajout d'un fichier jusque-là non suivi. Les commits ordinaires de ce dépôt
+portent des `M`. Et **un seuil de volume n'aurait rien vu** : le second balayage faisait six
+fichiers, exactement la taille d'un commit normal ici. C'est le premier réflexe de garde, et il
+était faux.
+
+**La garde posée le 6 septembre** : `.githooks/pre-commit` refuse un commit qui ajoute des
+fichiers, sauf `COMPASS_AJOUTS=1`. Elle ne se déclenche qu'à l'ajout — environ un commit sur
+trois — donc elle ne devient pas le bruit qu'on filtre. `npm install` pose `core.hooksPath` par
+le script `prepare`, sinon la garde ne vivrait que sur le poste où elle a été posée.
+
+**Ce que ça ne rattrape pas**, et c'est la moitié qui reste humaine : la *modification* d'un
+fichier suivi faite par une autre session. Git enregistre ce qui a changé, jamais qui
+travaillait, et rien ne peut l'inférer. Stager par nom reste la règle ; le crochet retire
+l'accident, pas la discipline.
+
+**Et pour le troisième** : aucune garde mécanique. Un `git status` avant de valider montre
+` M` (non stagé) à côté de `M ` (stagé), et l'écart tient dans une colonne. La seule parade est
+de lire `git diff --cached --name-only` avant de commiter — un commit dit ce qu'il porte, jamais
+ce qu'on voulait y mettre.
+
