@@ -716,3 +716,62 @@ l'accident, pas la discipline.
 de lire `git diff --cached --name-only` avant de commiter — un commit dit ce qu'il porte, jamais
 ce qu'on voulait y mettre.
 
+
+---
+
+## Une règle qui dérive sa population de git ne voit pas les brouillons ignorés — 6 septembre 2026
+
+Mesuré en écrivant le contre-test de `w1-observabilite-echappement` (#81), et le contre-test
+s'est retourné contre la règle avant de servir à quoi que ce soit.
+
+La règle énumère les fichiers qui atteignent PostgREST — `git ls-files --cached --others
+--exclude-standard` — et exige de chacun l'échappement d'observabilité ou une raison écrite.
+Pour la démontrer, une sonde a été écrite : elle appelle `compass_premises_within` par PostgREST
+avec la vraie clé publiable et ne pose pas l'en-tête. **Elle est passée au vert.**
+
+```
+scripts/tmp-w1-81-sonde.ts   → invisible, la règle est verte
+scripts/eval/sonde-w1-81.ts  → même contenu, la règle est ROUGE
+```
+
+`--exclude-standard` honore `.gitignore`, et `.gitignore` ligne 94 ignore `scripts/tmp-*.ts` —
+la garde posée le 5 septembre après que `ffe217c` eut emporté `scripts/tmp-nan.ts` d'une session
+parallèle. **La garde contre un accident ouvrait la porte à un autre**, et pas un accident
+lointain : un brouillon de session est le candidat le plus probable qu'il y ait pour un appel
+non journalisé — c'est littéralement ce qu'était cette sonde.
+
+*Ce qu'il faut en retenir, au-delà de ce ticket.* « Ignoré » veut dire *ne commite pas ça*,
+jamais *ne regarde pas ça*. Un brouillon qui pollue une table la pollue que git le suive ou non.
+Toute règle qui énumère des FICHIERS depuis git doit balayer aussi
+`git ls-files --others --ignored --exclude-standard -- <dossiers de code>` — scopé aux
+répertoires qu'une personne écrit, sinon `node_modules` entre avec ses cent mille fichiers.
+Les trois règles voisines n'ont pas ce trou parce qu'elles n'énumèrent pas des fichiers :
+`arms.ts` lit `package.json`, `cadences.ts` lit les migrations, `catalogue.ts` lit un tableau
+markdown.
+
+*Ce que ça ne rattrape toujours pas* : un fichier ignoré hors des répertoires de code, et un
+appel émis depuis ailleurs que le dépôt.
+
+## Les fixtures d'une règle entrent dans sa propre population — 6 septembre 2026
+
+Même journée, même chantier, et le symptôme est un vert trompeur plutôt qu'un rouge.
+
+`scripts/porte/observabilite.ts` reconnaît un appelant de PostgREST à deux signes dans le texte
+du fichier : `@supabase/supabase-js` avec `createClient`, ou le chemin `/rest/v1/`. Son propre
+test écrit ces deux chaînes **en littéral**, pour prouver que la détection les voit. Résultat au
+premier passage : la population comptait **5 fichiers au lieu de 4**, et le cinquième était le
+test — classé « échappé », **sur la foi de la fixture qui prouve que l'en-tête est reconnu**.
+Un vert sur la pire raison possible.
+
+La sortie n'est pas de tordre les fixtures pour qu'elles ne ressemblent plus à du code : la
+prochaine personne qui écrit un cas de test retomberait dedans sans le savoir. C'est d'exclure
+`*.test.*` de la population — un test joue la règle, il n'est pas une des choses dont elle
+parle — **et de refermer le trou que cette exclusion ouvre** : `testsImportingClient` refuse
+qu'un fichier de test *importe* un client PostgREST. Une fixture n'est jamais un import, et un
+import est la seule façon dont un test atteindrait vraiment la base.
+
+Le cousin de ce piège est déjà dans ce fichier : `arms.ts` retire les lignes de commentaire des
+workflows, parce qu'un workflow qui *explique* pourquoi il ne joue pas un script ne doit pas
+être lu comme le jouant. Même geste, une population plus loin — et ici deux fichiers en
+vivaient : `scripts/build/envGuard.ts` et `src/main.tsx` parlent de `createClient` sans jamais
+l'appeler.

@@ -124,8 +124,17 @@ async function control(label: string, body: (label: string) => Promise<void>): P
  * enregistrerait quinze questions par matin, toujours au même point, et le quartier le plus
  * demandé du produit serait celui que la porte interroge. Mesuré le 5 septembre 2026 : dix
  * seaux écrits sur un produit sans aucun trafic. L'en-tête est déclaratif et se pose ici, à
- * l'endroit unique par lequel ce bras passe — un second chemin qui l'oublierait se compterait
- * de nouveau, et rien ne pourrait le voir.
+ * l'endroit unique par lequel ce bras passe.
+ *
+ * CE FICHIER EST DANS UNE POPULATION DEPUIS w1-observabilite-echappement (#81), et la phrase
+ * qui tenait ici — « un second chemin qui l'oublierait se compterait de nouveau, et rien ne
+ * pourrait le voir » — n'est plus vraie qu'à moitié. Elle reste vraie À L'EXÉCUTION : un appel
+ * non journalisé ne laisse aucune trace. Elle est fausse À LA DÉCLARATION :
+ * `scripts/porte/observabilite.ts` énumère les fichiers qui atteignent PostgREST et fait
+ * échouer `test` sur celui qui ne pose ni l'en-tête ni une raison écrite. Ce que ça ne
+ * rattrape toujours pas, et c'est précisément le cas d'un SECOND chemin dans CE fichier : la
+ * règle vérifie que le fichier déclare l'échappement, jamais qu'il l'applique à chaque appel.
+ * D'où l'insistance sur l'endroit unique — elle porte tout ce que la règle ne porte pas.
  */
 async function request(path: string, what: string, init?: RequestInit): Promise<Response> {
   const started = performance.now()

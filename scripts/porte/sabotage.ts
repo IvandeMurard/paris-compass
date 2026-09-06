@@ -4,7 +4,7 @@
 //
 //   npm.cmd run porte:sabotage
 //
-// Five acts, on the model of `eval:sabotage`: a rule nobody plays is a comment, and the rules
+// Six acts, on the model of `eval:sabotage`: a rule nobody plays is a comment, and the rules
 // here claim things about an arm that does not exist yet and about an outage that has not
 // happened yet. Nothing touches the database and nothing touches a file — the acts run against
 // the real modules with substituted inputs, because a proof that runs a COPY of the check
@@ -26,6 +26,10 @@
 //      docs/PLAN-ACTION-VACANCE.md and cross-checked by nothing. Same shape again, one level
 //      further out: this is the hole w1-catalogue (#73) closes, and every one of the
 //      thirty-five rows in that table looked exactly like the probe on the day it was written.
+//   6. UN DOUZIÈME BRAS QUI SE COMPTE — a file reaching PostgREST without the escapement, and
+//      then the sharper half: an arm that HAD the escapement and lost it. This is the hole
+//      w1-observabilite-echappement (#81) closes, and #72 measured what falls into it — ten
+//      buckets on a product with no traffic, all at Châtelet, written by the gate itself.
 //
 // One more thing is checked in passing, because the repository is public: neither the red nor
 // the outage may carry a database identifier out of the machine.
@@ -40,6 +44,15 @@ import {
   readProbes,
   type CatalogueEntry,
 } from "./catalogue"
+import {
+  appelantsDePostgrest,
+  classifyCallers,
+  estClasse as appelantClasse,
+  readCallers,
+  readReasons,
+  testsImportingClient,
+  type Appelant,
+} from "./observabilite"
 import {
   classifySources,
   readDeclaredSources,
@@ -367,12 +380,143 @@ function acteCinq(): void {
   }
 }
 
-out("Sabotage de la porte planifiée — cinq actes, aucun accès à la base, aucun fichier écrit")
+
+/**
+ * A twelfth arm, written the way `eval:anon` looked on the day it was added: plausible, useful,
+ * and reaching PostgREST with the real publishable key without saying so.
+ */
+const APPELANT_PROBE: Appelant = {
+  path: "scripts/eval/sonde-http.ts",
+  acces: ["rest"],
+  declare: false,
+}
+
+function acteSix(): void {
+  out("\nActe 6 — un douzième bras qui atteint PostgREST, et se compte dans le journal")
+
+  const callers = readCallers()
+  const reasons = readReasons()
+
+  const clean = classifyCallers(callers, reasons)
+  const muetsBefore = clean.filter((v) => !appelantClasse(v.state))
+  if (muetsBefore.length === 0) {
+    pass(
+      "état de départ",
+      `${clean.length} fichier(s) atteignent PostgREST, tous classés — la porte est au vert`,
+    )
+  } else {
+    fail(
+      "état de départ",
+      `${muetsBefore.length} appelant(s) déjà sans classement (${muetsBefore.map((v) => v.path).join(", ")}) : ` +
+        "le sabotage ne prouverait rien puisque la porte est déjà rouge",
+    )
+  }
+
+  const sabotaged = classifyCallers([...callers, APPELANT_PROBE], reasons)
+  const probe = sabotaged.find((v) => v.path === APPELANT_PROBE.path)
+  if (probe?.state === "muet") {
+    pass(APPELANT_PROBE.path, "passe au rouge — il atteint PostgREST et ne déclare rien")
+  } else {
+    fail(
+      APPELANT_PROBE.path,
+      `attendu « muet », obtenu « ${probe?.state ?? "absent"} » : la règle ne voit pas le bras ajouté`,
+    )
+  }
+
+  const others = sabotaged.filter((v) => v.path !== APPELANT_PROBE.path)
+  if (others.every((v) => appelantClasse(v.state))) {
+    pass("les autres appelants", "restent au vert — le rouge vient de la sonde, pas d'une règle cassée")
+  } else {
+    fail("les autres appelants", "le sabotage a rougi autre chose que la sonde")
+  }
+
+  const restored = classifyCallers(callers, reasons)
+  if (restored.every((v) => appelantClasse(v.state))) {
+    pass("sonde retirée", "la porte revient au vert")
+  } else {
+    fail("sonde retirée", "la porte reste rouge sans la sonde — le rouge ne venait pas d'elle")
+  }
+
+  // The sharper half, and the one #72 actually paid for: not an arm that never had the
+  // escapement, but an arm that HAD it and lost it. A refactor of a fetch wrapper does exactly
+  // this, and it is silent — the calls keep working, and the journal quietly starts counting
+  // Châtelet every morning.
+  const ARM = "scripts/eval/anon-http.ts"
+  const real = callers.find((c) => c.path === ARM)
+  if (!real) {
+    fail("échappement retiré", `${ARM} n'est plus dans la population : la sonde ne peut rien montrer`)
+  } else {
+    const perdu = classifyCallers(
+      callers.map((c) => (c.path === ARM ? { ...c, declare: false } : c)),
+      reasons,
+    )
+    const arm = perdu.find((v) => v.path === ARM)
+    if (arm?.state === "muet") {
+      pass("échappement retiré", `${ARM} passe au rouge — c'est le défaut que #72 a payé en dix seaux`)
+    } else {
+      fail("échappement retiré", `attendu « muet », obtenu « ${arm?.state ?? "absent"} »`)
+    }
+  }
+
+  // And the direction a table of exemptions always forgets, checked here as acts one, four and
+  // five check it: a reason left behind for a file that no longer calls anything.
+  const orphelin = classifyCallers(callers, { ...reasons, "scripts/eval/parti.ts": "raison restée" })
+  if (orphelin.find((v) => v.path === "scripts/eval/parti.ts")?.state === "orphelin") {
+    pass("raison orpheline", "observabilite.json ne peut pas couvrir un fichier qui n'existe plus")
+  } else {
+    fail("raison orpheline", "une excuse pour un fichier disparu passe pour un classement")
+  }
+
+  // The report of a red escapement, built by the SAME module as the gate's — #81 reuses #71
+  // rather than describing the three blocks a fifth time.
+  const rapport = buildReport(
+    [
+      {
+        name: "test",
+        exitCode: EXIT.fail,
+        output:
+          "FAIL  un fichier atteint PostgREST sans échappement ni raison écrite : " +
+          APPELANT_PROBE.path,
+        expected:
+          "poser `x-compass-observabilite: off`, ou écrire dans `sans-echappement` de " +
+          "scripts/porte/observabilite.json la raison d'être compté.",
+      },
+    ],
+    ON,
+    "Échappement d'observabilité",
+  )
+  if (rapport.decisionRequired && /observabilite\.json/.test(rapport.markdown)) {
+    pass("compte rendu", "le même que celui de la porte, et il nomme la décision attendue")
+  } else {
+    fail("compte rendu", "le rapport de l'échappement ne nomme pas la décision attendue")
+  }
+
+  // Played once against the repository itself, and not only against substituted inputs: the
+  // acts above prove the rule reacts, this proves it is pointed at the real tree.
+  const reel = appelantsDePostgrest()
+  if (reel.length > 0 && reel.every((v) => appelantClasse(v.state))) {
+    pass("le dépôt tel qu'il est", `${reel.length} appelant(s), tous classés`)
+  } else {
+    fail("le dépôt tel qu'il est", "la règle jouée sur le dépôt ne rend pas un vert")
+  }
+
+  // And the hole the population deliberately opens: `*.test.*` is out, because a test carries
+  // the rule's own fixtures. An import is how a test would really reach the base.
+  const testsFuyants = testsImportingClient()
+  if (testsFuyants.length === 0) {
+    pass("les tests", "aucun n'importe de client PostgREST — l'exclusion ne cache rien")
+  } else {
+    fail("les tests", `hors population et pourtant appelants : ${testsFuyants.join(", ")}`)
+  }
+}
+
+out("Sabotage de la porte planifiée — six actes, aucun accès à la base, aucun fichier écrit")
 acteUn()
 acteDeux()
 acteTrois()
 acteQuatre()
 acteCinq()
+acteSix()
 
 out("")
 if (failures > 0) {
@@ -381,6 +525,7 @@ if (failures > 0) {
 } else {
   out(
     "PASS — un bras non planifié rougit, un rouge crie, une panne amont ne crie pas, " +
-      "une source sans cadence rougit, une source du catalogue sans vérification rougit",
+      "une source sans cadence rougit, une source du catalogue sans vérification rougit, " +
+      "un appelant de PostgREST sans échappement rougit",
   )
 }

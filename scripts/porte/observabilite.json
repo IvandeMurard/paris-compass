@@ -1,0 +1,34 @@
+{
+  "_lisez-moi": [
+    "Les fichiers qui atteignent PostgREST SANS poser l'echappement d'observabilite, et POURQUOI —",
+    "w1-observabilite-echappement (#81). La regle est dans scripts/porte/observabilite.ts et elle est",
+    "jouee par scripts/porte/observabilite.test.ts a chaque `npm.cmd run test`, donc aussi sur la porte",
+    "planifiee. Quatrieme application de « enumerer, pas lister », apres les scripts de package.json",
+    "(#71, cadence.json), les sources d'ingestion (#70, cadence.json) et le catalogue (#73,",
+    "catalogue.json). Meme regle : l'echappement, ou une raison ecrite ici. Jamais un silence.",
+    "",
+    "CE QUE L'ECHAPPEMENT EST. L'en-tete `x-compass-observabilite: off`, lu par",
+    "compass_record_question (migration 20260905000003), ou la variable COMPASS_OBSERVABILITE=off",
+    "posee dans l'environnement d'un processus fils. Il est DECLARATIF et volontaire : n'importe qui",
+    "peut le poser et sortir du denombrement. C'est sans consequence — se retirer d'un compteur",
+    "anonyme n'ouvre aucune donnee — et c'est le prix d'une regle qui ne peut pas reconnaitre ses",
+    "propres appels autrement. Les reconnaitre par l'IP, l'heure ou le point serait le pistage que",
+    "#72 refuse.",
+    "",
+    "CE QUI SE RANGE ICI, ET CE QUI NE S'Y RANGE PAS. Une raison est ecrite pour un appelant qui DOIT",
+    "etre compte — le produit lui-meme —, ou pour un appelant que le journal ne voit de toute facon",
+    "jamais. Ce n'est pas une liste d'exceptions ou l'on range ce qui derange : un bras de la porte qui",
+    "atteint PostgREST se compterait, et sa place est de poser l'en-tete, pas d'ecrire une phrase ici.",
+    "Une raison qui se resume a « pas besoin » est le debut de la complaisance que #71 refuse.",
+    "",
+    "CE QUE LA REGLE NE RATTRAPE PAS, et il faut le lire avant de s'y fier : elle verifie qu'un fichier",
+    "DECLARE l'echappement, jamais qu'il l'APPLIQUE a chaque appel. Un fichier qui poserait l'en-tete",
+    "sur un client et pas sur un second passerait. Un appel emis depuis ailleurs que le depot — un test",
+    "a la main, un `curl` — n'est vu par rien."
+  ],
+
+  "sans-echappement": {
+    "src/integrations/supabase/client.ts": "C'est le produit, et un visiteur DOIT etre compte : c'est la raison d'etre du journal (#72). Ce client sert src/services/compass/premiseHistory.ts, qui appelle compass_premises_within et compass_address_timeline — les fonctions qui journalisent d'elles-memes. Lui poser l'echappement viderait le journal de la seule population qu'il existe pour mesurer. Le jour ou un bras de la porte irait chercher le site publie en jouant ce client, ce serait un bras, pas le produit, et il poserait l'en-tete.",
+    "supabase/functions/send-property-notification/index.ts": "Fonction edge Deno, executee chez Supabase et jamais par un bras de la porte. Elle porte la cle SERVICE_ROLE et non la cle publiable, et elle ne touche que deux tables — user_preferences et saved_properties — jamais une fonction compass_*, donc elle ne produit aucune ligne de journal a echapper. Elle entre dans la population parce qu'elle construit un client PostgREST, ce qui est la bonne facon de la voir : le jour ou elle appellerait une fonction qui journalise, cette phrase deviendrait fausse et il faudrait la relire."
+  }
+}

@@ -49,6 +49,11 @@ if (!url || !anonKey) {
  * dans `question_tally` tous les matins, au même point et au même rayon. L'échappement est
  * déclaratif et volontaire, et c'est un réglage d'ENVIRONNEMENT et non un défaut : un agent qui
  * installe le paquet ne pose rien et est compté, ce qui est le but.
+ *
+ * Ce fichier est dans la population de `scripts/porte/observabilite.ts` depuis
+ * w1-observabilite-echappement (#81) : `test` échoue s'il cesse de déclarer l'échappement. La
+ * règle voit la DÉCLARATION, jamais l'application — un second client construit plus bas sans
+ * l'en-tête passerait.
  */
 const horsMesure = process.env.COMPASS_OBSERVABILITE === "off"
 

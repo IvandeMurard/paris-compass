@@ -134,6 +134,17 @@ où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lova
   `écartée` sortent de la population : un refus est une décision, pas une panne à surveiller.
   Et **une sonde épingle un endpoint, jamais la page du portail qui en parle** — recouper une
   page par une autre page ne recoupe rien.
+- **Un appelant de PostgREST déclare l'échappement d'observabilité, et c'est encore la même
+  règle** — `#81`, le 6 septembre 2026. Tout fichier du dépôt qui construit un client Supabase ou
+  nomme `/rest/v1/` doit poser `x-compass-observabilite: off` (ou `COMPASS_OBSERVABILITE=off`
+  pour un processus fils), ou porter une raison écrite dans `sans-echappement` de
+  `scripts/porte/observabilite.json` ; sinon `test` échoue. Pourquoi : `#72` a mesuré la porte se
+  comptant elle-même — dix seaux sur un produit sans trafic, tous au même point — et un journal
+  pollué par la porte ne se lit pas comme une panne, il se lit comme du trafic. **Les brouillons
+  ignorés comptent** : la règle balaie aussi `scripts/tmp-*.ts`, parce qu'un brouillon qui pollue
+  `question_tally` la pollue que git le suive ou non. **Ce que ça ne rattrape pas** : elle vérifie
+  qu'un fichier *déclare* l'échappement, jamais qu'il l'*applique* à chaque appel, et un `curl`
+  lancé hors du dépôt n'est vu par rien.
 - **Une source d'ingestion aussi porte sa cadence, et c'est la même règle** — `#70`, le
   1er septembre 2026. Une source insérée dans `ingestion_run` par une migration doit avoir son
   entrée `cron` dans un workflow planifié, ou sa raison écrite dans le bloc `sources` de
