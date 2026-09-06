@@ -61,7 +61,7 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 36 | `compass_premises_within` ne distingue pas un rayon vide d'un point hors corpus | **ouvert** — trouvé le 5 septembre 2026 par `w1-observabilite`, [#80](https://github.com/IvandeMurard/paris-compass/issues/80) | ici |
 | 37 | `I23` ne voyait pas une table restreinte par l'ABSENCE de politique | clos le 5 septembre 2026, `w1-observabilite` | corrigés |
 | 38 | Une absence de coordonnée rendue comme une coordonnée — quinze `POINT(NaN NaN)`, et aucune règle derrière | clos le 5 septembre 2026, `20260905000006` et `I42` | corrigés |
-| 39 | Deux migrations réécrites après leur application — le distant porte deux commentaires que le dépôt n'annonce plus | **ouvert** — trouvé le 6 septembre 2026 par `w1-ledger` | ici |
+| 39 | Deux migrations réécrites après leur application — le distant porte deux commentaires que le dépôt n'annonce plus | **ouvert** — trouvé le 6 septembre 2026 par `w1-ledger`, [#83](https://github.com/IvandeMurard/paris-compass/issues/83) | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -457,7 +457,7 @@ passé, donc ces deux lignes divergeront de leur fichier pour toujours. C'est la
 avec **les deux empreintes qu'elle couvre**, de sorte qu'elle cesse d'être excusée le jour où
 l'un des deux côtés rebouge. Une entrée sans empreinte aurait été une excuse à vie.
 
-**Ce qui reste ouvert, et qui est une décision.** Aligner l'**état vivant** — pas le ledger — est
+**Ce qui reste ouvert, et qui est une décision — [#83](https://github.com/IvandeMurard/paris-compass/issues/83).** Aligner l'**état vivant** — pas le ledger — est
 possible en une migration qui rejoue les deux `comment on` en anglais. Elle ne ferait pas
 disparaître les deux lignes de `ledger.json`, qui parlent du passé ; elle ferait seulement que
 le catalogue du distant dise ce que le dépôt annonce. Ça se décide, ça ne se déduit pas : c'est

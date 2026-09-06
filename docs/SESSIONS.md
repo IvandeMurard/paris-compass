@@ -233,7 +233,7 @@ fautive.
 | ~~18~~ | ~~`w1-observabilite`~~ | [#81](https://github.com/IvandeMurard/paris-compass/issues/81) | **fait** | P1 | Opus 5 |
 | ~~19~~ | ~~`w1-catalogue`~~ | [#73](https://github.com/IvandeMurard/paris-compass/issues/73) | **fait** | P1 | Opus 5 |
 | ~~20~~ | ~~`w1-observabilite-echappement`~~ | [#81](https://github.com/IvandeMurard/paris-compass/issues/81) | **fait** | P1 | Opus 5 |
-| 21 | `w1-ledger` | [#82](https://github.com/IvandeMurard/paris-compass/issues/82) | ouvert | P1 | Opus 5 |
+| ~~21~~ | ~~`w1-ledger`~~ | [#82](https://github.com/IvandeMurard/paris-compass/issues/82) | **fait** | P1 | Opus 5 |
 | 22 | `w1-ppri` | [#13](https://github.com/IvandeMurard/paris-compass/issues/13) | ouvert | P1 | Opus 5 |
 | ~~23~~ | ~~`w1-dia`~~ | [#12](https://github.com/IvandeMurard/paris-compass/issues/12) | **fait** | P1 | Opus 5 |
 
