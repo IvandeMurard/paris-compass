@@ -135,6 +135,15 @@ async function attach(client: Client): Promise<void> {
   // Correlated subquery rather than `from lateral (...)`: an UPDATE's lateral
   // source cannot see the row being updated, so the target alias is out of scope
   // there. In the SET list it is in scope.
+  // `l.geom is not null` is not defensive noise, it is the correction of #68.
+  // The name half of this rule needs no geometry to FIRE — only to choose among
+  // the segments of the street — so a premise with an unusable point was still
+  // attached, by an `order by` whose distance was NaN. Ten of the fifteen
+  // POINT(NaN NaN) premises carried a segment on 2026-09-05, seven of them the
+  // same one of the six "RUE CHEMINOTS" segments; running the same subquery on a
+  // NULL geometry returns that same segment, which is the proof that it was
+  // never distance choosing. An arbitrary segment is worse than none: the
+  // segment is the grain `compass_street_rotation` counts on.
   const byName = await client.query(`
     update public.premise_location l
        set street_segment_id = (
@@ -145,6 +154,7 @@ async function attach(client: Client): Promise<void> {
            ),
            street_match = 'name'
      where l.street_key is not null
+       and l.geom is not null
        and exists (select 1 from public.street_segment s where s.street_key = l.street_key)
   `)
   log("  rattachement par nom", `${byName.rowCount} locaux`)

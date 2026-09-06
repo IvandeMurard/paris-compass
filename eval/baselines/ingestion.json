@@ -44,16 +44,25 @@
       "sql": "select count(distinct l.ordre) n from public.premise_location l where l.ordre in (select ordre from public.premise_location group by ordre having count(*) > 1)"
     },
     "rue_rattachee_par_nom": {
-      "value": 84459,
-      "sql": "select count(*) n from public.premise_location where street_match = 'name'"
+      "value": 84453,
+      "sql": "select count(*) n from public.premise_location where street_match = 'name'",
+      "regele_le": "2026-09-05",
+      "regele_depuis": 84459,
+      "regele_pour": "#68 — les quinze POINT(NaN NaN) de premise_location. Dix d'entre eux portaient un street_segment_id choisi par un order by dont la distance valait NaN : ces rattachements sont retires. Sept recuperent leur point du millesime 2023, donc leur quartier et leur troncon, calcules sur une geometrie finie. Cause nommee avant le gel, ecart bien en deca du seuil bloquant, et l'ancienne valeur reste lisible dans regele_depuis. Voir DIAGNOSTIC.md §38 et la migration 20260905000006."
     },
     "rue_rattachee_par_proximite": {
-      "value": 925,
-      "sql": "select count(*) n from public.premise_location where street_match = 'spatial'"
+      "value": 928,
+      "sql": "select count(*) n from public.premise_location where street_match = 'spatial'",
+      "regele_le": "2026-09-05",
+      "regele_depuis": 925,
+      "regele_pour": "#68 — les quinze POINT(NaN NaN) de premise_location. Dix d'entre eux portaient un street_segment_id choisi par un order by dont la distance valait NaN : ces rattachements sont retires. Sept recuperent leur point du millesime 2023, donc leur quartier et leur troncon, calcules sur une geometrie finie. Cause nommee avant le gel, ecart bien en deca du seuil bloquant, et l'ancienne valeur reste lisible dans regele_depuis. Voir DIAGNOSTIC.md §38 et la migration 20260905000006."
     },
     "quartier_rattache": {
-      "value": 85403,
-      "sql": "select count(*) n from public.premise_location where quartier_id is not null"
+      "value": 85410,
+      "sql": "select count(*) n from public.premise_location where quartier_id is not null",
+      "regele_le": "2026-09-05",
+      "regele_depuis": 85403,
+      "regele_pour": "#68 — les quinze POINT(NaN NaN) de premise_location. Dix d'entre eux portaient un street_segment_id choisi par un order by dont la distance valait NaN : ces rattachements sont retires. Sept recuperent leur point du millesime 2023, donc leur quartier et leur troncon, calcules sur une geometrie finie. Cause nommee avant le gel, ecart bien en deca du seuil bloquant, et l'ancienne valeur reste lisible dans regele_depuis. Voir DIAGNOSTIC.md §38 et la migration 20260905000006."
     },
     "bodacc_cessions_avec_prix": {
       "value": 25531,
@@ -113,5 +122,6 @@
       "reason": "Premier gel, au chargement complet. Remplace le 17 août 2026 : dix effectifs BODACC et SIRENE avaient dérivé de +0,14 % à +0,88 % par republication des sources, aucun sur BDCom. Écarts compris et attribués, jamais silencieux — le gel est daté pour que le remplacement reste lisible."
     }
   ],
-  "note_quantile": "`prix_median_local_identifiable` porte un bloc `publie` que les comptages n'ont pas, et il change la règle qui le juge — scripts/eval/drift.ts. Un comptage ne bouge que si des lignes entrent ou sortent, donc 1 % d'écart y signale un changement de pipeline. Un quantile sur une distribution en paliers se déplace par sauts : mesuré le 2 septembre 2026, +0,29 % de population (5 942 → 5 959 cessions) a déplacé la médiane de +1,33 % (160 868 → 163 000 €), parce que les prix de fonds se massent sur les nombres ronds et que la médiane est assise sur une marche. Le seuil de comptage y était faux dans les deux sens : bloquant sur une marche, et muet sur un passage de 164 999 à 165 001 € qui fait pourtant basculer le chiffre publié de 160 000 à 170 000 €. Ce qui bloque est donc désormais le changement du chiffre PUBLIÉ, au pas de `publie.pas` — ce que ces mesures existent pour protéger, comme `note_prix` le dit déjà."
+  "note_quantile": "`prix_median_local_identifiable` porte un bloc `publie` que les comptages n'ont pas, et il change la règle qui le juge — scripts/eval/drift.ts. Un comptage ne bouge que si des lignes entrent ou sortent, donc 1 % d'écart y signale un changement de pipeline. Un quantile sur une distribution en paliers se déplace par sauts : mesuré le 2 septembre 2026, +0,29 % de population (5 942 → 5 959 cessions) a déplacé la médiane de +1,33 % (160 868 → 163 000 €), parce que les prix de fonds se massent sur les nombres ronds et que la médiane est assise sur une marche. Le seuil de comptage y était faux dans les deux sens : bloquant sur une marche, et muet sur un passage de 164 999 à 165 001 € qui fait pourtant basculer le chiffre publié de 160 000 à 170 000 €. Ce qui bloque est donc désormais le changement du chiffre PUBLIÉ, au pas de `publie.pas` — ce que ces mesures existent pour protéger, comme `note_prix` le dit déjà.",
+  "note_regel_partiel": "Un compte qui porte `regele_le` est date par ce champ, pas par le `measured_on` du fichier : il a ete regele seul, pour une cause ecrite dans son `regele_pour`, et sa valeur d'avant reste dans `regele_depuis`. Regeler TOUT le fichier aurait absorbe au passage la derive BODACC mesuree le 5 septembre 2026 — `bodacc_cessions_avec_prix` 25 531 -> 25 622 et `bodacc_etablissements_localises` 107 736 -> 107 959, republication DILA, sans rapport avec #68 — et fait taire un signal qui appartient a quelqu'un d'autre. Un gel partiel garde les deux questions separees ; c'est la meme regle que `note_regel`, appliquee compte par compte."
 }

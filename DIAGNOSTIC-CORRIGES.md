@@ -3024,3 +3024,101 @@ donc une fonction qui atteindrait la table par une vue ou du SQL dynamique reste
 (inchangé) ; et une fonction qui écrit *et* rend quelque chose est jugée sur ce qu'elle rend, ce
 qui est correct, mais une divulgation par **message d'erreur** n'est lue par aucun de ces trois
 invariants.
+
+---
+
+## 38. Une absence de coordonnée rendue comme une coordonnée — `premise_location`, le 5 septembre 2026
+
+**Corrigé le 5 septembre 2026 par `20260905000006` et `I42`** — [`#68`](https://github.com/IvandeMurard/paris-compass/issues/68).
+
+**Le défaut n'est pas les quinze lignes.** Quinze locaux portaient `POINT(NaN NaN)`, et le
+ticket a été ouvert en écrivant le contre-test de `#65` précisément parce que **rien n'était
+rouge** : tout chemin de rayon du produit passe par `ST_DWithin`, qui rend `false` sur une
+géométrie non finie, vérifié sur 8 points × 5 rayons. La sécurité venait de la **forme du
+prédicat**, écrite nulle part comme une règle. `geom` était `not null`, ce qui était satisfait ;
+aucune contrainte ne demandait que la coordonnée soit finie ; aucun invariant ne regardait.
+
+**D'où elles venaient — remonté jusqu'à la source, pas seulement jusqu'au chargeur.** Le service
+ArcGIS de l'APUR répond `{"x":"NaN","y":"NaN"}` pour ces quinze relevés du millésime 2020, et
+`"coordinates":[]` pour les mêmes en `f=geojson` : c'est l'orthographe Esri d'un point absent, et
+elle est correcte. Mesuré directement sur le service le 5 septembre 2026. Les cinq voies —
+Cheminots, Lydia Becker, Eva Kotchever, Pierre Mauroy, Léon Bronchart — sont les rues neuves de
+Chapelle International : l'enquête a relevé les locaux avant que le référentiel d'adresses ait un
+point à leur donner. **La source ne fabrique rien ; elle déclare une absence.** Le chargeur, lui,
+l'a promue en mesure, en trois gardes qui ne gardaient pas :
+
+| | Pourquoi ça passe |
+| --- | --- |
+| `geometry?: { x: number; y: number }` | Une déclaration TypeScript n'est pas une validation. |
+| `feature.geometry?.x ?? null` | `??` ne mord que sur `null` et `undefined`. |
+| `where s.x is not null` | Postgres coule `'NaN'` en `double precision` NaN, qui n'est pas nul. |
+
+**Ce qui cassait déjà, et que le ticket ne savait pas.** L'affirmation « rien ne casse
+aujourd'hui » ne valait que pour les requêtes de rayon. `scripts/ingest/geography.ts` rattache un
+local à son tronçon par `order by l.geom <-> s.geom limit 1` — un `order by`, pas un
+`ST_DWithin` — et un `order by` ne refuse jamais de trancher. **Dix des quinze portaient un
+`street_segment_id` choisi ainsi**, dont sept le même tronçon sur les six de la rue des
+Cheminots ; la même sous-requête lancée sur une géométrie `NULL` rend ce même identifiant, ce qui
+prouve que la proximité n'y était pour rien. Le tronçon est le grain sur lequel
+`compass_street_rotation` dénombre. Le second prédicat du dépôt avait donc déjà produit une
+réponse fausse — masquée, elle aussi, par le `ST_DWithin` qui la précède.
+
+**La décision : rendu avec son absence nommée, jamais exclu.** Des trois issues possibles —
+refuser la ligne à l'ingestion, `geom` nullable, une table à part —, refuser la ligne serait §9 et
+§11 dans l'autre sens : ces locaux existent, l'enquête les a relevés, on connaît leur adresse,
+leur activité et leurs 22 relevés, et les effacer fabriquerait une absence de local là où il n'y a
+qu'une absence de point. `null` est le mot que le type porte déjà pour « on ne sait pas », et
+`ST_DWithin(null, …)` rend `null` : le comportement d'aujourd'hui cesse d'être un accident de la
+forme du prédicat pour devenir la règle du schéma. `bodacc_establishment.geom` était nullable
+depuis toujours pour la même raison — `premise_location` est mise en accord avec sa voisine.
+`geom_vintage_id` tombe avec `geom`, et une contrainte les tient appariées : le laisser à 2020 sur
+une ligne sans point ferait dire au schéma que 2020 en a fourni un.
+
+**Et l'absence ne l'emporte pas sur une mesure.** Sept des quinze avaient un point fini dans le
+millésime 2023, à l'adresse appariée, qui dormait en staging : la règle « le point canonique vient
+de 2020 » n'avait pas de branche pour « 2020 n'en a pas ». Elle en a une, et le commentaire de
+`20260808000004` la justifiait déjà — il fonde le choix de 2020 sur la **couverture**, jamais sur
+la précision.
+
+**Effectifs remesurés le 5 septembre 2026, après la migration.** Les deux effectifs gelés du
+bras B ne bougent pas, et c'est la propriété qui distingue cette décision des deux autres :
+
+| | Avant | Après |
+| --- | ---: | ---: |
+| Locaux distincts | 85 418 | **85 418** |
+| Relevés | 228 275 | **228 275** |
+| Locaux sans géométrie | 0, et quinze mensonges | **8** |
+| `quartier_rattache` | 85 403 | **85 410** |
+| `rue_rattachee_par_nom` | 84 459 | **84 453** |
+| `rue_rattachee_par_proximite` | 925 | **928** |
+
+**La règle derrière le correctif — `I42`, et c'est le vrai livrable.** Deux moitiés, comme `I40` :
+aucune colonne géographique ne porte de coordonnée non finie (contenu, ~12 s sur 312 000 lignes),
+et chaque colonne porte un `check` validé qui l'interdit (forme). La population des huit colonnes
+`geography` est **énumérée depuis `pg_attribute`**, jamais tenue à la main : la table suivante y
+entre sans que personne s'en souvienne, et elle y entre **en rouge** tant qu'elle n'a pas sa
+contrainte. Démontré dans l'acte 6 de `eval:sabotage`, en transaction annulée, avec le contrôle
+positif qui compte : tant que la contrainte est en place, la seizième ligne est **refusée à
+l'écriture**, pas signalée le lendemain matin.
+
+**Ce que la règle ne rattrape pas.**
+
+1. **Une coordonnée finie et fausse.** `POINT(0 0)`, un point resté en Lambert 93, l'adresse du
+   voisin : tout cela est fini. La règle rend impossible l'absence déguisée en mesure, pas la
+   mesure fausse — même limite que `I22` sur un code NAF réel mais mal lu.
+2. **La correction de données ne survit pas à un rechargement**, et c'est pour ça qu'elle n'est
+   pas le correctif. Les `update` de la migration sont défaits par le prochain `bdcom.ts` ; ce qui
+   tient, c'est `featurePoint` à l'entrée — et si un jour il cesse de tenir, un rechargement
+   **échouera** sur la contrainte au lieu de réécrire quinze lignes en silence. §20, appliqué.
+3. **Le rattachement des sept est recopié dans la migration** depuis
+   `scripts/ingest/geography.ts`, bornée à ces lignes-là. L'autorité reste le script ; la
+   duplication est du même genre que celle d'`ADDRESS_KEY` dans `bdcom.ts`, et elle porte le même
+   risque de dérive.
+4. **La moitié structurelle lit une expression, pas son sens** : elle exige un `check` validé
+   mentionnant `nan`, pas un `check` qui fasse ce qu'il dit. C'est la moitié de contenu qui la
+   rattrape.
+5. **Les huit locaux sans point restent sans quartier ni tronçon.** Ils sortent de tout
+   dénombrement géographique — comme avant, mais maintenant parce que le schéma le dit. Aucune
+   fonction ne les *nomme* encore à l'appelant : `compass_premises_within` ne sait toujours pas
+   dire « ce local existe, sans coordonnée », et n'en a pas l'occasion puisqu'elle filtre par
+   rayon. C'est le voisinage de §36, et ce n'est pas traité ici.

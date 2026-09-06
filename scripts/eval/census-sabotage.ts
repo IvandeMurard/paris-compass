@@ -395,10 +395,117 @@ async function acteJournal(client: Client): Promise<void> {
   }
 }
 
+/**
+ * Acte 6 — la géométrie non finie, #68.
+ *
+ * Trois mouvements dans une transaction annulée, et c'est le contrôle positif qui
+ * fait la moitié du travail :
+ *
+ *   1. LA SEIZIÈME LIGNE EST REFUSÉE. Tant que `premise_location_geom_fini` est
+ *      en place, l'insertion d'un POINT(NaN NaN) échoue. C'est la seule preuve
+ *      qui compte : un invariant dit le lendemain matin ce qu'une contrainte
+ *      refuse à l'instant. Si cette insertion PASSAIT, la règle serait un
+ *      commentaire, et les deux mouvements suivants ne prouveraient rien.
+ *   2. LA CONTRAINTE RETIRÉE, I42 rougit sur sa moitié STRUCTURELLE, avant même
+ *      qu'une ligne fautive existe : c'est la moitié qui protège la table
+ *      suivante, celle que personne n'a encore écrite.
+ *   3. LA SEIZIÈME LIGNE POSÉE dans cette brèche, I42 rougit AUSSI sur sa moitié
+ *      de CONTENU. Les deux moitiés se voient séparément, ce qui est tout
+ *      l'intérêt d'en avoir deux.
+ *
+ * La ligne fabriquée porte `ordre = 999999`, hors de la plage de BDCom, et elle
+ * n'est jamais validée.
+ */
+async function acteGeometrie(client: Client): Promise<void> {
+  out("\nActe 6 — une géométrie non finie : ce que la contrainte refuse, et ce que I42 voit")
+  const nanRow = `insert into public.premise_location
+      (ordre, geom, geom_vintage_id, arrondissement, first_seen_vintage_id, last_seen_vintage_id)
+      values (999999,
+              extensions.ST_SetSRID(
+                extensions.ST_MakePoint('NaN'::float8, 'NaN'::float8), 4326)::extensions.geography,
+              2020, 18, 2020, 2020)`
+
+  const avant = await playOne(client, "I42")
+  if (avant.length === 0) pass("I42 avant sabotage", "aucune colonne géographique non finie ni dégardée")
+  else
+    fail(
+      "I42 avant sabotage",
+      `${avant.length} ligne(s) — la porte est déjà rouge, le sabotage ne prouve rien : ` +
+        avant.map((r) => `${String(r.colonne)} (${String(r.motif)})`).join(" ; "),
+    )
+
+  await client.query("begin")
+  try {
+    // 1. Le contrôle positif : la contrainte mord-elle vraiment ?
+    let refusee = false
+    await client.query("savepoint tentative")
+    try {
+      await client.query(nanRow)
+    } catch {
+      refusee = true
+    } finally {
+      await client.query("rollback to savepoint tentative")
+    }
+    if (refusee)
+      pass(
+        "seizième ligne, contrainte en place",
+        "refusée par premise_location_geom_fini — la base la refuse à l'écriture, pas le lendemain matin",
+      )
+    else
+      fail(
+        "seizième ligne, contrainte en place",
+        "ACCEPTÉE — la contrainte ne mord pas, et tout ce qui suit ne prouve rien",
+      )
+
+    // 2. La contrainte retirée : la moitié structurelle, seule.
+    await client.query("alter table public.premise_location drop constraint premise_location_geom_fini")
+    const degardee = await playOne(client, "I42", true)
+    const structurelle = degardee.filter((r) => String(r.detail) === "aucune")
+    if (structurelle.length === 1 && String(structurelle[0].colonne) === "public.premise_location.geom")
+      pass(
+        "I42 sous sabotage, contrainte retirée",
+        "rouge sur la forme avant qu'une ligne fautive existe — c'est la moitié qui protège la table suivante",
+      )
+    else
+      fail(
+        "I42 sous sabotage, contrainte retirée",
+        `${structurelle.length} ligne(s) structurelle(s) attendue(s) : 1 sur premise_location.geom — ` +
+          JSON.stringify(degardee),
+      )
+
+    // 3. La seizième ligne dans la brèche : la moitié de contenu.
+    await client.query(nanRow)
+    const sale = await playOne(client, "I42", true)
+    const contenu = sale.filter((r) => String(r.detail) !== "aucune")
+    if (contenu.length === 1 && String(contenu[0].colonne) === "public.premise_location.geom")
+      pass(
+        "I42 sous sabotage, seizième ligne posée",
+        `rouge sur le contenu aussi — ${String(contenu[0].detail)} coordonnée(s) non finie(s) vue(s)`,
+      )
+    else
+      fail(
+        "I42 sous sabotage, seizième ligne posée",
+        `la moitié de contenu n'a pas vu la ligne : ${JSON.stringify(sale)}`,
+      )
+  } finally {
+    await client.query("rollback")
+  }
+
+  const apres = await playOne(client, "I42")
+  if (apres.length === 0)
+    pass("I42 après rollback", "au vert — le rouge venait du sabotage, pas d'une dérive")
+  else
+    fail(
+      "I42 après rollback",
+      `${apres.length} ligne(s) ont survécu à la transaction annulée : ` +
+        apres.map((r) => String(r.colonne)).join(" ; "),
+    )
+}
+
 async function main(): Promise<void> {
   const target = connectionTarget()
   log("CIBLE", target)
-  out("Sabotage des règles de retenue — quatre actes, tous dans des transactions annulées\n")
+  out("Sabotage des règles de retenue — six actes, tous dans des transactions annulées\n")
 
   const client = await connect()
   try {
@@ -572,6 +679,22 @@ async function main(): Promise<void> {
       )
 
     await acteJournal(client)
+    await acteGeometrie(client)
+
+    const seizieme = await client.query(
+      "select 1 from public.premise_location where ordre = 999999",
+    )
+    if (seizieme.rowCount === 0)
+      pass("nettoyage", "la seizième ligne de l'acte 6 n'a pas survécu au rollback")
+    else fail("nettoyage", "une ligne ordre = 999999 est restée dans premise_location")
+
+    const contrainte = await client.query(
+      `select 1 from pg_constraint where conname = 'premise_location_geom_fini'
+         and conrelid = 'public.premise_location'::regclass and convalidated`,
+    )
+    if (contrainte.rowCount === 1)
+      pass("nettoyage", "premise_location_geom_fini est toujours en place et validée")
+    else fail("nettoyage", "la contrainte retirée par l'acte 6 n'a pas été rendue par le rollback")
 
     const journalReste = await client.query("select 1 from public.question_tally")
     if (journalReste.rowCount === 0)
@@ -614,8 +737,9 @@ async function main(): Promise<void> {
   out(
     failures === 0
       ? `\nPASS — une fonction sans test de retenue, une qui le recopie, la décision annulée, ` +
-          `une politique élargie, une colonne d'identité, une granularité dégardée et une ligne ` +
-          `périmée : les sept font passer la porte au rouge — ${target}`
+          `une politique élargie, une colonne d'identité, une granularité dégardée, une ligne ` +
+          `périmée, une contrainte de géométrie retirée et une seizième ligne non finie : ` +
+          `les neuf font passer la porte au rouge — ${target}`
       : `\nFAIL — ${failures} contrôle(s) en échec — ${target}`,
   )
   process.exit(failures === 0 ? 0 : 1)

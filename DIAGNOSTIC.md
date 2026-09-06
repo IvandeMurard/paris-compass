@@ -1,11 +1,11 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte trente-sept au 5 septembre 2026**, et la
+« quatre défauts, par ordre de gravité » : il en porte trente-huit au 5 septembre 2026**, et la
 phrase est restée fausse trois semaines.
 
 Découpé en deux le 31 août 2026, comme `docs/REPRISE.md` la veille : cette page ne garde que
-**ce qui est encore ouvert**. Les trente-deux défauts clos sont dans
+**ce qui est encore ouvert**. Les trente-trois défauts clos sont dans
 [`DIAGNOSTIC-CORRIGES.md`](./DIAGNOSTIC-CORRIGES.md), **avec leur numérotation d'origine** —
 `docs/REPRISE.md`, `docs/PERIMETRE.md`, `eval/FAILURE_MODES.md` et les tickets y renvoient par
 leur numéro de section.
@@ -60,6 +60,7 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 35 | Un fourre-tout de mappage : une typologie de terrasse que personne n'a lue devient « permanente » | **ouvert** — trouvé le 5 septembre 2026 par `w1-catalogue`, [#79](https://github.com/IvandeMurard/paris-compass/issues/79) | ici |
 | 36 | `compass_premises_within` ne distingue pas un rayon vide d'un point hors corpus | **ouvert** — trouvé le 5 septembre 2026 par `w1-observabilite`, [#80](https://github.com/IvandeMurard/paris-compass/issues/80) | ici |
 | 37 | `I23` ne voyait pas une table restreinte par l'ABSENCE de politique | clos le 5 septembre 2026, `w1-observabilite` | corrigés |
+| 38 | Une absence de coordonnée rendue comme une coordonnée — quinze `POINT(NaN NaN)`, et aucune règle derrière | clos le 5 septembre 2026, `20260905000006` et `I42` | corrigés |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |

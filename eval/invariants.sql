@@ -1394,3 +1394,105 @@ select s.appelee, s.issue, s.quartier_code, s.appels, s.withheld
 from public.compass_question_summary() s
 where s.quartier_code is not null and s.appels < 2
 limit 20;
+
+-- @invariant I42 :: une colonne géographique porte une coordonnée non finie, ou rien ne le lui interdit
+-- Le livrable doctrinal de #68, et la raison pour laquelle ce ticket n'est pas
+-- « quinze lignes à corriger ». Les quinze POINT(NaN NaN) de `premise_location`
+-- étaient inoffensifs, et ils l'étaient par accident : tout chemin de rayon du
+-- produit passe par `ST_DWithin`, qui rend `false` sur une géométrie non finie.
+-- Ça, c'est une propriété de la FORME DU PRÉDICAT, pas une garantie du schéma.
+-- `geom` était `not null`, ce qui était satisfait ; aucune contrainte ne demandait
+-- que la coordonnée soit finie ; rien ne regardait.
+--
+-- QU'IL N'Y AIT PAS DE GARANTIE N'ÉTAIT PAS THÉORIQUE. Dix des quinze portaient
+-- un `street_segment_id` posé par `scripts/ingest/geography.ts` avec
+-- `order by l.geom <-> s.geom`, une distance qui valait NaN — sept d'entre eux le
+-- même tronçon, sur les six de la rue des Cheminots. Le second prédicat du dépôt
+-- n'était pas `ST_DWithin`, et il a produit une réponse fausse le jour où il a
+-- tourné. `#65` en avait mesuré un troisième, `&& _ST_Expand`, qui aurait ajouté
+-- quinze locaux fantômes à chaque requête de rayon.
+--
+-- DEUX MOITIÉS, comme I40. Le CONTENU dit qu'aucune colonne ne porte de
+-- coordonnée non finie aujourd'hui ; la FORME dit que chaque colonne porte une
+-- contrainte qui l'interdit. La seconde est celle qui empêche la seizième ligne
+-- et la table suivante ; la première est celle qui ne croit pas la seconde sur
+-- parole.
+--
+-- POURQUOI LE CONTENU EST QUAND MÊME BALAYÉ alors que les contraintes existent :
+-- une contrainte prouve ce qu'elle dit, pas ce qu'on croit qu'elle dit. Un
+-- `check` posé `not valid`, ou une expression subtilement fausse, laisserait la
+-- moitié structurelle verte sur une table sale. Le balayage coûte ~12 s sur les
+-- 312 000 lignes géographiques du corpus, mesuré le 5 septembre 2026 — un tiers
+-- de l'alerte du bras A.
+--
+-- POPULATION ÉNUMÉRÉE DEPUIS `pg_attribute`, jamais tenue à la main — même
+-- mécanique que I23 et I24. Une table géographique ajoutée demain entre dans la
+-- règle sans que personne ait à s'en souvenir, et elle y entre EN ROUGE tant
+-- qu'elle n'a pas sa contrainte : la règle arrive avant les données.
+--
+-- LE PIÈGE, et il a eu la première version du recensement de #68 : en Postgres
+-- `NaN = NaN` est VRAI. Le test IEEE qu'on écrit d'instinct — `not (ST_X(g) =
+-- ST_X(g))` — rend ZÉRO ligne sur une table qui en porte quinze. D'où le test sur
+-- le WKT, qui a par ailleurs le mérite de valoir pour une ligne ou un polygone,
+-- où le non-fini peut être sur n'importe quel sommet, et d'attraper `Infinity`
+-- autant que `NaN`. Aucun nom de type WKT ne contient « nan » ni « inf ».
+--
+-- CE QU'IL NE RATTRAPE PAS, et c'est trois choses.
+--
+-- 1. UNE COORDONNÉE FINIE ET FAUSSE. POINT(0 0), un point resté en Lambert 93,
+--    l'adresse du voisin : tout cela est fini, et rien ici ne bronche. La règle
+--    rend impossible l'absence déguisée en mesure, pas la mesure fausse — même
+--    limite que I22 sur un code NAF réel mais mal lu.
+-- 2. LA MOITIÉ STRUCTURELLE LIT UNE EXPRESSION, PAS SON SENS. Elle exige un
+--    `check` validé, portant sur la colonne, dont la définition mentionne « nan ».
+--    Une contrainte qui mentionnerait NaN sans rien interdire passerait. C'est le
+--    contenu qui la rattrape, et c'est pour ça qu'il y a deux moitiés.
+-- 3. LES SCHÉMAS QUE L'ÉNUMÉRATION ÉCARTE. `extensions`, `tiger`, `topology` sont
+--    ceux de PostGIS lui-même ; une colonne géographique posée là sortirait de la
+--    population. Personne n'a de raison d'en poser une, et c'est écrit ici plutôt
+--    que supposé.
+--
+-- Démontré rouge sur une seizième ligne fabriquée, en transaction annulée, dans
+-- l'acte 6 de `npm.cmd run eval:sabotage` — avec le contrôle positif que la
+-- contrainte, elle, refuse cette ligne tant qu'on ne l'a pas retirée.
+with colonnes as (
+  select n.nspname as sch, c.relname as tbl, a.attname as col,
+         c.oid as reloid, a.attnum as attnum
+  from pg_attribute a
+  join pg_class c on c.oid = a.attrelid
+  join pg_namespace n on n.oid = c.relnamespace
+  join pg_type t on t.oid = a.atttypid
+  where t.typname in ('geography', 'geometry')
+    and c.relkind in ('r', 'p', 'm')
+    and n.nspname not in ('pg_catalog', 'information_schema', 'extensions',
+                          'tiger', 'tiger_data', 'topology')
+    and a.attnum > 0 and not a.attisdropped
+),
+contenu as (
+  select k.*,
+         (xpath('/row/n/text()', query_to_xml(format(
+            $q$select count(*) n from %I.%I
+                where %I is not null
+                  and extensions.ST_AsText(%I::extensions.geometry) ~* '(nan|inf)'$q$,
+            k.sch, k.tbl, k.col, k.col), false, true, '')))[1]::text::bigint as non_finies
+  from colonnes k
+)
+select c.sch || '.' || c.tbl || '.' || c.col as colonne,
+       c.non_finies::text                    as detail,
+       'coordonnée non finie en base'        as motif
+from contenu c
+where c.non_finies > 0
+union all
+select k.sch || '.' || k.tbl || '.' || k.col, 'aucune',
+       'aucune contrainte CHECK validée n''interdit le non-fini sur cette colonne'
+from colonnes k
+where not exists (
+  select 1
+  from pg_constraint x
+  where x.conrelid = k.reloid
+    and x.contype = 'c'
+    and x.convalidated
+    and k.attnum = any (x.conkey)
+    and pg_get_constraintdef(x.oid) ~* 'nan'
+)
+limit 20;

@@ -19,7 +19,7 @@
 
 import type { Client } from "pg"
 
-import { codedDomains, queryPages } from "./lib/arcgis"
+import { codedDomains, featurePoint, queryPages } from "./lib/arcgis"
 import { assertPrivileged, connect, inTransaction, insertRows, log, recordRun } from "./lib/db"
 
 const SERVICE = "https://carto2.apur.org/apur/rest/services"
@@ -98,8 +98,15 @@ async function loadStaging(client: Client, vintage: Vintage): Promise<number> {
       const a = feature.attributes
       // 2023 publishes no X/Y attributes, so the point comes from the geometry
       // for every layer rather than from attributes on some and geometry on others.
-      const x = feature.geometry?.x ?? null
-      const y = feature.geometry?.y ?? null
+      //
+      // `?? null` used to be the whole of this check, and it caught nothing: the
+      // 2020 layer answers `{"x":"NaN","y":"NaN"}` for a premise it has no point
+      // for, `??` only fires on null and undefined, and the string went on to
+      // become a Postgres NaN. `featurePoint` reads the absence as an absence
+      // (#68). x and y are therefore null together or finite together.
+      const point = featurePoint(feature)
+      const x = point?.x ?? null
+      const y = point?.y ?? null
 
       return layer.shape === "od"
         ? [
@@ -238,6 +245,29 @@ const ADDRESS_KEY = (a: string, n: string, l: string, t: string, v: string) => `
 /** 2020 supplies the canonical point: full scope, and the middle census. */
 const CANONICAL_GEOM_VINTAGE = 2020
 
+/**
+ * Which point wins when a premise is seen in several vintages — #68.
+ *
+ * Two rules, and the second one is new. The canonical vintage wins over another
+ * vintage's point, because a premise whose position flips between reloads is
+ * worse than a premise positioned by the middle census. But ABSENCE NEVER WINS
+ * OVER A POINT: until #68 the first rule was the only one, so a premise the 2020
+ * survey had no point for kept POINT(NaN NaN) while its 2023 point sat unused in
+ * staging — seven of the fifteen were in exactly that state on 2026-09-05.
+ *
+ * That is not a new decision about which vintage to trust. `geom_vintage_id`
+ * exists to record which vintage supplied the point, and the reason the schema
+ * gives for preferring 2020 is COVERAGE — 2023 is retail-only, so it cannot be
+ * the default — not precision. It says nothing about preferring nothing to a
+ * measured point.
+ *
+ * Expressed twice, once per column, because `geom` and `geom_vintage_id` must
+ * move together or the row claims a vintage supplied a point it did not.
+ */
+const GEOM_WINS = `excluded.geom is not null
+        and (excluded.geom_vintage_id = ${CANONICAL_GEOM_VINTAGE}
+             or public.premise_location.geom is null)`
+
 async function promoteOd(client: Client, vintage: 2017 | 2020): Promise<void> {
   const key = ADDRESS_KEY("s.arrondissement", "s.num", "s.let", "s.type_voie", "s.libelle_voie")
 
@@ -247,18 +277,20 @@ async function promoteOd(client: Client, vintage: 2017 | 2020): Promise<void> {
       (ordre, geom, geom_vintage_id, arrondissement, num, let, typ_voie, lib_voie,
        cc_id, first_seen_vintage_id, last_seen_vintage_id)
     select s.ordre,
-           ST_Transform(ST_SetSRID(ST_MakePoint(s.x, s.y), $2), 4326)::geography,
-           $1, s.arrondissement, s.num,
+           case when s.x is null or s.y is null then null
+                else ST_Transform(ST_SetSRID(ST_MakePoint(s.x, s.y), $2), 4326)::geography end,
+           case when s.x is null or s.y is null then null else $1::smallint end,
+           s.arrondissement, s.num,
            nullif(trim(s.let), ''), nullif(trim(s.type_voie), ''), nullif(trim(s.libelle_voie), ''),
            nullif(s.cc_id, '0')::integer, $1, $1
     from public.stg_bdcom_od s
-    where s.vintage_id = $1 and s.x is not null and s.y is not null
+    where s.vintage_id = $1
     on conflict (ordre, address_key) do update set
       first_seen_vintage_id = least(public.premise_location.first_seen_vintage_id, excluded.first_seen_vintage_id),
       last_seen_vintage_id  = greatest(public.premise_location.last_seen_vintage_id, excluded.last_seen_vintage_id),
-      geom = case when excluded.geom_vintage_id = ${CANONICAL_GEOM_VINTAGE}
+      geom = case when ${GEOM_WINS}
                   then excluded.geom else public.premise_location.geom end,
-      geom_vintage_id = case when excluded.geom_vintage_id = ${CANONICAL_GEOM_VINTAGE}
+      geom_vintage_id = case when ${GEOM_WINS}
                   then excluded.geom_vintage_id else public.premise_location.geom_vintage_id end
     `,
     [vintage, SOURCE_SRID],
@@ -289,7 +321,7 @@ async function promoteOd(client: Client, vintage: 2017 | 2020): Promise<void> {
     left join public.bdcom_activity  a  on a.code = upper(trim(s.code_activite))
     left join public.bdcom_size_band sb on sb.label_source = s.surface
     left join public.bdcom_situation st on st.label_source = s.situation
-    where s.vintage_id = $1 and s.x is not null and s.y is not null
+    where s.vintage_id = $1
     on conflict (vintage_id, source_ordre) do update set
       location_id    = excluded.location_id,
       activity_code  = excluded.activity_code,
@@ -315,15 +347,23 @@ async function promote2023(client: Client): Promise<void> {
       (ordre, geom, geom_vintage_id, arrondissement, num, let, typ_voie, lib_voie,
        cc_id, first_seen_vintage_id, last_seen_vintage_id)
     select s.c_ord,
-           ST_Transform(ST_SetSRID(ST_MakePoint(s.x, s.y), $1), 4326)::geography,
-           2023, s.arro, s.num,
+           case when s.x is null or s.y is null then null
+                else ST_Transform(ST_SetSRID(ST_MakePoint(s.x, s.y), $1), 4326)::geography end,
+           case when s.x is null or s.y is null then null else 2023::smallint end,
+           s.arro, s.num,
            nullif(trim(s.let), ''), nullif(trim(s.typ_voie), ''), nullif(trim(s.lib_voie), ''),
            nullif(s.cc_id, 0), 2023, 2023
     from public.stg_bdcom_2023 s
-    where s.x is not null and s.y is not null
     on conflict (ordre, address_key) do update set
       first_seen_vintage_id = least(public.premise_location.first_seen_vintage_id, excluded.first_seen_vintage_id),
-      last_seen_vintage_id  = greatest(public.premise_location.last_seen_vintage_id, excluded.last_seen_vintage_id)
+      last_seen_vintage_id  = greatest(public.premise_location.last_seen_vintage_id, excluded.last_seen_vintage_id),
+      -- Same rule as promoteOd, and it is the half 2023 never had: this branch
+      -- used to leave geom alone unconditionally, which is right against a
+      -- canonical point and wrong against no point at all (#68).
+      geom = case when ${GEOM_WINS}
+                  then excluded.geom else public.premise_location.geom end,
+      geom_vintage_id = case when ${GEOM_WINS}
+                  then excluded.geom_vintage_id else public.premise_location.geom_vintage_id end
     `,
     [SOURCE_SRID],
   )
@@ -346,7 +386,6 @@ async function promote2023(client: Client): Promise<void> {
     join public.premise_location l
       on l.ordre = s.c_ord and l.address_key = (${key})
     left join public.bdcom_activity a on a.code = upper(trim(s.codact))
-    where s.x is not null and s.y is not null
     on conflict (vintage_id, source_ordre) do update set
       location_id    = excluded.location_id,
       activity_code  = excluded.activity_code,
@@ -364,12 +403,17 @@ async function promote2023(client: Client): Promise<void> {
  * Every staged row must produce exactly one observation. A shortfall means the
  * address-key expressions have diverged, or a foreign key silently dropped rows
  * — both of which would otherwise show up as a quietly incomplete census.
+ *
+ * `where x is not null` was dropped from both counts on 2026-09-05 (#68). The
+ * comment above always claimed EVERY staged row, and the filter quietly excused
+ * the rows that had no point — the same fifteen. Now that a premise without a
+ * coordinate is loaded rather than skipped, the assertion says what it says.
  */
 async function assertComplete(client: Client, vintage: Vintage): Promise<void> {
   const staged = await client.query<{ n: string }>(
     vintage === 2023
-      ? "select count(*) n from public.stg_bdcom_2023 where x is not null"
-      : "select count(*) n from public.stg_bdcom_od where vintage_id = $1 and x is not null",
+      ? "select count(*) n from public.stg_bdcom_2023"
+      : "select count(*) n from public.stg_bdcom_od where vintage_id = $1",
     vintage === 2023 ? [] : [vintage],
   )
   const promoted = await client.query<{ n: string }>(

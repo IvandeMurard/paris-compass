@@ -17,9 +17,50 @@ export interface QueryOptions {
   onPage?: (fetched: number, total: number) => void
 }
 
-interface ArcGisFeature<T> {
+export interface ArcGisFeature<T> {
   attributes: T
-  geometry?: { x: number; y: number }
+  /**
+   * `unknown`, not `number`, and the difference is the whole of #68.
+   *
+   * The wire does not send a number when the feature has no point: the APUR 2020
+   * layer answers `{"x":"NaN","y":"NaN"}` — the STRING "NaN", which is how Esri
+   * JSON spells an absent point geometry (`f=geojson` spells the same absence
+   * `"coordinates":[]`). Declaring the field `number` did not make it one; it
+   * only made every reader downstream believe the check had already happened,
+   * and fifteen premises reached `premise_location` as POINT(NaN NaN).
+   *
+   * Read it with `featurePoint` below rather than reaching in.
+   */
+  geometry?: { x: unknown; y: unknown }
+}
+
+/**
+ * A finite ordinate, or null — the one place this pipeline decides what counts
+ * as a coordinate.
+ *
+ * `Number()` is not a validation: it turns "NaN" into NaN, "" into 0 and null
+ * into 0, and every one of those is a premise placed somewhere it is not. So
+ * the empty and absent cases are refused before the conversion, and the result
+ * is refused unless it is finite.
+ */
+function ordinate(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
+
+/**
+ * The point of a feature, or null when the service declares it has none.
+ *
+ * HALF A POINT IS NOT A POINT. If either ordinate is unusable the whole point
+ * is absent: a premise at (652830, NaN) is not somewhere with one coordinate
+ * missing, it is nowhere, and keeping the half that parsed would be the same
+ * fabrication in a quieter form.
+ */
+export function featurePoint<T>(feature: ArcGisFeature<T>): { x: number; y: number } | null {
+  const x = ordinate(feature.geometry?.x)
+  const y = ordinate(feature.geometry?.y)
+  return x === null || y === null ? null : { x, y }
 }
 
 interface ArcGisResponse<T> {

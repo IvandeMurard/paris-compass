@@ -170,7 +170,7 @@ peut republier — mais il ne doit jamais passer inaperçu.
 | Périmètre commun 2017 / 2020 / 2023 | 62 705 / 61 541 / 60 845 | La série publiée change de sens |
 | Locaux distincts | 85 418 | L'appariement inter-millésimes a changé de comportement |
 | Identifiants réattribués | 74 | Le taux de réattribution est une propriété de la source |
-| Rattachement rue par le nom | 84 459 | Paris a renommé des rues, ou la correspondance s'est dégradée |
+| Rattachement rue par le nom | 84 453 | Paris a renommé des rues, ou la correspondance s'est dégradée. **Regelé seul le 5 septembre 2026** (#68) : dix rattachements posés sur une géométrie `NaN` sont retirés, sept sont recalculés sur un point fini. `regele_depuis` dans le fichier garde 84 459 |
 | **Composition de fiabilité** | 27 580 / 3 144 / 19 517 / 3 198 | Voir ci-dessous — c'est la métrique de qualité du produit |
 
 **Seuil.** Une variation est signalée (`WARN`) ; elle bloque (`FAIL`) au-delà de

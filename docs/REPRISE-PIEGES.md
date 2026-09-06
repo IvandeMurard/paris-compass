@@ -140,6 +140,40 @@ sont de la syntaxe SQL Server, l'échappement Postgres est `like 'compass\_%'`. 
 servait à vérifier qu'aucune fonction de sabotage n'était restée sur le distant : un zéro
 faux y est le pire retour possible.
 
+**Trois gardes qui ne gardent rien contre une coordonnée absente — mesurés le 5 septembre 2026,
+`#68`.** Le service ArcGIS de l'APUR annonce un point absent par la **chaîne** `"NaN"`
+(`{"x":"NaN","y":"NaN"}`, et `"coordinates":[]` en `f=geojson`). Trois écritures d'apparence
+prudente la laissent passer, chacune pour une raison différente, et il faut les trois pour que
+quinze locaux arrivent en base en `POINT(NaN NaN)` :
+
+> `geometry?: { x: number; y: number }` — une **déclaration TypeScript n'est pas une
+> validation**. Le fil envoie ce qu'il veut ; le type ne fait que persuader le lecteur suivant
+> que quelqu'un a vérifié.
+>
+> `feature.geometry?.x ?? null` — `??` ne mord que sur `null` et `undefined`. `"NaN"` n'est ni
+> l'un ni l'autre, et `Number("NaN")` rend NaN sans se plaindre. Au passage : `Number("")` et
+> `Number(null)` rendent **0**, donc un garde qui laisse la chaîne vide passer place le local au
+> large du golfe de Guinée. Le seul test juste est `Number.isFinite` **après** avoir refusé le
+> vide et l'absent.
+>
+> `where s.x is not null` en SQL — Postgres coule `'NaN'` en `double precision` NaN, qui n'est
+> **pas nul**. Le garde-fou de la promotion lisait donc « coordonnée présente ».
+
+**Et le corollaire qui a réellement produit un faux :** `order by l.geom <-> s.geom limit 1` ne
+sait pas dire qu'il ne sait pas. Sur une géométrie `NaN` — ou `NULL` — la distance ne classe
+rien et la sous-requête rend **quand même une ligne**, la première que le plan présente. Dix des
+quinze locaux portaient un `street_segment_id` posé ainsi, sept d'entre eux le même tronçon sur
+les six de la rue des Cheminots ; la même sous-requête lancée sur une géométrie `NULL` rend ce
+même identifiant, ce qui est la preuve que ce n'est pas la proximité qui avait choisi. Un
+`order by … limit 1` **doit** être gardé sur `geom is not null` en amont — l'ordre ne refuse
+jamais de trancher.
+
+Voir aussi, plus haut dans cette page, le faux zéro de `not (ST_X(g) = ST_X(g))` : en Postgres
+`NaN = NaN` est **vrai**, donc le recensement écrit d'instinct rend zéro ligne sur une table qui
+en porte quinze. Le test qui vaut pour toutes les formes de géométrie est sur le WKT —
+`ST_AsText(g) ~* '(nan|inf)'` — parce qu'un sommet non fini au milieu d'une ligne ne se voit ni
+par `ST_X` ni par `ST_IsEmpty`. `docs/BDCOM.md` § 4 bis, `I42`.
+
 **Un corps de fonction remplacé dans une transaction annulée exige un contrôle
 positif.** Un candidat qui n'a pas pris ressemble exactement à « aucun changement » —
 c'est-à-dire à la réponse qu'on cherche. Relire `prosrc` après le `create or replace`

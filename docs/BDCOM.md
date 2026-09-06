@@ -115,6 +115,66 @@ colonne — pour qu'aucune requête ne s'en serve par erreur.
 
 ---
 
+## 4 bis. La source dit « je n'ai pas de point » avec la chaîne `NaN` — mesuré le 5 septembre 2026
+
+Écrit en faisant `#68`, et c'est le piège le plus cher de cette page parce qu'il ne ressemble
+pas à un piège : la réponse du service est **bien formée, correcte, et illisible par un lecteur
+naïf**.
+
+Quinze relevés du millésime 2020 n'ont pas de coordonnée. Le service ne l'annonce pas par une
+géométrie absente — il l'annonce par une géométrie présente dont les ordonnées sont la
+**chaîne de caractères** `"NaN"` :
+
+```
+/OPENDATA/BDCOM_OD/MapServer/1/query?where=ORDRE in (98108,98109)&returnGeometry=true&outSR=2154&f=json
+  → "features":[{"attributes":{"ORDRE":98109,…},"geometry":{"x":"NaN","y":"NaN"}}, …]
+
+  … le même appel en f=geojson
+  → "features":[{"geometry":{"type":"Point","coordinates":[]}, …}]
+```
+
+C'est l'orthographe Esri d'un point absent, et elle est **conforme** : `"coordinates":[]` en
+GeoJSON dit exactement la même chose. Rien à reprocher à l'APUR — la couche 2023, elle, n'en
+porte aucune, et les sept locaux communs aux deux millésimes ont un point fini en 2023.
+
+**Pourquoi ces quinze-là.** `ordre` 98108 à 98123, sans le 98117, toutes au 18e, sur cinq voies :
+rue des Cheminots, rue Lydia Becker, rue Eva Kotchever, rue Pierre Mauroy, rue Léon Bronchart.
+Ce sont les rues neuves de **Chapelle International**. L'enquête porte-à-porte a relevé les
+locaux avant que le référentiel d'adresses ait un point à leur donner. Ce n'est pas une avarie :
+c'est ce à quoi ressemble un quartier en construction dans un recensement de terrain, et il y en
+aura d'autres au prochain millésime.
+
+**Ce qu'un chargeur en fait s'il ne regarde pas.** Trois lectures d'affilée transforment
+l'absence en mesure, et aucune des trois n'a l'air fausse :
+
+| Ce qu'on écrit | Ce que ça laisse passer |
+| --- | --- |
+| `geometry?: { x: number; y: number }` en TypeScript | Une **déclaration** n'est pas une validation. Le fil envoie une chaîne. |
+| `feature.geometry?.x ?? null` | `??` ne mord que sur `null` et `undefined`. `"NaN"` n'est ni l'un ni l'autre. |
+| `where s.x is not null` en SQL | Postgres coule `'NaN'` en `double precision` NaN, qui **n'est pas nul**. |
+
+Résultat mesuré avant correction : quinze `POINT(NaN NaN)` dans `premise_location`, `not null`
+satisfait, aucune contrainte violée.
+
+**La règle, depuis `20260905000006`.** Une ordonnée non finie est lue comme une **absence** dès
+`scripts/ingest/lib/arcgis.ts` (`featurePoint`), le local est chargé **sans point** plutôt que
+refusé, `geom` est nullable et `geom_vintage_id` tombe avec elle, et un `check` par colonne
+`geography` du schéma refuse le non-fini à l'écriture. `I42` recense la population depuis
+`pg_attribute`, donc la table suivante y entre sans que personne s'en souvienne.
+
+**Et une absence ne l'emporte pas sur une mesure.** La règle « le point canonique vient de
+2020 » n'avait pas de branche pour « 2020 n'en a pas » : sept des quinze avaient un point 2023
+qui dormait en staging. Le point d'un autre millésime est pris quand le canonique manque, et
+`geom_vintage_id` dit lequel. La justification écrite en 2026-08 pour préférer 2020 est la
+**couverture** — 2023 est retail-only — jamais la précision : elle ne dit rien sur le choix
+entre un point de 2023 et pas de point du tout.
+
+**Ce que ça ne rattrape pas.** Une coordonnée **finie et fausse** — un point resté en Lambert 93,
+un `POINT(0 0)`, l'adresse du voisin — passe toutes ces règles. Et `xbis`/`ybis` restent ce que
+le § 4 en dit : de l'affichage.
+
+---
+
 ## 5. L'identifiant : stable, et le test a été fait
 
 > **Mis à jour le 12 août.** Cette section disait « stabilité à prouver » et prescrivait un
@@ -214,6 +274,9 @@ C'est la raison pour laquelle `compass_survival_by_trade` agrège par quartier, 
 - **Une table d'observations par millésime**, sans supposer `c_ord` stable tant que ce n'est pas
   vérifié.
 - **`xbis`/`ybis` marquées comme donnée d'affichage** dans le schéma lui-même.
+- **Une ordonnée non finie est une absence, jamais une coordonnée** (§ 4 bis) : le service
+  écrit `"NaN"` en toutes lettres, `??` et `is not null` la laissent passer, et la colonne
+  géographique doit porter un `check` qui la refuse.
 - **Une colonne licence par millésime**, puisqu'elles diffèrent.
 - Toute statistique d'évolution **restreinte au périmètre commun**, dans la requête.
 - Et tant que la couche 2023 complète n'est pas obtenue : parler de **rotation commerciale**,
