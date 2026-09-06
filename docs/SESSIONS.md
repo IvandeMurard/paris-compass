@@ -230,14 +230,52 @@ fautive.
 | ~~15~~ | ~~`w1-cadence`~~ | [#70](https://github.com/IvandeMurard/paris-compass/issues/70) | **fait** | P1 | Opus 5 |
 | ~~16~~ | ~~`w1-porte-planifiee`~~ | [#71](https://github.com/IvandeMurard/paris-compass/issues/71) | **fait** | P1 | Opus 5 |
 | ~~17~~ | ~~`w1-porte-lue`~~ | [#77](https://github.com/IvandeMurard/paris-compass/issues/77) | **fait** | P1 | Opus 5 |
-| ~~18~~ | ~~`w1-observabilite`~~ | [#81](https://github.com/IvandeMurard/paris-compass/issues/81) | **fait** | P1 | Opus 5 |
-| ~~19~~ | ~~`w1-catalogue`~~ | [#73](https://github.com/IvandeMurard/paris-compass/issues/73) | **fait** | P1 | Opus 5 |
-| ~~20~~ | ~~`w1-observabilite-echappement`~~ | [#81](https://github.com/IvandeMurard/paris-compass/issues/81) | **fait** | P1 | Opus 5 |
-| ~~21~~ | ~~`w1-ledger`~~ | [#82](https://github.com/IvandeMurard/paris-compass/issues/82) | **fait** | P1 | Opus 5 |
-| 22 | `w1-ppri` | [#13](https://github.com/IvandeMurard/paris-compass/issues/13) | ouvert | P1 | Opus 5 |
-| ~~23~~ | ~~`w1-dia`~~ | [#12](https://github.com/IvandeMurard/paris-compass/issues/12) | **fait** | P1 | Opus 5 |
+| ~~18~~ | ~~`w1-porte-publiee`~~ | [#76](https://github.com/IvandeMurard/paris-compass/issues/76) | **fait** | P1 | Opus 5 |
+| ~~19~~ | ~~`w1-observabilite`~~ | [#81](https://github.com/IvandeMurard/paris-compass/issues/81) | **fait** | P1 | Opus 5 |
+| ~~20~~ | ~~`w1-catalogue`~~ | [#73](https://github.com/IvandeMurard/paris-compass/issues/73) | **fait** | P1 | Opus 5 |
+| ~~21~~ | ~~`w1-observabilite-echappement`~~ | [#81](https://github.com/IvandeMurard/paris-compass/issues/81) | **fait** | P1 | Opus 5 |
+| ~~22~~ | ~~`w1-ledger`~~ | [#82](https://github.com/IvandeMurard/paris-compass/issues/82) | **fait** | P1 | Opus 5 |
+| 23 | `w1-historique` | [#49](https://github.com/IvandeMurard/paris-compass/issues/49) | **bloqué** | P0 | Opus 5 |
+| 24 | `w1-ppri` | [#13](https://github.com/IvandeMurard/paris-compass/issues/13) | ouvert | P1 | Opus 5 |
+| ~~25~~ | ~~`w1-dia`~~ | [#12](https://github.com/IvandeMurard/paris-compass/issues/12) | **fait** | P1 | Opus 5 |
+| 26 | `w6-analyse` | [#50](https://github.com/IvandeMurard/paris-compass/issues/50) | ouvert | P1 | Opus 5 |
+| 27 | `w3-mapillary` | [#21](https://github.com/IvandeMurard/paris-compass/issues/21) | **bloqué** | P0 | Opus 5 |
+| 28 | `w2-idfm` | [#19](https://github.com/IvandeMurard/paris-compass/issues/19) | ouvert | P1 | Sonnet 5 |
+| 29 | `w2-filosofi` | [#18](https://github.com/IvandeMurard/paris-compass/issues/18) | ouvert | P1 | Sonnet 5 |
+| 30 | `w2-mobiliscope` | [#20](https://github.com/IvandeMurard/paris-compass/issues/20) | ouvert | P1 | Sonnet 5 |
+| 31 | `w4-meubles` | [#27](https://github.com/IvandeMurard/paris-compass/issues/27) | ouvert | P1 | Sonnet 5 |
+| 32 | `w2-air-bruit` | [#16](https://github.com/IvandeMurard/paris-compass/issues/16) | **bloqué** | P1 | Opus 5 |
+| 33 | `w4-abf` | [#23](https://github.com/IvandeMurard/paris-compass/issues/23) | ouvert | P1 | Opus 5 |
+| ~~34~~ | ~~`w6-mcp`~~ | [#35](https://github.com/IvandeMurard/paris-compass/issues/35) | **fait** | P1 | Opus 5 |
+| 35 | `w5-entity` | [#29](https://github.com/IvandeMurard/paris-compass/issues/29) | ouvert | P1 | Opus 5 |
+| 36 | `w5-entretien` | [#30](https://github.com/IvandeMurard/paris-compass/issues/30) | ouvert | P1 | Opus 5 |
+| 37 | `w5-confiance-agent` | [#28](https://github.com/IvandeMurard/paris-compass/issues/28) | ouvert | P1 | Opus 5 |
+| 38 | `w5-parse` | [#32](https://github.com/IvandeMurard/paris-compass/issues/32) | ouvert | P2 | Opus 5 |
+| 39 | `w6-liberations` | [#34](https://github.com/IvandeMurard/paris-compass/issues/34) | ouvert | P1 | Opus 5 |
+| 40 | `w6-dossier` | [#33](https://github.com/IvandeMurard/paris-compass/issues/33) | ouvert | P1 | Opus 5 |
+| 41 | `w6-modes` | [#36](https://github.com/IvandeMurard/paris-compass/issues/36) | ouvert | P1 | Opus 5 |
+| 42 | `w5-explain-metier` | [#31](https://github.com/IvandeMurard/paris-compass/issues/31) | ouvert | P2 | Opus 5 |
+| 43 | `w3-osm-notes` | [#22](https://github.com/IvandeMurard/paris-compass/issues/22) | ouvert | P2 | Sonnet 5 |
+| 44 | `w2-bpe-marches-velo` | [#17](https://github.com/IvandeMurard/paris-compass/issues/17) | ouvert | P2 | Sonnet 5 |
+| 45 | `w4-ecoles` | [#24](https://github.com/IvandeMurard/paris-compass/issues/24) | ouvert | P2 | Sonnet 5 |
+| 46 | `w4-frequentation` | [#26](https://github.com/IvandeMurard/paris-compass/issues/26) | ouvert | P2 | Sonnet 5 |
+| 47 | `w4-erp-copro-ads` | [#25](https://github.com/IvandeMurard/paris-compass/issues/25) | ouvert | P2 | Opus 5 |
+| 48 | `w7-etude-chantiers` | [#37](https://github.com/IvandeMurard/paris-compass/issues/37) | ouvert | P1 | Opus 5 |
+| 49 | `w7-foncier` | [#38](https://github.com/IvandeMurard/paris-compass/issues/38) | **bloqué** | P1 | Opus 5 |
+| 50 | `w7-inpi` | [#39](https://github.com/IvandeMurard/paris-compass/issues/39) | ouvert | P2 | Opus 5 |
+| 51 | `w7-kit` | [#40](https://github.com/IvandeMurard/paris-compass/issues/40) | ouvert | P1 | Opus 5 |
 
-**Hors de cette file : 26 tickets ouverts**, à prendre après la vague 0 — 
+**4 tickets attendent autre chose que du code.** Ils restent à leur
+place dans l'ordre — un blocage se lève, il ne se cache pas — mais ne pas les ouvrir
+en session tant que la ligne ci-dessous tient :
+
+- `w1-historique` — APUR — courrier le 10 août 2026, relance le 24, sans réponse au 6 septembre.
+- `w3-mapillary` — jeton d'API Mapillary à créer, et l'attribution CC-BY-SA à trancher avant d'ingérer (la question est ouverte dans `catalogue.json`). Décision d'Ivan, pas travail de session.
+- `w2-air-bruit` — clé d'API Airparif à demander. Bruitparif n'a pas d'endpoint ouvert épinglé.
+- `w7-foncier` — convention Ville / APUR / Cerema — accès réservé aux acteurs publics.
+
+**Tous les tickets du dépôt sont dans cette file.** Un ticket neuf tombera ici,
+hors ordre, tant que `ORDER` de `scripts/sessions.ts` ne lui aura pas donné sa place —
 le détail par vague est dans [`PLAN-ACTION-VACANCE.md`](./PLAN-ACTION-VACANCE.md).
 
 <!-- END sessions -->

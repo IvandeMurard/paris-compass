@@ -390,6 +390,31 @@ invariant ou bras de porte, `P0`. Les cinq questions de la revue sont dans `docs
 et chacune vient d'un défaut que ce dépôt a payé.
 
 
+**Les deux `comment on` du 25 août restent divergents entre le dépôt et le distant.** Tranché
+par Ivan le 6 septembre 2026, sur `#83`, ouverte par le douzième bras à sa première exécution.
+
+Le fait : `20260825000002` et `20260825000003` ont été réécrites **après** avoir été posées, par
+le commit `89aa8ac`, pour repasser deux commentaires du français à l'anglais. Le ledger garde le
+texte du jour de l'application, donc le distant porte deux `comment on` en français que le dépôt
+annonce en anglais. Mesuré instruction par instruction le 6 septembre : **rien d'exécutable ne
+diffère**.
+
+L'option écartée était une migration neuve rejouant les deux `comment on`. Elle a été écartée
+parce qu'elle demande une poussée de schéma sur une base vivante pour deux phrases de
+commentaire, et qu'elle ne supprimerait même pas les entrées de `corps-diverge` — celles-ci
+consignent un fait du passé et restent vraies après. Ce qui empêche la récidive n'est pas une
+migration mais la règle, déjà dans `CLAUDE.md` : **ne jamais réécrire une migration déjà posée**.
+
+**La contrepartie a été rendue mécanique le jour même**, parce qu'une contrepartie qu'on se
+promet n'est pas tenue : `corps-diverge` ne doit pas grossir par confort, donc toute raison
+consignée doit désormais **nommer le commit qui a réécrit le fichier**, et `ledger.test.ts`
+vérifie que ce commit a bien touché cette migration — `verifierFormeDesAdmises()`. Une
+divergence sans commit à citer est l'autre cause, celle qui est un défaut et se corrige.
+`.github/workflows/pr.yml` prend l'historique entier (`fetch-depth: 0`) pour que la
+vérification profonde joue là où une entrée neuve arrive. **Ce que ça ne rattrape pas** : un
+sha plausible qui n'a jamais existé, quand l'historique est superficiel ; et rien ici ne dit si
+la raison est *vraie*, seulement qu'elle cite ce qu'un lecteur peut aller vérifier.
+
 **`compass_question_summary()` reste exécutable par `anon`.** Tranché par Ivan le
 5 septembre 2026, sur `w1-observabilite` (#72).
 

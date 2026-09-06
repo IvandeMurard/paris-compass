@@ -203,6 +203,74 @@ export function readDivergencesAdmises(
   return parsed["corps-diverge"] ?? {}
 }
 
+/** A recorded divergence whose reason does not hold up as a fact about the past. */
+export interface FormeAdmise {
+  version: string
+  probleme: string
+}
+
+/**
+ * Each recorded reason must NAME the commit that rewrote the file after its application.
+ *
+ * Why this is a rule and not a habit. The two fingerprints already stop an entry from
+ * *drifting*: the day either side moves, the arm goes red. Nothing stopped a *third* entry
+ * being filed for convenience — and a table of admitted divergences that grows one line
+ * whenever a body differs is the complacency #71 refuses, only slower.
+ *
+ * A rewriting commit is what separates the two causes the arm cannot tell apart on its own.
+ * "The file was rewritten after it was applied" is checkable: a commit exists, and it touched
+ * that migration. "The tracked file is not the one that was laid down" has no such commit —
+ * so whoever wants to file it has nothing to write here, which is the point. The reason stops
+ * being prose the reader must trust.
+ *
+ * `commitConnu` is optional because git history is not always there to ask: CI clones at
+ * depth 1 by default, and a check that failed on a shallow clone would be noise, and noise is
+ * how a check gets disabled. Absent it, the rule holds on shape alone — a sha is named — which
+ * is already enough to stop the casual entry, since the casual entry has no sha to name.
+ * `.github/workflows/pr.yml` fetches full history precisely so the deep half plays where new
+ * entries actually arrive.
+ *
+ * **What this does not catch**: a plausible-looking sha that never existed, when history is
+ * shallow. And it says nothing about whether the reason is *true* — only that it cites
+ * something a reader can go and check, which is the same demand `Measured<T>` makes of a
+ * displayed figure.
+ */
+export function verifierFormeDesAdmises(
+  admises: Record<string, DivergenceAdmise>,
+  commitConnu?: (sha: string, version: string) => boolean,
+): FormeAdmise[] {
+  const problemes: FormeAdmise[] = []
+  for (const [version, admise] of Object.entries(admises)) {
+    // A sha is hex, but so is a version made of digits and so is an `empreinte`. Require at
+    // least one a–f letter, and exclude the two fingerprints the entry already carries —
+    // otherwise pasting them back into the reason would satisfy the rule while naming nothing.
+    const candidats = (admise.raison.match(/\b[0-9a-f]{7,40}\b/g) ?? []).filter(
+      (s) => /[a-f]/.test(s) && s !== admise.depot && s !== admise.ledger && s !== version,
+    )
+    if (candidats.length === 0) {
+      problemes.push({
+        version,
+        probleme:
+          "la raison ne nomme aucun commit. Une divergence admise doit citer celui qui a " +
+          "réécrit le fichier après son application — sans lui, ce qui est écrit ici est une " +
+          "préférence et non un fait du passé, et rien ne distingue « le fichier a été " +
+          "réécrit » de « le fichier suivi n'est pas celui qui a été posé », qui est un défaut.",
+      })
+      continue
+    }
+    if (!commitConnu) continue
+    if (!candidats.some((sha) => commitConnu(sha, version))) {
+      problemes.push({
+        version,
+        probleme:
+          `la raison cite ${candidats.map((s) => `\`${s}\``).join(", ")}, et aucun de ces ` +
+          "commits n'est connu de git comme ayant touché cette migration.",
+      })
+    }
+  }
+  return problemes
+}
+
 export type LedgerState =
   /** Same identifier, same name, same normalised body. */
   | "apparie"
