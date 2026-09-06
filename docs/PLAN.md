@@ -986,11 +986,17 @@ couche 2023 complète (avec les vacants) est distribuable.
 Relevé le 12 août : le modèle répond à des questions que **rien ne pose**. Aucune de ces
 analyses n'exige de source nouvelle — seulement le déploiement, et une fonction pour chacune.
 
-**6.1 — Matrices de transition d'activité.** « Que devient une boulangerie ? »
-`premise_observation.activity_code` × trois millésimes par local donne la matrice complète,
-par un `lag()` sur `(location_id, vintage_year)`. Aujourd'hui cette information n'existe que
-sous forme de **booléen** (`changed_from_previous`) : on sait qu'il y a eu changement, jamais
-vers quoi.
+**6.1 — Matrices de transition d'activité. Fait le 6 septembre 2026**, avec `w6-analyse` (#50) —
+`compass_activity_transitions`, migration `20260906000001`. La matrice existait dans le schéma
+et n'était rendue par rien ; l'information ne vivait que comme **booléen**
+(`changed_from_previous`) : on savait qu'il y avait eu changement, jamais vers quoi.
+
+> **Ce que la pose a appris, et qui n'était écrit nulle part** : une transition dérive de DEUX
+> millésimes, et un seul des trois est redistribuable. Les trois couples possibles —
+> 2017→2020, 2017→2023, 2020→2023 — contiennent donc tous un millésime retenu, et **aucun
+> n'est servable à un appelant anonyme** tant que l'APUR n'a pas répondu. La fonction rend une
+> ligne marquée qui le dit, plutôt qu'un vide. C'est une conséquence de la licence, pas un
+> défaut de la fonction, et c'est `I43` qui la garde.
 
 **6.2 — Analyse de survie. Fait le 25 août 2026**, avec §5.2 et `w1-survie` (#14) — voir §5.2
 pour la mesure et `docs/tickets/w1-survie.md` pour le détail. Ce qui suit reste vrai de la piste
@@ -1002,19 +1008,42 @@ BODACC datés donnent une durée de tenure par local. L'ingrédient manquant —
 cessation SIRENE** — est déjà identifié en §3.4. Rappel de prudence porté par la migration
 BODACC : une durée médiane avant revente n'est **pas** un taux de rotation.
 
-**6.3 — Agrégation par rue entière.** `street_segment.voie_id` regroupe les tronçons d'une
-même voie ; rien ne l'utilise. Et `compass_street_rotation`, seule fonction qui descend au
-tronçon, n'a toujours aucun appelant produit — ni front ni MCP. ~~Pas même la porte.~~ **La porte
-l'appelle depuis le 25 août** : `I25`/`I26` et le bras D, ajoutés par `w0-retenue` (#57) après
-qu'elle a été trouvée en train d'affirmer `changed_since_previous = 0` à un appelant anonyme
-(`DIAGNOSTIC.md` §19). Une fonction que personne n'appelle répond quand même par PostgREST.
+**6.3 — Agrégation par rue entière. Fait le 6 septembre 2026**, avec `w6-analyse` (#50) —
+`compass_voie_rotation`, même migration. `street_segment.voie_id` regroupait les tronçons d'une
+même voie et rien ne l'utilisait : mesuré le 6 septembre aux Halles, 300 m, les locaux du rayon
+sont sur **102 tronçons appartenant à 43 voies**, et sur le corpus entier 25 094 tronçons pour
+6 653 voies — aucun tronçon sans `voie_id`, donc l'agrégat est total. Un appelant qui demandait
+« rue Montorgueil » recevait un de ses tronçons.
 
-**6.4 — Exposer les prix par activité.** Le prix médian par métier n'existe aujourd'hui que
-comme **baseline d'évaluation figée** ; aucune fonction ne le sert. Règle rappelée : grouper
-sur le code d'activité BDCom, **jamais** sur le champ texte libre de BODACC.
+`compass_street_rotation`, seule fonction qui descend au tronçon, n'a toujours aucun appelant
+**produit** — ni front ni MCP. ~~Pas même la porte.~~ **La porte l'appelle depuis le 25 août** :
+`I25`/`I26` et le bras D, ajoutés par `w0-retenue` (#57) après qu'elle a été trouvée en train
+d'affirmer `changed_since_previous = 0` à un appelant anonyme (`DIAGNOSTIC.md` §19). Une
+fonction que personne n'appelle répond quand même par PostgREST.
 
-**6.5 — Ventes contre liquidations, par quartier et par activité.** Entièrement joignable,
-jamais posé. C'est la lecture qui distingue une rue qui se renouvelle d'une rue qui meurt.
+**6.4 — Exposer les prix par activité. Fait le 6 septembre 2026**, avec `w6-analyse` (#50) —
+`compass_price_by_activity`. La règle tient : grouper sur le code d'activité BDCom, **jamais**
+sur le champ texte libre de BODACC — et cette session a mesuré pourquoi, 210 lignes de
+`bodacc_establishment.activity` portant de l'UTF-8 doublement encodé (`DIAGNOSTIC.md` §40).
+
+> **La prémisse du ticket était inexacte, et l'écart compte.** Le prix médian par métier
+> n'existait pas « comme baseline figée » : les deux baselines gelées couvrent la médiane
+> **toutes activités confondues**. Les quatre chiffres par métier vivaient dans le `README`, et
+> **aucune requête du dépôt ne les produit** — deux des quatre ne sont reproductibles par
+> aucune des méthodes essayées le 6 septembre. `DIAGNOSTIC.md` §41, décision attendue en #89.
+
+**6.5 — Ventes contre procédures collectives, par quartier et par activité. Fait le
+6 septembre 2026**, avec `w6-analyse` (#50) — `compass_sales_vs_collective`. C'est la lecture
+qui distingue une rue qui se renouvelle d'une rue qui meurt.
+
+> **Le mot « liquidations » a été abandonné, et c'est une mesure qui l'a décidé.** L'axe servi
+> est l'énumération `bodacc_announcement.family` — `vente` contre `collective` — parce qu'elle
+> est typée par le schéma. Restreindre aux seules liquidations exigerait de lire
+> `bodacc_judgment.nature`, du texte libre dont 19 des 79 valeurs sont des doublons doublement
+> encodés, et dont l'une — « Liste des créances nées après le jugement d'ouverture d'une
+> procédure de liquidation judiciaire » — porte le mot sans être une liquidation. Classer sur
+> ce texte est le geste que #61 a refusé. « Collective » couvre donc TOUTE procédure
+> collective, et chaque ligne le dit dans son `evidence`.
 
 **6.6 — Resserrer les candidats par activité.** Le levier nommé en §3.3 contre le résidu
 structurel de 36,7 % `probable` : quand trois locaux partagent une adresse et qu'un seul est
