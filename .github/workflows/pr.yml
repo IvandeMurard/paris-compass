@@ -1,0 +1,51 @@
+# Les portes qui ne demandent aucun secret, jouées sur chaque proposition de fusion.
+#
+# Pourquoi un workflow séparé plutôt qu'un déclencheur de plus sur porte.yml : celui-là porte
+# la chaîne de connexion privilégiée et son en-tête interdit `pull_request` pour cette raison
+# exacte — le dépôt est public. Ce fichier-ci ne lit aucun secret, donc il peut se déclencher
+# sur une proposition sans rien exposer, y compris venue d'une fourche.
+#
+# Ce qu'il joue, et pourquoi seulement ceux-là :
+#   typecheck  — tsc --build, scripts/ compris. Aucun réseau.
+#   test       — vitest, et avec lui les quatre règles d'énumération : un script npm non
+#                classé, une source sans cadence, une source du catalogue sans sonde, un
+#                appelant de PostgREST sans échappement. Aucun secret non plus.
+#
+# Ce qu'il ne joue pas, et ce n'est pas un oubli : eval, eval:anon, verify:mcp, catalogue,
+# freshness et porte:publie interrogent le distant ou des miroirs publics. Ils restent sur
+# porte.yml, chaque matin, sur `main`. Une proposition qui les casserait serait donc vue le
+# lendemain et non à la fusion — c'est le prix de ne pas exposer la clé, et il est assumé.
+# `build` en est aussi absent : `prebuild` refuse de bâtir sans la configuration du front.
+
+name: Portes de proposition
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  portes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Installer
+        run: npm ci
+
+      - name: typecheck
+        run: npm run typecheck
+
+      - name: test
+        run: npm run test

@@ -115,7 +115,8 @@ où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lova
 - **Les formules de `src/core/scoring.ts` sont publiées** sur `src/pages/Methodology.tsx`. Toute
   modification de l'une exige la mise à jour de l'autre.
 - **Lovable synchronise ce dépôt dans les deux sens.** Ne pas éditer les mêmes fichiers des deux
-  côtés dans une même session. `git pull` avant de commencer, pousser avant de rouvrir Lovable.
+  côtés dans une même session. `git pull` avant de commencer, fusionner sa proposition avant de
+  rouvrir Lovable.
   Ne pas toucher `.lovable/`.
 - **Un rouge de la porte se corrige dans le bras, jamais dans le rapport.** Depuis le 31 août
   2026 les bras de `.github/workflows/porte.yml` tournent seuls chaque matin et un rouge
@@ -174,6 +175,23 @@ où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lova
   dans ses lignes le 25 août sans que rien n'empêche qu'il redevienne faux ; déplacée ici
   depuis le prompt commun le 6 septembre, parce qu'une doctrine se charge à chaque session
   quand une procédure se colle.
+- **`main` refuse la poussée directe : une session, une branche, une proposition.** Décidé par
+  Ivan le 6 septembre 2026, et c'est l'inverse de ce qui valait depuis le 27 août. `git switch -c
+  ticket/<ID>`, puis `gh pr create` et `gh pr merge --squash --delete-branch` — **aucune
+  approbation n'est requise** (`required_approving_review_count: 0`), donc la session fusionne
+  elle-même : c'est la trace qui est exigée, pas un goulot humain. `enforce_admins` est activé,
+  sans quoi la règle ne s'appliquerait à personne — le seul compte du dépôt est administrateur,
+  et la protection criait à chaque poussée sans jamais rien bloquer.
+
+  `.github/workflows/pr.yml` rejoue `typecheck` et `test` sur chaque proposition. **Pas le reste,
+  et pas par oubli** : `porte.yml` détient la chaîne privilégiée et son en-tête interdit
+  `pull_request` parce que le dépôt est public. Les six autres bras restent sur `main`, chaque
+  matin — une proposition qui les casserait serait vue le lendemain, et c'est le prix assumé de
+  ne pas exposer la clé.
+
+  **La revue est distincte de la proposition**, et elle ne vaut que pour les tickets qui la
+  méritent — migration, `src/core/`, invariant ou bras, `P0`. Ses cinq questions et son prompt
+  sont dans `docs/SESSIONS.md`.
 - **Ne jamais `git add -A` dans ce dépôt : stager par nom.** Des sessions parallèles et
   Lovable écrivent dans le même arbre, donc un balayage revendique du travail qui n'est pas le
   sien. C'est arrivé deux fois — `c861bac` le 26 août a emporté `.fn-dump/` et quatre

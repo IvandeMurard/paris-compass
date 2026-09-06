@@ -53,8 +53,11 @@ Trois choses avant d'écrire quoi que ce soit :
   quatre étaient faux. Remesure ce que tu comptes réutiliser, ne le recopie pas.
 - Le ticket redit peut-être une section de PLAN.md. Si oui, dis-le et traite les
   deux comme un seul chantier — ne laisse pas deux backlogs diverger.
-- git pull avant de commencer, et pousse avant de finir : Lovable reprend la main
-  le 1er septembre sur l'arbre qu'il trouvera.
+- git pull sur main, puis travaille sur une branche : git switch -c ticket/<ID>.
+  main refuse la poussee directe depuis le 6 septembre. A la fin : pousse la
+  branche, ouvre la proposition (gh pr create), et fusionne-la toi-meme — aucune
+  approbation n'est requise, c'est la trace qui l'est. gh pr merge --squash
+  --delete-branch.
 
 Termine par : ce qui est démontré, ce qui ne l'est pas, et ce que tu as laissé
 de côté. Si le ticket devient faux en cours de route, arrête-toi et dis-le
@@ -86,7 +89,9 @@ ce temps-là. Mesuré le 5 septembre : le cron chantiers de #70 est arrivé six
 heures après son créneau du mardi, première occurrence possible huit jours plus
 tard, porte rouge quatre matins entre les deux (docs/REPRISE-PIEGES.md).
 
-Avant de pousser, les portes — dans cet ordre, et ne pousse pas sur un rouge :
+Avant d'ouvrir la proposition, les portes — dans cet ordre, et n'ouvre pas sur
+un rouge. La proposition rejoue typecheck et test toute seule ; les six autres
+bras ne tournent que sur main, chaque matin, donc c'est ici qu'ils se jouent :
 
     npm.cmd run typecheck
     npm.cmd run test
@@ -98,8 +103,8 @@ mêmes portes tournent seules chaque matin. CLAUDE.md dit comment les lire — u
 panne amont n'est pas un échec, et cette distinction se corrige dans le bras,
 jamais dans le rapport.
 
-Puis npm.cmd run sessions, commite ce qu'il change, et termine par
-sessions:check. L'ordre et le modele se changent dans scripts/sessions.ts, les
+Puis npm.cmd run sessions, commite ce qu'il change dans la meme branche, et
+termine par sessions:check avant d'ouvrir la proposition. L'ordre et le modele se changent dans scripts/sessions.ts, les
 consignes d'une session dans docs/SESSIONS.md hors du bloc genere.
 
 Une source de donnees rejoint src/services/opendata/sources.ts le jour ou un
@@ -110,6 +115,62 @@ n'a pas, ou tait celle qu'il a. Trois sources y ont manque pendant deux jours.
 
 Inutile d'y rappeler `npm.cmd`, la pureté de `src/core/`, `Measured<T>` ou l'encadrement des
 loyers : `CLAUDE.md` est chargé à chaque session.
+
+### La revue — pour les tickets qui la méritent, pas pour tous
+
+Depuis le 6 septembre, chaque session passe par une proposition. La proposition est la trace ;
+la **revue** est autre chose, et elle ne se justifie pas partout — une revue systématique
+devient une case à cocher, et une case à cocher ne lit rien.
+
+**Quand elle est due.** Un seul de ces signes suffit, et les quatre se constatent sur le diff :
+
+| Signe | Pourquoi |
+| --- | --- |
+| Touche `supabase/migrations/` | Posé sur une base vivante, et une migration ne se défait pas |
+| Touche `src/core/` | Partagé par le front et le MCP — `w0-provenance` a déplacé les deux et les formules publiées |
+| Ajoute ou change un invariant, un bras, ou une règle d'énumération | C'est l'instrument qui mesure tout le reste |
+| Porte l'étiquette `P0` | |
+
+**Qui la fait.** Une session distincte de celle qui a fait le travail. Pas pour la défiance : une
+session qui vient d'écrire une règle en connaît l'intention, et c'est précisément ce qui l'empêche
+de voir qu'elle ne la tient pas. `#72` a conclu qu'aucun invariant ne pouvait voir l'absence
+d'écriture ; il a fallu une autre lecture pour distinguer l'exécution de la déclaration.
+
+**Ce qu'elle demande** — cinq questions, toutes payées au moins une fois par ce dépôt :
+
+```
+Revue de la proposition #<N>, ticket <ID>.
+
+Lis le diff et le ticket. Ne réécris rien : tu réponds à cinq questions et tu
+poses ton verdict en commentaire de la proposition.
+
+1. UN CHIFFRE A-T-IL ÉTÉ RECOPIÉ PLUTÔT QUE REMESURÉ ? « Le ledger distant est à
+   24 migrations » était vrai le 17 août et faux le 24. Le pont NAF a inventé deux
+   codes. CLAUDE.md a annoncé dix bras alors qu'il y en avait onze. Tout chiffre
+   du diff doit porter sa source et sa date, ou avoir été remesuré.
+
+2. LA RÈGLE ÉNUMÈRE-T-ELLE, OU LISTE-T-ELLE ? Une liste tenue à la main est juste
+   le jour où on l'écrit. I23/I24, arms.ts, cadence.json, catalogue.json et
+   observabilite.ts dérivent leur population ; une sixième règle qui listerait
+   serait fausse au premier ajout.
+
+3. LE CORRECTIF SURVIT-IL À UN RECHARGEMENT, ET PROTÈGE-T-IL UN CONSOMMATEUR QUI
+   N'EXISTE PAS ENCORE ? C'est la doctrine de CLAUDE.md. Un UPDATE qu'un chargeur
+   réécrira n'est pas un correctif.
+
+4. LA DÉMONSTRATION PROUVE-T-ELLE LE CONTRÔLE, OU UNE COPIE DU CONTRÔLE ? Un
+   sabotage qui rejoue sa propre version de la règle ne prouve rien sur celle qui
+   part en production — c'est la raison d'être de scripts/eval/census.ts.
+
+5. CE QUE ÇA NE RATTRAPE PAS EST-IL ÉCRIT ? Une règle sans limite déclarée sera
+   crue plus large qu'elle n'est.
+
+Verdict en trois états : RIEN À REDIRE ; À CORRIGER AVANT FUSION, avec quoi ;
+FUSIONNABLE MAIS À SUIVRE, avec l'issue à ouvrir. Ne fusionne pas toi-même.
+```
+
+**Ce que la revue ne remplace pas** : les portes. Elle lit ce qu'un contrôle ne peut pas lire —
+l'intention, la limite non dite, le chiffre plausible. Elle ne rejoue rien.
 
 ### Comment ce fichier reste juste
 

@@ -363,6 +363,30 @@ refaire sur tout nouveau projet avant `supabase db push`.
 
 ## Décisions qui ne se déduisent pas du code
 
+**Une session, une branche, une proposition — et `main` refuse la poussée directe.** Tranché
+par Ivan le 6 septembre 2026. C'est l'inverse de la décision du 27 août, et le renversement est
+assumé.
+
+Ce qui l'a déclenché : la protection de `main` existait, exigeait une proposition, et portait
+`enforce_admins: false`. Le seul compte du dépôt étant administrateur, elle ne s'appliquait à
+personne — elle avertissait à chaque poussée sans jamais rien bloquer. Un contrôle qui crie et
+n'arrête rien est ce que ce dépôt refuse ailleurs ; il fallait donc le supprimer ou le rendre
+vrai. Ivan a choisi de le rendre vrai.
+
+**Aucune approbation n'est requise** : `required_approving_review_count` reste à 0, donc une
+session ouvre sa proposition et la fusionne elle-même. C'est la trace qui est exigée, pas un
+goulot — le dépôt n'a qu'un seul humain.
+
+**Méthodologie : spec-kit en référence, pas en outil.** Le format de ticket existant —
+`Pourquoi` / `Comment` / `Doctrine` / `Fait quand` — est déjà une spécification, avec des
+critères falsifiables et une limite déclarée. Empiler l'arborescence de spec-kit par-dessus
+aurait créé deux systèmes de spécification en parallèle, exactement le « deux backlogs qui
+divergent » que le projet combat depuis le 23 août. Seule la discipline de proposition est
+reprise, plus une **revue** pour les tickets qui la méritent : migration, `src/core/`,
+invariant ou bras de porte, `P0`. Les cinq questions de la revue sont dans `docs/SESSIONS.md`,
+et chacune vient d'un défaut que ce dépôt a payé.
+
+
 **`compass_question_summary()` reste exécutable par `anon`.** Tranché par Ivan le
 5 septembre 2026, sur `w1-observabilite` (#72).
 
