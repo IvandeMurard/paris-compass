@@ -34,7 +34,14 @@ jobs:
   portes:
     runs-on: ubuntu-latest
     steps:
+      # L'historique entier, et pour une raison précise : `ledger.test.ts` vérifie qu'une
+      # divergence consignée nomme le commit qui a réécrit le fichier, et qu'il a bien touché
+      # cette migration. En profondeur 1 — le défaut d'actions/checkout — un commit du 25 août
+      # est invisible et la règle se réduit à sa forme. Une entrée neuve arrive par une
+      # proposition : c'est ici qu'elle doit être vérifiée pour de bon.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:

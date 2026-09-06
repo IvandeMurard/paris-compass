@@ -14,6 +14,7 @@
 // arm's, `npm.cmd run ledger`, and the seventh act of `porte:sabotage` proves the same rule
 // reacts to it using the real module with a substituted ledger.
 
+import { execFileSync } from "child_process"
 import { readFileSync } from "fs"
 import { resolve } from "path"
 
@@ -27,6 +28,7 @@ import {
   migrationsSuivies,
   normaliser,
   readDivergencesAdmises,
+  verifierFormeDesAdmises,
   type LedgerRow,
   type Migration,
 } from "./ledger"
@@ -227,6 +229,57 @@ describe("le dépôt tel qu'il est, sans base", () => {
       expect(admise.raison.trim(), `${version} sans raison`).not.toBe("")
       expect(admise.raison.length, `${version} : raison trop courte pour être une raison`).toBeGreaterThan(60)
     }
+  })
+
+  it("nomme, pour chaque divergence consignée, le commit qui a réécrit le fichier", () => {
+    // Ivan, 6 septembre 2026 : la divergence des deux `comment on` reste, on ne pousse pas une
+    // migration sur une base vivante pour deux phrases de commentaire. La contrepartie de cette
+    // décision est que `corps-diverge` ne doit pas grossir par confort — et une contrepartie
+    // qu'on se promet n'est pas tenue, donc elle est ici.
+    //
+    // Deux profondeurs, et la seconde ne joue que si git peut répondre : un clone superficiel
+    // — la CI en profondeur 1 — ne connaît pas un commit du 25 août, et échouer là-dessus
+    // serait du bruit. pr.yml prend l'historique entier pour que la profonde joue là où une
+    // entrée neuve arrive vraiment.
+    const superficiel =
+      execFileSync("git", ["rev-parse", "--is-shallow-repository"], {
+        cwd: ROOT,
+        encoding: "utf8",
+      }).trim() === "true"
+
+    const commitConnu = (sha: string, version: string): boolean => {
+      try {
+        const out = execFileSync(
+          "git",
+          ["log", "--format=%H", "-1", sha, "--", `supabase/migrations/${version}_*.sql`],
+          { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+        )
+        return out.trim().length > 0
+      } catch {
+        // Unknown sha, or no history to ask: not a lie about the entry, just silence.
+        return false
+      }
+    }
+
+    const problemes = verifierFormeDesAdmises(admises, superficiel ? undefined : commitConnu)
+    expect(problemes.map((p) => `${p.version} — ${p.probleme}`)).toEqual([])
+  })
+
+  it("refuse une raison qui ne cite qu'une empreinte ou un numéro de version", () => {
+    // The counter-test, and it is the one that matters: the rule must not be satisfiable by
+    // pasting back what the entry already carries. A version is all digits, an `empreinte` is
+    // twelve hex characters — both would pass a naive "contains hex" reading.
+    const bidon = {
+      "20260825000002": {
+        raison:
+          "Le corps differe depuis toujours, voir 20260825000002 et l'empreinte 27336c93b6ad, " +
+          "c'est ainsi et il n'y a rien a en dire de plus que cette phrase deja bien assez longue.",
+        depot: "27336c93b6ad",
+        ledger: "ef22ff3f99e7",
+      },
+    }
+    expect(verifierFormeDesAdmises(bidon)).toHaveLength(1)
+    expect(verifierFormeDesAdmises(bidon)[0].probleme).toContain("ne nomme aucun commit")
   })
 
   it("est déclaré comme bras dans porte.yml, sinon la règle de #71 le refuserait", () => {

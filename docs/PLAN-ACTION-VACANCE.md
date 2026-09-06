@@ -747,16 +747,31 @@ Même src/core/. On substitue BDCom par un observatoire local (CCI, Codata, inve
 
 ## Ordre de bataille
 
+**L'ordre vit dans [`SESSIONS.md`](./SESSIONS.md), et ce bloc ne le recopie plus.** Il le
+recopiait, et il avait déjà tort le 6 septembre 2026 : il plaçait l'agent d'entretien MCP en
+tête de Q4 quand la direction du 31 août met les données avant l'écran, il ne nommait aucune
+des trois sources de la vague 2, et il annonçait la DIA en 2027 alors que `w1-dia` était close.
+Un ordre écrit à la main dans un second document est un second backlog — exactement ce que ce
+plan combat depuis le 23 août. La table de `SESSIONS.md` est dérivée de `docs/tickets/` et de
+l'état GitHub, et `npm.cmd run sessions:check` sort en 1 si elle a dérivé.
+
+Ce que ce document garde, parce que la table ne peut pas le porter :
+
 ```
-Q3 2026  →  deploy corpus + fiche/timeline UI + cron + PLU + provenance par champ
-Q3 2026  →  chantiers + terrasses + SIRENE×BDCom (survie)
-Q4 2026  →  agent d'entretien MCP (8 questions → checklist sourcée)
-Q4 2026  →  Mapillary : rideau / « à louer », 50 façades gold, sinon silence
-Q4 2026  →  meublés + ABF/SPR + PPRI zonage + vue « ce qui se libère »
-2027     →  DIA si open ; fichiers fonciers si partenariat public
-         →  étude chantiers×BDCom (le droit d'afficher une association)
-         →  kit ville (swap BDCom, confiance abaissée)
+Q3 2026  →  clos le 27 août 2026, épic #41, dix tickets sur dix
+Q4 2026  →  les sources qui séparent deux locaux de la même rue, puis l'IA au-dessus
+             du cœur, puis l'écran. Le détail et le pourquoi de chaque rang sont dans
+             les commentaires de ORDER, scripts/sessions.ts.
+2027     →  fichiers fonciers si partenariat public ; étude chantiers × BDCom (le droit
+             d'afficher une association) ; kit ville (swap BDCom, confiance abaissée).
+             Trois paris, pas trois tâches : chacun dépend d'un tiers qui n'a rien promis.
 ```
+
+**Ce qui bloque, au 6 septembre 2026** — quatre tickets attendent autre chose que du code, et
+`SESSIONS.md` les marque `bloqué` plutôt que `ouvert` : `w1-historique` (APUR, sans réponse
+depuis le 10 août), `w3-mapillary` (jeton d'API et attribution à trancher), `w2-air-bruit` (clé
+Airparif), `w7-foncier` (convention acteurs publics). Trois des quatre se lèvent par une
+démarche d'Ivan, pas par une session.
 
 ## Tickets GitHub
 

@@ -66,6 +66,7 @@ const ORDER = [
   // Batir un troisieme producteur de signal avant que le premier atteigne quelqu'un
   // ajoute du bruit a du bruit. Et #72 n'a aucun trafic a observer.
   "w1-porte-lue",
+  "w1-porte-publiee",
   "w1-observabilite",
   "w1-catalogue",
   // Quatrieme application de "enumerer, pas lister", nee de #72 : la porte se comptait
@@ -78,15 +79,126 @@ const ORDER = [
   // #68 a laisse le distant en avance d'une migration pendant vingt-quatre heures
   // sans qu'aucun des onze bras puisse le voir.
   "w1-ledger",
+
+  // --- Ce qui reste des vagues 0 et 1 ---------------------------------------------------
+  // w1-historique n'était dans aucune file : ouverte le 10 août, bloquée sur l'APUR, elle
+  // tombait dans « hors de cette file » et n'apparaissait donc que comme un chiffre. Un
+  // ticket bloqué doit se voir bloqué — c'est à ça que sert BLOQUE plus bas.
+  "w1-historique",
+  // Reporté par la direction du 31 août (le socle avant l'écran) et repris ici en tête de
+  // Q4 pour une raison mesurée : Géorisques est l'une des onze sources qui ont déjà une
+  // sonde verte dans catalogue.json. Toutes celles des vagues 2 à 4 sont sans endpoint
+  // épinglé. Commencer par la seule dont le tuyau est déjà vérifié coûte une session, pas
+  // une session plus une négociation.
   "w1-ppri",
   "w1-dia",
+
+  // --- Q4 2026 ---------------------------------------------------------------------------
+  // Mesuré le 6 septembre sur scripts/porte/catalogue.json : sur les 35 sources du
+  // catalogue, 11 ont une sonde et AUCUNE d'entre elles n'appartient aux vagues 2 à 4. Les
+  // vingt et une autres portent chacune la raison de ne pas en avoir, et ces raisons ne se
+  // valent pas — c'est ce qui ordonne ce bloc plus sûrement que les priorités déclarées :
+  //
+  //   endpoint seulement à choisir (data.gouv, opendata.paris.fr, licence ouverte) — une
+  //     session suffit : w2-idfm, w2-filosofi, w2-mobiliscope, w4-meubles, w4-ecoles,
+  //     w4-frequentation, w2-bpe-marches-velo
+  //   compte ou jeton à ouvrir — une décision d'Ivan AVANT la session : w3-mapillary,
+  //     w2-air-bruit, w7-inpi
+  //   plusieurs producteurs ou licence « selon registre » — un arbitrage : w4-abf,
+  //     w4-erp-copro-ads, w7-foncier
+  //
+  // Aucune source nouvelle, donc rien à négocier et rien à épingler : elle tire du corpus
+  // déjà posé des réponses que rien ne pose aujourd'hui. Sous la direction « fiabilité,
+  // rapidité, solidité du back-end », c'est le meilleur rapport de la file, et son préfixe
+  // w6 est trompeur — ce ticket n'est pas de l'écran.
+  "w6-analyse",
+  // Le seul P0 encore ouvert, et il reste en tête malgré son blocage plutôt que d'être
+  // rétrogradé en silence : le trou produit n°1 ne cesse pas d'être le trou produit n°1
+  // parce qu'un jeton manque. Ce qu'il attend est écrit dans BLOQUE.
+  "w3-mapillary",
+  // Les quatre que rien n'arrête. IDFM d'abord : c'est le seul qui remplace un proxy déjà
+  // affiché — le piéton — par une mesure, et remplacer un proxy vaut mieux qu'ajouter une
+  // couche.
+  "w2-idfm",
+  "w2-filosofi",
+  "w2-mobiliscope",
+  "w4-meubles",
+  // Puis les deux qui demandent une démarche, dans l'ordre de ce qu'elle coûte : une clé
+  // d'API pour Airparif, un arbitrage entre producteurs pour l'ABF.
+  "w2-air-bruit",
+  "w4-abf",
+  // --- L'IA au-dessus du cœur : encore du back-end, malgré le mot IA ----------------------
+  // w5-entity avant les autres parce qu'il attaque le 36,7 % de « probable » à sa cause —
+  // l'appariement BODACC × BDCom — quand les autres l'habillent. w6-mcp étant fermée,
+  // w5-entretien n'est plus bloquée, et l'ordre de bataille du plan la place tôt en Q4.
+  // w6-mcp est fermee depuis le 27 aout : elle reste dans l'ordre parce que w5-entretien en
+  // dependait, et une file qui efface ce qui a debloque le reste ne se relit pas.
+  "w6-mcp",
+  "w5-entity",
+  "w5-entretien",
+  "w5-confiance-agent",
+  "w5-parse",
+  // --- L'écran, en second, et c'est la direction du 31 août qui le dit -------------------
+  "w6-liberations",
+  "w6-dossier",
+  "w6-modes",
+  "w5-explain-metier",
+  // --- P2 : de l'appoint, à prendre quand une session est courte -------------------------
+  "w3-osm-notes",
+  "w2-bpe-marches-velo",
+  "w4-ecoles",
+  "w4-frequentation",
+  "w4-erp-copro-ads",
+  // --- 2027, et le rappeler ici évite de les croire à portée ------------------------------
+  "w7-etude-chantiers",
+  "w7-foncier",
+  "w7-inpi",
+  "w7-kit",
 ]
 
-/** Which model for which class of work — also a judgement, not a measurement. */
+/**
+ * Ce qui empêche un ticket d'être pris, quand ce n'est pas le code.
+ *
+ * Pourquoi cette table existe : « ouvert » et « ouvert mais personne ne peut y toucher » se
+ * lisaient pareil, et w1-historique — bloquée sur l'APUR depuis le 10 août — n'était même pas
+ * dans la file. Une session qui ouvre docs/SESSIONS.md et prend le premier ticket ouvert perd
+ * alors sa première demi-heure à découvrir le blocage.
+ *
+ * Ce que la table ne fait pas, volontairement : elle ne reporte pas le ticket et ne le sort
+ * pas de l'ordre. Un blocage est une chose à lever, pas une chose à cacher, et le sortir de la
+ * file le rendrait invisible — exactement ce qui est arrivé à w1-historique.
+ */
+const BLOQUE: Record<string, string> = {
+  "w1-historique": "APUR — courrier le 10 août 2026, relance le 24, sans réponse au 6 septembre.",
+  "w3-mapillary":
+    "jeton d'API Mapillary à créer, et l'attribution CC-BY-SA à trancher avant d'ingérer " +
+    "(la question est ouverte dans `catalogue.json`). Décision d'Ivan, pas travail de session.",
+  "w2-air-bruit": "clé d'API Airparif à demander. Bruitparif n'a pas d'endpoint ouvert épinglé.",
+  "w7-foncier": "convention Ville / APUR / Cerema — accès réservé aux acteurs publics.",
+}
+
+/**
+ * Which model for which class of work — also a judgement, not a measurement.
+ *
+ * Le critère, tel qu'il a été appliqué aux trois premiers et étendu à Q4 : Sonnet pour une
+ * ingestion dont la forme est déjà connue — un endpoint ouvert, un schéma à transcrire, une
+ * cadence à déclarer, des invariants sur le modèle des précédents. Opus dès qu'il faut
+ * *décider* : une licence à interpréter, une attribution à trancher, un appariement probable,
+ * une phrase que le produit assumera. Ce n'est pas la difficulté du SQL qui départage, c'est
+ * la présence ou non d'un arbitrage irréversible dans le ticket.
+ */
 const MODEL: Record<string, string> = {
   "w0-plu": "Sonnet 5",
   "w1-chantiers": "Sonnet 5",
   "w1-terrasses": "Sonnet 5",
+  "w2-idfm": "Sonnet 5",
+  "w2-filosofi": "Sonnet 5",
+  "w2-mobiliscope": "Sonnet 5",
+  "w2-bpe-marches-velo": "Sonnet 5",
+  "w4-meubles": "Sonnet 5",
+  "w4-ecoles": "Sonnet 5",
+  "w4-frequentation": "Sonnet 5",
+  "w3-osm-notes": "Sonnet 5",
 }
 const DEFAULT_MODEL = "Opus 5"
 
@@ -151,15 +263,36 @@ function build(rows: Row[]): string {
     n += 1
     const num = r.issue ? `[#${r.issue.number}](https://github.com/IvandeMurard/paris-compass/issues/${r.issue.number})` : "—"
     const label = done ? `~~\`${r.id}\`~~` : `\`${r.id}\``
-    const state = r.issue ? (done ? "**fait**" : "ouvert") : "**pas d'issue**"
+    const bloque = !done && BLOQUE[r.id] !== undefined
+    const state = r.issue ? (done ? "**fait**" : bloque ? "**bloqué**" : "ouvert") : "**pas d'issue**"
     const idx = done ? `~~${n}~~` : `${n}`
     lines.push(`| ${idx} | ${label} | ${num} | ${state} | ${r.priority} | ${MODEL[r.id] ?? DEFAULT_MODEL} |`)
   }
 
+  // Les raisons sous la table plutôt que dans une colonne : une raison utile est une phrase,
+  // et une phrase dans une cellule casse la lecture des cinq autres colonnes.
+  const bloques = planned.filter((r) => r.issue?.state !== "CLOSED" && BLOQUE[r.id])
+  if (bloques.length > 0) {
+    lines.push("")
+    lines.push(`**${bloques.length} tickets attendent autre chose que du code.** Ils restent à leur`)
+    lines.push("place dans l'ordre — un blocage se lève, il ne se cache pas — mais ne pas les ouvrir")
+    lines.push("en session tant que la ligne ci-dessous tient :")
+    lines.push("")
+    for (const r of bloques) lines.push(`- \`${r.id}\` — ${BLOQUE[r.id]}`)
+  }
+
+  // Depuis le 6 septembre l'ordre couvre les 51 tickets, donc cette phrase parle d'un cas qui
+  // ne se produit plus qu'à l'écriture d'un ticket neuf — et c'est précisément là qu'elle sert.
   const rest = rows.filter((r) => !ORDER.includes(r.id) && r.issue?.state !== "CLOSED")
   lines.push("")
-  lines.push(`**Hors de cette file : ${rest.length} tickets ouverts**, à prendre après la vague 0 — `)
-  lines.push("le détail par vague est dans [`PLAN-ACTION-VACANCE.md`](./PLAN-ACTION-VACANCE.md).")
+  if (rest.length === 0) {
+    lines.push("**Tous les tickets du dépôt sont dans cette file.** Un ticket neuf tombera ici,")
+    lines.push("hors ordre, tant que `ORDER` de `scripts/sessions.ts` ne lui aura pas donné sa place —")
+    lines.push("le détail par vague est dans [`PLAN-ACTION-VACANCE.md`](./PLAN-ACTION-VACANCE.md).")
+  } else {
+    lines.push(`**Hors de cette file : ${rest.length} tickets ouverts**, sans place déclarée dans \`ORDER\` — `)
+    lines.push("le détail par vague est dans [`PLAN-ACTION-VACANCE.md`](./PLAN-ACTION-VACANCE.md).")
+  }
 
   const orphans = rows.filter((r) => !r.issue)
   if (orphans.length > 0) {
