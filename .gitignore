@@ -87,3 +87,8 @@ mcp-server/.build/
 # 26 aout, puis retires. La regle est ici pour que ca ne se reproduise pas, meme si
 # l'outil qui les produisait a ete supprime depuis.
 .fn-dump/
+
+# Brouillons de session sous scripts/. Le prefixe tmp- dit l'intention ; sans cette
+# regle, un git add -A d'une session parallele les emporte — arrive deux fois, le
+# 26 aout avec .fn-dump/ et le 5 septembre avec scripts/tmp-nan.ts.
+scripts/tmp-*.ts
