@@ -1,7 +1,7 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte quarante et un au 6 septembre 2026**, et la
+« quatre défauts, par ordre de gravité » : il en porte quarante-cinq au 7 septembre 2026**, et la
 phrase est restée fausse trois semaines.
 
 Découpé en deux le 31 août 2026, comme `docs/REPRISE.md` la veille : cette page ne garde que
@@ -66,6 +66,8 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 41 | Les quatre prix par métier du `README` ne sont reproductibles par aucune méthode | **ouvert** — trouvé le 6 septembre 2026 par `w6-analyse`, [#89](https://github.com/IvandeMurard/paris-compass/issues/89), décision Ivan | ici |
 | 42 | `src/services/opendata/sources.ts` omet des sources déjà ingérées — pas seulement les trois de §25 | **ouvert** — trouvé le 7 septembre 2026 par `w2-idfm`, P2 | ici |
 | 43 | `docs/REPRISE.md` documente encore « on pousse sur `main` sans PR », périmé depuis le 6 septembre 2026 | **ouvert** — trouvé le 7 septembre 2026 par `w2-idfm`, P2 | ici |
+| 44 | L'exclusion de Porte de Clichy porte plus loin que le défaut : 156 locaux reçoivent une station qui n'est pas la plus proche | **ouvert** — trouvé le 7 septembre 2026 par la revue de #97, P2 | ici |
+| 45 | La sonde de catalogue IDFM dérivera vers le VERT sur une édition gelée, jamais vers le rouge | **ouvert** — trouvé le 7 septembre 2026 par la revue de #97, P2 | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -614,3 +616,83 @@ son raisonnement, ce qui a sa valeur d'archive (même logique que
 périmètre de `w2-idfm`. À trancher : soit biffer la section et noter qu'elle est remplacée par
 la règle du 6 septembre (avec renvoi), soit la déplacer dans `docs/REPRISE-ARCHIVE.md` comme
 les points 1, 3, 4, 8, 9, 10, 11 l'ont été.
+
+
+## 44. L'exclusion de Porte de Clichy porte plus loin que le défaut : 156 locaux reçoivent une station qui n'est pas la plus proche — trouvé le 7 septembre 2026 par la revue de #97
+
+**Le fait sale est le PROFIL, la POSITION est propre, et le chargeur écarte les deux.**
+`scripts/ingest/idfm.ts` (`aggregateProfiles`) refuse la zdc `71545` « Porte de Clichy » parce
+que la source publie jusqu'à quatre lignes pour un même (code, jour, tranche horaire) avec des
+pourcentages différents et aucun champ pour les départager — décision juste, et elle ne porte
+que sur le RYTHME. Mais `loadStations` ne charge dans `idfm_station` que les zdc qu'un profil
+nomme, donc la station disparaît aussi de la recherche du plus proche.
+
+**Mesuré le 7 septembre 2026**, en transaction annulée contre `dbefhvmyfmmhjeetdddu`, la zdc
+71545 réinsérée avec le centroïde que `buildParisStations` lui donnerait (4 zdaid, Lambert-93
+x=649699,5 y=6866273,5, lus sur `zones-d-arrets` ce jour-là) :
+
+| | mesuré |
+| --- | ---: |
+| locaux dont la station stockée n'est pas la plus proche | **156** sur 85 410 |
+| pire surestimation de distance | **603 m** |
+| pire cas — `10 AV PORTE DE CLICHY` | **877 m** annoncés vers Brochant, **274 m** réels |
+
+**Pourquoi aucun invariant ne le voit.** `I47` recalcule le plus proche **parmi les stations
+chargées** : il valide donc ce rattachement, et son en-tête le dit déjà honnêtement (« cet
+invariant ne peut jamais la voir »). `I50` ne le voit pas davantage — la station n'est dans
+aucune des deux tables. C'est structurel : aucune règle écrite sur le contenu de la base ne peut
+rattraper une ligne que l'ingestion n'y a jamais mise.
+
+**Ce qui a été fait le 7 septembre**, et ce n'est pas la correction : la conséquence est
+désormais écrite là où un appelant la lit — `comment on column
+premise_location.idfm_station_distance_m` (migration `20260907000003`) dit que cette colonne est
+une borne **supérieure** de la distance à une station réelle, jamais la distance à la station
+réellement la plus proche. Le silence est corrigé, pas le rattachement.
+
+**Ce qui reste à trancher, et pourquoi ça n'a pas été tranché en session de correction.**
+Charger la station sans son profil rendrait le rattachement honnête, mais change deux
+sémantiques publiées : `compass_station_profile`, dont le commentaire dit aujourd'hui que zéro
+ligne signifie « aucune station à profil dans le rayon », en rendrait zéro pour un motif
+nouveau ; et `idfm_station_name` nommerait une station muette. Il faudrait vraisemblablement une
+colonne `idfm_station.profil_disponible` et une reprise des deux commentaires — un choix de
+périmètre, pas une correction de revue. À reprendre par le ticket qui ajoutera le premier écran
+lisant IDFM, qui aura de toute façon à décider quoi montrer d'une station sans rythme.
+
+
+## 45. La sonde de catalogue IDFM dérivera vers le VERT sur une édition gelée, jamais vers le rouge — trouvé le 7 septembre 2026 par la revue de #97
+
+`scripts/porte/catalogue.json` épingle, pour « Validations transport IDFM », l'identifiant
+`validations-reseau-ferre-profils-horaires-par-jour-type-4eme-trimestre` — l'édition que
+`resolveDataset` a trouvée le 7 septembre 2026. Sa note défend ce choix contre un **404** à
+l'échéance semestrielle.
+
+**Mesuré le 7 septembre 2026 contre le portail : les quatre éditions COEXISTENT.**
+
+```
+2026-03-10  validations-reseau-ferre-profils-horaires-par-jour-type-4eme-trimestre
+2025-12-29  validations-sur-le-reseau-ferre-profils-horaires-par-jour-type-2eme-trimestre-2025
+2025-11-27  validations-reseau-ferre-profils-horaires-par-jour-type-3eme-trimestre
+2025-07-23  validations-reseau-ferre-profils-horaires-par-jour-type-1er-trimestre
+```
+
+Donc l'id épinglé **ne rendra pas 404** : il répondra 200 sur une édition gelée pendant que
+`resolveDataset` emmènera le chargeur sur une plus récente. La sonde dépense ses mots à défendre
+la panne improbable et ne dit rien de celle qui arrivera — **une licence vérifiée chaque matin
+sur une édition que le produit ne charge plus**. Une sonde qui verdit sur une source figée ne
+vérifie rien, et c'est le sens de dérive le plus dangereux : personne ne va lire un vert.
+
+**Pire, trois des quatre ids ne portent pas d'année.** Si IDFM réemploie
+`…-4eme-trimestre` pour l'édition 2026, la sonde restera verte sur une ressource silencieusement
+remplacée sous une URL consignée — c'est **#56** exactement, ce que le chargeur a été conçu pour
+éviter et que la sonde, elle, ne fait pas.
+
+**Le correctif, et pourquoi il n'a pas été fait le 7 septembre.** La sonde peut résoudre par
+titre exactement comme le chargeur : la dérivation existe déjà dans le dépôt
+(`scripts/ingest/lib/idfmOpendata.ts`, `resolveDataset`). Mais le schéma de
+`scripts/porte/catalogue.json` ne connaît qu'un `endpoint` littéral et quatre `lecture`
+(`opendatasoft`, `datagouv`, `arcgis`, `http`) ; en ajouter une cinquième qui résout avant de
+lire est un chantier d'outillage, que `CLAUDE.md` du 7 septembre 2026 interdit d'ouvrir en
+passant. La note de `catalogue.json` a été réécrite pour dire ce qui arrivera vraiment plutôt
+que de défendre un 404 que la mesure dit improbable — la sonde ment moins, elle ne vérifie pas
+plus. **À reprendre** par le ticket qui touchera `scripts/porte/catalogue.ts`, ou plus tôt si un
+second jeu à identifiant tournant entre au catalogue : la règle ne vaut pas pour IDFM seul.

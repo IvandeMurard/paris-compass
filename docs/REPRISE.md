@@ -892,29 +892,33 @@ docs/tickets/w2-idfm.md.
 ## La suite, par ordre
 
 17. **`ticket/w2-idfm` attend une seule commande, et elle n'est pas dans mes mains.**
-    Ouvert le 7 septembre 2026. La branche porte `w2-idfm` (#19) en entier — la migration
-    `20260907000001_idfm_cadence.sql` + `20260907000002_idfm_station_profile.sql` (tables
-    `idfm_station` / `idfm_validation_profile`, colonnes sur `premise_location`,
-    `compass_premises_within` étendue, nouvelle fonction `compass_station_profile`), les
-    invariants `I47`/`I48`, le budget anon de `compass_station_profile`, le chargeur
-    `scripts/ingest/idfm.ts`, le cron semestriel dans `.github/workflows/ingestion.yml`, la
-    cadence `semiannual` dans `scripts/ingest/lib/cadence.ts`, la sonde de catalogue.
+    Ouvert le 7 septembre 2026, **revu** le même jour (revue de #97), **corrigé** dans la
+    foulée. État réel : `20260907000001_idfm_cadence.sql` et
+    `20260907000002_idfm_station_profile.sql` sont **POSÉES et au ledger**, les données
+    **chargées** — 258 stations, 29 489 lignes de profil, 85 410 locaux rattachés. Le
+    catalogue porte la source en `ingérée`.
 
-    Ce qui manque est `supabase db push`, comme pour w6-analyse (#50) avant elle : le
-    classifieur de permissions l'a refusé deux fois à la session (Bash puis PowerShell), et il
-    n'a pas été contourné — appliquer le SQL à la main laisserait le ledger non tenu, ce que
-    `w1-ledger` (#82) existe pour attraper.
+    **La revue a trouvé la porte ROUGE** : `npm.cmd run eval` sort en **1**, quatre
+    défaillances toutes introduites par la branche, parce que le bras n'avait jamais été joué.
+    `I23`/`I24`/`I32` sont une seule cause — `idfm_validation_profile` avec RLS active et
+    **zéro politique de lecture** : 29 489 lignes présentes et muettes pour un appelant
+    PostgREST direct, pendant que `compass_station_profile`, `security definer`, répondait
+    normalement. `I42` en est une seconde — `idfm_station.geom` sans contrainte de finitude.
 
-    Le SQL n'est pas un pari : syntaxe, comportement anonyme, `I47`/`I48` au vert et le budget
-    ont tous été éprouvés contre le distant **en transaction annulée**, le 7 septembre — même
-    pratique que w6-analyse. Ce que la transaction ne peut pas donner, c'est le ledger — et
-    c'est exactement ce qui manque. **Ne pas fermer #19 avant que la migration soit réellement
-    posée ET confirmée par `npm.cmd run ledger`**, et poser puis fusionner dans la même
-    fenêtre — la leçon du délai d'un jour que la revue de #91 sur w6-analyse a nommée.
+    Ce qui manque est donc `supabase db push` d'une **troisième** migration,
+    `20260907000003_idfm_lecture_publique.sql` : les deux premières sont au ledger et **ne se
+    réécrivent pas** (`#83`). Le classifieur de permissions a refusé la commande deux fois de
+    plus, et elle n'a pas été contournée — appliquer le SQL à la main laisserait le ledger non
+    tenu, ce que `w1-ledger` (#82) existe pour attraper. Éprouvée en transaction annulée le
+    7 septembre : les quatre invariants repassent au vert et `anon` voit les 29 489 lignes.
 
-    **Une revue est due** : la branche touche `supabase/migrations/` et ajoute deux invariants
-    (`docs/SESSIONS.md` — « La revue »). À faire par une session distincte avant de fusionner,
-    pas par celle qui a écrit le SQL.
+    **Ne pas fermer #19 avant qu'`eval` repasse au VERT et que `npm.cmd run ledger` confirme
+    les trois migrations**, et poser puis fusionner dans la même fenêtre — la leçon du délai
+    d'un jour que la revue de #91 sur w6-analyse a nommée. Reste dû après la pose : remesurer
+    le budget anon (`eval/baselines/anon-budget.json`, 157 pages réelles pour un plafond de
+    160, la marge la plus mince du fichier) et les deux points ouverts, `DIAGNOSTIC.md` §44
+    (l'exclusion de Porte de Clichy, plus large que le défaut) et §45 (la sonde de catalogue
+    qui dérivera au vert).
 
 Les points **1, 3, 4, 8, 9, 10, 11 et 15 sont rayés** et sont partis dans
 `docs/REPRISE-ARCHIVE.md`, avec leur numérotation d'origine — `docs/PLAN.md` et

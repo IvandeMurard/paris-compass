@@ -402,18 +402,30 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 - **Comment.** Profil horaire de la station la plus proche, millésime, réserve : ce n'est pas le trottoir de la vitrine. Distingue un pôle de bureau d'un pôle résidentiel.
 - **Doctrine.** Mesuré à la station, pas à la porte. Le label le dit.
 - **Fait quand.** Deux locaux à 800 m de deux stations au profil midi vs soir reçoivent deux rythmes distincts, étiquetés station.
-- **Avancement, mesuré le 7 septembre 2026 — migration écrite, PAS ENCORE POSÉE.** Endpoint choisi
-  (portail IDFM, pas data.gouv qui ne publie que l'annuel) et vérifié — `scripts/porte/catalogue.json`.
-  Migration `20260907000002_idfm_station_profile.sql` : tables `idfm_station` / `idfm_validation_profile`,
+- **Avancement, mesuré le 7 septembre 2026 — deux migrations POSÉES, une troisième en attente.**
+  Endpoint choisi (portail IDFM, pas data.gouv qui ne publie que l'annuel) et vérifié —
+  `scripts/porte/catalogue.json`.
+  Migrations `20260907000001_idfm_cadence.sql` et `20260907000002_idfm_station_profile.sql`,
+  posées et au ledger : tables `idfm_station` / `idfm_validation_profile`,
   colonnes `nearest_idfm_station_id` / `idfm_station_distance_m` sur `premise_location`,
   `compass_premises_within` étendue, nouvelle fonction `compass_station_profile`. Chargeur
-  `scripts/ingest/idfm.ts` : 258 stations parisiennes retenues sur 259 (une écartée, données
-  source dupliquées sans discriminant — docs/REPRISE-PIEGES.md), 29 609 lignes de profil,
-  85 410 locaux rattachés. Le tout éprouvé le 7 septembre en **transaction annulée** contre le
-  distant (même pratique que w6-analyse pour I43-I46) : I47/I48 (`eval/invariants.sql`) à zéro
-  violation, budget anon mesuré (2 ms, 148 pages à 2 000 m Châtelet). **Ce qui manque avant de
-  clore #19** : `supabase db push`, refusé par le classifieur de permissions à la session — la
-  ligne attend Ivan. Fermer le ticket seulement après la pose ET la confirmation par
+  `scripts/ingest/idfm.ts` joué contre le distant : 258 stations parisiennes retenues sur 259
+  (une écartée, données source dupliquées sans discriminant — docs/REPRISE-PIEGES.md),
+  **29 489** lignes de profil (`select count(*)` et `ingestion_run.row_count` concordants le
+  7 septembre 2026 ; « 29 609 » a figuré ici jusqu'à la revue de #97, recopié d'une transaction
+  annulée et jamais remesuré), 85 410 locaux rattachés.
+  **La revue de #97 a trouvé la porte ROUGE** — `eval` en 1, quatre défaillances toutes
+  introduites par la branche : `I23`/`I24`/`I32`, une seule cause (`idfm_validation_profile`
+  avec RLS active et zéro politique de lecture : 29 489 lignes muettes pour un appelant
+  PostgREST direct pendant que la fonction `security definer` répondait), et `I42`
+  (`idfm_station.geom` sans contrainte de finitude). Corrigé par une migration **neuve**,
+  `20260907000003_idfm_lecture_publique.sql` — les deux posées ne se réécrivent pas (`#83`).
+  La revue a aussi montré que `I47` et `I48` passaient au vert sur un corpus VIDE, atteignable
+  sans échec de chargement : `I49` et `I50` sont leurs miroirs, et `I50` interroge en outre
+  `compass_station_profile` en tant qu'`anon`, la seule surface qu'un visiteur touche.
+  **Ce qui manque avant de clore #19** : `supabase db push` de la troisième migration, refusé
+  par le classifieur de permissions à la session — la ligne attend Ivan. Fermer le ticket
+  seulement après la pose, le retour au VERT d'`eval` ET la confirmation par
   `npm.cmd run ledger`, jamais avant (la leçon de #91 sur w6-analyse).
 
 #### w2-mobiliscope — Mobiliscope — présence heure par heure
@@ -667,7 +679,7 @@ jamais un rangement dans le voisin.
 | Chantiers de voirie | Ville de Paris | planifiée | ODbL (déclarée par le portail, mesurée le 05/09/2026) | polygone + dates | 40 m d'un chantier perturbant, sept. 2026 → mars 2027. | Fait d'exposition, jamais une prévision d'impact sur le CA. |
 | Terrasses et étalages | Ville de Paris | ingérée · affichée | ODbL (mesuré le 26/08) | autorisation géolocalisée, rattachée par numéro de rue | Une terrasse permanente est déjà autorisée sur cette façade — trois états, `inconnu` quand plusieurs locaux partagent le numéro. | Autorisation ≠ terrasse installée aujourd'hui : ni date de délivrance, ni expiration, ni statut dans la source. |
 | DIA / droit de préemption commercial | Ville de Paris | **écartée — non publiée, vérifié le 27/08** | aucune — seul le périmètre d'application est en open data | — | — | Les DIA elles-mêmes ne sont pas publiées ; seules les parcelles soumises au droit le sont (`plu-annexes-droit-de-preemption-urbain-renforce`). Piste close, `w1-dia`. |
-| Validations transport IDFM | Île-de-France Mobilités | planifiée — endpoint choisi le 7/09, migration en attente | ODbL (« Licence ODbL Version Française », portail IDFM) | station, profil horaire par jour type, trimestre courant | Part du jour de chaque station par tranche horaire — jamais un effectif. | Un id de jeu qui tourne chaque trimestre (docs/REPRISE-PIEGES.md), jamais l'historique 2015-2024 (fichier, hors périmètre de w2-idfm). |
+| Validations transport IDFM | Île-de-France Mobilités | ingérée — chargée le 7/09/2026, 258 stations et 29 489 lignes de profil | ODbL (« Licence ODbL Version Française », portail IDFM) | station, profil horaire par jour type, trimestre courant | Part du jour de chaque station par tranche horaire — jamais un effectif. | Un id de jeu qui tourne chaque trimestre (docs/REPRISE-PIEGES.md), jamais l'historique 2015-2024 (fichier, hors périmètre de w2-idfm). |
 | Mobiliscope | CNRS | planifiée | ODbL | secteur, heure, âge, CSP | Population réellement présente à 12h vs 20h. | Présence de secteur, pas passage devant la porte. |
 | Filosofi carroyé 200 m | INSEE | planifiée | Licence Ouverte | carreau 200 m | Revenu et population sur une maille qui sépare deux rues. | L'IRIS est trop large — ne pas s'en contenter. |
 | Base permanente des équipements | INSEE | planifiée | Licence Ouverte | équipement | École, santé, sport recensés administrativement — croisés OSM → corroboré. | Ne pas compter deux fois le même équipement. |

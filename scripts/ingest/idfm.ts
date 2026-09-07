@@ -186,10 +186,15 @@ export function aggregateProfiles(
     }
   }
 
+  // The value column of this journal carries COUNTS everywhere else, so it carries a count
+  // here too, with the identifiers behind it — the label used to read « profils écartés » and
+  // print `[...dirtyStations].join(", ")`, i.e. a zdc identifier (71545) in a column where its
+  // neighbours print totals. A reader of #97's review took that 71545 for a number of
+  // discarded rows, i.e. 83 % of the source, and was wrong: it is one station out of 259.
   if (dirtyStations.size > 0) {
     log(
-      "profils écartés (lignes dupliquées sans discriminant)",
-      [...dirtyStations].join(", "),
+      "stations écartées (source dupliquée sans discriminant)",
+      `${dirtyStations.size} (zdc ${[...dirtyStations].join(", ")})`,
     )
   }
 
@@ -202,7 +207,36 @@ export function aggregateProfiles(
   return result
 }
 
+/**
+ * A DELETE THAT IS NEVER FOLLOWED BY AN INSERT IS THE FAILURE MODE THIS GUARD REFUSES — found
+ * by the review of #97. Both loaders below rebuild their table wholesale (`delete` then
+ * reinsert), and on an empty batch the `delete` still ran while the insert loop did not turn
+ * once: the table emptied, `premise_location.nearest_idfm_station_id` lost its 85 410 pointers
+ * to `on delete set null`, and `recordRun` wrote a SUCCESS. The state is reachable without any
+ * network error — a field renamed upstream (`zdcid`, `zdapostalregion`, `pourcentage_
+ * validations`) sends every row through the `continue` of `buildParisStations` or
+ * `aggregateProfiles`, and nothing throws.
+ *
+ * CE QUE CETTE GARDE NE RATTRAPE PAS, et c'est la moitié qui compte : elle refuse le lot VIDE,
+ * jamais le lot APPAUVRI. Une source qui livrerait 12 stations sur 258 passerait ici sans un
+ * mot, viderait 246 rattachements et enregistrerait un succès. Une garde dans le chargeur ne
+ * peut de toute façon rien pour l'état déjà en base — c'est pourquoi le livrable de cette
+ * correction n'est pas ce `throw` mais `I49` et `I50` (`eval/invariants.sql`), qui rougissent
+ * sur une table vide quel qu'en soit le chemin, y compris un `delete` fait à la main sur le
+ * distant que ce fichier ne verra jamais passer.
+ */
+function refuseLotVide(quoi: string, count: number): void {
+  if (count > 0) return
+  throw new Error(
+    `${quoi} : lot vide, chargement refusé avant le delete. Les tables IDFM sont ` +
+      `reconstruites en entier à chaque passage, donc vider sans réécrire effacerait aussi ` +
+      `les rattachements de premise_location en enregistrant un succès. Vérifier d'abord que ` +
+      `le jeu source porte encore les champs que scripts/ingest/idfm.ts lit.`,
+  )
+}
+
 export async function loadStations(client: Client, stations: Map<number, StationAgg>): Promise<number> {
+  refuseLotVide("idfm_station", stations.size)
   await client.query("delete from public.idfm_station")
   const chunk = 500
   const rows = [...stations.values()]
@@ -231,6 +265,7 @@ export async function loadProfiles(
   client: Client,
   aggregated: Map<string, { idZdc: number; catJour: string; hourBucket: string; pct: number }>,
 ): Promise<number> {
+  refuseLotVide("idfm_validation_profile", aggregated.size)
   await client.query("delete from public.idfm_validation_profile")
   const rows = [...aggregated.values()].map((a) => [a.idZdc, a.catJour, a.hourBucket, a.pct])
   return insertRows(
