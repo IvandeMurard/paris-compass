@@ -90,11 +90,16 @@
       "endpoint": "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets/terrasses-autorisations",
       "licence-attendue": "Open Database License (ODbL)",
       "note": "Le jeu que scripts/ingest/terrasses.ts interroge. Le catalogue disait « ODbL (mesuré le 26/08) » ; le portail le confirme toujours le 5 septembre 2026."
+    },
+    "Validations transport IDFM": {
+      "lecture": "opendatasoft",
+      "endpoint": "https://data.iledefrance-mobilites.fr/api/explore/v2.1/catalog/datasets/validations-reseau-ferre-profils-horaires-par-jour-type-4eme-trimestre",
+      "licence-attendue": "Licence ODbL Version Française",
+      "note": "w2-idfm (#19), endpoint choisi le 7 septembre 2026 : le portail IDFM (data.iledefrance-mobilites.fr), pas data.gouv.fr — measuré ce jour-là, data.gouv ne publie que le trafic ANNUEL entrant par station (aucun profil horaire), quand IDFM publie « Validations sur le réseau ferré : Profils horaires par jour type », la seule source qui distingue midi et soir. ENDPOINT INSTABLE PAR NATURE, et c'est écrit ici plutôt que découvert un jour au 404 : ce jeu est republié chaque trimestre sous un `dataset_id` qui NE SE FIXE PAS — mesuré ce jour-là, deux orthographes coexistent pour la même famille (`validations-reseau-ferre-…` et `validations-sur-le-reseau-ferre-…`). scripts/ingest/idfm.ts ne pingle jamais cet id : il le résout par recherche de titre à chaque chargement (scripts/ingest/lib/idfmOpendata.ts, resolveDataset). Cette sonde-ci, elle, épingle l'édition trouvée par cette même recherche le 7 septembre 2026 — un 404 ici, SEUL, à l'échéance semestrielle de la source (docs/REPRISE-PIEGES.md) se lit comme « l'id a tourné, re-pingler avec resolveDataset », pas comme une source disparue ; un 404 accompagné d'un `cadence` en retard serait la vraie panne."
     }
   },
 
   "sans-verification": {
-    "Validations transport IDFM": "Planifiée, aucun endpoint épinglé : `w2-idfm` n'a pas encore choisi entre le portail IDFM et data.gouv, et vérifier un jeu qu'on n'a pas retenu ne dirait rien de celui qu'on retiendra. À basculer dans `verifications` le jour où le ticket épingle une ressource.",
     "Mobiliscope": "Planifiée, aucun endpoint épinglé — `w2-mobiliscope`. Les données sont distribuées par téléchargement depuis le site du CNRS, sans API de catalogue à interroger : la vérification devra porter sur l'archive elle-même, ce qui est un contrôle à écrire, pas un endpoint à ajouter.",
     "Filosofi carroyé 200 m": "Planifiée, aucun endpoint épinglé — `w2-filosofi`. Même famille que Sirene sur data.gouv, donc vérifiable le jour où la ressource est choisie ; l'épingler d'avance reviendrait à consigner une URL que personne n'a chargée.",
     "Base permanente des équipements": "Planifiée, aucun endpoint épinglé — `w2-bpe-marches-velo`.",
@@ -112,7 +117,7 @@
     "Fréquentation équipements": "Nouvelle, aucun endpoint épinglé — `w4-frequentation`.",
     "Sitadel": "Planifiée, aucun endpoint épinglé — la source n'a pas encore de ticket à elle.",
     "DVF": "Planifiée, aucun endpoint épinglé — `w7-foncier` la cite en voisine, aucun ticket ne la porte.",
-    "GTFS IDFM": "Planifiée, aucun endpoint épinglé — même portail que les validations IDFM, même raison de ne pas l'épingler d'avance.",
+    "GTFS IDFM": "Planifiée, aucun endpoint épinglé — `w2-idfm` (#19) a choisi le portail IDFM pour les validations horaires le 7 septembre 2026, mais GTFS est un jeu distinct sur ce même portail et aucun ticket ne l'a encore retenu ; vérifier une ressource que personne n'a chargée ne dirait rien.",
     "Comptes RNE / INPI": "Nouvelle, aucun endpoint épinglé — `w7-inpi`. L'accès passe par un compte INPI, donc une vérification anonyme ne dirait rien de ce que le produit atteindrait.",
     "Fichiers fonciers / MAJIC": "Statut `partenariat` : l'accès est restreint aux acteurs publics et passe par une convention Ville / APUR / Cerema. Il n'y a pas d'endpoint anonyme à interroger, et la couche ouverte EmpCom est écartée pour grossièreté, pas pour indisponibilité. Ce qui débloquerait cette ligne est une signature, pas une requête."
   }

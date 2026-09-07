@@ -402,6 +402,19 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 - **Comment.** Profil horaire de la station la plus proche, millésime, réserve : ce n'est pas le trottoir de la vitrine. Distingue un pôle de bureau d'un pôle résidentiel.
 - **Doctrine.** Mesuré à la station, pas à la porte. Le label le dit.
 - **Fait quand.** Deux locaux à 800 m de deux stations au profil midi vs soir reçoivent deux rythmes distincts, étiquetés station.
+- **Avancement, mesuré le 7 septembre 2026 — migration écrite, PAS ENCORE POSÉE.** Endpoint choisi
+  (portail IDFM, pas data.gouv qui ne publie que l'annuel) et vérifié — `scripts/porte/catalogue.json`.
+  Migration `20260907000002_idfm_station_profile.sql` : tables `idfm_station` / `idfm_validation_profile`,
+  colonnes `nearest_idfm_station_id` / `idfm_station_distance_m` sur `premise_location`,
+  `compass_premises_within` étendue, nouvelle fonction `compass_station_profile`. Chargeur
+  `scripts/ingest/idfm.ts` : 258 stations parisiennes retenues sur 259 (une écartée, données
+  source dupliquées sans discriminant — docs/REPRISE-PIEGES.md), 29 609 lignes de profil,
+  85 410 locaux rattachés. Le tout éprouvé le 7 septembre en **transaction annulée** contre le
+  distant (même pratique que w6-analyse pour I43-I46) : I47/I48 (`eval/invariants.sql`) à zéro
+  violation, budget anon mesuré (2 ms, 148 pages à 2 000 m Châtelet). **Ce qui manque avant de
+  clore #19** : `supabase db push`, refusé par le classifieur de permissions à la session — la
+  ligne attend Ivan. Fermer le ticket seulement après la pose ET la confirmation par
+  `npm.cmd run ledger`, jamais avant (la leçon de #91 sur w6-analyse).
 
 #### w2-mobiliscope — Mobiliscope — présence heure par heure
 
@@ -654,7 +667,7 @@ jamais un rangement dans le voisin.
 | Chantiers de voirie | Ville de Paris | planifiée | ODbL (déclarée par le portail, mesurée le 05/09/2026) | polygone + dates | 40 m d'un chantier perturbant, sept. 2026 → mars 2027. | Fait d'exposition, jamais une prévision d'impact sur le CA. |
 | Terrasses et étalages | Ville de Paris | ingérée · affichée | ODbL (mesuré le 26/08) | autorisation géolocalisée, rattachée par numéro de rue | Une terrasse permanente est déjà autorisée sur cette façade — trois états, `inconnu` quand plusieurs locaux partagent le numéro. | Autorisation ≠ terrasse installée aujourd'hui : ni date de délivrance, ni expiration, ni statut dans la source. |
 | DIA / droit de préemption commercial | Ville de Paris | **écartée — non publiée, vérifié le 27/08** | aucune — seul le périmètre d'application est en open data | — | — | Les DIA elles-mêmes ne sont pas publiées ; seules les parcelles soumises au droit le sont (`plu-annexes-droit-de-preemption-urbain-renforce`). Piste close, `w1-dia`. |
-| Validations transport IDFM | Île-de-France Mobilités | planifiée | Open data IDFM | station, horaire, depuis 2015 | Entrées comptées à la station la plus proche, profil horaire. | Ce n'est pas le trottoir de la vitrine. |
+| Validations transport IDFM | Île-de-France Mobilités | planifiée — endpoint choisi le 7/09, migration en attente | ODbL (« Licence ODbL Version Française », portail IDFM) | station, profil horaire par jour type, trimestre courant | Part du jour de chaque station par tranche horaire — jamais un effectif. | Un id de jeu qui tourne chaque trimestre (docs/REPRISE-PIEGES.md), jamais l'historique 2015-2024 (fichier, hors périmètre de w2-idfm). |
 | Mobiliscope | CNRS | planifiée | ODbL | secteur, heure, âge, CSP | Population réellement présente à 12h vs 20h. | Présence de secteur, pas passage devant la porte. |
 | Filosofi carroyé 200 m | INSEE | planifiée | Licence Ouverte | carreau 200 m | Revenu et population sur une maille qui sépare deux rues. | L'IRIS est trop large — ne pas s'en contenter. |
 | Base permanente des équipements | INSEE | planifiée | Licence Ouverte | équipement | École, santé, sport recensés administrativement — croisés OSM → corroboré. | Ne pas compter deux fois le même équipement. |

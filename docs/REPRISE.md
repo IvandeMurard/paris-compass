@@ -876,41 +876,47 @@ PR non fusionnée met la porte au rouge le lendemain matin pour rien. Et `docs/S
 et le seul filet est la porte planifiée — qui juge après coup, une fois par jour. Le jour où
 quelqu'un d'autre écrit dans ce dépôt, cette décision est à reprendre.
 
+---
+
+**Les validations IDFM se lisent sur le portail IDFM, jamais sur data.gouv.fr.** Tranché le
+7 septembre 2026, w2-idfm (#19), premier choix d'endpoint que le ticket demandait. data.gouv.fr
+ne miroite que le trafic **annuel** entrant par station (RATP, un chiffre par an) : aucun profil
+horaire, donc aucun moyen de distinguer midi de soir. `data.iledefrance-mobilites.fr` (même
+produit Opendatasoft qu'opendata.paris.fr, portail différent) publie « Validations sur le
+réseau ferré : Profils horaires par jour type », la seule ressource mesurée qui porte la
+question du ticket. Seul le millésime **courant** (trimestre en cours) est chargé — l'historique
+2015-2024 est un fichier zip par année sans schéma stable, hors budget de cette session ; voir
+docs/tickets/w2-idfm.md.
+
 
 ## La suite, par ordre
 
-15. ~~**`ticket/w6-analyse` attend une seule commande, et elle n'est pas dans mes mains.**~~
-    **La commande a été lancée. La migration est posée, et la consigne qui suivait est levée.**
-    Ouvert le 6 septembre 2026 au soir, refermé le 7. La branche portait `w6-analyse` (#50) en
-    entier — la migration `20260906000001_analyses_du_schema.sql`, les invariants `I43` à `I46`,
-    trois budgets de bras E, `DIAGNOSTIC.md` §40 et §41.
+17. **`ticket/w2-idfm` attend une seule commande, et elle n'est pas dans mes mains.**
+    Ouvert le 7 septembre 2026. La branche porte `w2-idfm` (#19) en entier — la migration
+    `20260907000001_idfm_cadence.sql` + `20260907000002_idfm_station_profile.sql` (tables
+    `idfm_station` / `idfm_validation_profile`, colonnes sur `premise_location`,
+    `compass_premises_within` étendue, nouvelle fonction `compass_station_profile`), les
+    invariants `I47`/`I48`, le budget anon de `compass_station_profile`, le chargeur
+    `scripts/ingest/idfm.ts`, le cron semestriel dans `.github/workflows/ingestion.yml`, la
+    cadence `semiannual` dans `scripts/ingest/lib/cadence.ts`, la sonde de catalogue.
 
-    Ce qui manquait était `supabase db push`, qu'Ivan a lancé le 6 septembre au soir : le
-    classifieur de permissions l'avait refusé deux fois (Bash puis PowerShell) et il n'a pas été
-    contourné — appliquer le SQL à la main aurait laissé le ledger non tenu, ce que `w1-ledger`
-    (#82) existe pour attraper.
+    Ce qui manque est `supabase db push`, comme pour w6-analyse (#50) avant elle : le
+    classifieur de permissions l'a refusé deux fois à la session (Bash puis PowerShell), et il
+    n'a pas été contourné — appliquer le SQL à la main laisserait le ledger non tenu, ce que
+    `w1-ledger` (#82) existe pour attraper.
 
-    **Mesuré le 7 septembre 2026** : `npm.cmd run ledger` sort **PASS, 54 au ledger, 54 suivies
-    par git, 0 en écart**. La phrase « ne pas fusionner avant de l'avoir lancé » qui tenait cette
-    place **était périmée dès ce moment-là**, et c'est la revue de #91 qui l'a attrapée avant
-    qu'elle ne parte sur `main` — à l'endroit exact qu'une session lit au démarrage. Elle ne
-    décrivait plus le dépôt.
+    Le SQL n'est pas un pari : syntaxe, comportement anonyme, `I47`/`I48` au vert et le budget
+    ont tous été éprouvés contre le distant **en transaction annulée**, le 7 septembre — même
+    pratique que w6-analyse. Ce que la transaction ne peut pas donner, c'est le ledger — et
+    c'est exactement ce qui manque. **Ne pas fermer #19 avant que la migration soit réellement
+    posée ET confirmée par `npm.cmd run ledger`**, et poser puis fusionner dans la même
+    fenêtre — la leçon du délai d'un jour que la revue de #91 sur w6-analyse a nommée.
 
-    Le SQL n'était pas un pari : syntaxe, comportement anonyme et privilégié, `I43` à `I46` au
-    vert et les budgets avaient tous été éprouvés contre le distant **en transaction annulée**, le
-    6 septembre. Ce que la transaction ne pouvait pas donner, c'est le ledger — et c'est
-    exactement ce qui manquait.
+    **Une revue est due** : la branche touche `supabase/migrations/` et ajoute deux invariants
+    (`docs/SESSIONS.md` — « La revue »). À faire par une session distincte avant de fusionner,
+    pas par celle qui a écrit le SQL.
 
-    **La revue a eu lieu**, par une session distincte, comme « La revue » (`docs/SESSIONS.md`) le
-    demande pour une branche qui pose une migration et des invariants. Elle a rendu six
-    corrections avant fusion — trois sur cette page, trois sur `eval/invariants.sql` (le miroir
-    manquant de `I43`, deux millésimes épinglés à dériver, et la limite que les quatre neufs
-    n'énonçaient pas) — et une prémisse fausse à rectifier : le zéro fabriqué de
-    `changed_since_previous` **ne touche que `compass_voie_rotation`**, jamais
-    `compass_street_rotation`, qui porte la garde depuis le 28 août. Le fond part dans #89, le
-    sabotage manquant dans #94.
-
-Les points **1, 3, 4, 8, 9, 10 et 11 sont rayés** et sont partis dans
+Les points **1, 3, 4, 8, 9, 10, 11 et 15 sont rayés** et sont partis dans
 `docs/REPRISE-ARCHIVE.md`, avec leur numérotation d'origine — `docs/PLAN.md` et
 `docs/PLAN-ACTION-VACANCE.md` y renvoient par leur numéro. Restent ceux-ci.
 

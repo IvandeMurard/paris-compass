@@ -1738,3 +1738,100 @@ select * from (
     where s.withheld is not true and s.notices_n > 0)
 ) x
 limit 20;
+
+
+-- ===========================================================================
+-- w2-idfm (#19) — validations horaires, la station comme unité de mesure
+-- ===========================================================================
+-- Le ticket demande une preuve DÉRIVÉE, jamais une paire de locaux écrits à la
+-- main : « un exemple ne démontre rien de général ». Les deux invariants
+-- ci-dessous portent ce que l'illustration (deux stations trouvées par
+-- requête — la plus « midi » et la plus « soir » — dans le commentaire de
+-- fermeture de #19) ne peut pas porter seule : que TOUT local reçoit la
+-- station réellement la plus proche, et que TOUTE station publie un rythme
+-- qui se tient. Ni l'un ni l'autre ne lit premise_observation ni aucune
+-- table restreinte — idfm_station et idfm_validation_profile sont ouvertes
+-- (ODbL / Licence Ouverte 2.0), donc ni I23 ni I24 ne les concernent.
+
+-- @invariant I47 :: un local ne recoit pas la station idfm reellement la plus proche
+-- Le rattachement (scripts/ingest/idfm.ts, attach()) écrit
+-- premise_location.nearest_idfm_station_id à l'ingestion ; cet invariant le
+-- recalcule indépendamment, par la même recherche du plus proche (index GiST,
+-- opérateur <->) et compare. C'est la garantie sur laquelle repose
+-- « idfm_station_name », lu par compass_premises_within : si le rattachement
+-- stocké dérive un jour d'une base rechargée en partie, ou d'une écriture
+-- faite hors du chargeur, ce n'est pas le chargeur qui le verrait — c'est ici,
+-- où la valeur est CONSERVÉE, pas seulement où elle est PRODUITE (même
+-- doctrine que I38).
+--
+-- Aucun rayon n'intervient ici, volontairement : contrairement à
+-- chantier_exposed (40 m) ou terrasse_status (adresse), il n'existe pas de
+-- distance de coupure pour la station la plus proche — tout local à Paris en
+-- a une, aussi loin soit-elle, et c'est idfm_station_distance_m qui porte
+-- cette distance jusqu'à l'appelant plutôt qu'un booléen qui la tairait.
+--
+-- CE QUE I47 NE RATTRAPE PAS : il compare le point stocké (premise_location.geom)
+-- à sa station recalculée, jamais le contenu du profil lui-même — c'est I48
+-- qui le fait. Une station mal placée par buildParisStations (moyenne des
+-- zdaid d'un zdc) resterait invisible ici tant que le rattachement reste
+-- interne à cette même géométrie fausse.
+--
+-- Mesuré le 7 septembre 2026, en transaction annulée contre le distant (la
+-- migration n'est pas encore posée — même pratique que w6-analyse pour
+-- I43-I46) : zéro violation sur les 85 410 locaux rattachés.
+with recompute as (
+  select l.id as location_id, s.id_zdc as plus_proche
+    from public.premise_location l
+    cross join lateral (
+      select st.id_zdc from public.idfm_station st
+       order by st.geom <-> l.geom limit 1
+    ) s
+   where l.geom is not null
+)
+select l.id as location_id, l.nearest_idfm_station_id as stocke, r.plus_proche as recalcule
+  from public.premise_location l
+  join recompute r on r.location_id = l.id
+ where l.nearest_idfm_station_id is distinct from r.plus_proche
+limit 20;
+
+-- @invariant I48 :: un profil de station idfm ne somme pas a cent pour cent
+-- idfm_validation_profile porte une PART du jour de chaque station, jamais un
+-- effectif : par construction (scripts/ingest/idfm.ts, aggregateProfiles), la
+-- somme des 24 tranches horaires d'un même (id_zdc, cat_jour) doit valoir
+-- 100, à l'arrondi près. La marge de 1 point absorbe l'arrondi à deux
+-- décimales du jeu source sur ~24 tranches ; elle ne couvrirait pas une
+-- station mal agrégée, qui s'écarte de dizaines de points (mesuré : la
+-- station exclue par ce chargeur atteignait 421 %, voir plus bas).
+--
+-- POURQUOI CETTE MARGE ET PAS ZÉRO. Le chargeur divise par un compte FIXE de
+-- codes par station (le nombre de code_stif_arret distincts), jamais par le
+-- nombre de codes ayant publié CETTE tranche — c'est la correction du 7
+-- septembre 2026 : diviser par tranche a fait sommer dix stations à
+-- 115-180 %, parce qu'un code silencieux à 3 h du matin ne veut pas dire
+-- « aucun avis à moyenner », mais 0 %.
+--
+-- UNE STATION EST ÉCARTÉE PLUTÔT QUE MOYENNÉE QUAND LA SOURCE ELLE-MÊME
+-- PUBLIE PLUSIEURS LIGNES POUR LE MÊME (code, jour, tranche) SANS AUCUN CHAMP
+-- POUR LES DÉPARTAGER — mesuré le 7 septembre 2026 : exactement une zdc
+-- parisienne sur 259, 71545 « Porte de Clichy », jusqu'à quatre lignes pour
+-- un même code à une même heure, avec des pourcentages différents (0,97 à
+-- 26,41 à 12h-13h) que le schéma du jeu (huit champs, aucun discriminant) ne
+-- permet pas de départager. `aggregateProfiles` l'écarte plutôt que de
+-- publier un chiffre inventé ; c'est pourquoi elle n'apparaît PAS dans
+-- idfm_station et cet invariant ne peut jamais la voir — noté pour qu'un
+-- futur rechargement qui la réintégrerait silencieusement soit relu, pas
+-- pour que cet invariant la rattrape.
+--
+-- CE QUE I48 NE RATTRAPE PAS : il garde la SOMME, jamais la FORME. Un profil
+-- qui sommerait à 100 % en étant plat (aucune heure de pointe) passerait,
+-- alors qu'un profil plat ne distingue ni midi ni soir — c'est
+-- l'illustration du commentaire de fermeture, jamais un invariant, qui porte
+-- ce contraste-là.
+--
+-- Mesuré le 7 septembre 2026, en transaction annulée contre le distant :
+-- zéro violation sur 258 stations × 5 cat_jour.
+select id_zdc, cat_jour, sum(pct_validations) as somme
+  from public.idfm_validation_profile
+ group by id_zdc, cat_jour
+having abs(sum(pct_validations) - 100) > 1.0
+limit 20;

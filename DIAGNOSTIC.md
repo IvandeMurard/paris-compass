@@ -64,6 +64,8 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 39 | Deux migrations réécrites après leur application — le distant porte deux commentaires que le dépôt n'annonce plus | **ouvert** — trouvé le 6 septembre 2026 par `w1-ledger`, [#83](https://github.com/IvandeMurard/paris-compass/issues/83) | ici |
 | 40 | Quatre colonnes de texte BODACC portent de l'UTF-8 doublement encodé — 19 natures de jugement sont des doublons | **ouvert** — trouvé le 6 septembre 2026 par `w6-analyse`, [#88](https://github.com/IvandeMurard/paris-compass/issues/88) | ici |
 | 41 | Les quatre prix par métier du `README` ne sont reproductibles par aucune méthode | **ouvert** — trouvé le 6 septembre 2026 par `w6-analyse`, [#89](https://github.com/IvandeMurard/paris-compass/issues/89), décision Ivan | ici |
+| 42 | `src/services/opendata/sources.ts` omet des sources déjà ingérées — pas seulement les trois de §25 | **ouvert** — trouvé le 7 septembre 2026 par `w2-idfm`, P2 | ici |
+| 43 | `docs/REPRISE.md` documente encore « on pousse sur `main` sans PR », périmé depuis le 6 septembre 2026 | **ouvert** — trouvé le 7 septembre 2026 par `w2-idfm`, P2 | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -562,3 +564,53 @@ d'un local vendu. Ce dernier point n'est pas une évidence : le métier de 2023 
 la vente, celui de 2017 celui d'avant, et les deux répondent à des questions différentes. Suivi
 en [#89](https://github.com/IvandeMurard/paris-compass/issues/89), qui attend une décision
 d'Ivan avant toute écriture.
+
+
+## 42. `src/services/opendata/sources.ts` omet des sources déjà ingérées — trouvé le 7 septembre 2026 par `w2-idfm`
+
+Trouvé en passant, en cherchant où une nouvelle source rejoint l'écran « Sources » avant
+d'y ajouter IDFM. §25 (clos le 26 août 2026) a réparé un même symptôme — trois sources
+manquantes — mais le mécanisme qui a permis §25 n'a pas survécu : `DATA_SOURCES` dans
+`src/services/opendata/sources.ts` ne cite ni `chantiers-perturbants` ni SIRENE (stock ou
+géolocalisé), alors que les deux sont `ingérée` dans `docs/PLAN-ACTION-VACANCE.md` et
+possèdent une migration, un chargeur et une entrée `ingestion_run` depuis le 25 août 2026.
+
+**Pourquoi ce n'est pas nécessairement un défaut pour ces deux-là aujourd'hui.** La règle du
+prompt commun est « une source rejoint `sources.ts` le jour où un ÉCRAN LA LIT » — et ni
+`chantier_exposed` ni les tables SIRENE stock ne sont aujourd'hui lues par un composant React,
+seulement par `compass_premises_within` et le serveur MCP. Sous cette lecture stricte, l'absence
+est correcte, pas un oubli.
+
+**Ce qui reste un vrai défaut** : rien ne VÉRIFIE cette règle. `scripts/porte/catalogue.json`
+vérifie que le catalogue documentaire cite une sonde ; aucun bras équivalent ne vérifie que
+`DATA_SOURCES` reste en phase avec ce que l'écran lit réellement. Le jour où un composant
+commence à lire `chantier_exposed` sans que quelqu'un pense à `sources.ts`, rien ne le signale
+— exactement le trou que §25 a réparé une fois à la main, sans laisser de garde derrière lui.
+
+**Non traité par cette session** : hors périmètre de `w2-idfm`, qui n'ajoute lui-même aucun
+écran lisant IDFM (voir `docs/tickets/w2-idfm.md`, § Avancement) et ne touche donc pas
+`sources.ts`. À reprendre par le ticket qui ajoutera le premier écran lisant `chantier_exposed`
+ou les tables SIRENE stock, ou par un ticket d'outillage dédié si Ivan le juge prioritaire —
+`CLAUDE.md` du 7 septembre 2026 interdit explicitement d'ouvrir ce chantier en passant.
+
+
+## 43. `docs/REPRISE.md` documente encore « on pousse sur `main` sans PR », périmé depuis le 6 septembre 2026 — trouvé le 7 septembre 2026 par `w2-idfm`
+
+Trouvé en passant, en ajoutant une entrée à « Décisions qui ne se déduisent pas du code ».
+Cette section porte encore, datée du 2 septembre 2026, la décision « On pousse sur `main` sans
+passer par une PR, pour l'instant » — avec sa justification et son coût assumé. `CLAUDE.md`
+dit depuis le 6 septembre 2026 l'inverse : « `main` refuse la poussée directe : une session,
+une branche, une proposition », décision d'Ivan qui inverse explicitement celle du 2 septembre.
+
+**Pourquoi ce n'est pas anodin.** `docs/REPRISE.md` est le document lu EN PREMIER en début de
+session (`CLAUDE.md`, tableau des documents). Une session qui lirait cette section sans
+recouper `CLAUDE.md` en tirerait la conclusion inverse de la règle réellement en vigueur — le
+risque exact que `docs/REPRISE-PIEGES.md` catalogue pour d'autres pièges, appliqué ici à une
+règle de gouvernance plutôt qu'à un fait technique.
+
+**Non corrigé par cette session** : la section documente une décision RÉVOLUE avec sa date et
+son raisonnement, ce qui a sa valeur d'archive (même logique que
+`docs/REPRISE-ARCHIVE.md`) ; la retirer ou la corriger est un choix éditorial qui dépasse le
+périmètre de `w2-idfm`. À trancher : soit biffer la section et noter qu'elle est remplacée par
+la règle du 6 septembre (avec renvoi), soit la déplacer dans `docs/REPRISE-ARCHIVE.md` comme
+les points 1, 3, 4, 8, 9, 10, 11 l'ont été.

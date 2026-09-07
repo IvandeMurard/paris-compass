@@ -122,6 +122,7 @@ export type IngestionSource =
   | "chantiers"
   | "terrasses"
   | "sirene_stock"
+  | "idfm"
 
 /**
  * Records a successful load.
