@@ -56,6 +56,11 @@ on:
     # evenly. The "estivales" authorisations run 1 April to 31 October (the source's own
     # regulatory page): 8 April sees the window opened, 8 November sees it closed.
     - cron: "9 5 8 4,11 *"
+    # ── w2-idfm (#19) ────────────────────────────────────────────────────────────────────
+    # IDFM validations — the source's own banner: "mises à jour fin février et fin août".
+    # 5 March and 5 September, a few days of margin after each month-end for the portal to
+    # actually publish, the same discipline SIRENE stock's "one day of margin" applies.
+    - cron: "33 6 5 3,9 *"
 
   workflow_dispatch:
     inputs:
@@ -63,7 +68,7 @@ on:
         description: "Jeu à recharger"
         required: true
         type: choice
-        options: [bodacc, sirene, bdcom, geography, chantiers, sirene_stock, plu, terrasses]
+        options: [bodacc, sirene, bdcom, geography, chantiers, sirene_stock, plu, terrasses, idfm]
 
 # One ingestion at a time, and the running one is never killed: an interrupted load leaves a
 # rolled-back transaction, so nothing loaded, so a run lost rather than replaced. The loaders
@@ -106,6 +111,7 @@ jobs:
             "53 2 2 * *")           source=sirene_stock ;;
             "21 5 9 3,9 *")         source=plu ;;
             "9 5 8 4,11 *")         source=terrasses ;;
+            "33 6 5 3,9 *")         source=idfm ;;
             "")                     source="${CHOSEN:?ni schedule ni input : rien à faire}" ;;
             *)
               echo "::error::Planification inconnue « ${SCHEDULE} » — la table de correspondance de ce fichier est désynchronisée du bloc on.schedule."
@@ -164,6 +170,9 @@ jobs:
             sirene_stock) npx tsx scripts/ingest/sirene-stock.ts ;;
             plu)          npx tsx scripts/ingest/plu.ts ;;
             terrasses)    npx tsx scripts/ingest/terrasses.ts ;;
+            # w2-idfm (#19). Needs geography.ts to have run once for premise_location.geom,
+            # which it has — same footing as the four above.
+            idfm)         npx tsx scripts/ingest/idfm.ts ;;
           esac
 
       - name: Fraîcheur après chargement

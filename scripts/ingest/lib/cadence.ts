@@ -46,7 +46,7 @@
 // nobody had been asked.
 
 /** The values of `public.ingestion_cadence`, in the order the enum declares them. */
-export const CADENCES = ["continuous", "monthly", "triennial", "rare", "weekly"] as const
+export const CADENCES = ["continuous", "monthly", "triennial", "rare", "weekly", "semiannual"] as const
 
 export type Cadence = (typeof CADENCES)[number]
 
@@ -78,6 +78,11 @@ export const TOLERANCE_DAYS: Record<Cadence, number | null> = {
   // cadences on layers that do not age in days; the liveness risk they run is the workflow
   // being disabled, and `continuous` above catches that for the whole file in three days.
   rare: null,
+  // IDFM's own banner (read 7 September 2026): "mises à jour fin février et fin août" — a
+  // declared rhythm, unlike `rare`'s undated one, so it gets a real threshold rather than
+  // riding on `continuous`'s canary. ~182 days between editions plus a month of grace: one
+  // missed edition (another ~182 days) is unambiguously late long before this fires.
+  semiannual: 210,
 }
 
 /** The tolerance for a cadence, or `null` for the cadences deliberately given no threshold. */

@@ -880,3 +880,59 @@ where ST_DWithin(l.geom, p.g, 250);
 Sans conséquence sur le résultat une fois corrigé — mais le message d'erreur
 (`errorMissingRTE`, `parse_relation.c`) ne nomme pas la cause, et il envoie chercher une faute
 de nom qui n'existe pas.
+
+
+## Un jeu Opendatasoft peut republier sous un `dataset_id` qui ne se fixe pas — 7 septembre 2026
+
+w2-idfm (#19). Le portail IDFM (`data.iledefrance-mobilites.fr`) republie chaque trimestre
+« Validations sur le réseau ferré : Profils horaires par jour type », et l'identifiant du jeu
+NE SE FIXE PAS d'une édition à l'autre — contrairement à tous les jeux Paris Data déjà lus
+(`chantiers-perturbants`, `terrasses-autorisations`, `plub_protcom`), dont l'id est stable
+depuis toujours. Mesuré ce jour-là : trois éditions sur quatre portent
+`validations-reseau-ferre-profils-horaires-par-jour-type-Neme-trimestre`, la quatrième (2e
+trimestre 2025) porte `validations-sur-le-reseau-ferre-profils-horaires-par-jour-type-2eme-
+trimestre-2025` — un `-sur-le-` et une année en plus que rien n'annonce à l'avance.
+
+Épingler l'id du jour, comme `chantiers.ts` épingle `chantiers-perturbants`, aurait répété #56
+(SIRENE stock, ressource remplacée sous une URL consignée) le trimestre où IDFM change à
+nouveau l'orthographe. `scripts/ingest/lib/idfmOpendata.ts` (`resolveDataset`) ne pingle donc
+jamais cet id : il cherche par TITRE (stable, lui, sur toutes les éditions mesurées) via l'API
+de recherche du portail (`?q=…`), et prend l'édition la plus récemment modifiée parmi celles
+dont le titre correspond à un prédicat écrit par l'appelant. La sonde du catalogue
+(`scripts/porte/catalogue.json`), elle, épingle quand même l'édition du jour — c'est la seule
+façon de vérifier une licence par une réponse HTTP plutôt qu'une page — et porte la réserve
+écrite que son 404, seul, à l'échéance semestrielle de la source, se lit comme « l'id a
+tourné », jamais comme une source disparue.
+
+**À vérifier avant de soupçonner autre chose** : un identifiant Opendatasoft qui semblait fixe
+peut ne pas l'être — chercher par titre plutôt que supposer la stabilité d'un id non encore
+mesuré sur plusieurs éditions.
+
+
+## Deux profils qui somment chacun à 100 % ne se moyennent PAS tranche par tranche — 7 septembre 2026
+
+w2-idfm (#19). Une station desservie par deux lignes publie DEUX profils horaires
+indépendants (un par `code_stif_arret`), chacun sommant à 100 % sur ses propres heures.
+Combiner les deux en un seul profil de station semblait exiger une moyenne par tranche
+horaire — sommer les pourcentages des deux codes à une heure donnée, diviser par le nombre de
+codes ayant publié CETTE heure-là. Ça se sondait juste sur un premier échantillon et faisait
+sommer dix stations à 115-180 % sur l'ensemble parisien : un code qui ne publie rien à 3 h du
+matin (parce qu'il n'y circule aucun train à cette heure, pas parce qu'il « n'a pas d'avis »)
+faisait diviser cette tranche par un compte plus petit, donc la surestimait.
+
+Le correctif : compter les codes UNE FOIS par (station, jour type) — jamais par tranche — et
+diviser chaque tranche par ce compte fixe. Un code silencieux à une heure contribue 0 à cette
+heure, comme il se doit, et la somme reste 100 quels que soient les trous.
+
+**Ce que ce correctif n'a pas rattrapé, et qu'il a fallu chercher séparément** : une zdc
+parisienne sur 259, 71545 « Porte de Clichy », publie jusqu'à QUATRE lignes pour le même
+(code, jour type, tranche horaire) avec des pourcentages différents (0,97 à 26,41 à midi), sans
+aucun champ du schéma (huit colonnes, aucune ne discrimine) pour dire laquelle retenir. Ni la
+moyenne par tranche ni le compte fixe ne peuvent le voir : les deux supposent une seule ligne
+par (code, tranche), et cette station en a plusieurs. `scripts/ingest/idfm.ts`
+(`aggregateProfiles`) détecte cette multiplicité et écarte la station entière plutôt que de
+publier un chiffre inventé — mesuré : la seule exception sur 259, pas une défense générale.
+
+**À vérifier avant de faire confiance à une agrégation de pourcentages** : que chaque clé
+qu'on croit unique (ici `code_stif_arret` par tranche) l'est réellement dans le jeu source —
+compter les lignes par clé avant de moyenner, pas après.

@@ -876,41 +876,50 @@ PR non fusionnée met la porte au rouge le lendemain matin pour rien. Et `docs/S
 et le seul filet est la porte planifiée — qui juge après coup, une fois par jour. Le jour où
 quelqu'un d'autre écrit dans ce dépôt, cette décision est à reprendre.
 
+---
+
+**Les validations IDFM se lisent sur le portail IDFM, jamais sur data.gouv.fr.** Tranché le
+7 septembre 2026, w2-idfm (#19), premier choix d'endpoint que le ticket demandait. data.gouv.fr
+ne miroite que le trafic **annuel** entrant par station (RATP, un chiffre par an) : aucun profil
+horaire, donc aucun moyen de distinguer midi de soir. `data.iledefrance-mobilites.fr` (même
+produit Opendatasoft qu'opendata.paris.fr, portail différent) publie « Validations sur le
+réseau ferré : Profils horaires par jour type », la seule ressource mesurée qui porte la
+question du ticket. Seul le millésime **courant** (trimestre en cours) est chargé — l'historique
+2015-2024 est un fichier zip par année sans schéma stable, hors budget de cette session ; voir
+docs/tickets/w2-idfm.md.
+
 
 ## La suite, par ordre
 
-15. ~~**`ticket/w6-analyse` attend une seule commande, et elle n'est pas dans mes mains.**~~
-    **La commande a été lancée. La migration est posée, et la consigne qui suivait est levée.**
-    Ouvert le 6 septembre 2026 au soir, refermé le 7. La branche portait `w6-analyse` (#50) en
-    entier — la migration `20260906000001_analyses_du_schema.sql`, les invariants `I43` à `I46`,
-    trois budgets de bras E, `DIAGNOSTIC.md` §40 et §41.
+17. **`ticket/w2-idfm` attend une seule commande, et elle n'est pas dans mes mains.**
+    Ouvert le 7 septembre 2026, **revu** le même jour (revue de #97), **corrigé** dans la
+    foulée. État réel : `20260907000001_idfm_cadence.sql` et
+    `20260907000002_idfm_station_profile.sql` sont **POSÉES et au ledger**, les données
+    **chargées** — 258 stations, 29 489 lignes de profil, 85 410 locaux rattachés. Le
+    catalogue porte la source en `ingérée`.
 
-    Ce qui manquait était `supabase db push`, qu'Ivan a lancé le 6 septembre au soir : le
-    classifieur de permissions l'avait refusé deux fois (Bash puis PowerShell) et il n'a pas été
-    contourné — appliquer le SQL à la main aurait laissé le ledger non tenu, ce que `w1-ledger`
-    (#82) existe pour attraper.
+    **La revue a trouvé la porte ROUGE** : `npm.cmd run eval` sort en **1**, quatre
+    défaillances toutes introduites par la branche, parce que le bras n'avait jamais été joué.
+    `I23`/`I24`/`I32` sont une seule cause — `idfm_validation_profile` avec RLS active et
+    **zéro politique de lecture** : 29 489 lignes présentes et muettes pour un appelant
+    PostgREST direct, pendant que `compass_station_profile`, `security definer`, répondait
+    normalement. `I42` en est une seconde — `idfm_station.geom` sans contrainte de finitude.
 
-    **Mesuré le 7 septembre 2026** : `npm.cmd run ledger` sort **PASS, 54 au ledger, 54 suivies
-    par git, 0 en écart**. La phrase « ne pas fusionner avant de l'avoir lancé » qui tenait cette
-    place **était périmée dès ce moment-là**, et c'est la revue de #91 qui l'a attrapée avant
-    qu'elle ne parte sur `main` — à l'endroit exact qu'une session lit au démarrage. Elle ne
-    décrivait plus le dépôt.
+    Corrigé par une **troisième** migration, `20260907000003_idfm_lecture_publique.sql` — les
+    deux premières sont au ledger et **ne se réécrivent pas** (`#83`). Elle est **POSÉE** : le
+    classifieur de permissions, qui avait refusé la commande deux fois pour les précédentes,
+    l'a laissée passer à la session de correction. Mesuré ensuite, tout posé :
+    `npm.cmd run ledger` rend **PASS — 57 au ledger, 57 suivies par git, 0 en écart**, et
+    `npm.cmd run eval`, joué sans tube, sort en **3** — zéro défaillance, 11 avertissements de
+    baseline sous le seuil bloquant, tous sur des comptes BODACC et SIRENE sans rapport avec
+    IDFM. Les 50 invariants sont au vert, `I49` et `I50` compris.
 
-    Le SQL n'était pas un pari : syntaxe, comportement anonyme et privilégié, `I43` à `I46` au
-    vert et les budgets avaient tous été éprouvés contre le distant **en transaction annulée**, le
-    6 septembre. Ce que la transaction ne pouvait pas donner, c'est le ledger — et c'est
-    exactement ce qui manquait.
+    **Il ne reste donc que la fusion de #97.** Deux points ouverts la suivent, sans la
+    bloquer : `DIAGNOSTIC.md` §44 (l'exclusion de Porte de Clichy est plus large que le
+    défaut — 156 locaux mesurés reçoivent une station qui n'est pas la plus proche) et §45 (la
+    sonde de catalogue IDFM dérivera vers le vert sur une édition gelée).
 
-    **La revue a eu lieu**, par une session distincte, comme « La revue » (`docs/SESSIONS.md`) le
-    demande pour une branche qui pose une migration et des invariants. Elle a rendu six
-    corrections avant fusion — trois sur cette page, trois sur `eval/invariants.sql` (le miroir
-    manquant de `I43`, deux millésimes épinglés à dériver, et la limite que les quatre neufs
-    n'énonçaient pas) — et une prémisse fausse à rectifier : le zéro fabriqué de
-    `changed_since_previous` **ne touche que `compass_voie_rotation`**, jamais
-    `compass_street_rotation`, qui porte la garde depuis le 28 août. Le fond part dans #89, le
-    sabotage manquant dans #94.
-
-Les points **1, 3, 4, 8, 9, 10 et 11 sont rayés** et sont partis dans
+Les points **1, 3, 4, 8, 9, 10, 11 et 15 sont rayés** et sont partis dans
 `docs/REPRISE-ARCHIVE.md`, avec leur numérotation d'origine — `docs/PLAN.md` et
 `docs/PLAN-ACTION-VACANCE.md` y renvoient par leur numéro. Restent ceux-ci.
 

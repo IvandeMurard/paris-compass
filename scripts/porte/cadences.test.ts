@@ -153,14 +153,17 @@ describe("la règle, jouée sur ce dépôt-ci", () => {
     expect(cadencesOfTheSources().filter((v) => v.state === "contradictoire").map((v) => v.source)).toEqual([])
   })
 
-  it("recense les huit sources, et les quatre que #70 nomme sont planifiées", () => {
+  it("recense les neuf sources, et les cinq que #70 et w2-idfm nomment sont planifiées", () => {
     // Measured 1 September 2026 against the remote, `compass_source_freshness()`: eight rows,
-    // the same eight the migrations declare. If the enumeration ever finds nothing it has
-    // stopped working, and reporting that as success is the silent-absence defect this whole
-    // family of checks refuses (scripts/eval/census.ts says so first).
+    // the same eight the migrations declared that day. w2-idfm (#19) added a ninth,
+    // 7 September 2026 — `idfm`, migration 20260907000002. If the enumeration ever finds
+    // nothing it has stopped working, and reporting that as success is the silent-absence
+    // defect this whole family of checks refuses (scripts/eval/census.ts says so first) — a
+    // hardcoded count is what catches a source ADDED without this test noticing, same as the
+    // day this one goes stale again.
     const verdicts = cadencesOfTheSources()
-    expect(verdicts.length).toBe(8)
-    for (const source of ["chantiers", "sirene_stock", "plu", "terrasses"]) {
+    expect(verdicts.length).toBe(9)
+    for (const source of ["chantiers", "sirene_stock", "plu", "terrasses", "idfm"]) {
       expect(verdicts.find((v) => v.source === source)?.state, `${source} n'est pas planifiée`).toBe("planifie")
     }
   })

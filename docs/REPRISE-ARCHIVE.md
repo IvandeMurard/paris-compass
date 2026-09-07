@@ -544,3 +544,36 @@ La numérotation est celle de `docs/REPRISE.md`, conservée telle quelle parce q
 
 ---
 
+
+15. ~~**`ticket/w6-analyse` attend une seule commande, et elle n'est pas dans mes mains.**~~
+    **La commande a été lancée. La migration est posée, et la consigne qui suivait est levée.**
+    Ouvert le 6 septembre 2026 au soir, refermé le 7. La branche portait `w6-analyse` (#50) en
+    entier — la migration `20260906000001_analyses_du_schema.sql`, les invariants `I43` à `I46`,
+    trois budgets de bras E, `DIAGNOSTIC.md` §40 et §41.
+
+    Ce qui manquait était `supabase db push`, qu'Ivan a lancé le 6 septembre au soir : le
+    classifieur de permissions l'avait refusé deux fois (Bash puis PowerShell) et il n'a pas été
+    contourné — appliquer le SQL à la main aurait laissé le ledger non tenu, ce que `w1-ledger`
+    (#82) existe pour attraper.
+
+    **Mesuré le 7 septembre 2026** : `npm.cmd run ledger` sort **PASS, 54 au ledger, 54 suivies
+    par git, 0 en écart**. La phrase « ne pas fusionner avant de l'avoir lancé » qui tenait cette
+    place **était périmée dès ce moment-là**, et c'est la revue de #91 qui l'a attrapée avant
+    qu'elle ne parte sur `main` — à l'endroit exact qu'une session lit au démarrage. Elle ne
+    décrivait plus le dépôt.
+
+    Le SQL n'était pas un pari : syntaxe, comportement anonyme et privilégié, `I43` à `I46` au
+    vert et les budgets avaient tous été éprouvés contre le distant **en transaction annulée**, le
+    6 septembre. Ce que la transaction ne pouvait pas donner, c'est le ledger — et c'est
+    exactement ce qui manquait.
+
+    **La revue a eu lieu**, par une session distincte, comme « La revue » (`docs/SESSIONS.md`) le
+    demande pour une branche qui pose une migration et des invariants. Elle a rendu six
+    corrections avant fusion — trois sur cette page, trois sur `eval/invariants.sql` (le miroir
+    manquant de `I43`, deux millésimes épinglés à dériver, et la limite que les quatre neufs
+    n'énonçaient pas) — et une prémisse fausse à rectifier : le zéro fabriqué de
+    `changed_since_previous` **ne touche que `compass_voie_rotation`**, jamais
+    `compass_street_rotation`, qui porte la garde depuis le 28 août. Le fond part dans #89, le
+    sabotage manquant dans #94.
+
+---

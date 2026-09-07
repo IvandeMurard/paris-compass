@@ -1,0 +1,16 @@
+-- w2-idfm (#19): a new source's cadence enum value, in its own migration.
+--
+-- Postgres refuses to use a freshly-added enum value inside the transaction that added it
+-- (the value is not yet visible) — the same reason chantiers got its own migration
+-- (20260825000006) a step ahead of the row that used 'weekly'. This one adds 'semiannual'
+-- and nothing else; the next migration spends it.
+--
+-- WHY 'semiannual' AND NOT 'rare' — the value PLU and terrasses use for "twice a year, no
+-- fixed calendar". Those two have NO published rhythm: "Aucune cadence de mise à jour
+-- publiée" (terrasses), "sans calendrier annoncé" (PLU) — the twice-a-year cron in
+-- ingestion.yml is a verification window this project chose, not a promise the source made.
+-- IDFM's validation-profile family states its own rhythm in the dataset's own banner, read
+-- 7 September 2026: "Les données de validations sont mises à jour fin février et fin août."
+-- That is a declared cadence, the same class as 'monthly' and 'weekly', and folding it into
+-- 'rare' would say the source announces nothing when it does.
+alter type public.ingestion_cadence add value 'semiannual';
