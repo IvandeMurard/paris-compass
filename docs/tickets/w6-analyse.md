@@ -109,6 +109,14 @@ quatre réponses, chacune avec son effectif, sont en commentaire de fermeture de
 - **Le coût de `compass_voie_rotation`** — 2,6 fois son voisin, décomposition inconnue — #87.
 - **L'encodage BODACC** — #88.
 - **`changed_since_previous = 0` sur le PREMIER millésime**, où il n'y a pas de précédent :
-  `compass_voie_rotation` le rend comme `compass_street_rotation`, par cohérence assumée entre
-  deux fonctions qui répondent à la même question à deux grains. C'est un zéro fabriqué de la
-  même famille que §19, et il vaut pour les deux — #90.
+  `compass_voie_rotation` rend **0** là où la réponse juste est « inconnu ». C'est un zéro
+  fabriqué de la même famille que §19, et il n'est atteignable aujourd'hui que par un appelant
+  privilégié — le seul qui voie 2017. **Il ne touche que la fonction neuve.** La phrase de ce
+  ticket disant qu'elle « le rend comme `compass_street_rotation`, par cohérence assumée » était
+  fausse, et c'est la revue de #91 qui l'a mesurée le 7 septembre 2026 :
+  `compass_street_rotation` porte la garde depuis le 28 août
+  (`20260828000003_rotation_context_budget.sql:193`, branche `when vi.previous_year is null then
+  null::bigint`), que `compass_voie_rotation` (`20260906000001:295`) n'a pas. La fonction neuve
+  ne reproduit donc pas sa voisine : elle **diverge** d'elle, dans le sens du défaut que le
+  28 août avait retiré. Le fond — `create or replace` sur `compass_voie_rotation` seule — est
+  absorbé dans #89 avec le reste de cette famille, #90 ayant été fermée le 7 septembre.
