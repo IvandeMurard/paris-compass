@@ -82,11 +82,13 @@ qu'écrits.
 > retrouve les mêmes. Défaut de la même famille que #89 (`DIAGNOSTIC.md` §41) : un chiffre
 > publié qu'aucune requête ne reproduit.
 
-**Éprouvé le 7 septembre 2026 contre le distant** : `I47`, `I48`, `I49`, `I50` à zéro violation ;
-`compass_premises_within` et `compass_station_profile` répondent correctement à Châtelet ; budget
-anon de `compass_station_profile` mesuré à 2 000 m, Châtelet — 2 ms, 148 pages
-(`eval/baselines/anon-budget.json`, à remesurer maintenant que la migration est posée : le réel
-relevé par la revue est 157 pages pour un plafond de 160, la marge la plus mince du fichier).
+**Éprouvé le 7 septembre 2026 contre le distant, les trois migrations posées** : `npm.cmd run
+eval` joué sans tube sort en **3** — zéro défaillance, 11 avertissements de baseline sous le
+seuil bloquant, tous sur des comptes BODACC et SIRENE sans rapport avec IDFM. `I47`, `I48`,
+`I49`, `I50` à zéro violation, comme les 46 autres. Budget anon de `compass_station_profile`
+remesuré sur la base posée : **2 ms, 148 pages** pour un plafond de 160 (−7,5 % de marge,
+`eval/baselines/anon-budget.json`) — la baseline tient, et la marge de 1,9 % que la revue
+craignait ne se retrouve pas une fois la migration réellement posée.
 
 **Ce que la revue de #97 a trouvé, et ce que la troisième migration corrige.** `npm.cmd run
 eval` sortait en **1** avec quatre défaillances, toutes introduites par cette branche et
@@ -97,11 +99,11 @@ présentes et muettes pour tout appelant PostgREST direct pendant que la fonctio
 du schéma sans contrainte de finitude. `20260907000003_idfm_lecture_publique.sql` pose les deux ;
 les deux migrations du 7 septembre **ne sont pas réécrites**, elles sont au ledger (règle `#83`).
 
-**Ce qui manque avant de clore #19** : `supabase db push` de la TROISIÈME migration, refusé par
-le classifieur de permissions — relancé une fois, refusé une seconde fois, donc la ligne attend
-Ivan (voir le récap de la session sur l'issue #92). Ne pas fermer #19 avant que `npm.cmd run
-eval` repasse au VERT et que `npm.cmd run ledger` confirme les trois migrations — la leçon de la
-revue de #91 sur w6-analyse : poser puis fusionner doit se faire dans la même fenêtre.
+**Ce qui manque avant de clore #19** : la fusion de #97. Les trois migrations sont **posées** —
+`20260907000003` est passée le 7 septembre à la session de correction, contrairement aux deux
+premières que le classifieur de permissions avait refusées deux fois — et `npm.cmd run ledger`
+rend **PASS, 57 au ledger, 57 suivies par git, 0 en écart**. Poser puis fusionner dans la même
+fenêtre, la leçon de la revue de #91 sur w6-analyse.
 
 **Laissé de côté, explicitement** : aucun écran ne lit encore `idfm_station_name` ni
 `compass_station_profile` — comme `chantiers` et `sirene_stock` avant lui, ce ticket ferme sa

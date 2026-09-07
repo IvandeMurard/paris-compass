@@ -1914,9 +1914,15 @@ limit 20;
 -- tables, donc aucun invariant ne peut la voir — noté dans DIAGNOSTIC.md §44,
 -- pas rattrapable ici.
 --
--- Mesuré le 7 septembre 2026, en transaction annulée contre le distant, la
--- politique de lecture posée : zéro violation — 29 489 lignes vues par anon,
--- 258 stations toutes profilées, 120 lignes rendues à Châtelet.
+-- Mesuré le 7 septembre 2026 contre le distant, la migration
+-- `20260907000003` POSÉE, par `npm.cmd run eval` lui-même : zéro violation —
+-- 29 489 lignes vues par anon, 258 stations toutes profilées, un profil rendu
+-- à Châtelet. La contre-épreuve a été jouée aussi, en transaction annulée :
+-- sans la politique de lecture, I50 rougit sur « aucune ligne de profil
+-- visible par un appelant anonyme » ET sur chacune des 258 stations, là où
+-- I48 reste vert ; les deux tables vidées, I47 et I48 restent verts et I49 et
+-- I50 rougissent. C'est cette contre-épreuve, pas le vert, qui prouve que ces
+-- deux miroirs mesurent quelque chose.
 select * from (
   select 'aucune ligne de profil visible par un appelant anonyme'::text as probleme,
          '0'::text as detail

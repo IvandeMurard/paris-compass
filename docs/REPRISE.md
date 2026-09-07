@@ -905,20 +905,19 @@ docs/tickets/w2-idfm.md.
     PostgREST direct, pendant que `compass_station_profile`, `security definer`, répondait
     normalement. `I42` en est une seconde — `idfm_station.geom` sans contrainte de finitude.
 
-    Ce qui manque est donc `supabase db push` d'une **troisième** migration,
-    `20260907000003_idfm_lecture_publique.sql` : les deux premières sont au ledger et **ne se
-    réécrivent pas** (`#83`). Le classifieur de permissions a refusé la commande deux fois de
-    plus, et elle n'a pas été contournée — appliquer le SQL à la main laisserait le ledger non
-    tenu, ce que `w1-ledger` (#82) existe pour attraper. Éprouvée en transaction annulée le
-    7 septembre : les quatre invariants repassent au vert et `anon` voit les 29 489 lignes.
+    Corrigé par une **troisième** migration, `20260907000003_idfm_lecture_publique.sql` — les
+    deux premières sont au ledger et **ne se réécrivent pas** (`#83`). Elle est **POSÉE** : le
+    classifieur de permissions, qui avait refusé la commande deux fois pour les précédentes,
+    l'a laissée passer à la session de correction. Mesuré ensuite, tout posé :
+    `npm.cmd run ledger` rend **PASS — 57 au ledger, 57 suivies par git, 0 en écart**, et
+    `npm.cmd run eval`, joué sans tube, sort en **3** — zéro défaillance, 11 avertissements de
+    baseline sous le seuil bloquant, tous sur des comptes BODACC et SIRENE sans rapport avec
+    IDFM. Les 50 invariants sont au vert, `I49` et `I50` compris.
 
-    **Ne pas fermer #19 avant qu'`eval` repasse au VERT et que `npm.cmd run ledger` confirme
-    les trois migrations**, et poser puis fusionner dans la même fenêtre — la leçon du délai
-    d'un jour que la revue de #91 sur w6-analyse a nommée. Reste dû après la pose : remesurer
-    le budget anon (`eval/baselines/anon-budget.json`, 157 pages réelles pour un plafond de
-    160, la marge la plus mince du fichier) et les deux points ouverts, `DIAGNOSTIC.md` §44
-    (l'exclusion de Porte de Clichy, plus large que le défaut) et §45 (la sonde de catalogue
-    qui dérivera au vert).
+    **Il ne reste donc que la fusion de #97.** Deux points ouverts la suivent, sans la
+    bloquer : `DIAGNOSTIC.md` §44 (l'exclusion de Porte de Clichy est plus large que le
+    défaut — 156 locaux mesurés reçoivent une station qui n'est pas la plus proche) et §45 (la
+    sonde de catalogue IDFM dérivera vers le vert sur une édition gelée).
 
 Les points **1, 3, 4, 8, 9, 10, 11 et 15 sont rayés** et sont partis dans
 `docs/REPRISE-ARCHIVE.md`, avec leur numérotation d'origine — `docs/PLAN.md` et

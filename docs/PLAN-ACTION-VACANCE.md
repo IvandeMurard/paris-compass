@@ -402,7 +402,7 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 - **Comment.** Profil horaire de la station la plus proche, millésime, réserve : ce n'est pas le trottoir de la vitrine. Distingue un pôle de bureau d'un pôle résidentiel.
 - **Doctrine.** Mesuré à la station, pas à la porte. Le label le dit.
 - **Fait quand.** Deux locaux à 800 m de deux stations au profil midi vs soir reçoivent deux rythmes distincts, étiquetés station.
-- **Avancement, mesuré le 7 septembre 2026 — deux migrations POSÉES, une troisième en attente.**
+- **Avancement, mesuré le 7 septembre 2026 — les trois migrations POSÉES, porte au vert.**
   Endpoint choisi (portail IDFM, pas data.gouv qui ne publie que l'annuel) et vérifié —
   `scripts/porte/catalogue.json`.
   Migrations `20260907000001_idfm_cadence.sql` et `20260907000002_idfm_station_profile.sql`,
@@ -423,10 +423,10 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
   La revue a aussi montré que `I47` et `I48` passaient au vert sur un corpus VIDE, atteignable
   sans échec de chargement : `I49` et `I50` sont leurs miroirs, et `I50` interroge en outre
   `compass_station_profile` en tant qu'`anon`, la seule surface qu'un visiteur touche.
-  **Ce qui manque avant de clore #19** : `supabase db push` de la troisième migration, refusé
-  par le classifieur de permissions à la session — la ligne attend Ivan. Fermer le ticket
-  seulement après la pose, le retour au VERT d'`eval` ET la confirmation par
-  `npm.cmd run ledger`, jamais avant (la leçon de #91 sur w6-analyse).
+  **Ce qui manque avant de clore #19** : la fusion de #97. Les trois migrations sont posées,
+  `npm.cmd run ledger` rend PASS (57 au ledger, 57 suivies, 0 en écart) et `npm.cmd run eval`,
+  joué sans tube, sort en 3 — zéro défaillance, 11 avertissements de baseline sans rapport avec
+  IDFM. Poser puis fusionner dans la même fenêtre (la leçon de #91 sur w6-analyse).
 
 #### w2-mobiliscope — Mobiliscope — présence heure par heure
 
