@@ -25,6 +25,21 @@
       "ms": 114,
       "note": "Corrigée le 28 août par 20260828000003 (#64) : 137 576 pages avant. Son coût EST sa réponse pour l'essentiel — elle rend 17 173 lignes à 2 000 m, une par local, et les coordonnées comptent puisque src/core/scoring.ts construit un GridIndex dessus — mais 34 346 de ses pages n'étaient pas sa réponse : une recherche par clé primaire dans bdcom_activity, 222 lignes et onze pages, jouée 17 173 fois. Le reste vient de l'include élargi. Aucune formule publiée n'a bougé."
     },
+    "compass_activity_transitions": {
+      "pages": 20,
+      "ms": 5,
+      "note": "w6-analyse (#50), mesurée le 6 septembre 2026. CE BUDGET NE GARDE PRESQUE RIEN AUJOURD'HUI, et il faut le dire plutôt que de laisser un 10 rassurant : le bras mesure sous le claim `anon`, et cette fonction retient TOUT pour un appelant anonyme — une transition dérive de deux millésimes, un seul des trois est redistribuable, donc les trois couples possibles contiennent un millésime retenu. Elle rend une ligne marquée sans rien balayer : 10 à 17 pages selon le passage, 0 ms. La ligne est posée à 20 / 5 — la fourchette [0,4 ; 1,1] du bras encadre les 10 à 17 mesurés — pour ne pas rougir sur le bruit d'un chemin qui ne lit rien. Le jour où l'APUR répond, ce budget devient faux d'un coup et c'est le bras qui le dira — remesurer alors, sur le chemin qui balaie vraiment : mesuré le 6 septembre 2026 à 224 189 pages et 193 ms au même rayon sur le chemin PRIVILÉGIÉ, six passages, soit quatre mille fois les pages du chemin anonyme. C'est l'ordre de grandeur qu'il coûtera, et il faudra alors le traiter comme celui de compass_voie_rotation."
+    },
+    "compass_voie_rotation": {
+      "pages": 225638,
+      "ms": 379,
+      "note": "w6-analyse (#50), mesurée le 6 septembre 2026, douze passages, claim anon, parallélisme coupé. La plus chère du fichier, et déclarée à ce qui a été MESURÉ plutôt qu'à ce qu'elle devrait coûter : 2,6 fois compass_street_rotation, remesurée à 87 639 dans la même transaction, donc l'écart est cette fonction et non un corpus qui aurait grossi. Le coût par local de la jointure `street_segment` a déjà été retiré (289 548 avant, agrégat par tronçon d'abord) ; le reste n'est pas décomposé — `explain` sur une fonction plpgsql ne rend qu'un Function Scan, et forcer ou retirer `materialized` ne déplace rien (225 638 contre 225 633). Suivi en #87. Elle reste très en dessous du plafond, 379 ms contre 1 020 : un coût à réduire, pas une promesse rompue."
+    },
+    "compass_price_by_activity": {
+      "pages": 141334,
+      "ms": 220,
+      "note": "w6-analyse (#50), mesurée le 6 septembre 2026, douze passages, claim anon, parallélisme coupé. 305 181 pages dans la première écriture, qui joignait BODACC avant de restreindre les locaux au rayon et évaluait le test « seul à son numéro » une fois par avis ; 141 334 en restreignant les locaux d'abord. Même leçon que #62 : l'ordre de jointure EST le coût. Servie à un appelant anonyme sur le millésime 2023, donc ce budget garde un vrai chemin, contrairement à celui de compass_activity_transitions."
+    },
     "compass_street_rotation": {
       "pages": 87879,
       "ms": 246,

@@ -210,7 +210,7 @@ fautive.
 
 <!-- BEGIN sessions -- généré par `npm.cmd run sessions`, ne pas éditer à la main -->
 
-*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 06/09/2026.*
+*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 07/09/2026.*
 
 | # | Ticket | Issue | État | Prio | Modèle |
 | --- | --- | --- | --- | --- | --- |
@@ -239,7 +239,7 @@ fautive.
 | 23 | `w1-historique` | [#49](https://github.com/IvandeMurard/paris-compass/issues/49) | **bloqué** | P0 | Opus 5 |
 | 24 | `w1-ppri` | [#13](https://github.com/IvandeMurard/paris-compass/issues/13) | ouvert | P1 | Opus 5 |
 | ~~25~~ | ~~`w1-dia`~~ | [#12](https://github.com/IvandeMurard/paris-compass/issues/12) | **fait** | P1 | Opus 5 |
-| 26 | `w6-analyse` | [#50](https://github.com/IvandeMurard/paris-compass/issues/50) | ouvert | P1 | Opus 5 |
+| ~~26~~ | ~~`w6-analyse`~~ | [#50](https://github.com/IvandeMurard/paris-compass/issues/50) | **fait** | P1 | Opus 5 |
 | 27 | `w3-mapillary` | [#21](https://github.com/IvandeMurard/paris-compass/issues/21) | **bloqué** | P0 | Opus 5 |
 | 28 | `w2-idfm` | [#19](https://github.com/IvandeMurard/paris-compass/issues/19) | ouvert | P1 | Sonnet 5 |
 | 29 | `w2-filosofi` | [#18](https://github.com/IvandeMurard/paris-compass/issues/18) | ouvert | P1 | Sonnet 5 |
