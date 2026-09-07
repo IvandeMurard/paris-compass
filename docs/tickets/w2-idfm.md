@@ -24,7 +24,7 @@ population — `I47` (le rattachement stocké est bien la station réellement la
 7 septembre 2026, `idfm_station` neutralisée, `I47` et `I48` rendent zéro violation. Voir
 §Avancement.
 
-## Avancement — 7 septembre 2026, deux migrations POSÉES, une TROISIÈME en attente
+## Avancement — 8 septembre 2026, les trois migrations POSÉES, #19 fermée
 
 **Endpoint choisi et vérifié** : le portail IDFM (`data.iledefrance-mobilites.fr`), pas
 data.gouv.fr — ce dernier ne publie que le trafic **annuel** entrant par station, aucun profil
