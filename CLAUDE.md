@@ -13,6 +13,7 @@ Volontairement **non importés** ici : ce fichier est chargé à chaque session,
 | `docs/SESSIONS.md` | **Avant de lancer une session de développement.** L'ordre des tickets, le prompt commun, les consignes propres à chacun, et quel modèle pour quelle classe de travail. |
 | `docs/JOURNAL.md` | Le récit des sessions passées. **Ne se lit pas en début de session** : sans autorité sur l'état courant, il ne sert qu'à retrouver *pourquoi* une décision a été prise. Jamais en entier. |
 | `docs/REPRISE.md` | **À lire en premier en début de session.** Où en est le travail, ce qui bloque, ce qui ne tourne pas sur ce poste, et ce qui reste à faire. Notamment : quel projet Supabase viser, et pourquoi il y en a eu trois. Une seule section d'état, la plus récente — tout état plus ancien est à l'archive. |
+| `docs/REGLES-INCIDENTS.md` | La **preuve datée** des règles ci-dessous : les incidents qui les ont écrites, leurs mesures, ce que chacune a coûté. **Ne se lit jamais en entier** — y venir au `grep` depuis la règle qui y renvoie, et seulement pour contester ou comprendre une règle, pas pour l'appliquer. |
 | `docs/REPRISE-PIEGES.md` | Les pièges qui ont déjà coûté du temps, datés. **Ne se lit pas en début de session** : se consulte au moment de faire la chose risquée, ou après s'être cogné. Repérer au `grep`, lire le paragraphe. |
 | `docs/REPRISE-ARCHIVE.md` | Les entrées closes de la page de reprise — tickets terminés, états mesurés remplacés, points de « La suite » rayés. Gardés pour leurs mesures datées. Quand une mesure d'ici contredit `REPRISE.md`, c'est celle d'ici qui a tort. |
 | `docs/CONTEXTE.md` | Périmètre, persona, refus assumés, décisions d'architecture, état d'avancement. Avant toute modification du périmètre, des sources de données ou du noyau. |
@@ -136,49 +137,35 @@ où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lova
   `écartée` sortent de la population : un refus est une décision, pas une panne à surveiller.
   Et **une sonde épingle un endpoint, jamais la page du portail qui en parle** — recouper une
   page par une autre page ne recoupe rien.
-- **Un appelant de PostgREST déclare l'échappement d'observabilité, et c'est encore la même
-  règle** — `#81`, le 6 septembre 2026. Tout fichier du dépôt qui construit un client Supabase ou
-  nomme `/rest/v1/` doit poser `x-compass-observabilite: off` (ou `COMPASS_OBSERVABILITE=off`
-  pour un processus fils), ou porter une raison écrite dans `sans-echappement` de
-  `scripts/porte/observabilite.json` ; sinon `test` échoue. Pourquoi : `#72` a mesuré la porte se
-  comptant elle-même — dix seaux sur un produit sans trafic, tous au même point — et un journal
-  pollué par la porte ne se lit pas comme une panne, il se lit comme du trafic. **Les brouillons
-  ignorés comptent** : la règle balaie aussi `scripts/tmp-*.ts`, parce qu'un brouillon qui pollue
-  `question_tally` la pollue que git le suive ou non. **Ce que ça ne rattrape pas** : elle vérifie
-  qu'un fichier *déclare* l'échappement, jamais qu'il l'*applique* à chaque appel, et un `curl`
-  lancé hors du dépôt n'est vu par rien.
-- **Une migration posée est comparée à celle que le dépôt suit, et c'est encore la même règle** —
-  `#82`, le 6 septembre 2026. `supabase_migrations.schema_migrations` contre les fichiers de
-  `supabase/migrations/` **suivis par git** — pas ceux du disque : le 5 septembre le fichier était
-  là, non suivi, et le distant a porté vingt-quatre heures un schéma que le dépôt ignorait sans
-  qu'un seul des onze bras puisse le voir. `npm.cmd run ledger` les compare dans les deux sens et
-  ils ne veulent pas dire la même chose : posée et non suivie est un schéma que personne ne peut
-  reconstruire, donc un rouge ; suivie et non posée est du travail en vol, donc un simple signal.
-  Il compare aussi les **corps** — le ledger garde `statements text[]` — et une divergence non
-  consignée dans `corps-diverge` de `scripts/porte/ledger.json`, avec sa raison et l'empreinte de
-  chaque côté, est un rouge. **Corollaire** : ne jamais réécrire une migration déjà posée, même
-  sans toucher au SQL ; le ledger garde le texte du jour où elle est passée et la réécriture
-  diverge de lui pour toujours — c'est arrivé deux fois le 25 août (`DIAGNOSTIC.md` §39). **Ce que
-  ça ne rattrape pas** : un schéma modifié à la main sur le distant ne laisse aucune trace au
-  ledger, et ce bras ne le verra jamais.
+- **Un appelant de PostgREST déclare l'échappement d'observabilité** — `#81`. Tout fichier qui
+  construit un client Supabase ou nomme `/rest/v1/` doit poser `x-compass-observabilite: off`
+  (ou `COMPASS_OBSERVABILITE=off` pour un processus fils), ou porter sa raison dans
+  `sans-echappement` de `scripts/porte/observabilite.json` ; sinon `test` échoue. **Les
+  brouillons ignorés comptent** — la règle balaie aussi `scripts/tmp-*.ts`. **Ce que ça ne
+  rattrape pas** : elle vérifie qu'un fichier *déclare* l'échappement, jamais qu'il l'*applique*.
+  Pourquoi, et ce que `#72` avait mesuré : `docs/REGLES-INCIDENTS.md`.
+
+- **Une migration posée est comparée à celle que le dépôt suit** — `#82`. `npm.cmd run ledger`
+  compare `supabase_migrations.schema_migrations` aux fichiers **suivis par git**, dans les deux
+  sens et **corps compris** : posée et non suivie est un rouge, suivie et non posée un simple
+  signal. Une divergence non consignée dans `corps-diverge` de `scripts/porte/ledger.json`, avec
+  sa raison, ses deux empreintes et **le commit qui a réécrit le fichier**, est un rouge.
+  **Corollaire** : ne jamais réécrire une migration déjà posée, même sans toucher au SQL.
+  **Ce que ça ne rattrape pas** : un schéma modifié à la main sur le distant.
+  Les incidents fondateurs : `docs/REGLES-INCIDENTS.md`.
+
 - **Une source d'ingestion aussi porte sa cadence, et c'est la même règle** — `#70`, le
   1er septembre 2026. Une source insérée dans `ingestion_run` par une migration doit avoir son
   entrée `cron` dans un workflow planifié, ou sa raison écrite dans le bloc `sources` de
   `scripts/porte/cadence.json` ; sinon `test` échoue. Et une tolérance de
   `scripts/ingest/lib/cadence.ts` ne se monte **jamais** pour éteindre un « EN RETARD » : le
   seuil dit depuis quand on n'a pas vérifié, le monter ne rafraîchit rien.
-- **Un rouge de la porte se lit au démarrage d'une session, pas dans une notification** — `#77`,
-  le 5 septembre 2026. Mesuré ce jour-là : la notification GitHub n'est pas absente — le dépôt
-  est `subscribed` depuis le 27 juin et le fil d'inbox de `#74` existe — elle est **reçue et
-  non lue**. `#74` a attendu 27 h ; le fil de `#78` était encore `unread` **après** que l'issue
-  eut été trouvée et fermée. Ce qui déclenche une lecture, c'est une session. Donc
+- **Un rouge de la porte se lit au démarrage d'une session, pas dans une notification** — `#77`.
   `npm.cmd run porte:etat` dit les rouges ouverts et leur âge, et `npm.cmd run brief` le joue
-  tout seul : au-delà d'un jour le rouge entre dans le prompt collé, en deçà il reste sur
-  stderr. L'escalade par le titre est aux paliers **2 et 7 jours**, jamais quotidienne — une
-  alerte qui prévient chaque matin du même défaut est celle qu'on finit par filtrer, et c'est
-  déjà la règle de `scripts/porte/signal.ts`. **Ce que ça ne rattrape pas** : une semaine sans
-  session reste une semaine sans lecteur, et rien ici ne fait lire un dépôt que personne
-  n'ouvre.
+  tout seul. L'escalade par le titre est aux paliers **2 et 7 jours**, jamais quotidienne.
+  **Ce que ça ne rattrape pas** : une semaine sans session reste une semaine sans lecteur.
+  La mesure qui l'a établi : `docs/REGLES-INCIDENTS.md`.
+
 - **Corriger une donnée n'est pas corriger un défaut.** Avant de déclarer un défaut réglé,
   répondre à deux questions et **écrire les réponses** : est-ce que ça survit à un
   rechargement — si un chargeur, une migration ou un import peut réintroduire l'état fautif,
@@ -191,42 +178,21 @@ où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lova
   depuis le prompt commun le 6 septembre, parce qu'une doctrine se charge à chaque session
   quand une procédure se colle.
 - **`main` refuse la poussée directe : une session, une branche, une proposition.** Décidé par
-  Ivan le 6 septembre 2026, et c'est l'inverse de ce qui valait depuis le 27 août. `git switch -c
-  ticket/<ID>`, puis `gh pr create` et `gh pr merge --squash --delete-branch` — **aucune
-  approbation n'est requise** (`required_approving_review_count: 0`), donc la session fusionne
-  elle-même : c'est la trace qui est exigée, pas un goulot humain. `enforce_admins` est activé,
-  sans quoi la règle ne s'appliquerait à personne — le seul compte du dépôt est administrateur,
-  et la protection criait à chaque poussée sans jamais rien bloquer.
+  Ivan le 6 septembre 2026. `git switch -c ticket/<ID>`, puis `gh pr create` et `gh pr merge
+  --squash --delete-branch` — **aucune approbation n'est requise**, la session fusionne
+  elle-même : c'est la trace qui est exigée. `.github/workflows/pr.yml` rejoue `typecheck` et
+  `test`, et pas le reste : `porte.yml` détient la chaîne privilégiée et le dépôt est public.
+  **La revue est distincte de la proposition** et ne vaut que pour les tickets qui la méritent —
+  ses signes et son prompt sont dans `docs/SESSIONS.md`. Pourquoi ce renversement :
+  `docs/REGLES-INCIDENTS.md`.
 
-  `.github/workflows/pr.yml` rejoue `typecheck` et `test` sur chaque proposition. **Pas le reste,
-  et pas par oubli** : `porte.yml` détient la chaîne privilégiée et son en-tête interdit
-  `pull_request` parce que le dépôt est public. Les six autres bras restent sur `main`, chaque
-  matin — une proposition qui les casserait serait vue le lendemain, et c'est le prix assumé de
-  ne pas exposer la clé.
-
-  **La revue est distincte de la proposition**, et elle ne vaut que pour les tickets qui la
-  méritent — migration, `src/core/`, invariant ou bras, `P0`. Ses cinq questions et son prompt
-  sont dans `docs/SESSIONS.md`.
 - **Ne jamais `git add -A` dans ce dépôt : stager par nom.** Des sessions parallèles et
   Lovable écrivent dans le même arbre, donc un balayage revendique du travail qui n'est pas le
-  sien. C'est arrivé deux fois — `c861bac` le 26 août a emporté `.fn-dump/` et quatre
-  `scripts/eval/_*.ts`, `ffe217c` le 5 septembre a emporté `scripts/tmp-nan.ts`, le brouillon
-  d'une session en cours.
+  sien. C'est arrivé deux fois. `.githooks/pre-commit` refuse un commit qui **ajoute** des
+  fichiers, sauf `COMPASS_AJOUTS=1`. **Ce que ça ne rattrape pas** : la *modification* d'un
+  fichier suivi faite par une autre session. Les deux incidents, leurs mesures et le symétrique
+  du commit qui annonçait une règle non stagée : `docs/REGLES-INCIDENTS.md`.
 
-  **Mesuré après coup** : tous les chemins emportés étaient en statut `A`, l'ajout d'un fichier
-  jusque-là non suivi, quand un commit ordinaire d'ici porte des `M`. Et un seuil de volume
-  n'aurait rien vu — le second balayage faisait six fichiers, une taille banale.
-
-  `.githooks/pre-commit` refuse donc un commit qui **ajoute** des fichiers, sauf accord
-  explicite : `COMPASS_AJOUTS=1 git commit …`. `npm install` pose `core.hooksPath` par le
-  script `prepare`, pour qu'un clone neuf hérite de la garde. **Ce que ça ne rattrape pas** :
-  la *modification* d'un fichier suivi faite par une autre session — git enregistre ce qui a
-  changé, jamais qui travaillait. Le stage par nom reste la règle ; le crochet ne retire que
-  l'accident qui s'est produit deux fois.
-
-  Symétrique et vérifié le 5 septembre : `be63054` annonçait dans son message une règle
-  `.gitignore` restée **non stagée**. Un commit dit ce qu'il porte, pas ce qu'on voulait y
-  mettre — relire `git diff --cached --name-only` avant de valider.
 - **Ne pas lancer `npm audit fix --force`** : cela remonterait des versions majeures et casserait
   le build. Et ne pas confondre ce que l'outil **propose** avec ce qui **corrige** : `audit fix
   --force` vise toujours la dernière majeure publiée, jamais la plus petite version qui suffit.
@@ -238,19 +204,11 @@ où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lova
   paraissent en continu. Une vulnérabilité ne disqualifie pas une bibliothèque à elle seule —
   juger d'abord si elle est **atteignable** dans ce produit, qui est un site statique sans
   serveur joignable. Les cinq avis de vite et vitest ne visaient que le serveur de développement.
-- **Un correctif consigné porte sa source, comme un chiffre affiché.** Écrire « vite 8 » dans une
-  documentation en fait la vérité du projet pour toutes les sessions suivantes, qui n'ont aucun
-  moyen de la recouper. Écrire d'où vient le numéro rend l'erreur repérable. Même exigence que
-  `Measured<T>`, appliquée à la documentation. Deux clauses, ajoutées le 24 août parce que la
-  règle seule n'a pas suffi :
-  - **Une documentation n'est pas une mesure.** Citer la base, le ledger, le fichier — jamais la
-    page qui en parle. Le tableau « Écarts corrigés » de `docs/PLAN-ACTION-VACANCE.md` *citait*
-    sa source, `docs/REPRISE.md`, et se trompait quand même : il recoupait une page contre une
-    autre page. Une source qui est elle-même de la prose ne recoupe rien.
-  - **Un chiffre mesuré porte sa date.** « Le ledger distant est à 24 migrations » était vrai le
-    17 août, mesuré avant une poussée, et faux le 24 sans que rien ne l'annonce. Sans sa date, un
-    chiffre juste devient faux en silence — et c'est un ticket entier qui part sur une prémisse
-    périmée. **Remesurer avant de recopier.**
+- **Un correctif consigné porte sa source, comme un chiffre affiché.** Écrire d'où vient un
+  numéro rend l'erreur repérable — même exigence que `Measured<T>`, appliquée à la
+  documentation. Deux clauses : **une documentation n'est pas une mesure** — citer la base, le
+  ledger, le fichier, jamais la page qui en parle ; et **un chiffre mesuré porte sa date**,
+  donc **remesurer avant de recopier**. Ce que chacune a coûté : `docs/REGLES-INCIDENTS.md`.
 
 ## Style
 
