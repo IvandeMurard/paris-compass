@@ -1938,3 +1938,156 @@ select * from (
      select 1 from public.compass_station_profile(48.8584, 2.3470, 800))
 ) x
 limit 20;
+
+-- @invariant I51 :: un local ne recoit pas le carreau filosofi qui le couvre reellement
+-- w2-filosofi (#18). Le rattachement (scripts/ingest/filosofi.ts, attach()) écrit
+-- premise_location.filosofi_idcar_200m à l'ingestion ; cet invariant le recalcule
+-- indépendamment, par la même préférence (le carreau qui COUVRE le point, sinon
+-- le plus proche par centroïde) et compare — même doctrine que I47 pour IDFM,
+-- et même raison : la valeur est CONSERVÉE ici, pas seulement PRODUITE par le
+-- chargeur.
+--
+-- UN CARREAU FILOSOFI TUILE LE TERRITOIRE SANS TROU, contrairement à la station
+-- IDFM la plus proche : ST_Covers doit trouver un carreau pour tout point
+-- réellement à l'intérieur de l'emprise chargée. Le repli sur le plus proche par
+-- centroïde ne sert qu'un local dont le carreau réel a été écarté par
+-- restrictToQuartiers (un carreau à cheval sur la frontière des 80 quartiers,
+-- tombé du mauvais côté) — voir l'en-tête de scripts/ingest/filosofi.ts.
+--
+-- CE QUE I51 NE RATTRAPE PAS : il compare le point stocké (premise_location.geom)
+-- à son carreau recalculé, jamais le CONTENU du carreau — c'est I53 qui garde la
+-- finitude et le signe des chiffres. Un carreau mal reconstruit par
+-- ST_MakeEnvelope (bornes bbox interverties, par exemple) resterait invisible
+-- ici tant que le rattachement reste interne à cette même géométrie fausse.
+--
+-- NON ÉPROUVÉ CONTRE LE DISTANT — aucune base n'était joignable depuis cette
+-- session (en-tête de la migration 20260908000001). À mesurer avant la pose de
+-- la migration, même pratique que w2-idfm et w6-analyse : transaction annulée.
+with recompute as (
+  select l.id as location_id, g.idcar_200m as plus_proche
+    from public.premise_location l
+    cross join lateral (
+      select g.idcar_200m from public.filosofi_grid_200m g
+       order by (not ST_Covers(g.geom, l.geom)), g.geom <-> l.geom limit 1
+    ) g
+   where l.geom is not null
+)
+select l.id as location_id, l.filosofi_idcar_200m as stocke, r.plus_proche as recalcule
+  from public.premise_location l
+  join recompute r on r.location_id = l.id
+ where l.filosofi_idcar_200m is distinct from r.plus_proche
+limit 20;
+
+-- @invariant I52 :: le corpus filosofi est vide, ou un local geolocalise ne recoit aucun carreau
+-- Le miroir de I51, et la moitié qui manquerait si on ne l'écrivait pas — même
+-- défaut que la revue de #91 et de #97 ont trouvé deux fois de suite : un
+-- invariant qui ne rend des lignes que si la table en rend ne mesure rien dans
+-- le cas qui compte.
+--
+-- L'ÉTAT VIDE EST ATTEIGNABLE SANS QUE LE CHARGEMENT ÉCHOUE, même mécanisme que
+-- I49 pour IDFM : loadGrid fait `delete from filosofi_grid_200m` puis boucle sur
+-- les lignes lues ; un champ renommé en amont (`idcar_200m`, `ind`, `ind_snv`,
+-- ou la structure `bbox` elle-même) ferait échouer readParisCandidates avant le
+-- delete OU rendrait un tableau vide que refuseLotVide attrape avant le delete —
+-- mais un DELETE fait à la main sur le distant (psql, la console Supabase) ne
+-- passe par aucun des deux, vide la table, efface tous les rattachements via
+-- `on delete set null`, et rien dans scripts/ingest/filosofi.ts ne le voit
+-- passer. C'est CET invariant qui rougit alors, quel que soit le chemin.
+--
+-- CE QUE I52 NE RATTRAPE PAS : il garde la PRÉSENCE, jamais l'ÉTENDUE — un
+-- filosofi_grid_200m tombé de plusieurs milliers de carreaux à une poignée le
+-- passe au vert tant que chaque local géolocalisé reste rattaché à l'un d'eux,
+-- fût-il lointain. Le nombre attendu n'est pas épinglé ici volontairement : il
+-- dépend du millésime et de l'emprise réellement chargée, pas du code — c'est
+-- `npm.cmd run freshness` et `ingestion_run.row_count` qui portent l'étendue.
+--
+-- NON ÉPROUVÉ CONTRE LE DISTANT — même réserve que I51.
+select * from (
+  select 'filosofi_grid_200m est vide'::text as probleme, '0'::text as detail
+   where not exists (select 1 from public.filosofi_grid_200m)
+  union all
+  select 'local géolocalisé sans carreau rattaché', count(*)::text
+    from public.premise_location
+   where geom is not null and filosofi_idcar_200m is null
+  having count(*) > 0
+) x
+limit 20;
+
+-- @invariant I53 :: un carreau filosofi porte une population, un nombre de menages ou un revenu non fini ou negatif
+-- Sanité des trois chiffres qu'un appelant reçoit (via compass_premises_within)
+-- ou peut lire en direct sur la table : `individus` et `menages` sont des
+-- comptes, jamais négatifs ni infinis/NaN ; `niveau_vie_somme_winsorisee_eur`
+-- peut légitimement être négative pour un ménage isolé au revenu disponible
+-- négatif (documentation INSEE, §I.2 — env. 80 000 ménages fiscaux nationalement
+-- sont dans ce cas et SONT exclus du champ Filosofi, donc pas de ce carreau,
+-- mais la winsorisation ne les empêche pas d'exister ici) — cet invariant ne
+-- réclame donc d'elle que la finitude, jamais un signe.
+--
+-- MÊME MOTIF QUE I42 (finitude des colonnes géographiques) : `NaN = NaN` est
+-- VRAI en Postgres, donc un test IEEE nu ne verrait rien sur une valeur non
+-- finie. Ici la colonne est une `double precision` ordinaire et non une
+-- `geography`, donc l'expression teste directement `= 'NaN'` et
+-- `= 'Infinity'`/`= '-Infinity'` plutôt que le contournement par texte que I42
+-- doit faire sur du WKT.
+--
+-- CE QUE I53 NE RATTRAPE PAS : il garde la FINITUDE et le SIGNE des deux
+-- comptes, jamais la JUSTESSE du chiffre — un carreau dont `individus` vaudrait
+-- deux fois sa vraie population passerait, exactement comme aucun invariant de
+-- ce fichier ne peut recouper un total contre un recensement qu'il n'a pas.
+--
+-- NON ÉPROUVÉ CONTRE LE DISTANT — même réserve que I51.
+select idcar_200m, individus, menages, niveau_vie_somme_winsorisee_eur
+  from public.filosofi_grid_200m
+ where individus < 0 or individus = 'NaN' or individus = 'Infinity'
+    or menages < 0 or menages = 'NaN' or menages = 'Infinity'
+    or niveau_vie_somme_winsorisee_eur = 'NaN'
+    or niveau_vie_somme_winsorisee_eur = 'Infinity'
+    or niveau_vie_somme_winsorisee_eur = '-Infinity'
+limit 20;
+
+-- @invariant I54 :: la table filosofi qu'un appelant anonyme interroge ne rend aucun carreau
+-- @as anon
+-- Le miroir de I52 et le rappel exact de la leçon d'IDFM (I50, revue de #97) :
+-- AUCUN invariant de ce fichier ne lisait `idfm_validation_profile` avant que
+-- la revue ne le trouve muette pour `anon` — RLS active, zéro politique de
+-- lecture — pendant qu'un chemin `security definer` répondait normalement. La
+-- migration 20260908000001 pose RLS ET la politique de lecture dans le MÊME
+-- fichier plutôt qu'un correctif ultérieur (voir son en-tête), mais un
+-- invariant qui ne la lirait jamais comme `anon` ne le prouverait pas — il
+-- constaterait seulement que la migration a été écrite avec l'intention voulue,
+-- jamais qu'une reprise future ne l'a pas défaite.
+--
+-- IL EST `@as anon` À DESSEIN. La première clause lit la table EN TANT QU'ANON
+-- (donc rougit le jour où la politique de lecture disparaît), la seconde passe
+-- par compass_premises_within à Châtelet (le même point que le budget anon)
+-- pour vérifier qu'un appelant reçoit bien un carreau nommé et une moyenne
+-- calculable — pas seulement une ligne, un CONTENU. Les deux ensemble
+-- distinguent « la table est vide » de « la table est retenue », ce qu'aucune
+-- des deux seule ne fait.
+--
+-- CE QUE I54 NE RATTRAPE PAS : il garde la PRÉSENCE d'un carreau à Châtelet,
+-- jamais sa JUSTESSE — c'est I51 qui garde le rattachement et I53 la finitude
+-- des chiffres. Un point où aucun carreau ne serait chargé (hors de l'emprise
+-- Paris + marge, ou après un recoupement quartiers trop agressif) ferait
+-- rougir cette clause pour une raison de PÉRIMÈTRE et non de politique de
+-- lecture — les deux causes ne sont pas départagées par une seule ligne, et
+-- c'est pourquoi I52 doit être lu à côté avant de conclure.
+--
+-- NON ÉPROUVÉ CONTRE LE DISTANT — même réserve que I51. Sans la politique de
+-- lecture (contre-épreuve à jouer avant la pose, même pratique que #97 sur
+-- I50) cette clause doit rougir sur « aucun carreau visible par un appelant
+-- anonyme » pendant que I51/I53 restent verts sur une table vidée du seul point
+-- de vue de RLS — c'est cette contre-épreuve qui prouverait que le miroir
+-- mesure quelque chose, pas le vert seul.
+select * from (
+  select 'aucun carreau filosofi visible par un appelant anonyme'::text as probleme,
+         '0'::text as detail
+   where not exists (select 1 from public.filosofi_grid_200m)
+  union all
+  select 'compass_premises_within ne rend aucun carreau ni moyenne a Chatelet', '0'
+   where not exists (
+     select 1 from public.compass_premises_within(48.8566, 2.3522, 2000, 2023, 500) r
+      where r.filosofi_idcar_200m is not null
+        and r.filosofi_niveau_vie_moyen_estime_eur is not null)
+) x
+limit 20;

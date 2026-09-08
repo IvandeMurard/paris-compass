@@ -91,6 +91,12 @@
       "licence-attendue": "Open Database License (ODbL)",
       "note": "Le jeu que scripts/ingest/terrasses.ts interroge. Le catalogue disait « ODbL (mesuré le 26/08) » ; le portail le confirme toujours le 5 septembre 2026."
     },
+    "Filosofi carroyé 200 m": {
+      "lecture": "datagouv",
+      "endpoint": "https://www.data.gouv.fr/api/1/datasets/revenus-pauvrete-et-niveau-de-vie-donnees-carroyees-2019-et-2021-dispositif-fichier-localise-social-et-fiscal-filosofi/",
+      "licence-attendue": "lov2",
+      "note": "w2-filosofi (#18), endpoint choisi le 8 septembre 2026 : la page data.gouv.fr que scripts/ingest/filosofi.ts lit — même famille que Sirene (lecture datagouv, licence lov2), et pour la même raison : l'INSEE remplace parfois la PAGE elle-même plutôt que d'y ajouter une ressource (une page distincte existe déjà pour les générations 2015/2017), donc #56 peut se reproduire ici. Deux millésimes coexistent sur CETTE page (2019 et 2021, mesuré le 8 septembre 2026) et scripts/ingest/filosofi.ts choisit toujours le plus récent par le nom du fichier (carreaux-200m-met-3035_AAAA.parquet), jamais une année en dur — contrairement à IDFM (DIAGNOSTIC.md §45), cette sonde et le chargeur lisent la MÊME url : ils ne peuvent pas diverger de millésime comme la sonde IDFM le pouvait, seulement échouer ensemble si la page disparaît. Ce que cette sonde ne vérifie pas : que le fichier ne publie toujours aucune médiane à cette maille (aucune ne l'a jamais été — voir l'en-tête de la migration 20260908000001) — c'est une propriété du contenu, pas de l'endpoint, hors de portée de VÉRIFIER."
+    },
     "Validations transport IDFM": {
       "lecture": "opendatasoft",
       "endpoint": "https://data.iledefrance-mobilites.fr/api/explore/v2.1/catalog/datasets/validations-reseau-ferre-profils-horaires-par-jour-type-4eme-trimestre",
@@ -101,7 +107,6 @@
 
   "sans-verification": {
     "Mobiliscope": "Planifiée, aucun endpoint épinglé — `w2-mobiliscope`. Les données sont distribuées par téléchargement depuis le site du CNRS, sans API de catalogue à interroger : la vérification devra porter sur l'archive elle-même, ce qui est un contrôle à écrire, pas un endpoint à ajouter.",
-    "Filosofi carroyé 200 m": "Planifiée, aucun endpoint épinglé — `w2-filosofi`. Même famille que Sirene sur data.gouv, donc vérifiable le jour où la ressource est choisie ; l'épingler d'avance reviendrait à consigner une URL que personne n'a chargée.",
     "Base permanente des équipements": "Planifiée, aucun endpoint épinglé — `w2-bpe-marches-velo`.",
     "Marchés alimentaires": "Planifiée, aucun endpoint épinglé — `w2-bpe-marches-velo`. Le jeu existe sur opendata.paris.fr et sera vérifiable comme les quatre autres jeux parisiens, mais aucun identifiant n'a été retenu.",
     "Comptages vélo permanents": "Planifiée, aucun endpoint épinglé — `w2-bpe-marches-velo`.",
