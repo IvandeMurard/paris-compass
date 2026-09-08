@@ -13,7 +13,7 @@
     "compass_premises_within": {
       "pages": 94117,
       "ms": 140,
-      "note": "Corrigée le 28 août par 20260828000001 (#62). 195 422 pages avant, avec l'ancien index ; 172 807 avec le nouveau, ce qui isole la part de la restructuration. L'élargissement de l'include par 20260828000003 ne la déplace pas : elle ne lit pas activity_code sur ce chemin. Varie de 92 129 à 94 117 d'un passage à l'autre."
+      "note": "Corrigée le 28 août par 20260828000001 (#62). 195 422 pages avant, avec l'ancien index ; 172 807 avec le nouveau, ce qui isole la part de la restructuration. L'élargissement de l'include par 20260828000003 ne la déplace pas : elle ne lit pas activity_code sur ce chemin. Varie de 92 129 à 94 117 d'un passage à l'autre. LES CINQ COLONNES FILOSOFI NE LA DÉPLACENT PAS NON PLUS — remesuré le 8 septembre 2026, après la pose de 20260908000001 ET le premier chargement réel (2 170 carreaux, 85 410 locaux rattachés) : 92 688 pages, soit -1,5 % du plafond, dans la fourchette de bruit d'avant. Le plafond n'a donc PAS été regelé, et la raison est structurelle plutôt que chanceuse : la jointure vers filosofi_grid_200m est un `left join` par CLÉ PRIMAIRE, joué sur les seules lignes que `top` a gardées (500 au plus), jamais sur le rayon entier — le coût d'une fonction de rayon est dans ce qu'elle BALAIE, et cette jointure ne balaie rien. Mesurer sur une table vide n'aurait rien voulu dire ; c'est bien après chargement que ce chiffre a été pris."
     },
     "compass_bodacc_within": {
       "pages": 148346,

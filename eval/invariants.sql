@@ -2027,7 +2027,11 @@ limit 20;
 -- dépend du millésime et de l'emprise réellement chargée, pas du code — c'est
 -- `npm.cmd run freshness` et `ingestion_run.row_count` qui portent l'étendue.
 --
--- NON ÉPROUVÉ CONTRE LE DISTANT — même réserve que I51.
+-- ÉPROUVÉ CONTRE LE DISTANT le 8 septembre 2026, après le premier chargement
+-- réel : vert, 2 170 carreaux en table et 0 local géolocalisé sans carreau sur
+-- 85 410. Le vert de la seconde clause n'est acquis que parce que le repli
+-- existe : 586 locaux n'avaient aucun carreau COUVRANT (0,69 %), et sans lui
+-- cette clause rougirait aujourd'hui.
 select * from (
   select 'filosofi_grid_200m est vide'::text as probleme, '0'::text as detail
    where not exists (select 1 from public.filosofi_grid_200m)
@@ -2061,7 +2065,9 @@ limit 20;
 -- deux fois sa vraie population passerait, exactement comme aucun invariant de
 -- ce fichier ne peut recouper un total contre un recensement qu'il n'a pas.
 --
--- NON ÉPROUVÉ CONTRE LE DISTANT — même réserve que I51.
+-- ÉPROUVÉ CONTRE LE DISTANT le 8 septembre 2026, sur le millésime 2021
+-- réellement chargé : vert, aucune des 2 170 lignes ne porte de compte négatif
+-- ni de valeur non finie.
 select idcar_200m, individus, menages, niveau_vie_somme_winsorisee_eur
   from public.filosofi_grid_200m
  where individus < 0 or individus = 'NaN' or individus = 'Infinity'
@@ -2099,7 +2105,15 @@ limit 20;
 -- lecture — les deux causes ne sont pas départagées par une seule ligne, et
 -- c'est pourquoi I52 doit être lu à côté avant de conclure.
 --
--- NON ÉPROUVÉ CONTRE LE DISTANT — même réserve que I51. Sans la politique de
+-- ÉPROUVÉ CONTRE LE DISTANT le 8 septembre 2026 : vert sous le claim `anon`,
+-- la table est visible et Châtelet rend bien un carreau nommé et une moyenne
+-- calculable. IL A D'ABORD ROUGI POUR UNE AUTRE RAISON, qui vaut d'être écrite
+-- ici plutôt que redécouverte : ses cinq arguments étaient des littéraux nus,
+-- donc (numeric, numeric, integer, integer, integer), et `integer -> smallint`
+-- n'est PAS une conversion implicite en Postgres — la résolution échouait sur
+-- « function ... does not exist » et arrêtait le bras entier. Tout autre
+-- appelant de ce fichier caste chaque argument ; celui-ci le fait maintenant
+-- aussi. Sans la politique de
 -- lecture (contre-épreuve à jouer avant la pose, même pratique que #97 sur
 -- I50) cette clause doit rougir sur « aucun carreau visible par un appelant
 -- anonyme » pendant que I51/I53 restent verts sur une table vidée du seul point

@@ -69,6 +69,7 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 44 | L'exclusion de Porte de Clichy porte plus loin que le défaut : 156 locaux reçoivent une station qui n'est pas la plus proche | **ouvert** — trouvé le 7 septembre 2026 par la revue de #97, P2 | ici |
 | 45 | La sonde de catalogue IDFM dérivera vers le VERT sur une édition gelée, jamais vers le rouge | **ouvert** — trouvé le 7 septembre 2026 par la revue de #97, P2 | ici |
 | 46 | La table Filosofi carroyée ne porte pas `i_est_200`, l'indicateur d'imputation qu'INSEE dit obligatoire | **ouvert** — trouvé le 8 septembre 2026 par `w2-filosofi`, [#18](https://github.com/IvandeMurard/paris-compass/issues/18) | ici |
+| 47 | La `cadence_note` de `filosofi` annonce « NON CHARGÉ » à tout appelant, alors que la source est chargée depuis le 8 septembre 2026 | **ouvert** — trouvé le 8 septembre 2026 par `w2-filosofi`, P2 | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -731,3 +732,38 @@ serait une décision de méthode dépassant le périmètre d'une session de repr
 par qui trouve une distribution INSEE de ce dispositif portant les variables complémentaires
 (le CSV/shapefile natif de l'INSEE plutôt que ce republish, par exemple), ou par une décision
 d'Ivan d'accepter le risque résiduel tel quel et de le documenter comme assumé plutôt qu'ouvert.
+
+---
+
+## 47. La `cadence_note` de `filosofi` annonce « NON CHARGÉ » à tout appelant, alors que la source est chargée — trouvé le 8 septembre 2026 par `w2-filosofi`
+
+`ingestion_run.cadence_note` **n'est pas un commentaire interne** : `compass_source_freshness()`
+la rend, `scripts/ingest/freshness.ts` l'affiche, et surtout `mcp-server/src/tools/listSources.ts`
+la sert telle quelle sous `cadenceNote` à n'importe quel agent qui interroge le serveur MCP
+publié. C'est du texte servi, pas de la documentation.
+
+**Mesuré le 8 septembre 2026** : la ligne posée par `20260908000001` porte encore
+« NON CHARGÉ dans la foulée de cette migration — aucune base n'était joignable depuis cette
+session […] à charger dès que la migration est posée ». C'était vrai à l'écriture — la session
+qui l'a écrite travaillait dans un arbre isolé sans `DATABASE_URL`. Ça ne l'est plus : le
+chargement est passé le même jour, 2 170 carreaux, millésime 2021, et `npm.cmd run freshness`
+affiche `filosofi` chargé. Un appelant lit donc une phrase qui contredit la ligne d'à côté.
+
+**Pourquoi ce n'est pas réparé ici, et ce que ça coûterait de le faire.** La migration
+`20260908000001` est posée et suivie par le ledger : la réécrire est exactement le geste qui a
+produit [§39](#39-deux-migrations-réécrites-après-leur-application) et `#83`. Le corriger demande
+donc une migration **neuve** faisant `update public.ingestion_run set cadence_note = … where
+source = 'filosofi'` — et **aucune migration du dépôt n'a jamais fait d'`update` sur cette
+table**, vérifié le 8 septembre 2026 : ce serait une pratique nouvelle, inaugurée sur une
+branche déjà en attente de revue. La décision de l'inaugurer revient à la file, pas à une
+session de correction de chargement.
+
+**Ce que la correction devra faire, quand elle viendra** : c'est bien la donnée qu'il faut
+corriger ici, et elle survit au rechargement — `recordRun` ne touche jamais `cadence_note`, et
+la migration d'origine ne se rejouera pas. Mais la note dit aussi que **le défaut se
+reproduira** : toute migration qui enregistre une source décrit dans sa `cadence_note` un état
+de chargement qu'elle ne peut pas connaître à l'écriture (`idfm` affirme symétriquement
+« Chargé une fois dans la foulée de cette migration », ce qui n'était vrai qu'après coup). La
+vraie règle à écrire est qu'une `cadence_note` décrive la **cadence**, jamais l'état d'un
+chargement — cet état a déjà sa colonne, `last_success_at`, et un invariant peut recouper les
+deux.
