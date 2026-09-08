@@ -201,34 +201,88 @@ export async function restrictToQuartiers(client: Client): Promise<number> {
   return result.rowCount ?? 0
 }
 
+/** What `attach` did, split so the fallback's real extent is reported rather than assumed. */
+export interface Attachment {
+  /** Premises whose own cell covers them — the exact answer. */
+  covered: number
+  /** Premises with no covering cell left, attached to the nearest one instead. */
+  fallback: number
+}
+
 /**
- * Attaches every geolocated premise to its Filosofi cell. A grid TILES the territory with no
- * gaps, unlike the nearest-IDFM-station search: the correct cell is the one whose polygon
- * COVERS the point, which is exact rather than approximate. `ST_Covers` is tried first; a
+ * Attaches every geolocated premise to its Filosofi cell, in TWO passes over the same window.
+ *
+ * A grid TILES the territory with no gaps, unlike the nearest-IDFM-station search: the correct
+ * cell is the one whose polygon COVERS the point, which is exact rather than approximate. A
  * premise whose true cell was trimmed out by `restrictToQuartiers` (its own polygon straddling
- * the quartier-union boundary, dropped on the far side) falls back to the nearest cell by
- * centroid rather than getting no cell at all — the same "no cutoff, always attach something"
- * choice w2-idfm made, for the analogous reason.
+ * the quartier-union boundary, dropped on the far side) falls back to the nearest cell rather
+ * than getting no cell at all — the same "no cutoff, always attach something" choice w2-idfm
+ * made, for the analogous reason.
+ *
+ * ── WHY TWO STATEMENTS AND NOT ONE, WHICH IS THE WHOLE POINT OF THIS FUNCTION ──────────────
+ *
+ * This preference was first written as ONE lateral, ordering each premise's candidates by
+ * `(not ST_Covers(...)), geom <-> geom limit 1`. That expression cannot use an index at all:
+ * a leading sort key that is not the KNN operator forces Postgres to evaluate `ST_Covers`
+ * against EVERY cell in the table for EVERY premise, and the gist index accelerates neither
+ * half. Measured 8 September 2026 against the hosted project, with 2 170 cells and 85 410
+ * geolocated premises: 4 115 ms for a 500-premise sample, so ~700 s for the real population —
+ * against a `statement_timeout` of 2 min on this role. That is what made the first run of this
+ * loader die on "canceling statement due to statement timeout" after 123 s, and no amount of
+ * chunking would have saved it: the work itself was ~1,1 million ST_Covers calls per 500
+ * premises. The window was not too small; the query was quadratic.
+ *
+ * Split in two, each half uses the gist index it was always entitled to — pass one as a plain
+ * indexed spatial join, pass two as a pure KNN order-by with nothing in front of it. Measured
+ * the same day, same data: 14 627 ms for 84 824 covered premises, then 167 ms for the 586
+ * that had no covering cell left (0,69 % — the "measured extent of the fallback" the migration
+ * header of 20260908000001 points here for). ~15 s total against ~700 s, and every statement
+ * now sits an order of magnitude inside the window, so the three steps stay in ONE transaction:
+ * the window was never the thing to change.
+ *
+ * The reset to null is not redundant with `loadGrid`'s delete, which does null these pointers
+ * through `on delete set null`. Pass two selects exactly the rows pass one did not claim, so
+ * it must start from a state this function establishes itself rather than one it inherits —
+ * otherwise a stale pointer from a previous vintage would make a genuinely orphaned premise
+ * invisible to the fallback and keep a cell id that no longer exists in this load.
+ *
+ * A point covered by two cells at once would make pass one's choice arbitrary between them.
+ * Measured 8 September 2026 on the loaded grid: ZERO premises are covered by more than one
+ * cell, INSEE's squares tiling without overlap as their construction promises. If that ever
+ * stops being true, pass one starts picking non-deterministically between equally correct
+ * cells across reloads — worth knowing, not worth guarding against today.
  */
-export async function attach(client: Client): Promise<number> {
-  const result = await client.query(`
-    with nearest as (
+export async function attach(client: Client): Promise<Attachment> {
+  await client.query(
+    `update public.premise_location set filosofi_idcar_200m = null where filosofi_idcar_200m is not null`,
+  )
+
+  const covered = await client.query(`
+    update public.premise_location l
+       set filosofi_idcar_200m = g.idcar_200m
+      from public.filosofi_grid_200m g
+     where l.geom is not null and ST_Covers(g.geom, l.geom)
+  `)
+
+  const fallback = await client.query(`
+    with orphelins as (
       select l.id as location_id, g.idcar_200m
       from public.premise_location l
       cross join lateral (
         select g.idcar_200m
         from public.filosofi_grid_200m g
-        order by (not ST_Covers(g.geom, l.geom)), g.geom <-> l.geom
+        order by g.geom <-> l.geom
         limit 1
       ) g
-      where l.geom is not null
+      where l.geom is not null and l.filosofi_idcar_200m is null
     )
     update public.premise_location l
-       set filosofi_idcar_200m = n.idcar_200m
-      from nearest n
-     where l.id = n.location_id
+       set filosofi_idcar_200m = o.idcar_200m
+      from orphelins o
+     where l.id = o.location_id
   `)
-  return result.rowCount ?? 0
+
+  return { covered: covered.rowCount ?? 0, fallback: fallback.rowCount ?? 0 }
 }
 
 async function main(): Promise<void> {
@@ -244,7 +298,7 @@ async function main(): Promise<void> {
 
     let loaded = 0
     let trimmed = 0
-    let attached = 0
+    let attached: Attachment = { covered: 0, fallback: 0 }
     await inTransaction(client, async () => {
       loaded = await loadGrid(client, candidates, year)
       trimmed = await restrictToQuartiers(client)
@@ -255,7 +309,8 @@ async function main(): Promise<void> {
     log("  carreaux chargés (avant recoupement quartiers)", String(loaded))
     log("  carreaux écartés (hors des 80 quartiers)", String(trimmed))
     log("  carreaux retenus", String(loaded - trimmed))
-    log("  locaux rattachés", String(attached))
+    log("  locaux rattachés — carreau couvrant", String(attached.covered))
+    log("  locaux rattachés — carreau le plus proche (repli)", String(attached.fallback))
 
     await recordRun(client, "filosofi", {
       rowCount: loaded - trimmed,
