@@ -68,6 +68,7 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 43 | `docs/REPRISE.md` documente encore « on pousse sur `main` sans PR », périmé depuis le 6 septembre 2026 | **ouvert** — trouvé le 7 septembre 2026 par `w2-idfm`, P2 | ici |
 | 44 | L'exclusion de Porte de Clichy porte plus loin que le défaut : 156 locaux reçoivent une station qui n'est pas la plus proche | **ouvert** — trouvé le 7 septembre 2026 par la revue de #97, P2 | ici |
 | 45 | La sonde de catalogue IDFM dérivera vers le VERT sur une édition gelée, jamais vers le rouge | **ouvert** — trouvé le 7 septembre 2026 par la revue de #97, P2 | ici |
+| 46 | La table Filosofi carroyée ne porte pas `i_est_200`, l'indicateur d'imputation qu'INSEE dit obligatoire | **ouvert** — trouvé le 8 septembre 2026 par `w2-filosofi`, [#18](https://github.com/IvandeMurard/paris-compass/issues/18) | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -696,3 +697,37 @@ passant. La note de `catalogue.json` a été réécrite pour dire ce qui arriver
 que de défendre un 404 que la mesure dit improbable — la sonde ment moins, elle ne vérifie pas
 plus. **À reprendre** par le ticket qui touchera `scripts/porte/catalogue.ts`, ou plus tôt si un
 second jeu à identifiant tournant entre au catalogue : la règle ne vaut pas pour IDFM seul.
+
+
+## 46. La table Filosofi carroyée ne porte pas `i_est_200`, l'indicateur d'imputation qu'INSEE dit obligatoire — trouvé le 8 septembre 2026 par `w2-filosofi`
+
+`docs/tickets/w2-filosofi.md` renvoyait déjà ici pour le numéro de section avant que cette
+section n'existe — trouvé en reprenant une session coupée par une limite d'API, la référence
+manquante plutôt qu'ajoutée en même temps que le reste.
+
+INSEE documente (dictionnaire des variables Filosofi, §I.5 et §III) que 79 % des carreaux de
+200 m sont, au niveau national, sous le seuil de confidentialité de 11 ménages fiscaux et donc
+**imputés** — leurs chiffres reconstitués en répartissant ceux d'un groupe de carreaux voisins
+fusionnés, jamais mesurés sur le carreau seul — et que `i_est_200` doit être lu avant de faire
+confiance à un carreau donné.
+
+**Mesuré le 8 septembre 2026** : le republish GeoParquet que `scripts/ingest/filosofi.ts` lit
+sur data.gouv.fr ne porte que les « variables communes aux trois grilles » du dictionnaire
+INSEE (`idcar_200m`, `ind`, `men`, `men_pauv`, `ind_snv`, les ventilations âge/logement) —
+aucune des « variables complémentaires de la grille de 200 m » : ni `i_est_200`, ni `idcar_1km`,
+ni `lcog_geo`. `public.filosofi_grid_200m` (migration `20260908000001`) ne peut donc pas
+distinguer, mécaniquement, un carreau mesuré d'un carreau imputé par groupe.
+
+**Pourquoi ce n'est pas traité comme bloquant.** INSEE écrit elle-même la précaution : « en zone
+urbaine, du fait des fortes densités, on peut considérer que les données sont fiables » — Paris
+est exactement ce cas. Mais c'est une précaution documentée sur une CLASSE de territoire, jamais
+une vérification carreau par carreau, et le risque documenté reste réel pour tout carreau
+parisien à faible densité (bois, emprises ferroviaires, grandes parcelles peu peuplées).
+
+**Ce qui n'a pas été fait, et pourquoi** : ni la migration `20260908000001` ni
+`scripts/ingest/filosofi.ts` ne portent de contournement — aucune source alternative publiant
+`i_est_200` à cette maille n'a été identifiée le 8 septembre 2026, et en fabriquer un proxy
+serait une décision de méthode dépassant le périmètre d'une session de reprise. **À reprendre**
+par qui trouve une distribution INSEE de ce dispositif portant les variables complémentaires
+(le CSV/shapefile natif de l'INSEE plutôt que ce republish, par exemple), ou par une décision
+d'Ivan d'accepter le risque résiduel tel quel et de le documenter comme assumé plutôt qu'ouvert.
