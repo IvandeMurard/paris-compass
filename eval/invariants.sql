@@ -2154,7 +2154,7 @@ limit 20;
 -- DÉRIVE d'elle-même — les 265 décisions du registre, chacune comme point de sonde — plutôt que
 -- deux adresses choisies à la main.
 
--- @invariant I51 :: compass_meubles_within ne recalcule pas la meme densite qu'un comptage direct
+-- @invariant I55 :: compass_meubles_within ne recalcule pas la meme densite qu'un comptage direct
 -- Pour CHAQUE décision du registre — la population est énumérée depuis
 -- public.meuble_autorisation lui-même, jamais deux adresses écrites en dur — ce bloc recalcule
 -- indépendamment, par une jointure spatiale brute (ST_DWithin, 200 m), le total que
@@ -2166,7 +2166,7 @@ limit 20;
 -- Le rayon est fixé à 200 m, celui du "Fait quand" du ticket — pas compass_max_radius_m() :
 -- une population de sonde à un autre rayon prouverait une autre fonction, publiée nulle part.
 --
--- CE QUE I51 NE RATTRAPE PAS : il compare deux calculs sur le MÊME état de la table, jamais un
+-- CE QUE I55 NE RATTRAPE PAS : il compare deux calculs sur le MÊME état de la table, jamais un
 -- total contre une valeur publiée à l'écran — aucune telle valeur n'existe encore, le produit
 -- n'affiche rien de ce ticket. Il ne voit pas non plus une décision mal géocodée : une adresse
 -- placée au mauvais endroit par le portail resterait cohérente entre les deux calculs, parce
@@ -2209,14 +2209,14 @@ select r.decision_number, r.recalcule as recalcule_direct, v.total_matched as vi
  where r.recalcule is distinct from v.total_matched
  limit 20;
 
--- @invariant I52 :: le corpus meubles est vide, ou un appelant anonyme n'y voit rien
+-- @invariant I56 :: le corpus meubles est vide, ou un appelant anonyme n'y voit rien
 -- @as anon
--- Le miroir de I51, et la moitié qui manquerait si on ne l'écrivait pas — même défaut que la
+-- Le miroir de I55, et la moitié qui manquerait si on ne l'écrivait pas — même défaut que la
 -- revue de #91 a trouvé sur I43 et que celle de #97 a retrouvé sur I47/I48 : dériver la
 -- population D'UNE TABLE VIDE rend zéro ligne de sonde, donc zéro violation, donc un VERT qui
--- ne prouve rien. I51 recalcule la population de meuble_autorisation depuis meuble_autorisation
+-- ne prouve rien. I55 recalcule la population de meuble_autorisation depuis meuble_autorisation
 -- lui-même — une table vidée par un rechargement raté, ou par un `delete` fait à la main sur le
--- distant, passerait I51 sans un mot.
+-- distant, passerait I55 sans un mot.
 --
 -- `@as anon` À DESSEIN, pour la même raison que I50 : compass_meubles_within est `security
 -- invoker` (pas `security definer`), donc il hérite exactement des politiques RLS de l'appelant
@@ -2233,16 +2233,16 @@ select r.decision_number, r.recalcule as recalcule_direct, v.total_matched as vi
 -- inventée : la clause qui interroge la fonction doit sonder un endroit dont on sait, par le
 -- registre lui-même, qu'il porte au moins une décision.
 --
--- CE QUE I52 NE RATTRAPE PAS : il garde la PRÉSENCE, jamais l'ÉTENDUE — un registre tombé de
+-- CE QUE I56 NE RATTRAPE PAS : il garde la PRÉSENCE, jamais l'ÉTENDUE — un registre tombé de
 -- 265 à 12 lignes le laisse vert, tant qu'au moins une décision reste visible quelque part.
 -- Comme pour I49, le nombre attendu n'est pas épinglé ici volontairement : c'est
 -- `ingestion_run.row_count` et `npm.cmd run freshness` qui portent l'étendue.
 --
--- NON MESURÉ CONTRE LE DISTANT, pour la même raison que I51 — voir son en-tête. La
+-- NON MESURÉ CONTRE LE DISTANT, pour la même raison que I55 — voir son en-tête. La
 -- contre-épreuve attendue, à jouer par Ivan avant de fusionner : table vidée en transaction
--- annulée, I51 doit rester vert (population vide) et I52 doit rougir sur « meuble_autorisation
--- est vide » ; table pleine mais politique de lecture anon retirée, I51 reste vert (il ne passe
--- pas par PostgREST) et I52 rougit sur « aucune décision visible par un appelant anonyme ».
+-- annulée, I55 doit rester vert (population vide) et I56 doit rougir sur « meuble_autorisation
+-- est vide » ; table pleine mais politique de lecture anon retirée, I55 reste vert (il ne passe
+-- pas par PostgREST) et I56 rougit sur « aucune décision visible par un appelant anonyme ».
 select * from (
   select 'meuble_autorisation est vide'::text as probleme, '0'::text as detail
    where not exists (select 1 from public.meuble_autorisation)

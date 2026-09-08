@@ -70,7 +70,7 @@
 -- in parallel worktrees must not both write to the one live database. This file is complete
 -- and reviewed against the live catalogue endpoint, but not applied — `npm.cmd run ledger`
 -- will not see it until Ivan runs `supabase db push` (or equivalent) himself. The invariants
--- this ticket also adds (eval/invariants.sql, I51/I52) could therefore not be measured in a
+-- this ticket also adds (eval/invariants.sql, I55/I56) could therefore not be measured in a
 -- rolled-back transaction against the remote the way w6-analyse and w2-idfm's own invariants
 -- were — there is no DATABASE_URL in this worktree, by design (docs/REPRISE.md,
 -- "Environnement"). They are written and reviewed against the schema below, but their

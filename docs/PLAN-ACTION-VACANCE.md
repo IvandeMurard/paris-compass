@@ -507,13 +507,13 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
   pour Ivan. Le "Fait quand" est déjà vérifiable contre le portail lui-même, avant la pose : les
   facettes `arrondissement` du jeu source donnent 50 décisions cumulées sur 75003+75004 (le
   Marais) contre 4 sur 75020, mesuré le 8 septembre 2026 — une illustration, jamais une preuve.
-  La preuve dérivée est `eval/invariants.sql` I51 (recalcul indépendant de
+  La preuve dérivée est `eval/invariants.sql` I55 (recalcul indépendant de
   `compass_meubles_within` sur les 265 décisions du registre, chacune comme point de sonde) et
-  son miroir I52 (corpus vide / grant anon retiré) — **non mesurés contre le distant** : aucune
+  son miroir I56 (corpus vide / grant anon retiré) — **non mesurés contre le distant** : aucune
   `DATABASE_URL` dans cet arbre de travail. **Ce qui manque avant de clore #27** : qu'Ivan pose
   la migration, ajoute dans la même migration l'enregistrement `ingestion_run` et l'enum de
   cadence, charge `scripts/ingest/meubles.ts`, ajoute le cron d'`ingestion.yml` dans la même
-  fenêtre, puis mesure I51/I52 et le budget anon de `compass_meubles_within` (ligne posée à
+  fenêtre, puis mesure I55/I56 et le budget anon de `compass_meubles_within` (ligne posée à
   500 pages / 50 ms, plafond volontairement large et non mesuré, dans
   `eval/baselines/anon-budget.json`) contre le distant.
 
