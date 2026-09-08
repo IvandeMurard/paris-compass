@@ -1960,17 +1960,43 @@ limit 20;
 -- ST_MakeEnvelope (bornes bbox interverties, par exemple) resterait invisible
 -- ici tant que le rattachement reste interne à cette même géométrie fausse.
 --
--- NON ÉPROUVÉ CONTRE LE DISTANT — aucune base n'était joignable depuis cette
--- session (en-tête de la migration 20260908000001). À mesurer avant la pose de
--- la migration, même pratique que w2-idfm et w6-analyse : transaction annulée.
-with recompute as (
-  select l.id as location_id, g.idcar_200m as plus_proche
+-- LA PRÉFÉRENCE EST LA MÊME QU'AU CHARGEUR, L'EXPRESSION NON, ET C'EST DÉLIBÉRÉ.
+-- La première écriture de cet invariant recalculait la préférence en un seul
+-- `order by (not ST_Covers(...)), geom <-> geom limit 1` — la forme même qui a
+-- fait mourir attach() sur le statement_timeout. Une clé de tri non indexable
+-- devant l'opérateur KNN interdit l'index gist aux deux moitiés : mesuré le
+-- 8 septembre 2026 contre le distant, cette écriture-là tenait à elle seule
+-- SEPT MINUTES de `npm.cmd run eval`, sur 2 170 carreaux et 85 410 locaux. Un
+-- invariant qui coûte sept minutes est un invariant qu'une session finira par
+-- ne plus jouer, donc la préférence est ici écrite en deux temps — jointure
+-- spatiale indexée d'abord, KNN pur pour ce qu'elle n'a pas couvert — ce qui
+-- rend EXACTEMENT le même carreau pour ~2 s. L'indépendance vis-à-vis du
+-- chargeur tient toujours : rien ici ne lit `filosofi_idcar_200m` pour décider
+-- quel carreau attendre, tout est recalculé depuis les deux géométries.
+--
+-- ÉPROUVÉ CONTRE LE DISTANT le 8 septembre 2026, après le premier chargement
+-- réel : 84 824 locaux couverts, 586 rattachés par repli (0,69 %), 0 écart
+-- entre le stocké et le recalculé.
+with couvrant as materialized (
+  select l.id as location_id, g.idcar_200m
+    from public.premise_location l
+    join public.filosofi_grid_200m g on ST_Covers(g.geom, l.geom)
+   where l.geom is not null
+),
+repli as (
+  select l.id as location_id, g.idcar_200m
     from public.premise_location l
     cross join lateral (
       select g.idcar_200m from public.filosofi_grid_200m g
-       order by (not ST_Covers(g.geom, l.geom)), g.geom <-> l.geom limit 1
+       order by g.geom <-> l.geom limit 1
     ) g
    where l.geom is not null
+     and not exists (select 1 from couvrant c where c.location_id = l.id)
+),
+recompute as (
+  select location_id, idcar_200m as plus_proche from couvrant
+  union all
+  select location_id, idcar_200m from repli
 )
 select l.id as location_id, l.filosofi_idcar_200m as stocke, r.plus_proche as recalcule
   from public.premise_location l
@@ -2086,7 +2112,9 @@ select * from (
   union all
   select 'compass_premises_within ne rend aucun carreau ni moyenne a Chatelet', '0'
    where not exists (
-     select 1 from public.compass_premises_within(48.8566, 2.3522, 2000, 2023, 500) r
+     select 1 from public.compass_premises_within(
+       48.8566::double precision, 2.3522::double precision,
+       2000::double precision, 2023::smallint, 500::integer) r
       where r.filosofi_idcar_200m is not null
         and r.filosofi_niveau_vie_moyen_estime_eur is not null)
 ) x
