@@ -490,6 +490,32 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 - **Comment.** opendata.paris.fr registre des autorisations de changement d'usage. Comptage dans 200 m, millésime. Phrase : « n autorisations dans 200 m ».
 - **Doctrine.** Densité d'autorisations, pas un taux Airbnb au noir. Ça sépare deux rues.
 - **Fait quand.** Le Marais touristique et une rue du 20e résidentiel n'ont pas le même n à 200 m.
+- **Avancement, mesuré le 8 septembre 2026 — endpoint choisi, migration préparée, NON POSÉE.**
+  Endpoint vérifié (`scripts/porte/catalogue.json`) : registre des autorisations de changement
+  d'usage sur opendata.paris.fr (`registre-des-autorisations-de-changement-dusage-pour-les-meubles`),
+  265 lignes, ODbL confirmée, aucune édition figée coexistante (contrairement à IDFM,
+  DIAGNOSTIC.md §45) — vérifié par une recherche de titre sur le catalogue, un seul
+  `dataset_id`. Migration écrite, `20260908000002_meuble_autorisation.sql` : table
+  `meuble_autorisation` (265 lignes attendues, identifiant parsé du champ `commentaire`),
+  fonction `compass_meubles_within` (densité par rayon, défaut 200 m, doctrine écrite dans le
+  `comment on function`, lu par PostgREST). **Non posée** — interdit ferme de cette session,
+  deux arbres de travail parallèles ne doivent pas écrire sur la même base vivante. Volontairement
+  **non enregistrée dans `ingestion_run`** : #70 lit les migrations sur disque qu'elles soient
+  posées ou non, donc déclarer la source sans cron ni premier chargement aurait été le trou que
+  #70 a fermé — l'enum de cadence, la ligne `ingestion_run`, le cron d'`ingestion.yml` et le
+  premier passage de `scripts/ingest/meubles.ts` sont laissés en UNE seule migration de suite
+  pour Ivan. Le "Fait quand" est déjà vérifiable contre le portail lui-même, avant la pose : les
+  facettes `arrondissement` du jeu source donnent 50 décisions cumulées sur 75003+75004 (le
+  Marais) contre 4 sur 75020, mesuré le 8 septembre 2026 — une illustration, jamais une preuve.
+  La preuve dérivée est `eval/invariants.sql` I51 (recalcul indépendant de
+  `compass_meubles_within` sur les 265 décisions du registre, chacune comme point de sonde) et
+  son miroir I52 (corpus vide / grant anon retiré) — **non mesurés contre le distant** : aucune
+  `DATABASE_URL` dans cet arbre de travail. **Ce qui manque avant de clore #27** : qu'Ivan pose
+  la migration, ajoute dans la même migration l'enregistrement `ingestion_run` et l'enum de
+  cadence, charge `scripts/ingest/meubles.ts`, ajoute le cron d'`ingestion.yml` dans la même
+  fenêtre, puis mesure I51/I52 et le budget anon de `compass_meubles_within` (ligne posée à
+  500 pages / 50 ms, plafond volontairement large et non mesuré, dans
+  `eval/baselines/anon-budget.json`) contre le distant.
 
 #### w4-ecoles — Effectifs scolaires
 
@@ -688,7 +714,7 @@ jamais un rangement dans le voisin.
 | Airparif | Airparif | nouvelle | Open data Airparif | maille Île-de-France | Qualité de l'air mesurée / modelée localement. | Si ça ne sépare pas deux rues, ne pas l'afficher comme discriminant. |
 | Bruitparif | Bruitparif | planifiée | Open data air-bruit | maille / façade selon couche | Bruit mesuré ou modelé par l'observatoire, à la place du proxy « routes à 500 m ». | Garder mesuré vs modelé. Pas d'indice unique air-bruit. |
 | Mapillary (imagerie de rue) | Mapillary / contributeurs | nouvelle | CC-BY (vérifier millésime et attribution) | façade, cliché daté | Façade au rideau baissé / mention « à louer » sur cliché du 12 mars 2026. | Ce n'est pas vacant=true. Google Street View : ToS hostile, à écarter. |
-| Meublés touristiques (changement d'usage) | Ville de Paris | nouvelle | Open data Paris | adresse / autorisation | n autorisations de changement d'usage dans 200 m. | Déclaré ≠ stock Airbnb réel. Suffit à séparer deux rues. |
+| Meublés touristiques (changement d'usage) | Ville de Paris | planifiée — endpoint choisi et migration préparée, non posée (8/09/2026) | Open Database License (ODbL), mesurée le 8/09/2026 | décision (n°, date, adresse, arrondissement, nb de logements), 265 lignes | n autorisations de changement d'usage dans 200 m. | Déclaré ≠ stock Airbnb réel. Suffit à séparer deux rues. |
 | Effectifs scolaires | Ministère de l'Éducation | nouvelle | Licence Ouverte | établissement | 1 200 élèves à 400 m. | Rythme scolaire, vacances, pas une demande annuelle lissée. |
 | ABF / monuments / SPR | État / Ville | nouvelle | Open data (périmètres MH, SPR) | périmètre | Façade dans le champ de visibilité d'un MH : enseigne et extraction soumises à l'ABF. | Informatif, pas un avis d'architecte. |
 | ERP / accessibilité PMR | Registres publics | nouvelle | selon registre | établissement | Capacité ERP, accessibilité déclarée. | Couverture inégale. n/a si silencieux. |
