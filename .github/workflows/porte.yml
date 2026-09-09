@@ -245,6 +245,26 @@ jobs:
           cat "$PORTE/ledger.log"
           printf 'ledger\t%s\t%s\n' "$code" "$PORTE/ledger.log" >> "$PORTE/bras.tsv"
 
+      # Le treizième bras, et le seul qui juge une chose que ni le dépôt ni le distant ne
+      # portent : l'ATTEIGNABILITÉ d'un avis de sécurité. Le 9 septembre 2026, six alertes
+      # Dependabot sont tombées à la même minute, une notée High, aucune atteignable — et
+      # personne ne les avait jugées, parce que rien ne le demandait jamais. Le dépôt recevait
+      # des alertes sans recevoir de proposition : il n'y avait pas de .github/dependabot.yml,
+      # et elles s'empilaient jusqu'à arriver en paquet, ce qui est la forme que prend une
+      # alerte au moment où elle va être ignorée.
+      #
+      # Il ne porte aucun secret : `npm audit` interroge le registre npm public. Il rend 3 et
+      # non un rouge quand npm ne répond pas, pour la même raison que partout ailleurs ici —
+      # une panne du registre n'est pas un défaut de ce dépôt.
+      #
+      # Ce qu'il ne rattrape pas est écrit dans scripts/porte/avis.ts : il vérifie qu'un
+      # verdict EXISTE, jamais qu'il est vrai, et il ne voit que ce que npm publie.
+      - name: avis
+        run: |
+          npm run avis > "$PORTE/avis.log" 2>&1 && code=0 || code=$?
+          cat "$PORTE/avis.log"
+          printf 'avis\t%s\t%s\n' "$code" "$PORTE/avis.log" >> "$PORTE/bras.tsv"
+
       # ── Le compte rendu ─────────────────────────────────────────────────────────────────
 
       - name: Compte rendu

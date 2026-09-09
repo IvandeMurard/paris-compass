@@ -57,6 +57,7 @@ npm.cmd run freshness       # les huit sources et leurs cadences
 npm.cmd run catalogue       # les 35 sources du catalogue : l'endpoint repond-il, la licence tient-elle
 npm.cmd run porte:publie    # la page publiée porte-t-elle sa configuration
 npm.cmd run ledger          # le ledger de migrations contre les migrations suivies par git
+npm.cmd run avis            # les avis de securite npm contre leurs verdicts d'atteignabilite
 npm.cmd run porte:sabotage  # demontre la porte : bras non planifie, rouge, panne amont
 
 # Le serveur MCP publié — voir mcp-server/PUBLISHING.md pour la suite complète
@@ -193,17 +194,15 @@ où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lova
   fichier suivi faite par une autre session. Les deux incidents, leurs mesures et le symétrique
   du commit qui annonçait une règle non stagée : `docs/REGLES-INCIDENTS.md`.
 
-- **Ne pas lancer `npm audit fix --force`** : cela remonterait des versions majeures et casserait
-  le build. Et ne pas confondre ce que l'outil **propose** avec ce qui **corrige** : `audit fix
-  --force` vise toujours la dernière majeure publiée, jamais la plus petite version qui suffit.
-  Chercher celle-là — l'avis GitHub et les exports Socket la donnent — avant de conclure qu'une
-  montée est hors de portée. Quatre jours ont été perdus sur un « correctif = vite 8 » qui était
-  en réalité vite 6.4.3, trois majeures plus bas.
-- **Vérifier les avis avant d'ajouter une dépendance**, et ne pas s'en remettre à ce que le
-  modèle croit savoir : sa connaissance des vulnérabilités s'arrête à une date, les avis
-  paraissent en continu. Une vulnérabilité ne disqualifie pas une bibliothèque à elle seule —
-  juger d'abord si elle est **atteignable** dans ce produit, qui est un site statique sans
-  serveur joignable. Les cinq avis de vite et vitest ne visaient que le serveur de développement.
+- **Un avis de sécurité se juge sur son atteignabilité, jamais sur son score** — `#105`.
+  `npm.cmd run avis` refuse tout avis que npm rapporte sans verdict écrit dans
+  `scripts/porte/avis.json` : sa raison, sa date, et **la condition qui l'annulerait**. Un CVSS
+  est calculé sans rien savoir d'ici. **Ne jamais lancer `npm audit fix --force`** : il vise la
+  dernière majeure, jamais la plus petite version qui suffit — celle-là est la **borne haute de
+  la plage vulnérable**, et le bras imprime les deux. Même exigence avant d'ajouter une
+  dépendance, sans s'en remettre au modèle : sa connaissance s'arrête à une date. **Ce que ça ne
+  rattrape pas** : le registre dit qu'un verdict *existe*, jamais qu'il est *vrai*, et il ne
+  voit que ce que npm publie. Les incidents : `docs/REGLES-INCIDENTS.md`.
 - **Un correctif consigné porte sa source, comme un chiffre affiché.** Écrire d'où vient un
   numéro rend l'erreur repérable — même exigence que `Measured<T>`, appliquée à la
   documentation. Deux clauses : **une documentation n'est pas une mesure** — citer la base, le

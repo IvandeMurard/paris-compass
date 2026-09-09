@@ -125,3 +125,61 @@ depuis la ligne de `CLAUDE.md` qui renvoie ici.
     chiffre juste devient faux en silence — et c'est un ticket entier qui part sur une prémisse
     périmée. **Remesurer avant de recopier.**
 
+
+---
+
+## Un avis de sécurité se juge sur son atteignabilité, jamais sur son score.
+
+Deux incidents, à deux ans d'écart de méthode mais de la même famille : **l'outil a été cru sur
+parole**.
+
+**Le premier, « correctif = vite 8 ».** `npm audit fix --force` propose toujours la dernière
+majeure publiée, jamais la plus petite version qui suffit. Une documentation a écrit que le
+correctif d'un avis de vite était vite 8, donc hors de portée, donc à reporter. Il était vite
+6.4.3, **trois majeures plus bas**. Quatre jours perdus. La leçon n'a pas tenu par la prose :
+elle est désormais imprimée par le bras, à chaque passage, à côté de ce que npm propose.
+
+**Le second, les six alertes du 9 septembre 2026.** Six alertes Dependabot sont tombées à la
+même minute, sur trois paquets et deux manifestes :
+
+| Alerte | Paquet | Score | Portée | Atteignable ? |
+| --- | --- | --- | --- | --- |
+| `#90` | js-yaml 4.3.1 | **High**, CVSS 7.5 | développement | non — YAML hostile, or `@eslint/eslintrc` ne lit que notre configuration |
+| `#88` `#89` | vitest 3.2.7 | moderate, 5.9 | développement | non — serveur de développement, et le chemin non authentifié passe par `mockerPlugin` que ce dépôt n'utilise pas |
+| `#85` `#86` `#87` | hono 4.13.2 | moderate, 5.3 à 6.5 | **exécution** | non — les trois visent le transport HTTP ; le serveur ne parle que `StdioServerTransport` |
+
+**Ce que ce tableau démontre, et c'est la règle :** la seule notée **High** était la moins
+inquiétante des six, et la seule de portée **exécution** — celle qui voyage, `hono` étant une
+`dependencies` dure de `@modelcontextprotocol/sdk`, donc installée chez qui installe le paquet
+publié — était notée *moderate*. **Un CVSS est calculé sans rien savoir du produit.** Il dit ce
+que la faille fait au pire quelque part, jamais ce qu'elle atteint ici. Trier par score aurait
+donné le mauvais ordre dans les deux sens.
+
+**Et npm rejouait le premier incident dans le même écran.** Pour `#89`, `npm audit` annonçait
+« *Will install vitest@5.0.0, which is a breaking change* » alors que la plage vulnérable disait
+`>=2.1.0 <4.1.11` : le correctif réel était **4.1.11**, une majeure plus bas. Mesuré avant d'être
+posé — 422/422 tests avant et après, `typecheck` propre, `vite` inchangé, build identique.
+
+**Le défaut de fond n'était aucune des six.** Il n'y avait pas de `.github/dependabot.yml` : le
+dépôt recevait des **alertes** et ne recevait jamais de **proposition**. Elles s'empilaient
+jusqu'à arriver en paquet, ce qui est la forme que prend une alerte au moment où elle va être
+ignorée — la même mécanique que `#71` refuse pour les bras de la porte.
+
+**Pourquoi un bras et pas une consigne.** Corriger les six versions n'était pas corriger le
+défaut : rien n'empêchait que le prochain lot arrive de la même façon et reparte non jugé. Le
+livrable est donc l'invariant — `npm.cmd run avis`, treizième bras de `porte.yml` — qui exige un
+**verdict écrit** par avis : sa raison, sa date, et la condition qui l'annulerait. Un verdict
+sans condition est une opinion, et une opinion ne se recoupe pas six mois plus tard.
+
+**Ce que ça ne rattrape pas**, et il faut le dire comme partout ailleurs ici :
+
+- Le bras vérifie qu'un verdict **existe**, jamais qu'il est **vrai**. Même limite que la règle
+  d'observabilité (`#81`), même raison : un registre tient de la prose. Le champ `invalideSi`
+  réduit l'écart là où la raison repose sur un fait que le dépôt porte — le jour où
+  `mcp-server/src/` monte un transport HTTP, les trois verdicts `hono` passent au rouge tout
+  seuls — mais il ne le ferme pas.
+- Il ne voit que ce que **npm publie**. Une faille sans avis publié lui est invisible, et un
+  paquet compromis que personne n'a encore signalé aussi.
+- Il ne dit rien du **délai**. Dependabot propose désormais chaque lundi ; personne ne garantit
+  qu'une session lise le lundi. C'est la limite déjà écrite pour `#77` : une semaine sans session
+  reste une semaine sans lecteur.

@@ -17,6 +17,109 @@ Les sections sont dans l'ordre où elles étaient, la plus récente d'abord.
 
 ---
 
+## `#105` — 9 septembre 2026 : six alertes, aucune atteignable, et le défaut qui n'était aucune des six
+
+**Le point de départ n'était pas un ticket : c'était une capture d'écran.** Ivan a montré la page
+Dependabot du dépôt — six alertes ouvertes, dont une notée High — et posé deux questions qu'aucun
+outil ne répond : « que faire ? », puis, après le premier verdict, « pourquoi ces alertes, dont une
+High, si aucune ne m'expose ? ». La seconde est la bonne question, et c'est elle qui a écrit la
+règle.
+
+### Ce qui ne se déduit ni du code ni du ticket
+
+**Le score et l'atteignabilité sont deux axes indépendants, et ici ils étaient croisés.** Les six
+alertes, une fois les cinq avis lus un par un :
+
+| Alerte | Paquet | Score | Portée | Atteignable |
+| --- | --- | --- | --- | --- |
+| `#90` | js-yaml | **High**, 7.5 | développement | non |
+| `#88` `#89` | vitest | moderate, 5.9 | développement | non |
+| `#85` `#86` `#87` | hono | moderate, 5.3 à 6.5 | **exécution** | non |
+
+La seule notée **High** était la moins inquiétante des six : une consommation CPU sur du YAML
+hostile, dans `@eslint/eslintrc`, qui ne lit que notre propre configuration. Aucun YAML tiers
+n'entre. Et la seule de portée **exécution** — donc la seule qui sorte de cette machine — était
+notée *moderate*. Trier par score aurait donné le mauvais ordre **dans les deux sens**.
+
+**`hono` était plus sérieux que le premier verdict ne l'a dit, et c'est une correction qui compte.**
+La première lecture disait « arrive par le SDK ». Vérification faite dans le lockfile : c'est une
+`dependencies` **dure** de `@modelcontextprotocol/sdk`, donc installée chez quiconque installe
+`paris-compass-mcp`. Jamais chargée — le serveur ne parle que `StdioServerTransport`, et
+`grep -c hono mcp-server/dist/server.mjs` rend **0** — mais présente. La différence entre « arrive
+par » et « est une dépendance dure » est la différence entre une supposition et une mesure.
+
+**npm rejouait dans le même écran l'incident qui avait coûté quatre jours.** Pour `#89`, `npm audit`
+annonçait *« Will install vitest@5.0.0, which is a breaking change »*, tandis que la plage vulnérable
+disait `>=2.1.0 <4.1.11`. Le correctif réel était **4.1.11**, une majeure plus bas. C'est le
+« correctif = vite 8 » qui était vite 6.4.3, à l'identique, dans un autre paquet.
+
+### La bêtise de la session, et pourquoi elle est écrite
+
+**La première mesure de vitest 4 était fausse, et elle avait l'air vraie.** Pour ne pas salir
+l'arbre de travail, la montée a été éprouvée dans une copie partielle du dépôt — `src`, `scripts`,
+les configurations. Résultat : **30 échecs**. Ils n'avaient rien à voir avec vitest : les tests de
+ce dépôt s'inspectent eux-mêmes — ils appellent `git ls-files`, lisent `.github/workflows/`,
+comptent les migrations — et une copie partielle n'est pas le dépôt. La copie a été jetée et
+remplacée par un `git clone --local` complet. Mesure alors : **422/422 avant, 422/422 après**.
+
+Ce qui est à retenir n'est pas l'erreur mais son allure : trente échecs rouges ressemblaient
+exactement à « la montée majeure casse la suite », c'est-à-dire au résultat qu'on s'attendait à
+voir. Un résultat qui confirme l'attente est le moment où il faut vérifier l'instrument.
+
+### Le défaut de fond n'était aucune des six
+
+Il n'y avait pas de `.github/dependabot.yml`. Le dépôt recevait des **alertes** et ne recevait
+jamais de **proposition** : elles s'empilaient jusqu'à arriver en paquet — six à la même minute —
+ce qui est la forme que prend une alerte au moment où elle va être ignorée. Même mécanique que
+`#71` refuse pour les bras de la porte.
+
+Et corriger les six versions n'aurait pas corrigé ce défaut-là : rien n'aurait empêché le lot
+suivant d'arriver de la même façon et de repartir non jugé. **Le livrable est donc l'invariant**,
+pas les trois lignes de lockfile — c'est la règle de `CLAUDE.md` sur « corriger une donnée n'est
+pas corriger un défaut », appliquée à la lettre.
+
+### Ce que la session laisse derrière elle
+
+**Deux propositions.** [`#104`](https://github.com/IvandeMurard/paris-compass/pull/104) ferme les
+six alertes par montée — js-yaml 4.3.2, hono 4.13.7, vitest 4.1.11 — et pose `dependabot.yml` sur
+trois écosystèmes. `#105` pose le treizième bras.
+
+**`npm.cmd run avis`**, et ce qu'il exige : tout avis que npm rapporte contre l'un des deux
+manifestes doit porter un verdict écrit dans `scripts/porte/avis.json` — sa raison, sa date, et
+**la condition qui l'annulerait**. Un verdict sans condition est une opinion, et une opinion ne se
+recoupe pas six mois plus tard. Un verdict qui dit ATTEIGNABLE ne fait pas verdir le bras : écrire
+la vérité n'achète pas le silence, seule une montée le fait.
+
+**Le champ `invalideSi`, qui est la seule part qu'une machine peut contredire.** Les trois verdicts
+`hono` reposent sur une phrase — « le serveur ne parle que par tube ». Le jour où `mcp-server/src/`
+monte un transport HTTP, cette phrase est fausse et les trois verdicts doivent tomber **avant** que
+quelqu'un rouvre le registre. C'est la moitié de la règle qui protège un consommateur qui n'existe
+pas encore.
+
+**Le bras imprime les deux nombres côte à côte**, la borne de la plage d'abord, ce que
+`audit fix --force` installerait ensuite, avec la mention de regarder la borne. La leçon des quatre
+jours cesse de dépendre de quelqu'un qui s'en souvient.
+
+**Démontré rouge, pas seulement testé vert.** Dans un clone où `vitest` est remis en 3.2.7 : l'avis
+remonte, la portée `développement` est lue sur le lockfile, la borne `4.1.11` est lue sur la plage,
+et `5.0.0` est nommée comme la majeure à ne pas suivre. Sortie 1.
+
+**Et la page de reprise est plus petite qu'au début de la session** — 98 039 octets avant,
+97 902 après, malgré tout ce qui vient d'y être ajouté. Deux entrées rayées depuis le 3 septembre
+sont parties à `docs/REPRISE-ARCHIVE.md`, ce que `scripts/porte/documents.test.ts` demande depuis
+le 7 septembre à la session qui touche la page. C'est la première fois que la demande est honorée.
+
+### Ce que ça ne rattrape pas
+
+Écrit ici comme dans le code, parce qu'une règle sans limite énoncée est une règle qu'on croira
+plus large qu'elle n'est. Le bras vérifie qu'un verdict **existe**, jamais qu'il est **vrai** —
+même limite que `#81`, même raison : un registre tient de la prose. Il ne voit que ce que **npm
+publie** : une faille sans avis publié lui est invisible. Et il ne dit rien du **délai** —
+Dependabot propose le lundi, personne ne garantit qu'une session lise le lundi, ce qui est la
+limite déjà écrite pour `#77`.
+
+---
+
 ## `#64` — 28 août 2026, session 17 : le chiffre que personne ne payait
 
 **Le ticket disait vrai sur une fonction, faux sur l'autre, et se trompait de cause sur les

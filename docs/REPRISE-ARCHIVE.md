@@ -577,3 +577,98 @@ La numérotation est celle de `docs/REPRISE.md`, conservée telle quelle parce q
     sabotage manquant dans #94.
 
 ---
+
+## Deux rouges de la porte, fermés — déplacés depuis `docs/REPRISE.md` le 9 septembre 2026
+
+Sortis de la page de reprise parce qu'ils y étaient rayés depuis le 3 septembre et que le
+plafond de `scripts/porte/documents.test.ts` demande à la session qui touche la page d'en
+sortir une entrée close plutôt que de dépenser la marge. Gardés pour leurs mesures datées :
+`#74` est le rouge que personne n'avait relevé — c'est lui qui a écrit `#77` — et `eval`
+rouge depuis le 2 septembre est le défaut que la porte planifiée a montré la première fois.
+
+13. ~~**Un rouge de la porte est ouvert et sans preneur — [`#74`](https://github.com/IvandeMurard/paris-compass/issues/74), du 1er septembre 2026.**~~ **Fermé le 3 septembre 2026.**
+    Repéré le 2 septembre en cherchant autre chose, ce qui est déjà le symptôme : personne
+    n'était allé voir. `verify:mcp` sort en **1** sur le runner, à l'étape « build index.ts » :
+
+    ```
+    /home/runner/.../node_modules/esbuild/bin/esbuild:1
+    ELF^B^A^A
+    SyntaxError: Invalid or unexpected token
+    ```
+
+    **Diagnostiqué et corrigé le 2 septembre 2026 — `DIAGNOSTIC.md` §33.** `verify-mcp.mjs`
+    lançait `node node_modules/esbuild/bin/esbuild` : ce chemin est un script Node sur Windows
+    et le binaire natif partout ailleurs. La ligne était *juste* sur le seul système où elle a
+    été écrite. L'appel se décide désormais en lisant le fichier — `#!` ou `ELF` — et non en
+    lisant `process.platform` ; `scripts/esbuildInvocation.mjs` porte la règle, et ses 4 tests
+    jouent **les deux branches sur la même machine**, ce qu'aucun poste ne pouvait faire seul.
+
+    **Preuve obtenue, et `#74` est fermée.** Passage planifié
+    [`33753907840`](https://github.com/IvandeMurard/paris-compass/actions/runs/33753907840),
+    3 septembre 2026 à 12:12 UTC — le premier à tourner avec les deux correctifs :
+
+    ```
+    **Rien à faire.** 8 bras sur 10 au vert le 3 septembre 2026.
+    **Changé, sans décision requise.** freshness · eval (11 avertissements)
+    **Décision requise.** Aucune.
+    ```
+
+    `verify:mcp` : **41 contrôles, 39 au vert, 0 en échec**, 2 suspendus (Overpass). C'est la
+    mesure que ce poste ne pouvait pas prendre — une machine n'a qu'un système d'exploitation.
+    Et `porte:publie`, le dixième bras, sort vert à son premier passage planifié.
+
+    Ce que ça ne règle pas : ce rouge avait attendu deux jours sans lecteur, et c'est
+    [`#77`](https://github.com/IvandeMurard/paris-compass/issues/77) qui porte ce défaut-là.
+
+14. ~~**`eval` est rouge depuis le 2 septembre 2026, et personne ne l'avait vu.**~~ Sortie **1**,
+    donc un vrai échec et non les 11 avertissements de baseline habituels :
+
+    ```
+    FAIL  prix_median_local_identifiable — attendu 160868, mesuré 163000 (1.33%)
+    ```
+
+    Signalé par la porte le 2 septembre à 12:22 UTC, en commentaire de
+    [`#74`](https://github.com/IvandeMurard/paris-compass/issues/74), avec `verify:mcp`. Trouvé
+    le soir même en cherchant autre chose — c'est ce qui a motivé
+    [`#77`](https://github.com/IvandeMurard/paris-compass/issues/77).
+
+    **Traité le 2 septembre 2026 — et ce n'était pas une dérive de données, mais un défaut de la
+    règle qui les juge.** `DIAGNOSTIC.md` §34.
+
+    Le bras B comparait **toutes** les baselines au même seuil de 1 %, dont le commentaire
+    donnait la raison : au-delà, ce n'est plus une correction de source mais un changement de
+    pipeline. Juste — *pour un comptage*. La médiane n'en est pas un : mesuré sur le distant, une
+    population qui passe de 5 942 à 5 959 cessions (**+0,29 %**) déplace la médiane de
+    160 868 à 163 000 € (**+1,33 %**), parce que les prix de fonds se massent sur les nombres
+    ronds — `150 000` revient 130 fois, `180 000` 88 fois, `160 000` 63 fois — et que la médiane
+    est assise sur une marche. Dix-sept cessions déplacent le rang médian de huit positions, et
+    huit positions valent 5 000 € à cet endroit.
+
+    **Le seuil était faux dans les deux sens**, et le second est le grave : une médiane passant
+    de 164 999 à 165 001 € bouge de 0,001 %, donc passe en simple avertissement — alors qu'elle
+    fait basculer le chiffre publié au `README` de 160 000 à 170 000 €. Le produit aurait affirmé
+    un prix que la base ne portait plus, porte au vert.
+
+    Une baseline porte donc désormais `publie: { pas, valeur }`, et `scripts/eval/drift.ts` juge
+    un quantile sur le changement du **chiffre publié**, pas sur un pourcentage. Ce n'est pas un
+    desserrage : la règle devient plus stricte là où le produit mentirait.
+
+    **Vérifié** le 2 septembre 2026, `eval` rejoué en entier :
+
+    ```
+    WARN  prix_median_local_identifiable — attendu 160868, mesuré 163000 (1.33%) — quantile, chiffre publié inchangé à 160000
+    AVERTISSEMENT — 11 écart(s) sous le seuil bloquant
+    ```
+
+    Sortie **3, zéro échec** — l'état du 31 août et du 1er septembre.
+
+    **La baseline n'a pas été regelée, délibérément.** L'avertissement à 1,33 % reste, et il est
+    honnête : la valeur brute a bougé. `note_regel` autorise le regel à trois conditions, mais
+    impose de remesurer **toutes** les valeurs à la reprise du gel — jamais de les reporter
+    depuis un pourcentage. C'est un acte daté et justifié, pas l'effet de bord d'un correctif de
+    règle. À faire un jour, en le disant.
+
+    *Ce qui reste ouvert et que ce correctif ne touche pas :* les prix par métier du `README` —
+    250 000 €, 220 000 €, 86 000 €, 50 000 € — ne sont sous aucune baseline. Ils peuvent vieillir
+    en silence, exactement comme la médiane l'aurait fait.
+---
