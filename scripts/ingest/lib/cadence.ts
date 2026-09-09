@@ -46,7 +46,15 @@
 // nobody had been asked.
 
 /** The values of `public.ingestion_cadence`, in the order the enum declares them. */
-export const CADENCES = ["continuous", "monthly", "triennial", "rare", "weekly", "semiannual"] as const
+export const CADENCES = [
+  "continuous",
+  "monthly",
+  "triennial",
+  "rare",
+  "weekly",
+  "semiannual",
+  "annual",
+] as const
 
 export type Cadence = (typeof CADENCES)[number]
 
@@ -83,6 +91,15 @@ export const TOLERANCE_DAYS: Record<Cadence, number | null> = {
   // riding on `continuous`'s canary. ~182 days between editions plus a month of grace: one
   // missed edition (another ~182 days) is unambiguously late long before this fires.
   semiannual: 210,
+  // The registry's own catalogue metadata (read 8 September 2026): metas.dcat.accrualperiodicity
+  // = "Annuelle" — a declared rhythm, the same class as `semiannual`, not the undated
+  // "verification" cadences above. Same formula as `semiannual`: the interval (~365 days) plus
+  // one month of grace. This is deliberately NOT the 400-day number Ivan reversed on
+  // 1 September 2026 for `rare` — that one was undated and riding on `continuous`'s canary; this
+  // one is a real, source-stated calendar, so a threshold derived from it fires while a missed
+  // reload is still the reason, one cycle before the source's own next edition would have
+  // covered it up anyway.
+  annual: 395,
 }
 
 /** The tolerance for a cadence, or `null` for the cadences deliberately given no threshold. */

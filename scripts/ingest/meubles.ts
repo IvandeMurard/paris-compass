@@ -8,14 +8,10 @@
 // 20260908000002 pour le raisonnement complet — endpoint choisi, ce que "millésime" veut dire
 // ici, et pourquoi rien n'est rattaché à premise_location.
 //
-// Not run yet, and not wired into .github/workflows/ingestion.yml: the migration this loader
-// depends on (20260908000002) is prepared, not posed, and deliberately does not yet insert a
-// row into ingestion_run — see that migration's header. The `ingestion_cadence` enum value,
-// the ingestion_run row, the ingestion.yml cron, and this loader's first run belong in ONE
-// follow-up migration plus workflow edit, posed and run together — a cadence without a first
-// load is the exact trap docs/REPRISE-PIEGES.md records for #70. Until then, `recordRun`
-// below would UPDATE zero rows (ingestion_run has none for 'meubles' yet): harmless, but a
-// sign this script ran ahead of its own registration.
+// Registered as the tenth ingestion source by 20260910000002, wired into
+// .github/workflows/ingestion.yml (annual cron, 20 June) in the same window — the enum value,
+// the ingestion_run row, the cron entry and this loader's first run, together, per #70's rule
+// (docs/REPRISE-PIEGES.md).
 
 import type { Client } from "pg"
 

@@ -1,0 +1,15 @@
+-- w4-meubles (#27): a new source's cadence enum value, in its own migration.
+--
+-- Same split as chantiers (20260825000006) and IDFM (20260907000001): Postgres refuses to use
+-- a freshly-added enum value inside the transaction that added it, so the value and its first
+-- use cannot share one file. This one adds 'annual' and nothing else; the next migration
+-- spends it.
+--
+-- WHY 'annual' AND NOT 'rare' OR 'triennial' — the values already in the enum for a source with
+-- no announced calendar (PLU, terrasses) or an irregular one (Filosofi). This registry states
+-- its own rhythm in the catalogue's own metadata, read 8 September 2026:
+-- metas.dcat.accrualperiodicity = "Annuelle". That is a declared cadence, the same class as
+-- 'monthly' and 'semiannual', and folding it into 'rare' would say the source announces
+-- nothing when it does — see supabase/migrations/20260908000002_meuble_autorisation.sql for
+-- the full reasoning on this source's shape.
+alter type public.ingestion_cadence add value 'annual';
