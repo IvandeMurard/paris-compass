@@ -936,3 +936,43 @@ publier un chiffre inventé — mesuré : la seule exception sur 259, pas une d�
 **À vérifier avant de faire confiance à une agrégation de pourcentages** : que chaque clé
 qu'on croit unique (ici `code_stif_arret` par tranche) l'est réellement dans le jeu source —
 compter les lignes par clé avant de moyenner, pas après.
+
+---
+
+## Un lockfile publié ne voyage pas : monter `mcp-server/package-lock.json` ne protège aucun consommateur — 9 septembre 2026
+
+**Ce qui a été cru, et qui est faux.** En fermant les trois alertes `hono` du 9 septembre, la
+session a raisonné ainsi : `hono` est une `dependencies` **dure** de
+`@modelcontextprotocol/sdk`, donc installée chez qui installe `paris-compass-mcp` ; monter le
+lockfile de `mcp-server/` protège donc les tiers. **La première moitié est vraie, la conclusion
+ne l'est pas.**
+
+**La mesure.** Installation du paquet publié dans un répertoire neuf, comme un tiers le ferait :
+
+```
+npm install paris-compass-mcp
+  added 104 packages, and audited 105 packages
+  found 0 vulnerabilities
+  hono résolu : 4.13.7
+```
+
+Et ce **0** ne doit rien au lockfile du dépôt. Un paquet npm publié **n'embarque pas son
+lockfile** — `files` ne liste que `dist` et `README.md`, et npm ne l'installerait pas même s'il
+y était. Le consommateur résout les plages `^` du `package.json` publié **au moment de son
+installation**, donc vers la dernière version compatible du jour. Il aurait eu `hono` 4.13.7 le
+9 septembre que le dépôt ait monté son lockfile ou non — parce que 4.13.5 était publiée depuis
+la veille chez l'éditeur de `hono`, pas parce que nous avons touché à quoi que ce soit.
+
+**Ce que le lockfile de `mcp-server/` gouverne réellement**, et c'est tout : l'arbre de cette
+machine et celui du runner — donc ce que `verify:mcp`, `mcp:paquet` et `npm audit` voient, et
+ce sur quoi Dependabot ouvre des alertes. C'est un arbre de développement, pas un arbre livré.
+
+**La conséquence qui compte, et elle va dans l'autre sens.** Ce qu'un tiers reçoit ne dépend pas
+de notre diligence mais de la **plage** que nous déclarons et de ce que l'amont a publié. Un
+`^4.11.4` laisse entrer la correction sans nous, et laisserait aussi entrer une régression sans
+nous. La seule chose qui protège vraiment un consommateur est **la version de
+`@modelcontextprotocol/sdk` que nous déclarons**, puisque c'est elle qui fixe la plage de `hono`.
+
+**Ce que ça ne rattrape pas.** Un tiers qui a installé **avant** la publication d'une correction
+garde l'arbre vulnérable jusqu'à sa prochaine installation, et rien de ce que fait ce dépôt ne
+l'atteint. Il n'y a pas de rappel de lot en npm.
