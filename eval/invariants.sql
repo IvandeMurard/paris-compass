@@ -2089,8 +2089,16 @@ limit 20;
 -- constaterait seulement que la migration a été écrite avec l'intention voulue,
 -- jamais qu'une reprise future ne l'a pas défaite.
 --
--- IL EST `@as anon` À DESSEIN. La première clause lit la table EN TANT QU'ANON
--- (donc rougit le jour où la politique de lecture disparaît), la seconde passe
+-- IL EST `@as anon` À DESSEIN, MAIS `@as anon` NE PREND PAS LE RÔLE. Contre-preuve
+-- jouée le 8 septembre 2026 par la revue de #99 : retirer la politique de lecture
+-- laisse cet invariant VERT. Le bras A se connecte en `postgres`, qui porte
+-- `rolbypassrls = true` ; les tables n'ont pas `FORCE ROW LEVEL SECURITY` ; et
+-- `scripts/eval/invariants.ts` pose un claim JWT, pas un rôle — donc aucune
+-- politique n'est jamais consultée. Une version antérieure de cet en-tête, recopiée
+-- de I50, affirmait l'inverse : elle est fausse, et c'est le fond de l'issue #102.
+--
+-- CE QUE LA PREMIÈRE CLAUSE GARDE RÉELLEMENT : que la table porte des carreaux, et
+-- rien de plus. Elle rougit sur un corpus vide, jamais sur une politique retirée. La seconde passe
 -- par compass_premises_within à Châtelet (le même point que le budget anon)
 -- pour vérifier qu'un appelant reçoit bien un carreau nommé et une moyenne
 -- calculable — pas seulement une ligne, un CONTENU. Les deux ensemble

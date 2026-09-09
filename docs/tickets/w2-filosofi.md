@@ -34,12 +34,19 @@ Deux locaux à 300 m l'un de l'autre, carreaux différents, montrent deux média
 ## État — 8 septembre 2026 (w2-filosofi)
 
 Endpoint choisi et épinglé (`scripts/porte/catalogue.json`) : la page data.gouv.fr du dispositif
-2019-2021, licence Licence Ouverte 2.0 (`lov2`). Migration `20260908000001` PRÉPARÉE, NON POSÉE
-— aucune base n'était joignable depuis cette session (aucun `DATABASE_URL` dans cet arbre de
-travail isolé), donc rien n'a pu être chargé ni éprouvé en transaction annulée, contrairement à
-`w2-idfm`. Chargeur `scripts/ingest/filosofi.ts` écrit et vérifié seulement côté lecture DuckDB
-contre le vrai parquet distant (compte de carreaux, magnitude de `ind_snv`, correspondance
-`bbox`/géométrie) — jamais côté Postgres. Cadence `triennial` (réutilisée, aucun calendrier
+2019-2021, licence Licence Ouverte 2.0 (`lov2`). Migration `20260908000001` **POSÉE le 8 septembre
+2026** — `npm.cmd run ledger` rend PASS 58/58, 0 écart — et **chargée le même jour** : millésime
+2021, 2 170 carreaux, 85 410 locaux rattachés, 0 orphelin, `freshness` affiche `filosofi` à jour.
+
+**Ce que la session d'écriture n'avait pas pu faire, et ce que ça a coûté.** Elle travaillait dans
+un arbre de travail isolé, sans `DATABASE_URL` : elle n'a jamais exécuté son propre chargeur ni ses
+propres invariants contre Postgres, seulement `typecheck` et `test`. Le chargeur a échoué à la
+première seconde de contact avec la base — `attach()` mourait sur le `statement_timeout`, ~700 s
+extrapolés — et `I54` appelait une signature qui n'existe pas, ce qui arrêtait le bras A entier.
+Une session de correction, elle avec la base, a trouvé et réparé les deux. Chargeur
+`scripts/ingest/filosofi.ts` désormais éprouvé des deux côtés : lecture DuckDB contre le vrai
+parquet distant (compte de carreaux, magnitude de `ind_snv`, correspondance `bbox`/géométrie)
+**et** écriture Postgres. Cadence `triennial` (réutilisée, aucun calendrier
 annoncé par l'INSEE), cron ajouté à `ingestion.yml`, non encore éprouvé par un chargement réel.
 
 **Limite non corrigée, à connaître avant d'appliquer la migration** : ce fichier data.gouv.fr ne
