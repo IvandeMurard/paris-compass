@@ -17,7 +17,7 @@ Les sections sont dans l'ordre où elles étaient, la plus récente d'abord.
 
 ---
 
-## `#105` — 9 septembre 2026 : six alertes, aucune atteignable, et le défaut qui n'était aucune des six
+## `#115` — 9 septembre 2026 : six alertes, aucune atteignable, et le défaut qui n'était aucune des six
 
 **Le point de départ n'était pas un ticket : c'était une capture d'écran.** Ivan a montré la page
 Dependabot du dépôt — six alertes ouvertes, dont une notée High — et posé deux questions qu'aucun
@@ -82,7 +82,7 @@ pas corriger un défaut », appliquée à la lettre.
 
 **Deux propositions.** [`#104`](https://github.com/IvandeMurard/paris-compass/pull/104) ferme les
 six alertes par montée — js-yaml 4.3.2, hono 4.13.7, vitest 4.1.11 — et pose `dependabot.yml` sur
-trois écosystèmes. `#105` pose le treizième bras.
+trois écosystèmes. `#115` pose le treizième bras.
 
 **`npm.cmd run avis`**, et ce qu'il exige : tout avis que npm rapporte contre l'un des deux
 manifestes doit porter un verdict écrit dans `scripts/porte/avis.json` — sa raison, sa date, et

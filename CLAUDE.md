@@ -194,7 +194,7 @@ où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lova
   fichier suivi faite par une autre session. Les deux incidents, leurs mesures et le symétrique
   du commit qui annonçait une règle non stagée : `docs/REGLES-INCIDENTS.md`.
 
-- **Un avis de sécurité se juge sur son atteignabilité, jamais sur son score** — `#105`.
+- **Un avis de sécurité se juge sur son atteignabilité, jamais sur son score** — `#115`.
   `npm.cmd run avis` refuse tout avis que npm rapporte sans verdict écrit dans
   `scripts/porte/avis.json` : sa raison, sa date, et **la condition qui l'annulerait**. Un CVSS
   est calculé sans rien savoir d'ici. **Ne jamais lancer `npm audit fix --force`** : il vise la
