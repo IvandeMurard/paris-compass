@@ -1,0 +1,94 @@
+{
+  "_lisez-moi": [
+    "Le registre des avis de securite, et leur ATTEIGNABILITE dans ce produit — 9 septembre 2026.",
+    "",
+    "La regle est dans scripts/porte/avis.ts, jouee hors ligne par scripts/porte/avis.test.ts et",
+    "contre npm par scripts/porte/avis-verify.ts (`npm.cmd run avis`, planifie sur porte.yml).",
+    "Tout avis que npm rapporte contre l'un des deux manifestes doit avoir une entree dans",
+    "`juges`, ou le bras passe au rouge. Jamais un silence.",
+    "",
+    "CE QUI SE JUGE ICI, ET CE QUI NE S'Y JUGE PAS. On juge si la faille est ATTEIGNABLE dans ce",
+    "produit — un site statique sans serveur joignable, plus un serveur MCP qui ne parle que par",
+    "tube. On ne juge PAS sur le score : un CVSS est calcule sans rien savoir d'ici, et « High »",
+    "dit ce que la faille fait au pire quelque part, jamais ce qu'elle atteint ici. Le 9 septembre",
+    "2026, la seule alerte notee High des six etait la moins inquietante du lot.",
+    "",
+    "UNE ENTREE COMPLETE PORTE QUATRE CHOSES : le verdict (`atteignable`), la raison, la CONDITION",
+    "qui l'annulerait (`redeviendraitAtteignableSi`), et la DATE de la mesure. Un verdict sans",
+    "condition est une opinion, et une opinion ne se recoupe pas six mois plus tard. Les trois",
+    "champs vides valent un silence : le bras les refuse.",
+    "",
+    "`invalideSi` est facultatif et c'est la seule part qu'une machine peut contredire : un motif",
+    "dont la PRESENCE dans le depot rend la raison fausse. A poser des que la raison repose sur un",
+    "fait que le depot porte — « le serveur ne parle que par tube » en est un.",
+    "",
+    "CE QUE CA NE RATTRAPE PAS. Le bras verifie qu'un verdict EXISTE, jamais qu'il est VRAI —",
+    "meme limite que la regle d'observabilite (#81), meme raison : un registre tient de la prose.",
+    "Et il ne voit que ce que npm publie : une faille sans avis publie lui est invisible.",
+    "",
+    "NE PAS RANGER ICI CE QUI SE MONTE. Une entree n'est pas une dispense de montee. Quand la",
+    "montee est gratuite — un correctif dans la plage deja declaree, sans changement cassant —",
+    "elle se prend, et l'entree n'a pas lieu d'etre. Ce registre est pour ce qui ne peut pas se",
+    "monter tout de suite, pas pour ce qu'on prefere ne pas monter."
+  ],
+
+  "juges": {},
+
+  "_lisez-moi-juges": [
+    "`juges` est vide, et c'est un resultat, pas un oubli : au 9 septembre 2026, `npm audit` rend",
+    "0 vulnerabilite sur les deux manifestes. Les six alertes du jour ont ete FERMEES par montee",
+    "— js-yaml 4.3.2, hono 4.13.7, vitest 4.1.11 — et non rangees ici. C'est le bon ordre.",
+    "La note se tient hors de `juges` : une cle rangee dedans serait lue comme le verdict d'un",
+    "avis qu'aucun manifeste ne porte, donc comme de la prose morte, donc un rouge."
+  ],
+
+  "_clos": {
+    "_lisez-moi": [
+      "Les avis fermes par montee, gardes pour leur raisonnement date. Cette section n'est PAS lue",
+      "par la regle — elle ne peut donc pas devenir de la prose morte. Elle existe parce que lire",
+      "cinq avis a coute une session, et que la meme lecture recommencee dans six mois en couterait",
+      "une autre. Le recit complet : docs/JOURNAL.md, session du 9 septembre 2026."
+    ],
+    "GHSA-2883-xcg3-v3hh": {
+      "paquet": "js-yaml",
+      "severite": "high (CVSS 7.5)",
+      "monteA": "4.3.2",
+      "atteignable": false,
+      "raison": "Consommation CPU sur du YAML hostile : maxTotalMergeKeys ne compte pas les mappings vides. Vient de @eslint/eslintrc, qui ne lit que notre propre configuration ESLint. Aucun YAML tiers n'entre. Notee High parce que le score suppose une entree hostile — il n'y en a pas ici.",
+      "mesureLe": "2026-09-09"
+    },
+    "GHSA-82fw-gwwq-j7x9": {
+      "paquet": "vitest / @vitest/mocker",
+      "severite": "moderate (CVSS 5.9)",
+      "monteA": "4.1.11",
+      "atteignable": false,
+      "raison": "Lecture de fichier arbitraire par un mock de redirection, sur le serveur de developpement uniquement. Le chemin NON authentifie passe par mockerPlugin / interceptorPlugin, exports destines aux serveurs de developpement tiers, que ce depot n'utilise pas ; le mode navigateur de vitest passe, lui, par un RPC a jeton. vitest.config.ts tourne en environment: 'node', sans mode navigateur.",
+      "piege": "npm audit annoncait « Will install vitest@5.0.0, which is a breaking change ». Le correctif reel etait 4.1.11, une majeure plus bas — mesure : 422/422 tests, typecheck propre, build inchange.",
+      "mesureLe": "2026-09-09"
+    },
+    "GHSA-gqvv-2mrq-wpjv": {
+      "paquet": "hono",
+      "severite": "moderate (CVSS 6.5)",
+      "monteA": "4.13.7",
+      "atteignable": false,
+      "raison": "toSSG() ecrit hors du repertoire de sortie a la generation statique. Ce depot ne genere aucun site avec hono : hono arrive comme dependance DURE de @modelcontextprotocol/sdk, et le serveur ne parle que StdioServerTransport. Le bundle publie ne mentionne hono nulle part (0 occurrence dans dist/server.mjs).",
+      "mesureLe": "2026-09-09"
+    },
+    "GHSA-g6gw-c38x-mqfc": {
+      "paquet": "hono",
+      "severite": "moderate (CVSS 5.3)",
+      "monteA": "4.13.7",
+      "atteignable": false,
+      "raison": "Epuisement memoire par parseBody() en notation pointee — desactivee par defaut, et il faut un endpoint HTTP joignable. Meme raison que ci-dessus : transport par tube, aucun serveur HTTP.",
+      "mesureLe": "2026-09-09"
+    },
+    "GHSA-crvj-82cr-hjcx": {
+      "paquet": "hono",
+      "severite": "moderate (CVSS 5.9)",
+      "monteA": "4.13.7",
+      "atteignable": false,
+      "raison": "Le parseur de requete lit les parametres apres le fragment d'URL, d'ou un differentiel avec les proxys et les cles de cache. Il faut un serveur HTTP et un intermediaire. Meme raison : transport par tube.",
+      "mesureLe": "2026-09-09"
+    }
+  }
+}
