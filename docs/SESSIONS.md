@@ -210,7 +210,7 @@ fautive.
 
 <!-- BEGIN sessions -- généré par `npm.cmd run sessions`, ne pas éditer à la main -->
 
-*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 08/09/2026.*
+*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 09/09/2026.*
 
 | # | Ticket | Issue | État | Prio | Modèle |
 | --- | --- | --- | --- | --- | --- |
@@ -242,7 +242,7 @@ fautive.
 | ~~26~~ | ~~`w6-analyse`~~ | [#50](https://github.com/IvandeMurard/paris-compass/issues/50) | **fait** | P1 | Opus 5 |
 | 27 | `w3-mapillary` | [#21](https://github.com/IvandeMurard/paris-compass/issues/21) | **bloqué** | P0 | Opus 5 |
 | ~~28~~ | ~~`w2-idfm`~~ | [#19](https://github.com/IvandeMurard/paris-compass/issues/19) | **fait** | P1 | Sonnet 5 |
-| 29 | `w2-filosofi` | [#18](https://github.com/IvandeMurard/paris-compass/issues/18) | ouvert | P1 | Sonnet 5 |
+| ~~29~~ | ~~`w2-filosofi`~~ | [#18](https://github.com/IvandeMurard/paris-compass/issues/18) | **fait** | P1 | Sonnet 5 |
 | 30 | `w2-mobiliscope` | [#20](https://github.com/IvandeMurard/paris-compass/issues/20) | ouvert | P1 | Sonnet 5 |
 | 31 | `w4-meubles` | [#27](https://github.com/IvandeMurard/paris-compass/issues/27) | ouvert | P1 | Sonnet 5 |
 | 32 | `w2-air-bruit` | [#16](https://github.com/IvandeMurard/paris-compass/issues/16) | **bloqué** | P1 | Opus 5 |
