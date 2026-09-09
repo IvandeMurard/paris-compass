@@ -1,0 +1,53 @@
+# Pourquoi ce fichier existe : le 9 septembre 2026, six alertes Dependabot sont tombées à la
+# même minute, sur trois paquets et deux manifestes. Aucune n'était atteignable, mais aucune
+# n'était non plus arrivée au fil de l'eau — le dépôt recevait des alertes sans jamais recevoir
+# de proposition. Dependabot alertait ; il ne proposait rien, faute de ce fichier.
+#
+# Ce qu'il change : une proposition par semaine et par écosystème, rejouée par `pr.yml`
+# (typecheck + test) comme n'importe quelle autre. Une montée arrive donc déjà mesurée.
+#
+# Ce que ça ne rattrape pas : Dependabot ne juge pas l'**atteignabilité**. Il dira « vulnérable »
+# d'un paquet de développement qui ne tourne que sur cette machine, et proposera parfois la
+# dernière majeure là où une version bien plus basse suffit — c'est exactement le piège que
+# `CLAUDE.md` interdit sur `npm audit fix --force`. Lire l'avis, pas le résumé de l'outil.
+
+version: 2
+updates:
+  # Le front et les scripts. `vite` et `vitest` vivent ici, et ce sont eux qui bougent.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # Groupé volontairement : une proposition par semaine qui rassemble les correctifs et les
+      # mineures se relit d'un coup. Les majeures restent séparées — elles méritent leur session.
+      correctifs-et-mineures:
+        update-types:
+          - patch
+          - minor
+
+  # Le serveur MCP a son propre lockfile, et c'est le seul code de ce dépôt qui soit **publié**
+  # sur npm : ce que ses dépendances traînent, un tiers l'installe sur sa machine. D'où un
+  # écosystème à part plutôt qu'un seul balayage à la racine.
+  - package-ecosystem: npm
+    directory: /mcp-server
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      correctifs-et-mineures:
+        update-types:
+          - patch
+          - minor
+
+  # Les actions des workflows. `porte.yml` porte la chaîne de connexion privilégiée : une action
+  # épinglée qui rouille y est un risque d'une autre nature que celui d'une dépendance de build.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
