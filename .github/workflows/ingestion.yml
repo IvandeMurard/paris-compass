@@ -61,6 +61,12 @@ on:
     # 5 March and 5 September, a few days of margin after each month-end for the portal to
     # actually publish, the same discipline SIRENE stock's "one day of margin" applies.
     - cron: "33 6 5 3,9 *"
+    # ── w2-filosofi (#18) ────────────────────────────────────────────────────────────────
+    # Filosofi carroyé 200 m — a VERIFICATION cadence, like BDCom, PLU and terrasses: INSEE
+    # announces no calendar for this dispositif (irregular in practice — 2015, 2017, then
+    # 2019-and-2021 together, each generation years after the income year it describes).
+    # Twice a year, offset from PLU and terrasses so no two verification loads collide.
+    - cron: "45 5 6 3,9 *"
 
   workflow_dispatch:
     inputs:
@@ -68,7 +74,7 @@ on:
         description: "Jeu à recharger"
         required: true
         type: choice
-        options: [bodacc, sirene, bdcom, geography, chantiers, sirene_stock, plu, terrasses, idfm]
+        options: [bodacc, sirene, bdcom, geography, chantiers, sirene_stock, plu, terrasses, idfm, filosofi]
 
 # One ingestion at a time, and the running one is never killed: an interrupted load leaves a
 # rolled-back transaction, so nothing loaded, so a run lost rather than replaced. The loaders
@@ -112,6 +118,7 @@ jobs:
             "21 5 9 3,9 *")         source=plu ;;
             "9 5 8 4,11 *")         source=terrasses ;;
             "33 6 5 3,9 *")         source=idfm ;;
+            "45 5 6 3,9 *")         source=filosofi ;;
             "")                     source="${CHOSEN:?ni schedule ni input : rien à faire}" ;;
             *)
               echo "::error::Planification inconnue « ${SCHEDULE} » — la table de correspondance de ce fichier est désynchronisée du bloc on.schedule."
@@ -173,6 +180,10 @@ jobs:
             # w2-idfm (#19). Needs geography.ts to have run once for premise_location.geom,
             # which it has — same footing as the four above.
             idfm)         npx tsx scripts/ingest/idfm.ts ;;
+            # w2-filosofi (#18). Same footing again: rebuilds its own reference table and
+            # recomputes its own attachment from scratch, needs geography.ts and quartier to
+            # already exist (restrictToQuartiers reads the latter), both of which they do.
+            filosofi)     npx tsx scripts/ingest/filosofi.ts ;;
           esac
 
       - name: Fraîcheur après chargement

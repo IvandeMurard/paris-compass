@@ -68,6 +68,8 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 43 | `docs/REPRISE.md` documente encore « on pousse sur `main` sans PR », périmé depuis le 6 septembre 2026 | **ouvert** — trouvé le 7 septembre 2026 par `w2-idfm`, P2 | ici |
 | 44 | L'exclusion de Porte de Clichy porte plus loin que le défaut : 156 locaux reçoivent une station qui n'est pas la plus proche | **ouvert** — trouvé le 7 septembre 2026 par la revue de #97, P2 | ici |
 | 45 | La sonde de catalogue IDFM dérivera vers le VERT sur une édition gelée, jamais vers le rouge | **ouvert** — trouvé le 7 septembre 2026 par la revue de #97, P2 | ici |
+| 46 | La table Filosofi carroyée ne porte pas `i_est_200`, l'indicateur d'imputation qu'INSEE dit obligatoire | **ouvert** — trouvé le 8 septembre 2026 par `w2-filosofi`, [#18](https://github.com/IvandeMurard/paris-compass/issues/18) | ici |
+| 47 | La `cadence_note` de `filosofi` annonce « NON CHARGÉ » à tout appelant, alors que la source est chargée depuis le 8 septembre 2026 | **ouvert** — trouvé le 8 septembre 2026 par `w2-filosofi`, P2 | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -696,3 +698,72 @@ passant. La note de `catalogue.json` a été réécrite pour dire ce qui arriver
 que de défendre un 404 que la mesure dit improbable — la sonde ment moins, elle ne vérifie pas
 plus. **À reprendre** par le ticket qui touchera `scripts/porte/catalogue.ts`, ou plus tôt si un
 second jeu à identifiant tournant entre au catalogue : la règle ne vaut pas pour IDFM seul.
+
+
+## 46. La table Filosofi carroyée ne porte pas `i_est_200`, l'indicateur d'imputation qu'INSEE dit obligatoire — trouvé le 8 septembre 2026 par `w2-filosofi`
+
+`docs/tickets/w2-filosofi.md` renvoyait déjà ici pour le numéro de section avant que cette
+section n'existe — trouvé en reprenant une session coupée par une limite d'API, la référence
+manquante plutôt qu'ajoutée en même temps que le reste.
+
+INSEE documente (dictionnaire des variables Filosofi, §I.5 et §III) que 79 % des carreaux de
+200 m sont, au niveau national, sous le seuil de confidentialité de 11 ménages fiscaux et donc
+**imputés** — leurs chiffres reconstitués en répartissant ceux d'un groupe de carreaux voisins
+fusionnés, jamais mesurés sur le carreau seul — et que `i_est_200` doit être lu avant de faire
+confiance à un carreau donné.
+
+**Mesuré le 8 septembre 2026** : le republish GeoParquet que `scripts/ingest/filosofi.ts` lit
+sur data.gouv.fr ne porte que les « variables communes aux trois grilles » du dictionnaire
+INSEE (`idcar_200m`, `ind`, `men`, `men_pauv`, `ind_snv`, les ventilations âge/logement) —
+aucune des « variables complémentaires de la grille de 200 m » : ni `i_est_200`, ni `idcar_1km`,
+ni `lcog_geo`. `public.filosofi_grid_200m` (migration `20260908000001`) ne peut donc pas
+distinguer, mécaniquement, un carreau mesuré d'un carreau imputé par groupe.
+
+**Pourquoi ce n'est pas traité comme bloquant.** INSEE écrit elle-même la précaution : « en zone
+urbaine, du fait des fortes densités, on peut considérer que les données sont fiables » — Paris
+est exactement ce cas. Mais c'est une précaution documentée sur une CLASSE de territoire, jamais
+une vérification carreau par carreau, et le risque documenté reste réel pour tout carreau
+parisien à faible densité (bois, emprises ferroviaires, grandes parcelles peu peuplées).
+
+**Ce qui n'a pas été fait, et pourquoi** : ni la migration `20260908000001` ni
+`scripts/ingest/filosofi.ts` ne portent de contournement — aucune source alternative publiant
+`i_est_200` à cette maille n'a été identifiée le 8 septembre 2026, et en fabriquer un proxy
+serait une décision de méthode dépassant le périmètre d'une session de reprise. **À reprendre**
+par qui trouve une distribution INSEE de ce dispositif portant les variables complémentaires
+(le CSV/shapefile natif de l'INSEE plutôt que ce republish, par exemple), ou par une décision
+d'Ivan d'accepter le risque résiduel tel quel et de le documenter comme assumé plutôt qu'ouvert.
+
+---
+
+## 47. La `cadence_note` de `filosofi` annonce « NON CHARGÉ » à tout appelant, alors que la source est chargée — trouvé le 8 septembre 2026 par `w2-filosofi`
+
+`ingestion_run.cadence_note` **n'est pas un commentaire interne** : `compass_source_freshness()`
+la rend, `scripts/ingest/freshness.ts` l'affiche, et surtout `mcp-server/src/tools/listSources.ts`
+la sert telle quelle sous `cadenceNote` à n'importe quel agent qui interroge le serveur MCP
+publié. C'est du texte servi, pas de la documentation.
+
+**Mesuré le 8 septembre 2026** : la ligne posée par `20260908000001` porte encore
+« NON CHARGÉ dans la foulée de cette migration — aucune base n'était joignable depuis cette
+session […] à charger dès que la migration est posée ». C'était vrai à l'écriture — la session
+qui l'a écrite travaillait dans un arbre isolé sans `DATABASE_URL`. Ça ne l'est plus : le
+chargement est passé le même jour, 2 170 carreaux, millésime 2021, et `npm.cmd run freshness`
+affiche `filosofi` chargé. Un appelant lit donc une phrase qui contredit la ligne d'à côté.
+
+**Pourquoi ce n'est pas réparé ici, et ce que ça coûterait de le faire.** La migration
+`20260908000001` est posée et suivie par le ledger : la réécrire est exactement le geste qui a
+produit [§39](#39-deux-migrations-réécrites-après-leur-application) et `#83`. Le corriger demande
+donc une migration **neuve** faisant `update public.ingestion_run set cadence_note = … where
+source = 'filosofi'` — et **aucune migration du dépôt n'a jamais fait d'`update` sur cette
+table**, vérifié le 8 septembre 2026 : ce serait une pratique nouvelle, inaugurée sur une
+branche déjà en attente de revue. La décision de l'inaugurer revient à la file, pas à une
+session de correction de chargement.
+
+**Ce que la correction devra faire, quand elle viendra** : c'est bien la donnée qu'il faut
+corriger ici, et elle survit au rechargement — `recordRun` ne touche jamais `cadence_note`, et
+la migration d'origine ne se rejouera pas. Mais la note dit aussi que **le défaut se
+reproduira** : toute migration qui enregistre une source décrit dans sa `cadence_note` un état
+de chargement qu'elle ne peut pas connaître à l'écriture (`idfm` affirme symétriquement
+« Chargé une fois dans la foulée de cette migration », ce qui n'était vrai qu'après coup). La
+vraie règle à écrire est qu'une `cadence_note` décrive la **cadence**, jamais l'état d'un
+chargement — cet état a déjà sa colonne, `last_success_at`, et un invariant peut recouper les
+deux.
