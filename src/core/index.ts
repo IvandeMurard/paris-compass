@@ -9,3 +9,4 @@ export * from './geo';
 export * from './observational';
 export * from './provenance';
 export * from './scoring';
+export * from './verdict';
