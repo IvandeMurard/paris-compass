@@ -767,3 +767,35 @@ de chargement qu'elle ne peut pas connaître à l'écriture (`idfm` affirme sym�
 vraie règle à écrire est qu'une `cadence_note` décrive la **cadence**, jamais l'état d'un
 chargement — cet état a déjà sa colonne, `last_success_at`, et un invariant peut recouper les
 deux.
+
+## 48. Trois tables neuves sur trois ont oublié la contrainte de finitude — le modèle de migration ne la porte pas — mesuré le 10 septembre 2026
+
+**Le fait, daté trois fois.** `I42` exige qu'une colonne géographique porte une contrainte
+`CHECK` validée interdisant `NaN` et `Infinity`. Trois tables neuves l'ont oubliée à la suite,
+et l'invariant les a attrapées toutes les trois — au lendemain de leur pose, jamais avant :
+
+| Table | Posée | Contrainte ajoutée par |
+| --- | --- | --- |
+| `idfm_station` | 7 septembre 2026 | `20260907000003`, après la revue de `#97` |
+| `filosofi_grid_200m` | 8 septembre 2026 | portée dans la migration d'origine après revue |
+| `meuble_autorisation` | 10 septembre 2026 | `20260910000004`, après `I42` |
+
+**Ce que ça dit, et ce n'est pas que les sessions sont distraites.** L'invariant fonctionne : il
+n'a laissé passer aucune des trois. Mais il ne les attrape qu'**après la pose**, et une migration
+posée ne se réécrit plus — donc chaque oubli coûte une migration supplémentaire, et le ledger
+garde la trace des deux. Trois fois de suite, le même correctif en deux temps.
+
+Une règle qu'on redécouvre à chaque table neuve n'est pas tenue par ce qui écrit les tables
+neuves. `I42` mesure la population et c'est ce qui le rend juste ; ce qui manque est en amont —
+le patron dont une session part quand elle crée une colonne `geography`.
+
+**Ce que la correction n'est pas.** Ce n'est pas d'assouplir `I42` : il a raison à chaque fois.
+Ce n'est pas non plus une liste des tables à surveiller — elle serait fausse à la quatrième. Le
+livrable est ce qui fait que la contrainte parte **avec** la table : un modèle de migration, ou
+un test hors-base qui refuse un fichier de migration créant une colonne `geography` sans la
+contrainte dans le même fichier. Le second a l'avantage de se jouer avant la pose, donc de
+coûter zéro migration.
+
+**Ce que ça ne rattrape pas.** Une contrainte de finitude garde ce qui **entre** dans la colonne,
+jamais ce que la source publie : une adresse géocodée au centroïde de son arrondissement porte un
+point parfaitement fini et parfaitement faux. C'est au chargeur de le refuser.
