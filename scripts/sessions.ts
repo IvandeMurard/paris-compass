@@ -139,6 +139,12 @@ const ORDER = [
   "w5-confiance-agent",
   "w5-parse",
   // --- L'écran, en second, et c'est la direction du 31 août qui le dit -------------------
+  // w6-contexte passe devant les trois autres, décidé par Ivan le 10 septembre après un
+  // aller-retour avec Lovable. Ce n'est pas un ticket d'écran de plus : il tranche que la
+  // carte n'est pas le centre du produit. Les trois suivants supposent tous une réponse à
+  // cette question — un dossier exportable, une couche « ce qui se libère » et des modes
+  // métier se posent sur une structure, et cette structure n'était pas décidée.
+  "w6-contexte",
   "w6-liberations",
   "w6-dossier",
   "w6-modes",
