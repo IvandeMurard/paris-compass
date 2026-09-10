@@ -2141,3 +2141,128 @@ select * from (
         and r.filosofi_niveau_vie_moyen_estime_eur is not null)
 ) x
 limit 20;
+
+-- ===========================================================================
+-- w4-meubles (#27) — densité d'autorisations de changement d'usage
+-- ===========================================================================
+-- Le ticket dit lui-même que son "Fait quand" est faible : « Le Marais touristique et une rue
+-- du 20e résidentiel n'ont pas le même n à 200 m » nomme deux quartiers, et deux quartiers
+-- nommés sont une ILLUSTRATION, jamais une preuve — la même leçon que la revue de #91 a tirée
+-- de w6-analyse. L'illustration reste utile et datée (commentaire de fermeture de #27,
+-- facettes du portail mesurées le 8 septembre 2026 : 50 décisions cumulées sur 75003+75004
+-- contre 4 sur 75020), mais ce qui suit porte la preuve autrement : une population qui se
+-- DÉRIVE d'elle-même — les 265 décisions du registre, chacune comme point de sonde — plutôt que
+-- deux adresses choisies à la main.
+
+-- @invariant I55 :: compass_meubles_within ne recalcule pas la meme densite qu'un comptage direct
+-- Pour CHAQUE décision du registre — la population est énumérée depuis
+-- public.meuble_autorisation lui-même, jamais deux adresses écrites en dur — ce bloc recalcule
+-- indépendamment, par une jointure spatiale brute (ST_DWithin, 200 m), le total que
+-- compass_meubles_within rend en interrogeant ce même point avec ce même rayon, et compare.
+-- Une décision du Marais dense et une décision du 20e clairsemé passent par le MÊME calcul :
+-- ce n'est donc pas un cas particulier qui est vérifié, mais le mécanisme de comptage
+-- lui-même, sur toute l'étendue réelle du registre.
+--
+-- Le rayon est fixé à 200 m, celui du "Fait quand" du ticket — pas compass_max_radius_m() :
+-- une population de sonde à un autre rayon prouverait une autre fonction, publiée nulle part.
+--
+-- CE QUE I55 NE RATTRAPE PAS : il compare deux calculs sur le MÊME état de la table, jamais un
+-- total contre une valeur publiée à l'écran — aucune telle valeur n'existe encore, le produit
+-- n'affiche rien de ce ticket. Il ne voit pas non plus une décision mal géocodée : une adresse
+-- placée au mauvais endroit par le portail resterait cohérente entre les deux calculs, parce
+-- que les deux lisent le même point.
+--
+-- NON MESURÉ CONTRE LE DISTANT : la migration qui crée meuble_autorisation et
+-- compass_meubles_within (20260908000002) est préparée, non posée — interdit ferme de cette
+-- session (deux arbres de travail parallèles ne doivent pas écrire sur la même base vivante),
+-- et cet arbre de travail ne porte pas DATABASE_URL, par construction
+-- (docs/REPRISE.md, "Environnement"). Contrairement à I43-I46 (w6-analyse) et I47/I48
+-- (w2-idfm), la mesure « zéro violation » n'a pas pu être prise en transaction annulée contre
+-- le distant. C'est la ligne laissée à Ivan : mesurer ce bloc au moment de poser la migration,
+-- avant de la fusionner.
+with per_decision as (
+  select m.decision_number,
+         ST_Y(m.geom::geometry) as lat,
+         ST_X(m.geom::geometry) as lng
+    from public.meuble_autorisation m
+),
+recompute as (
+  select p.decision_number,
+         (select coalesce(sum(m2.nb_decisions), 0)
+            from public.meuble_autorisation m2
+           where ST_DWithin(m2.geom, ST_MakePoint(p.lng, p.lat)::geography, 200)) as recalcule
+    from per_decision p
+),
+via_fonction as (
+  select p.decision_number,
+         coalesce(
+           (select f.total_matched
+              from public.compass_meubles_within(p.lat, p.lng, 200, 1) f
+             limit 1),
+           0
+         ) as total_matched
+    from per_decision p
+)
+select r.decision_number, r.recalcule as recalcule_direct, v.total_matched as via_fonction
+  from recompute r
+  join via_fonction v on v.decision_number = r.decision_number
+ where r.recalcule is distinct from v.total_matched
+ limit 20;
+
+-- @invariant I56 :: le corpus meubles est vide, ou un appelant anonyme n'y voit rien
+-- @as anon
+-- Le miroir de I55, et la moitié qui manquerait si on ne l'écrivait pas — même défaut que la
+-- revue de #91 a trouvé sur I43 et que celle de #97 a retrouvé sur I47/I48 : dériver la
+-- population D'UNE TABLE VIDE rend zéro ligne de sonde, donc zéro violation, donc un VERT qui
+-- ne prouve rien. I55 recalcule la population de meuble_autorisation depuis meuble_autorisation
+-- lui-même — une table vidée par un rechargement raté, ou par un `delete` fait à la main sur le
+-- distant, passerait I55 sans un mot.
+--
+-- `@as anon` NE PREND PAS LE RÔLE, ET CET INVARIANT NE PROUVE DONC RIEN SUR LA RLS.
+-- Contre-preuve jouée le 10 septembre 2026 par la revue de #100 : retirer la politique de
+-- lecture anonyme laisse I56 VERT. Le bras A se connecte en `postgres`, qui porte
+-- `rolbypassrls = true` ; la table n'a pas `FORCE ROW LEVEL SECURITY` ; et
+-- `scripts/eval/invariants.ts` pose un claim JWT, pas un rôle — aucune politique n'est
+-- jamais consultée. Une version antérieure de cet en-tête affirmait le contraire, recopiée
+-- de I50 : c'est le fond de l'issue #102, et la phrase s'est propagée trois fois par
+-- recopie d'en-tête avant qu'une revue ne la joue.
+--
+-- CE QUE CETTE CLAUSE GARDE RÉELLEMENT : que la table porte des lignes, et rien de plus.
+-- Elle rougit sur un corpus vide, jamais sur une politique retirée.
+--
+-- Ce qui reste vrai du raisonnement d'origine, et qui n'est pas rien : compass_meubles_within est `security
+-- invoker` (pas `security definer`), donc il hérite exactement des politiques RLS de l'appelant
+-- — par construction, il ne peut pas reproduire l'écart trouvé sur `idfm_validation_profile`
+-- (une table muette pour anon pendant qu'une fonction `security definer` répondait). Ce choix
+-- de sécurité retire une classe entière de défaut plutôt que de la corriger après coup — mais
+-- une classe de défaut retirée par construction reste à vérifier, pas à supposer : une
+-- migration future qui changerait `security invoker` en `security definer` sans toucher à la
+-- politique RLS referait exactement l'écart d'IDFM, et c'est ce que ce bloc continuerait de
+-- voir.
+--
+-- Le point de sonde (48,849141 / 2,342178) est une décision réelle du registre — 43 boulevard
+-- Saint-Michel, n°154273 du 28/10/2013, mesurée le 8 septembre 2026 — plutôt qu'une coordonnée
+-- inventée : la clause qui interroge la fonction doit sonder un endroit dont on sait, par le
+-- registre lui-même, qu'il porte au moins une décision.
+--
+-- CE QUE I56 NE RATTRAPE PAS : il garde la PRÉSENCE, jamais l'ÉTENDUE — un registre tombé de
+-- 265 à 12 lignes le laisse vert, tant qu'au moins une décision reste visible quelque part.
+-- Comme pour I49, le nombre attendu n'est pas épinglé ici volontairement : c'est
+-- `ingestion_run.row_count` et `npm.cmd run freshness` qui portent l'étendue.
+--
+-- NON MESURÉ CONTRE LE DISTANT, pour la même raison que I55 — voir son en-tête. La
+-- contre-épreuve attendue, à jouer par Ivan avant de fusionner : table vidée en transaction
+-- annulée, I55 doit rester vert (population vide) et I56 doit rougir sur « meuble_autorisation
+-- est vide » ; table pleine mais politique de lecture anon retirée, I55 reste vert (il ne passe
+-- pas par PostgREST) et I56 rougit sur « aucune décision visible par un appelant anonyme ».
+select * from (
+  select 'meuble_autorisation est vide'::text as probleme, '0'::text as detail
+   where not exists (select 1 from public.meuble_autorisation)
+  union all
+  select 'aucune décision visible par un appelant anonyme alors que le registre n''est pas vide',
+         '0'
+   where exists (select 1 from public.meuble_autorisation)
+     and not exists (
+       select 1 from public.compass_meubles_within(48.849141, 2.342178, 200))
+) x
+limit 20;

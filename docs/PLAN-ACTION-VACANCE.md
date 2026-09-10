@@ -490,6 +490,38 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 - **Comment.** opendata.paris.fr registre des autorisations de changement d'usage. Comptage dans 200 m, millésime. Phrase : « n autorisations dans 200 m ».
 - **Doctrine.** Densité d'autorisations, pas un taux Airbnb au noir. Ça sépare deux rues.
 - **Fait quand.** Le Marais touristique et une rue du 20e résidentiel n'ont pas le même n à 200 m.
+- **Avancement, mesuré le 10 septembre 2026 — quatre migrations POSÉES, source chargée.**
+  Endpoint vérifié (`scripts/porte/catalogue.json`) : registre des autorisations de changement
+  d'usage sur opendata.paris.fr (`registre-des-autorisations-de-changement-dusage-pour-les-meubles`),
+  ODbL confirmée, aucune édition figée coexistante — contrairement à IDFM, `DIAGNOSTIC.md` §45.
+  Table `meuble_autorisation`, fonction `compass_meubles_within` (densité par rayon, défaut
+  200 m, doctrine écrite dans le `comment on function`, donc lue par PostgREST).
+  `npm.cmd run ledger` rend **PASS 63/63, 0 écart** ; `freshness` affiche `meubles` — cadence
+  `annual`, **265 lignes**, à jour.
+
+  **L'enregistrement dans `ingestion_run` a été délibérément séparé, et c'est ce qui a bien
+  fonctionné** : #70 lit les migrations sur disque qu'elles soient posées ou non, donc déclarer
+  la source sans cron ni premier chargement aurait rouvert le trou que #70 a fermé. L'enum de
+  cadence, la ligne `ingestion_run`, le cron d'`ingestion.yml` et le premier passage de
+  `scripts/ingest/meubles.ts` sont partis **dans la même fenêtre**, le 10 septembre.
+
+  **Le budget anon a été mesuré deux fois, et la première ne valait rien.** La ligne portait
+  500 pages / 50 ms — un plafond volontairement large, jamais une mesure, la session d'écriture
+  travaillant dans un arbre isolé sans `DATABASE_URL`. Remesuré après la pose : 41 pages sur
+  trois passages. Puis `20260910000003` a redéfini la fonction pour qu'elle appelle
+  `compass_record_question` — elle écrit désormais au journal —, et la mesure est passée à
+  **78 pages sur trois exécutions d'`eval`, puis 80 à la quatrième**. Plafond posé à **90** par
+  marge, avec sa cause écrite. C'est le défaut [#117](https://github.com/IvandeMurard/paris-compass/issues/117) :
+  rien ne relie une ligne de budget au corps de fonction qu'elle a mesuré.
+
+  **L'illustration**, jamais la preuve : les facettes `arrondissement` du jeu source donnent
+  50 décisions cumulées sur 75003+75004 (le Marais) contre 4 sur 75020, mesuré le 8 septembre.
+  **La preuve** est `I55` — recalcul indépendant de `compass_meubles_within` sur les 265
+  décisions, chacune comme point de sonde — et son miroir `I56`, qui rougit sur un corpus vide.
+  Les deux sont **verts contre le distant** depuis le 10 septembre. `I56` ne garde en revanche
+  **pas** la politique RLS, contrairement à ce que son en-tête a affirmé un temps : `@as anon`
+  pose un claim JWT et non un rôle, et c'est l'issue
+  [#102](https://github.com/IvandeMurard/paris-compass/issues/102).
 
 #### w4-ecoles — Effectifs scolaires
 
@@ -688,7 +720,7 @@ jamais un rangement dans le voisin.
 | Airparif | Airparif | nouvelle | Open data Airparif | maille Île-de-France | Qualité de l'air mesurée / modelée localement. | Si ça ne sépare pas deux rues, ne pas l'afficher comme discriminant. |
 | Bruitparif | Bruitparif | planifiée | Open data air-bruit | maille / façade selon couche | Bruit mesuré ou modelé par l'observatoire, à la place du proxy « routes à 500 m ». | Garder mesuré vs modelé. Pas d'indice unique air-bruit. |
 | Mapillary (imagerie de rue) | Mapillary / contributeurs | nouvelle | CC-BY (vérifier millésime et attribution) | façade, cliché daté | Façade au rideau baissé / mention « à louer » sur cliché du 12 mars 2026. | Ce n'est pas vacant=true. Google Street View : ToS hostile, à écarter. |
-| Meublés touristiques (changement d'usage) | Ville de Paris | nouvelle | Open data Paris | adresse / autorisation | n autorisations de changement d'usage dans 200 m. | Déclaré ≠ stock Airbnb réel. Suffit à séparer deux rues. |
+| Meublés touristiques (changement d'usage) | Ville de Paris | planifiée — endpoint choisi et migration préparée, non posée (8/09/2026) | Open Database License (ODbL), mesurée le 8/09/2026 | décision (n°, date, adresse, arrondissement, nb de logements), 265 lignes | n autorisations de changement d'usage dans 200 m. | Déclaré ≠ stock Airbnb réel. Suffit à séparer deux rues. |
 | Effectifs scolaires | Ministère de l'Éducation | nouvelle | Licence Ouverte | établissement | 1 200 élèves à 400 m. | Rythme scolaire, vacances, pas une demande annuelle lissée. |
 | ABF / monuments / SPR | État / Ville | nouvelle | Open data (périmètres MH, SPR) | périmètre | Façade dans le champ de visibilité d'un MH : enseigne et extraction soumises à l'ABF. | Informatif, pas un avis d'architecte. |
 | ERP / accessibilité PMR | Registres publics | nouvelle | selon registre | établissement | Capacité ERP, accessibilité déclarée. | Couverture inégale. n/a si silencieux. |

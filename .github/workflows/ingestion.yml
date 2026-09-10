@@ -67,6 +67,12 @@ on:
     # 2019-and-2021 together, each generation years after the income year it describes).
     # Twice a year, offset from PLU and terrasses so no two verification loads collide.
     - cron: "45 5 6 3,9 *"
+    # ── w4-meubles (#27) ─────────────────────────────────────────────────────────────────
+    # Meublés touristiques (changement d'usage) — a DECLARED annual cadence, the catalogue's
+    # own metas.dcat.accrualperiodicity read 8 September 2026: "Annuelle". Once a year, two
+    # weeks after the file's own last-modified date at that reading (2026-06-05) — the same
+    # margin SIRENE stock and IDFM give the portal to actually republish before verifying.
+    - cron: "51 5 20 6 *"
 
   workflow_dispatch:
     inputs:
@@ -74,7 +80,7 @@ on:
         description: "Jeu à recharger"
         required: true
         type: choice
-        options: [bodacc, sirene, bdcom, geography, chantiers, sirene_stock, plu, terrasses, idfm, filosofi]
+        options: [bodacc, sirene, bdcom, geography, chantiers, sirene_stock, plu, terrasses, idfm, filosofi, meubles]
 
 # One ingestion at a time, and the running one is never killed: an interrupted load leaves a
 # rolled-back transaction, so nothing loaded, so a run lost rather than replaced. The loaders
@@ -119,6 +125,7 @@ jobs:
             "9 5 8 4,11 *")         source=terrasses ;;
             "33 6 5 3,9 *")         source=idfm ;;
             "45 5 6 3,9 *")         source=filosofi ;;
+            "51 5 20 6 *")          source=meubles ;;
             "")                     source="${CHOSEN:?ni schedule ni input : rien à faire}" ;;
             *)
               echo "::error::Planification inconnue « ${SCHEDULE} » — la table de correspondance de ce fichier est désynchronisée du bloc on.schedule."
@@ -184,6 +191,10 @@ jobs:
             # recomputes its own attachment from scratch, needs geography.ts and quartier to
             # already exist (restrictToQuartiers reads the latter), both of which they do.
             filosofi)     npx tsx scripts/ingest/filosofi.ts ;;
+            # w4-meubles (#27). Rebuilds its own reference table from scratch — no premise
+            # attachment at all (a density around a point, never a per-premise pointer; see the
+            # migration header) — so it needs nothing else to have run first.
+            meubles)      npx tsx scripts/ingest/meubles.ts ;;
           esac
 
       - name: Fraîcheur après chargement
