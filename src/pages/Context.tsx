@@ -44,10 +44,21 @@ const Context = () => {
 
   const fromUrl = pointFromParams(params);
   const search = isResolvableSlug(slug) ? fromSlug(slug) : '';
-  // Disabled whenever the URL already answered the question — that is what the coordinates in
-  // the query string are for.
-  const geocoded = useAddressFromSlug(search, fromUrl === null);
+  const geocoded = useAddressFromSlug(search, true);
 
+  /**
+   * The point is the URL's when the URL carries one, and the geocoder never overrides it.
+   *
+   * That is what « coordinates in the query to avoid a re-geocoding » buys, and it is the half
+   * that matters: the figures below do not depend on BAN answering, do not drift if BAN
+   * re-ranks its results, and start loading before the geocoder has said anything.
+   *
+   * The LABEL is a different question, and it is why the geocoder still runs. A slug has lost
+   * its capitals and its accents for good; rebuilding « 12 Rue de Bretagne » from
+   * `12-rue-de-bretagne` would mean inventing them, and the heading of the page would then be
+   * a string that looks measured and is not. BAN is the only thing that knows the real label,
+   * the answer is cached for a day, and until it arrives the de-slugified text stands in.
+   */
   const point = fromUrl ?? (geocoded.data ? { lat: geocoded.data.lat, lng: geocoded.data.lng } : null);
   const label = geocoded.data?.label ?? search;
 
@@ -130,7 +141,7 @@ const Context = () => {
 
           {notFound && <p className="mt-8 text-base">{c.notFound}</p>}
 
-          {!notFound && (context.isPending || geocoded.isLoading) && (
+          {!notFound && context.isPending && (
             <p className="mt-8 text-base text-muted-foreground">{c.loading}</p>
           )}
 

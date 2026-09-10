@@ -16,6 +16,7 @@ import { ChevronRight } from 'lucide-react';
 import { MeasuredScore } from '@/components/MeasuredFigure';
 import { bandOf, noiseLabel, type Measured, type VerdictAxis } from '@/core';
 import { AXIS_NAMES, AXIS_WHAT, CONTEXT_COPY } from '@/i18n/contextText';
+import { translateLabel } from '@/i18n/labels';
 import { useLocale } from '@/i18n/locale';
 
 interface Props {
@@ -32,9 +33,13 @@ const ContextFinding = ({ axis, measured, phrase }: Props) => {
 
   // Noise is read on its own scale, in words rather than out of 100: an exposure figure is a
   // band, and showing "62/100" of road noise invites it to be compared with 62/100 of
-  // walkability, which is a different claim entirely.
+  // walkability, which is a different claim entirely. `noiseLabel` returns the canonical
+  // English label the scoring services produce — translated here, never rendered raw, which is
+  // what `translateLabel` exists for.
   const display =
-    axis === 'noise' && measured.value !== null ? noiseLabel(measured.value) : undefined;
+    axis === 'noise' && measured.value !== null
+      ? translateLabel(noiseLabel(measured.value), locale)
+      : undefined;
 
   return (
     <li className="rounded-lg border bg-white p-4">

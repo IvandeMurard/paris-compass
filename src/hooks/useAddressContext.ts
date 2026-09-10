@@ -121,11 +121,13 @@ export function useAddressContext(point: { lat: number; lng: number } | null) {
 }
 
 /**
- * Resolve a slug to an address, and only when the URL did not already carry the answer.
+ * Resolve a slug to an address.
  *
- * A context URL normally arrives with coordinates in its query string, so this query stays
- * disabled — that is the point of putting them there. Typing the path by hand is the case it
- * exists for, and it is also how the route is tested.
+ * It answers two different questions and the caller must not confuse them. The POINT comes
+ * from the query string whenever the URL carries one, so the figures never depend on BAN
+ * answering; this query then only supplies the LABEL, which a slug cannot give back — its
+ * capitals and accents are gone. When the URL carries no coordinates, it supplies both, and
+ * the page rewrites itself to the canonical URL.
  */
 export function useAddressFromSlug(search: string, enabled: boolean) {
   return useQuery<GeocodeResult | null>({

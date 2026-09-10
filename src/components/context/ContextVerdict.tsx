@@ -55,12 +55,18 @@ const ContextVerdict = ({ verdict }: { verdict: Verdict }) => {
       <p className="mt-2 text-xl font-semibold leading-snug sm:text-2xl">{verdict.sentence}</p>
 
       <p className="mt-3 text-sm text-muted-foreground">
-        <span className="font-medium">{c.usedHeading} :</span>{' '}
+        <span className="font-medium">
+          {c.usedHeading}
+          {c.colon}
+        </span>{' '}
         {verdict.used.map((axis) => names[axis]).join(', ')}
       </p>
       {verdict.supporting.length > 0 && (
         <p className="mt-1 text-sm text-muted-foreground">
-          <span className="font-medium">{c.supportingHeading} :</span>{' '}
+          <span className="font-medium">
+            {c.supportingHeading}
+            {c.colon}
+          </span>{' '}
           {verdict.supporting.map((clause) => clause.text).join(', ')}
         </p>
       )}

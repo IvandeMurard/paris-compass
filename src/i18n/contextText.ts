@@ -65,6 +65,8 @@ export const CONTEXT_COPY = {
     notFound:
       'Cette adresse n’a pas été retrouvée dans la Base Adresse Nationale. Vérifier l’orthographe, ou repartir de la recherche.',
     verdictHeading: 'Verdict',
+    /** French typography puts a space before the colon; English does not. */
+    colon: ' :',
     usedHeading: 'Constats utilisés',
     supportingHeading: 'En appui',
     refusalHeading: 'Pas de verdict ici',
@@ -102,6 +104,7 @@ export const CONTEXT_COPY = {
     notFound:
       'This address was not found in the Base Adresse Nationale. Check the spelling, or start again from the search.',
     verdictHeading: 'Verdict',
+    colon: ':',
     usedHeading: 'Findings used',
     supportingHeading: 'Alongside',
     refusalHeading: 'No verdict here',

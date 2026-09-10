@@ -71,6 +71,7 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 46 | La table Filosofi carroyée ne porte pas `i_est_200`, l'indicateur d'imputation qu'INSEE dit obligatoire | **ouvert** — trouvé le 8 septembre 2026 par `w2-filosofi`, [#18](https://github.com/IvandeMurard/paris-compass/issues/18) | ici |
 | 47 | La `cadence_note` de `filosofi` annonce « NON CHARGÉ » à tout appelant, alors que la source est chargée depuis le 8 septembre 2026 | **ouvert** — trouvé le 8 septembre 2026 par `w2-filosofi`, P2 | ici |
 | 48 | Deux tables neuves sur trois ont oublié la contrainte de finitude, et la troisième dit pourquoi | **ouvert** — mesuré le 10 septembre 2026 par `w4-meubles`, P2 | ici |
+| 49 | Les raisons d'absence de `src/core` s'affichent en anglais sur les pages françaises | **ouvert** — mesuré le 10 septembre 2026 par `w6-contexte`, P2 | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -801,3 +802,34 @@ coûter zéro migration.
 **Ce que ça ne rattrape pas.** Une contrainte de finitude garde ce qui **entre** dans la colonne,
 jamais ce que la source publie : une adresse géocodée au centroïde de son arrondissement porte un
 point parfaitement fini et parfaitement faux. C'est au chargeur de le refuser.
+
+---
+
+## 49. Les raisons d'absence de `src/core` s'affichent en anglais sur les pages françaises — mesuré le 10 septembre 2026 par `w6-contexte`
+
+**Ce qui est mesuré, et où.** Les chaînes `MISSING` et les `note` de `src/core/scoring.ts` sont
+écrites en anglais — commentaires et messages du noyau le sont par convention (`CLAUDE.md`,
+« Style »). Elles ne restent pas dans le noyau : `Measured.missingReason` et `Measured.note` sont
+**rendus tels quels** à l'écran, par `src/i18n/figureText.ts` depuis le 12 août et, depuis
+`w6-contexte`, par le bloc des trous et le détail du refus de `/contexte/:slug`. Relevé le
+10 septembre 2026 sur `/contexte/rue-montorgueil-75002-paris`, mirroirs Overpass coupés, cinq
+lignes sur six du bloc des trous sont en anglais dans une page en français — par exemple
+*« The premises layer did not load for this area, so surrounding activity is unknown rather than
+absent. »* sous le titre « Ce que Compass ne sait pas ici ».
+
+**Pourquoi ce n'est pas un défaut de la page.** La page a raison de préférer `missingReason` à
+une formule générique : c'est la seule phrase qui sait **quelle** couche manquait. Le défaut est
+un cran plus bas — le noyau produit de la prose destinée à l'affichage, et de la prose affichée a
+une langue. Deux consommateurs la lisent aujourd'hui, l'écran et le serveur MCP, et ils n'ont pas
+la même.
+
+**Ce que serait la correction, et pourquoi elle n'est pas dans ce ticket.** Faire porter à
+`Measured<T>` un **motif structuré** en plus de sa phrase — la même distinction que
+`mcp-server/src/context.ts` a déjà tranchée pour `QuestionOutcome`, et que `#61` a refusé de
+relire dans une chaîne — puis traduire le motif dans `src/i18n/`. Ça touche `src/core/scoring.ts`,
+`figureText.ts` et la réponse du serveur MCP : c'est un chantier à soi, pas un correctif de page.
+Le contournement bon marché — traduire au `includes()` sur la phrase anglaise — est exactement ce
+que `#61` interdit.
+
+**Ce que ça ne rattrape pas.** Même corrigée, la règle ne dira rien des phrases écrites en SQL :
+les `evidence` de la base sont produites hors de TypeScript, et `I21` les garde séparément.
