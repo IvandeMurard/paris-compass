@@ -115,10 +115,21 @@ Aucune source nouvelle, aucun changement de formule de scoring, pas de page « t
 pas de rebranding chromatique. La palette et la typographie du plan du 8 septembre attendent :
 elles se poseront sur une structure tranchée, pas l'inverse.
 
-## Une décision qui attend Ivan
+## Le référencement, tranché par Ivan le 10 septembre 2026
 
-`/contexte/*` en `noindex` — proposé par le plan, et cohérent pour des pages générées. Mais c'est
-**la surface principale du produit qui sort de la recherche**. Les pages arrondissement et les
-guides restent indexés et pointent vers l'accueil. À trancher : est-ce le bon échange ?
+**`/contexte/*` part en `noindex`, et c'est le choix prudent assumé.** Ces pages sont générées —
+une par adresse consultée — et un moteur pénalise la production de masse de pages quasi
+identiques, y compris sur le reste du domaine.
+
+**Ce que ça coûte, et il faut l'écrire** : `/contexte/<adresse>` est le produit. En `noindex`,
+personne ne tombe dessus en cherchant « commerce rue de Bretagne ». Le produit ne se découvre
+plus que par les **64 URL** du sitemap au 10 septembre 2026 — guides, pages d'arrondissement
+(`/paris/:slug`), FAQ, sources, méthodologie.
+
+**Ce qui reste ouvert, et se décidera sur pièce** : la pénalité vise le contenu *creux*, et une
+page Compass porte des chiffres mesurés, datés et sourcés — elle est générée, pas creuse. Un
+niveau intermédiaire et borné pourrait donc être indexé plus tard : le quartier (80 à Paris) ou
+la rue, jamais l'adresse. À reprendre quand les pages existent et qu'on voit ce qu'elles portent
+vraiment. Ce n'est pas un blocage de ce ticket.
 
 Voir `docs/PLAN-ACTION-VACANCE.md` vague 6, `docs/PERIMETRE.md` §1 et §4, `docs/PLAN.md` phase 6.
