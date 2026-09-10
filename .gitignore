@@ -92,3 +92,7 @@ mcp-server/.build/
 # regle, un git add -A d'une session parallele les emporte — arrive deux fois, le
 # 26 aout avec .fn-dump/ et le 5 septembre avec scripts/tmp-nan.ts.
 scripts/tmp-*.ts
+
+# Maquettes de structure (w6-contexte) : la source vit dans l artefact publie,
+# pas ici. Rien ne les lit et elles polluent git status a chaque session.
+.design/
