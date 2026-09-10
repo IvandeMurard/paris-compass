@@ -244,7 +244,7 @@ fautive.
 | ~~28~~ | ~~`w2-idfm`~~ | [#19](https://github.com/IvandeMurard/paris-compass/issues/19) | **fait** | P1 | Sonnet 5 |
 | ~~29~~ | ~~`w2-filosofi`~~ | [#18](https://github.com/IvandeMurard/paris-compass/issues/18) | **fait** | P1 | Sonnet 5 |
 | 30 | `w2-mobiliscope` | [#20](https://github.com/IvandeMurard/paris-compass/issues/20) | ouvert | P1 | Sonnet 5 |
-| 31 | `w4-meubles` | [#27](https://github.com/IvandeMurard/paris-compass/issues/27) | ouvert | P1 | Sonnet 5 |
+| ~~31~~ | ~~`w4-meubles`~~ | [#27](https://github.com/IvandeMurard/paris-compass/issues/27) | **fait** | P1 | Sonnet 5 |
 | 32 | `w2-air-bruit` | [#16](https://github.com/IvandeMurard/paris-compass/issues/16) | **bloqué** | P1 | Opus 5 |
 | 33 | `w4-abf` | [#23](https://github.com/IvandeMurard/paris-compass/issues/23) | ouvert | P1 | Opus 5 |
 | ~~34~~ | ~~`w6-mcp`~~ | [#35](https://github.com/IvandeMurard/paris-compass/issues/35) | **fait** | P1 | Opus 5 |
