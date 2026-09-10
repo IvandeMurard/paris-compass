@@ -8,15 +8,32 @@ interface SeoProps {
   /** Canonical (French) route path, e.g. "/faq". The locale prefix is added automatically. */
   path: string;
   type?: 'website' | 'article';
+  /**
+   * English path, when it is not the French one under /en.
+   *
+   * Every route but one mounts the English tree by prefixing the canonical path, so this stays
+   * undefined. `/contexte/:slug` is the exception — its English route is `/en/context/:slug`,
+   * decided in w6-contexte — and without an override the alternate and canonical links would
+   * point at a URL that does not exist.
+   */
+  enPath?: string;
   /** JSON-LD objects rendered for this route. */
   jsonLd?: Record<string, unknown>[];
   noindex?: boolean;
 }
 
-const Seo = ({ title, description, path, type = 'website', jsonLd = [], noindex }: SeoProps) => {
+const Seo = ({
+  title,
+  description,
+  path,
+  enPath: enPathOverride,
+  type = 'website',
+  jsonLd = [],
+  noindex,
+}: SeoProps) => {
   const { locale } = useLocale();
   const frPath = path === '/' ? '/' : path;
-  const enPath = path === '/' ? '/en' : `/en${path}`;
+  const enPath = enPathOverride ?? (path === '/' ? '/en' : `/en${path}`);
   const url = `${SITE_URL}${locale === 'en' ? enPath : frPath}`;
   const fullTitle = path === '/' ? title : `${title} | ${SITE_NAME}`;
 
