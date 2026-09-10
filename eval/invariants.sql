@@ -2218,7 +2218,19 @@ select r.decision_number, r.recalcule as recalcule_direct, v.total_matched as vi
 -- lui-même — une table vidée par un rechargement raté, ou par un `delete` fait à la main sur le
 -- distant, passerait I55 sans un mot.
 --
--- `@as anon` À DESSEIN, pour la même raison que I50 : compass_meubles_within est `security
+-- `@as anon` NE PREND PAS LE RÔLE, ET CET INVARIANT NE PROUVE DONC RIEN SUR LA RLS.
+-- Contre-preuve jouée le 10 septembre 2026 par la revue de #100 : retirer la politique de
+-- lecture anonyme laisse I56 VERT. Le bras A se connecte en `postgres`, qui porte
+-- `rolbypassrls = true` ; la table n'a pas `FORCE ROW LEVEL SECURITY` ; et
+-- `scripts/eval/invariants.ts` pose un claim JWT, pas un rôle — aucune politique n'est
+-- jamais consultée. Une version antérieure de cet en-tête affirmait le contraire, recopiée
+-- de I50 : c'est le fond de l'issue #102, et la phrase s'est propagée trois fois par
+-- recopie d'en-tête avant qu'une revue ne la joue.
+--
+-- CE QUE CETTE CLAUSE GARDE RÉELLEMENT : que la table porte des lignes, et rien de plus.
+-- Elle rougit sur un corpus vide, jamais sur une politique retirée.
+--
+-- Ce qui reste vrai du raisonnement d'origine, et qui n'est pas rien : compass_meubles_within est `security
 -- invoker` (pas `security definer`), donc il hérite exactement des politiques RLS de l'appelant
 -- — par construction, il ne peut pas reproduire l'écart trouvé sur `idfm_validation_profile`
 -- (une table muette pour anon pendant qu'une fonction `security definer` répondait). Ce choix

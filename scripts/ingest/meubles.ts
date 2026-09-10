@@ -8,7 +8,7 @@
 // 20260908000002 pour le raisonnement complet — endpoint choisi, ce que "millésime" veut dire
 // ici, et pourquoi rien n'est rattaché à premise_location.
 //
-// Registered as the tenth ingestion source by 20260910000002, wired into
+// Registered as the ELEVENTH ingestion source by 20260910000002, wired into
 // .github/workflows/ingestion.yml (annual cron, 20 June) in the same window — the enum value,
 // the ingestion_run row, the cron entry and this loader's first run, together, per #70's rule
 // (docs/REPRISE-PIEGES.md).

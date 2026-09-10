@@ -70,6 +70,7 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 45 | La sonde de catalogue IDFM dérivera vers le VERT sur une édition gelée, jamais vers le rouge | **ouvert** — trouvé le 7 septembre 2026 par la revue de #97, P2 | ici |
 | 46 | La table Filosofi carroyée ne porte pas `i_est_200`, l'indicateur d'imputation qu'INSEE dit obligatoire | **ouvert** — trouvé le 8 septembre 2026 par `w2-filosofi`, [#18](https://github.com/IvandeMurard/paris-compass/issues/18) | ici |
 | 47 | La `cadence_note` de `filosofi` annonce « NON CHARGÉ » à tout appelant, alors que la source est chargée depuis le 8 septembre 2026 | **ouvert** — trouvé le 8 septembre 2026 par `w2-filosofi`, P2 | ici |
+| 48 | Deux tables neuves sur trois ont oublié la contrainte de finitude, et la troisième dit pourquoi | **ouvert** — mesuré le 10 septembre 2026 par `w4-meubles`, P2 | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -768,16 +769,17 @@ vraie règle à écrire est qu'une `cadence_note` décrive la **cadence**, jamai
 chargement — cet état a déjà sa colonne, `last_success_at`, et un invariant peut recouper les
 deux.
 
-## 48. Trois tables neuves sur trois ont oublié la contrainte de finitude — le modèle de migration ne la porte pas — mesuré le 10 septembre 2026
+## 48. Deux tables neuves sur trois ont oublié la contrainte de finitude, et la troisième dit pourquoi — mesuré le 10 septembre 2026
 
-**Le fait, daté trois fois.** `I42` exige qu'une colonne géographique porte une contrainte
-`CHECK` validée interdisant `NaN` et `Infinity`. Trois tables neuves l'ont oubliée à la suite,
-et l'invariant les a attrapées toutes les trois — au lendemain de leur pose, jamais avant :
+**Le fait, corrigé par la revue de #100 le 10 septembre.** Une version antérieure de cette
+section disait « trois sur trois » ; la mesure en dit **deux**, et la troisième est
+l'enseignement. `I42` exige qu'une colonne géographique porte une contrainte `CHECK` validée
+interdisant `NaN` et `Infinity` :
 
 | Table | Posée | Contrainte ajoutée par |
 | --- | --- | --- |
 | `idfm_station` | 7 septembre 2026 | `20260907000003`, après la revue de `#97` |
-| `filosofi_grid_200m` | 8 septembre 2026 | portée dans la migration d'origine après revue |
+| `filosofi_grid_200m` | 8 septembre 2026 | **portée dans sa migration d'origine** (`20260908000001` l. 93) — attrapée par une revue AVANT la pose, zéro migration supplémentaire |
 | `meuble_autorisation` | 10 septembre 2026 | `20260910000004`, après `I42` |
 
 **Ce que ça dit, et ce n'est pas que les sessions sont distraites.** L'invariant fonctionne : il

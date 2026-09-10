@@ -490,32 +490,38 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 - **Comment.** opendata.paris.fr registre des autorisations de changement d'usage. Comptage dans 200 m, millésime. Phrase : « n autorisations dans 200 m ».
 - **Doctrine.** Densité d'autorisations, pas un taux Airbnb au noir. Ça sépare deux rues.
 - **Fait quand.** Le Marais touristique et une rue du 20e résidentiel n'ont pas le même n à 200 m.
-- **Avancement, mesuré le 8 septembre 2026 — endpoint choisi, migration préparée, NON POSÉE.**
+- **Avancement, mesuré le 10 septembre 2026 — quatre migrations POSÉES, source chargée.**
   Endpoint vérifié (`scripts/porte/catalogue.json`) : registre des autorisations de changement
   d'usage sur opendata.paris.fr (`registre-des-autorisations-de-changement-dusage-pour-les-meubles`),
-  265 lignes, ODbL confirmée, aucune édition figée coexistante (contrairement à IDFM,
-  DIAGNOSTIC.md §45) — vérifié par une recherche de titre sur le catalogue, un seul
-  `dataset_id`. Migration écrite, `20260908000002_meuble_autorisation.sql` : table
-  `meuble_autorisation` (265 lignes attendues, identifiant parsé du champ `commentaire`),
-  fonction `compass_meubles_within` (densité par rayon, défaut 200 m, doctrine écrite dans le
-  `comment on function`, lu par PostgREST). **Non posée** — interdit ferme de cette session,
-  deux arbres de travail parallèles ne doivent pas écrire sur la même base vivante. Volontairement
-  **non enregistrée dans `ingestion_run`** : #70 lit les migrations sur disque qu'elles soient
-  posées ou non, donc déclarer la source sans cron ni premier chargement aurait été le trou que
-  #70 a fermé — l'enum de cadence, la ligne `ingestion_run`, le cron d'`ingestion.yml` et le
-  premier passage de `scripts/ingest/meubles.ts` sont laissés en UNE seule migration de suite
-  pour Ivan. Le "Fait quand" est déjà vérifiable contre le portail lui-même, avant la pose : les
-  facettes `arrondissement` du jeu source donnent 50 décisions cumulées sur 75003+75004 (le
-  Marais) contre 4 sur 75020, mesuré le 8 septembre 2026 — une illustration, jamais une preuve.
-  La preuve dérivée est `eval/invariants.sql` I55 (recalcul indépendant de
-  `compass_meubles_within` sur les 265 décisions du registre, chacune comme point de sonde) et
-  son miroir I56 (corpus vide / grant anon retiré) — **non mesurés contre le distant** : aucune
-  `DATABASE_URL` dans cet arbre de travail. **Ce qui manque avant de clore #27** : qu'Ivan pose
-  la migration, ajoute dans la même migration l'enregistrement `ingestion_run` et l'enum de
-  cadence, charge `scripts/ingest/meubles.ts`, ajoute le cron d'`ingestion.yml` dans la même
-  fenêtre, puis mesure I55/I56 et le budget anon de `compass_meubles_within` (ligne posée à
-  500 pages / 50 ms, plafond volontairement large et non mesuré, dans
-  `eval/baselines/anon-budget.json`) contre le distant.
+  ODbL confirmée, aucune édition figée coexistante — contrairement à IDFM, `DIAGNOSTIC.md` §45.
+  Table `meuble_autorisation`, fonction `compass_meubles_within` (densité par rayon, défaut
+  200 m, doctrine écrite dans le `comment on function`, donc lue par PostgREST).
+  `npm.cmd run ledger` rend **PASS 63/63, 0 écart** ; `freshness` affiche `meubles` — cadence
+  `annual`, **265 lignes**, à jour.
+
+  **L'enregistrement dans `ingestion_run` a été délibérément séparé, et c'est ce qui a bien
+  fonctionné** : #70 lit les migrations sur disque qu'elles soient posées ou non, donc déclarer
+  la source sans cron ni premier chargement aurait rouvert le trou que #70 a fermé. L'enum de
+  cadence, la ligne `ingestion_run`, le cron d'`ingestion.yml` et le premier passage de
+  `scripts/ingest/meubles.ts` sont partis **dans la même fenêtre**, le 10 septembre.
+
+  **Le budget anon a été mesuré deux fois, et la première ne valait rien.** La ligne portait
+  500 pages / 50 ms — un plafond volontairement large, jamais une mesure, la session d'écriture
+  travaillant dans un arbre isolé sans `DATABASE_URL`. Remesuré après la pose : 41 pages sur
+  trois passages. Puis `20260910000003` a redéfini la fonction pour qu'elle appelle
+  `compass_record_question` — elle écrit désormais au journal —, et la mesure est passée à
+  **78 pages sur trois exécutions d'`eval`, puis 80 à la quatrième**. Plafond posé à **90** par
+  marge, avec sa cause écrite. C'est le défaut [#117](https://github.com/IvandeMurard/paris-compass/issues/117) :
+  rien ne relie une ligne de budget au corps de fonction qu'elle a mesuré.
+
+  **L'illustration**, jamais la preuve : les facettes `arrondissement` du jeu source donnent
+  50 décisions cumulées sur 75003+75004 (le Marais) contre 4 sur 75020, mesuré le 8 septembre.
+  **La preuve** est `I55` — recalcul indépendant de `compass_meubles_within` sur les 265
+  décisions, chacune comme point de sonde — et son miroir `I56`, qui rougit sur un corpus vide.
+  Les deux sont **verts contre le distant** depuis le 10 septembre. `I56` ne garde en revanche
+  **pas** la politique RLS, contrairement à ce que son en-tête a affirmé un temps : `@as anon`
+  pose un claim JWT et non un rôle, et c'est l'issue
+  [#102](https://github.com/IvandeMurard/paris-compass/issues/102).
 
 #### w4-ecoles — Effectifs scolaires
 
