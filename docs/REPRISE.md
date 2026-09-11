@@ -893,6 +893,23 @@ docs/tickets/w2-idfm.md.
 
 ## La suite, par ordre
 
+18. **`w6-contexte` (#119) est fait à MOITIÉ, et la moitié qui reste est celle qui retire.**
+    Les étapes **1 et 2** sont livrées le 10 septembre 2026 et sont **additives** : la fonction
+    pure `src/core/verdict.ts` avec ses 16 tests, et la route `/contexte/:slug` +
+    `/en/context/:slug`. Rien n'a été retiré, donc l'application est entière.
+
+    **Restent les étapes 3 à 6**, et elles retirent : l'accueil perd la carte, le voile et les
+    trois piliers ; l'exploration libre part sur `/carte` ; `ContextMap` ; la comparaison
+    bornée à **deux** adresses ; le lien de parité agent. Deux critères de « Fait quand » ne
+    sont donc **pas** démontrés — le n° 2 (le MCP rend le même verdict que l'écran, vérifié
+    par `verify:mcp`) et le n° 6 (le sitemap porte `/carte`). `/contexte/*` est en `noindex`
+    et n'a pas vocation à entrer au sitemap.
+
+    **Ce que la moitié livrée démontre déjà** : le verdict refuse de se composer quand un
+    constat porteur est retenu ou indéterminé — démontré par contre-preuve en test **et à
+    l'écran**, miroirs Overpass coupés, le 10 septembre. **Une revue est due** : la session
+    touche `src/core/`.
+
 17. **`ticket/w2-idfm` attend une seule commande, et elle n'est pas dans mes mains.**
     Ouvert le 7 septembre 2026, **revu** le même jour (revue de #97), **corrigé** dans la
     foulée. État réel : `20260907000001_idfm_cadence.sql` et

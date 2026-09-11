@@ -81,6 +81,17 @@ const COPY = {
     provenanceTitle: 'D’où vient chaque chiffre',
     provenanceBody:
       'Chaque score porte la source de la couche de données qu’il lit réellement, et non une source unique valable pour toute la fiche. Les cinq familles d’équipements, la marchabilité et le bruit viennent d’OpenStreetMap. Le flux piéton estimé, lui, mélange deux couches : la densité de commerces actifs et l’accès aux transports. Il nomme donc les deux sources, cumule leurs licences — un chiffre composé oblige à respecter les deux — et porte la plus ancienne de leurs deux dates, parce qu’un chiffre composé n’est jamais plus frais que son ingrédient le plus ancien. Dans le navigateur, les trois couches proviennent aujourd’hui du même instantané OpenStreetMap, donc la mention est unique. Ce n’est pas le cas de l’interface destinée aux agents, qui lit les locaux dans la BDCom de l’APUR et les équipements dans OpenStreetMap : le flux piéton y cite les deux.',
+    verdictTitle: 'Comment le verdict d’une fiche de contexte est composé',
+    verdictIntro:
+      'La fiche de contexte d’une adresse ouvre sur une phrase. Cette phrase n’est pas rédigée : elle est composée par une fonction publiée, à partir des constats déjà calculés, et elle nomme ceux qu’elle a utilisés. Comme les formules ci-dessus, la règle est ici parce qu’elle est affichée à tout le monde.',
+    verdictRule:
+      'Trois constats portent le verdict — le passage, la desserte et les services à pied. Quand l’un des trois est retenu pour licence, hors du corpus, issu d’une source injoignable ou simplement indéterminé, le verdict ne se compose pas : la fiche dit lequel manque et pourquoi, et affiche séparément les constats qui ont abouti. Conclure par-dessus une absence est le défaut que cette règle existe pour empêcher.',
+    verdictSupport:
+      'Les commerces alimentaires et le bruit routier viennent en appui. Leur absence ne bloque rien, et leur présence n’entre pas dans la phrase : ils qualifient une réponse, ils ne sont pas la réponse.',
+    verdictNoScore:
+      'Aucune note sur 100 n’est produite pour une adresse, et ce n’est pas un oubli. Les pondérations entre passage, desserte et calme dépendent du métier — une note unique moyennerait ce qui s’oppose, et un boulanger et un cabinet comptable ne liraient pas le même chiffre de la même façon. Le verdict est une phrase d’axes nommés, dont chacun se déplie sur sa source, sa licence, son millésime et sa méthode.',
+    verdictLimit:
+      'Ce que cette règle ne rattrape pas : un chiffre présent mais faible se compose quand même. Le flux piéton est une approximation par construction, faute de comptage piéton ouvert en Île-de-France ; refuser sur ce motif refuserait tous les verdicts, partout. La réserve voyage alors avec le constat, et se lit sous le chevron.',
     missingTitle: 'Quand une source manque',
     missingBody:
       'Un score n’est calculé que si la couche de données dont il dépend a réellement été chargée. Si elle manque, Compass n’affiche pas 0 : il affiche « n/d » et indique pourquoi. La distinction compte surtout pour le bruit, où un 0 se lirait « très faible » — soit une rue calme affirmée à partir d’une donnée absente. Un quartier réellement dépourvu d’équipements, lui, reçoit bien un 0 : c’est un comptage, pas une lacune.',
@@ -161,6 +172,17 @@ const COPY = {
     provenanceTitle: 'Where each figure comes from',
     provenanceBody:
       'Every score carries the source of the data layer it actually reads, not one source stamped on the whole card. The five amenity families, walkability and noise come from OpenStreetMap. Estimated foot traffic mixes two layers instead — active-shop density and transport access — so it names both sources, carries both licences (a composite figure binds you to both), and takes the older of the two dates, because a composite is never fresher than its oldest ingredient. In the browser all three layers currently come from the same OpenStreetMap snapshot, so a single mention is accurate. That is not true of the agent-facing interface, which reads premises from APUR’s BDCom survey and amenities from OpenStreetMap: there, foot traffic cites both.',
+    verdictTitle: 'How a context sheet composes its verdict',
+    verdictIntro:
+      'The context sheet of an address opens on one sentence. That sentence is not written by hand: it is composed by a published function from the findings already computed, and it names the ones it used. Like the formulas above, the rule is here because the sentence is shown to everyone.',
+    verdictRule:
+      'Three findings bear the verdict — footfall, transit access and services on foot. When one of the three is withheld for licence, outside the corpus, coming from an unreachable source or simply undetermined, the verdict does not compose: the sheet says which one is missing and why, and shows the findings that did resolve separately. Concluding over an absence is the defect this rule exists to prevent.',
+    verdictSupport:
+      'Food shops and road noise come alongside. Their absence blocks nothing, and their presence does not enter the sentence: they qualify an answer, they are not the answer.',
+    verdictNoScore:
+      'No score out of 100 is produced for an address, and that is not an oversight. The weights between footfall, transit and quiet depend on the trade — a single score would average things that pull against each other, and a baker and an accountancy practice would not read the same figure the same way. The verdict is a sentence of named axes, each unfolding onto its source, licence, vintage and method.',
+    verdictLimit:
+      'What this rule does not catch: a figure that is present but weak still composes. Estimated foot traffic is a proxy by construction, since no open pedestrian count covers Île-de-France; refusing on that ground would refuse every verdict, everywhere. The caveat then travels with the finding, and is read under its chevron.',
     missingTitle: 'When a source is missing',
     missingBody:
       'A score is only computed if the data layer it depends on actually loaded. When that layer is missing, Compass does not show 0: it shows "n/a" and says why. The distinction matters most for noise, where a 0 would read as "very low" — a quiet street asserted from absent data. A neighbourhood genuinely without amenities does get a 0: that is a count, not a gap.',
@@ -299,6 +321,18 @@ const Methodology = () => {
         <section>
           <h2 className="text-xl font-semibold">{c.provenanceTitle}</h2>
           <p className="mt-3 text-muted-foreground">{c.provenanceBody}</p>
+        </section>
+
+        {/* CLAUDE.md requires the formulas of src/core/scoring.ts to be published here. A
+            sentence shown to every visitor needs its method no less than a number does, so the
+            composition rule of src/core/verdict.ts is published under the same obligation. */}
+        <section>
+          <h2 className="text-xl font-semibold">{c.verdictTitle}</h2>
+          <p className="mt-3 text-muted-foreground">{c.verdictIntro}</p>
+          <p className="mt-3 text-muted-foreground">{c.verdictRule}</p>
+          <p className="mt-3 text-muted-foreground">{c.verdictSupport}</p>
+          <p className="mt-3 text-muted-foreground">{c.verdictNoScore}</p>
+          <p className="mt-3 text-muted-foreground">{c.verdictLimit}</p>
         </section>
 
         <section>

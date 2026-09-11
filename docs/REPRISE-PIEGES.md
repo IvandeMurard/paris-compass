@@ -976,3 +976,28 @@ nous. La seule chose qui protège vraiment un consommateur est **la version de
 **Ce que ça ne rattrape pas.** Un tiers qui a installé **avant** la publication d'une correction
 garde l'arbre vulnérable jusqu'à sa prochaine installation, et rien de ce que fait ce dépôt ne
 l'atteint. Il n'y a pas de rappel de lot en npm.
+
+## Le panneau de navigation masqué ne peint pas, donc `react-helmet-async` n'écrit rien dans `<head>` — 10 septembre 2026
+
+**Ce qui a été observé, et pendant combien de temps ça a ressemblé à un défaut.** En vérifiant le
+`noindex` de `/contexte/:slug` (`w6-contexte`, #119), le `<head>` du serveur de développement ne
+portait **ni `<title>` de page, ni `canonical`, ni `alternate`, ni `robots`** — sur la page neuve
+comme sur `/methodologie`, qui utilise le même composant `Seo` depuis des semaines. La conclusion
+évidente — « `Seo` est inerte, `HelmetProvider` manque » — est fausse : `src/main.tsx` monte bien
+`HelmetProvider`.
+
+**La cause.** `react-helmet-async` applique ses balises derrière `requestAnimationFrame` quand
+`defer` vaut vrai, et `defer` vaut vrai par défaut (`node_modules/react-helmet-async/lib/index.js`,
+`handleStateChangeOnClient`). Un onglet dont l'onglet est **masqué** ne peint pas : `rAF` ne se
+déclenche jamais, et rien n'est jamais posé. Mesuré sur place — `document.visibilityState` rendait
+`"hidden"` et un `requestAnimationFrame` posé à la main n'a pas tiré en 1 500 ms.
+
+**Comment trancher en dix secondes**, avant de soupçonner le code : poser un `rAF` et voir s'il
+tire. S'il ne tire pas, `<head>` ne prouve rien. Une fois la fenêtre revenue au premier plan, la
+même page portait `robots: noindex, follow`, le `canonical` et les trois `alternate` attendus.
+
+**Ce que ça ne rattrape pas.** Le même mécanisme vaut pour un robot d'indexation qui n'exécute pas
+de rendu, et pour toute capture faite dans un onglet d'arrière-plan. Ce n'est pas un piège d'outil
+seulement : c'est une propriété du produit, et le jour où le référencement des pages générées se
+rediscutera (voir `docs/tickets/w6-contexte.md`, « Le référencement »), c'est `defer` qu'il faudra
+regarder en premier.
