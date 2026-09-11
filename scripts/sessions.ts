@@ -333,7 +333,14 @@ function claims(block: string): string[] {
  */
 function rowsById(block: string): Map<string, string> {
   const out = new Map<string, string>()
-  for (const line of block.split("\n")) {
+  // `.replace(/\r\n/g, "\n")` and not `split("\n")` alone: JavaScript's `.` does not match
+  // a carriage return, so on a CRLF checkout the `(.*)$` below matched NOTHING and every row
+  // was reported "absent de la table" — including rows plainly present. The drift verdict
+  // itself was right (claims() trims); only the explanation was false, which is worse than
+  // no explanation: it sent a reader looking for a missing table instead of one changed row.
+  //
+  // Fourth time this repository pays for CRLF, and the second time in this very file.
+  for (const line of block.replace(/\r\n/g, "\n").split("\n")) {
     const m = line.match(/\|\s*~?~?\d+~?~?\s*\|\s*~*`?([\w-]+)`?~*\s*\|(.*)$/)
     if (m) out.set(m[1], m[2].trim())
   }
@@ -353,9 +360,33 @@ function main() {
   }
 
   for (const r of rows) {
-    // Issue titles carry the id: "[P0] w0-history — ...". Match on the id alone so a
-    // reworded title never breaks the link.
-    r.issue = issues.find((i) => new RegExp(`\\b${r.id}\\b`).test(i.title))
+    // The link between a ticket and its issue is the title convention, ANCHORED:
+    // "[P1] w6-contexte — ...". Matching the id anywhere in the title was robust to a
+    // reworded title and fragile to something far more common: another issue that merely
+    // NAMES the ticket. On 11 September 2026 an issue titled "... et trois petites dettes de
+    // w6-contexte" took the row from #119, and the table published the wrong issue number
+    // for the ticket a session was working on. `find` cannot report a choice it never knew
+    // it had — it returns the first match and says nothing.
+    //
+    // Measured the same day: 52 issues follow the convention, for 52 rows in the table.
+    // Anchoring loses no link.
+    const officielles = issues.filter((i) =>
+      new RegExp(`^\\[P\\d\\]\\s+${r.id}\\s`).test(i.title),
+    )
+
+    // Two issues claiming one ticket is an ambiguity, and an ambiguity resolved in silence
+    // is how the wrong number gets published. Say it, and stop.
+    if (officielles.length > 1) {
+      console.error(
+        `${r.id} : ${officielles.length} issues portent le titre officiel du ticket — ` +
+          officielles.map((i) => `#${i.number}`).join(", ") +
+          `.\nUne seule issue par ticket. Renommer les autres : le titre « [Pn] <ticket> — » ` +
+          `est ce qui lie la table au ticket, pas une mention du nom.`,
+      )
+      process.exit(1)
+    }
+
+    r.issue = officielles[0]
   }
 
   const doc = readFileSync(DOC, "utf8")
