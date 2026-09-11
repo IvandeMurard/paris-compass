@@ -210,7 +210,7 @@ fautive.
 
 <!-- BEGIN sessions -- généré par `npm.cmd run sessions`, ne pas éditer à la main -->
 
-*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 10/09/2026.*
+*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 11/09/2026.*
 
 | # | Ticket | Issue | État | Prio | Modèle |
 | --- | --- | --- | --- | --- | --- |
@@ -232,7 +232,7 @@ fautive.
 | ~~16~~ | ~~`w1-porte-planifiee`~~ | [#71](https://github.com/IvandeMurard/paris-compass/issues/71) | **fait** | P1 | Opus 5 |
 | ~~17~~ | ~~`w1-porte-lue`~~ | [#77](https://github.com/IvandeMurard/paris-compass/issues/77) | **fait** | P1 | Opus 5 |
 | ~~18~~ | ~~`w1-porte-publiee`~~ | [#76](https://github.com/IvandeMurard/paris-compass/issues/76) | **fait** | P1 | Opus 5 |
-| ~~19~~ | ~~`w1-observabilite`~~ | [#81](https://github.com/IvandeMurard/paris-compass/issues/81) | **fait** | P1 | Opus 5 |
+| ~~19~~ | ~~`w1-observabilite`~~ | [#72](https://github.com/IvandeMurard/paris-compass/issues/72) | **fait** | P1 | Opus 5 |
 | ~~20~~ | ~~`w1-catalogue`~~ | [#73](https://github.com/IvandeMurard/paris-compass/issues/73) | **fait** | P1 | Opus 5 |
 | ~~21~~ | ~~`w1-observabilite-echappement`~~ | [#81](https://github.com/IvandeMurard/paris-compass/issues/81) | **fait** | P1 | Opus 5 |
 | ~~22~~ | ~~`w1-ledger`~~ | [#82](https://github.com/IvandeMurard/paris-compass/issues/82) | **fait** | P1 | Opus 5 |
