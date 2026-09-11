@@ -19,7 +19,7 @@
  * removed — so an interrupted session leaves the application whole.
  */
 
-import { useEffect, useMemo } from 'react';
+import { Suspense, lazy, useEffect, useMemo } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Map as MapIcon } from 'lucide-react';
 import Seo from '@/components/Seo';
@@ -34,6 +34,11 @@ import { CONTEXT_COPY } from '@/i18n/contextText';
 import { useLocale } from '@/i18n/locale';
 import { contextPath, fromSlug, isResolvableSlug, pointFromParams } from '@/lib/addressSlug';
 import { collectGaps } from '@/lib/contextGaps';
+
+// Leaflet is loaded only once a sheet has figures to illustrate. Criterion 3 asks that the
+// verdict and the findings be readable without scrolling; a mapping library in the critical
+// path of that first paint would be the one thing able to delay it.
+const ContextMap = lazy(() => import('@/components/context/ContextMap'));
 
 const Context = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -165,6 +170,17 @@ const Context = () => {
               </section>
 
               <ContextGaps gaps={gaps} />
+
+              {point && (
+                <Suspense fallback={null}>
+                  <ContextMap
+                    point={point}
+                    points={context.data.points}
+                    scores={context.data.scores}
+                    loaded={context.data.loaded}
+                  />
+                </Suspense>
+              )}
             </div>
           )}
         </div>

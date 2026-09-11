@@ -89,6 +89,15 @@ export const CONTEXT_COPY = {
     address: 'Adresse',
     coords: 'Point',
     backToMap: 'Ouvrir la carte',
+    mapHeading: 'Autour du point',
+    // The radius is passed in from `FOOTFALL_RADIUS_M`, never typed here: a « 400 » written in
+    // this file is a figure on screen that nothing keeps in step with the core.
+    mapIntro: (radius: number) =>
+      `Ce que les couches affichées ci-dessus contiennent dans ${radius} m autour de l’adresse. Rien d’autre : la carte illustre les constats, elle ne les remplace pas.`,
+    mapAlt: (radius: number) =>
+      `Carte de ${radius} m autour de l’adresse, avec les points des couches ayant servi aux constats.`,
+    mapNotInteractive:
+      'Carte volontairement fixe, sans filtres. Pour explorer librement, ouvrir la carte.',
     methods: {
       measured: 'compté ou relevé',
       modelled: 'sorti d’un modèle publié',
@@ -126,6 +135,13 @@ export const CONTEXT_COPY = {
     address: 'Address',
     coords: 'Point',
     backToMap: 'Open the map',
+    mapHeading: 'Around the point',
+    mapIntro: (radius: number) =>
+      `What the layers shown above contain within ${radius} m of the address. Nothing else: the map illustrates the findings, it does not replace them.`,
+    mapAlt: (radius: number) =>
+      `Map of ${radius} m around the address, showing the points of the layers the findings were computed from.`,
+    mapNotInteractive:
+      'The map is deliberately fixed, with no filters. To explore freely, open the map.',
     methods: {
       measured: 'counted or surveyed',
       modelled: 'output of a published model',

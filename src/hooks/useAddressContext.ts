@@ -27,11 +27,12 @@ import {
   type AreaScores,
   type Layer,
   type LayerOrigins,
+  type NeighbourhoodContext,
   type Withholding,
 } from '@/core';
 import { geocode, type GeocodeResult } from '@/services/opendata/geocoding';
 import { fetchOverpassSnapshot } from '@/services/opendata/overpass';
-import { buildScoringIndex } from '@/services/opendata/scoring';
+import { toNeighbourhoodContext } from '@/services/opendata/scoring';
 import type { BBox } from '@/services/opendata/types';
 
 /** Overpass answers with the current state of the map, so the query date is the vintage. */
@@ -65,6 +66,14 @@ export interface AddressContext {
   withheldBy: Partial<Record<Layer, Withholding>>;
   /** Layers that actually came back — what the gaps block reads to name what is missing. */
   loaded: readonly Layer[];
+  /**
+   * The points the scores were computed on — w6-contexte (#119), step 5.
+   *
+   * `ContextMap` draws these and no others. The alternative was a second fetch for the map,
+   * which would have let the picture and the figures disagree without anything saying so: a
+   * mirror answering twice, a minute apart, is enough. One snapshot, scored and drawn.
+   */
+  points: NeighbourhoodContext;
   bbox: BBox;
 }
 
@@ -87,22 +96,36 @@ export async function fetchAddressContext(point: {
   const origins = uniformOrigins(OSM_ORIGIN(today()));
   try {
     const snapshot = await fetchOverpassSnapshot(bbox);
-    const index = buildScoringIndex(snapshot, bbox);
+    const points = toNeighbourhoodContext(snapshot, bbox);
     return {
-      scores: scoreLocation(point, index, origins),
+      scores: scoreLocation(point, buildIndex(points), origins),
       origins,
       withheldBy: {},
       loaded: snapshot.loaded,
+      points,
       bbox,
     };
   } catch {
     // Three mirrors refused, or the payload was malformed. `fetchOverpassSnapshot` has already
     // walked all of them once; the layer is unreachable, not empty, and the difference is the
     // whole point — an empty context declared `loaded` would score a measured zero.
-    const empty = buildIndex({ amenities: [], premises: [], roads: [], bounds: bbox, loaded: [] });
+    const empty: NeighbourhoodContext = {
+      amenities: [],
+      premises: [],
+      roads: [],
+      bounds: bbox,
+      loaded: [],
+    };
     const withheldBy: Partial<Record<Layer, Withholding>> = {};
     for (const layer of ALL_LAYERS) withheldBy[layer] = 'source_injoignable';
-    return { scores: scoreLocation(point, empty, origins), origins, withheldBy, loaded: [], bbox };
+    return {
+      scores: scoreLocation(point, buildIndex(empty), origins),
+      origins,
+      withheldBy,
+      loaded: [],
+      points: empty,
+      bbox,
+    };
   }
 }
 
