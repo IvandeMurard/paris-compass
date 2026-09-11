@@ -13,31 +13,123 @@
  * only through the sitemap's editorial URLs. An indexable middle level — the quartier, or the
  * street, never the address — stays open and is deliberately not decided here.
  *
- * **What this page is NOT, yet.** Steps 3 to 6 of the ticket remain: the home page still holds
- * the map, there is no `/carte`, no `ContextMap`, no two-address comparison and no agent-parity
- * link. This half is purely additive on purpose — a new function and a new route, nothing
- * removed — so an interrupted session leaves the application whole.
+ * **What the page holds, in reading order.** The verdict or its refusal, the findings each with
+ * its provenance chevron, what Compass does not know *here*, the 400 m map in support, the
+ * comparison with at most one second address, and the MCP call that answers the same question.
+ * Steps 3 to 6 of the ticket, completed 11 September 2026.
+ *
+ * **The comparison is bounded to two, and the bound is structural.** `compareAddresses` takes
+ * two arguments and returns an `a` and a `b`; the URL carries one `compare=` key, and a URL
+ * naming several is refused rather than truncated to its first value. See
+ * `secondAddressFromParams`.
  */
 
-import { useEffect, useMemo } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Map as MapIcon } from 'lucide-react';
+import { Suspense, lazy, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Map as MapIcon, X } from 'lucide-react';
 import Seo from '@/components/Seo';
 import SiteFooter from '@/components/SiteFooter';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import ContextAgentCall from '@/components/context/ContextAgentCall';
+import ContextCompare from '@/components/context/ContextCompare';
 import ContextFinding from '@/components/context/ContextFinding';
 import ContextGaps from '@/components/context/ContextGaps';
 import ContextVerdict from '@/components/context/ContextVerdict';
-import { composeVerdict, findingsFromScores, VERDICT_AXIS_ORDER } from '@/core';
+import {
+  compareAddresses,
+  compareToolCall,
+  composeVerdict,
+  contextToolCall,
+  findingsFromScores,
+  VERDICT_AXIS_ORDER,
+} from '@/core';
 import { useAddressContext, useAddressFromSlug } from '@/hooks/useAddressContext';
 import { CONTEXT_COPY } from '@/i18n/contextText';
 import { useLocale } from '@/i18n/locale';
-import { contextPath, fromSlug, isResolvableSlug, pointFromParams } from '@/lib/addressSlug';
+import {
+  contextPath,
+  fromSlug,
+  isResolvableSlug,
+  pointFromParams,
+  secondAddressFromParams,
+  withComparison,
+} from '@/lib/addressSlug';
 import { collectGaps } from '@/lib/contextGaps';
+import { geocode } from '@/services/opendata/geocoding';
+
+// Leaflet is loaded only once a sheet has figures to illustrate. Criterion 3 asks that the
+// verdict and the findings be readable without scrolling; a mapping library in the critical
+// path of that first paint would be the one thing able to delay it.
+const ContextMap = lazy(() => import('@/components/context/ContextMap'));
+
+/**
+ * The field that attaches a second address.
+ *
+ * It resolves the address itself and hands the caller a label and a point, so the URL gets the
+ * canonical coordinates rather than a slug the sheet would have to geocode again. It cannot
+ * attach a third: `withComparison` rewrites the comparison keys instead of appending them.
+ */
+const CompareField = ({
+  onResolved,
+}: {
+  onResolved: (label: string, point: { lat: number; lng: number }) => void;
+}) => {
+  const { locale } = useLocale();
+  const c = CONTEXT_COPY[locale];
+  const [query, setQuery] = useState('');
+  const [state, setState] = useState<'idle' | 'searching' | 'notFound'>('idle');
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    const search = query.trim();
+    if (search.length < 3) return;
+    setState('searching');
+    try {
+      const [match] = await geocode(search, 1);
+      if (!match) {
+        setState('notFound');
+        return;
+      }
+      setState('idle');
+      setQuery('');
+      onResolved(match.label, match);
+    } catch {
+      setState('notFound');
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="mt-3 flex flex-col gap-2 sm:flex-row">
+      <label htmlFor="compare-address" className="sr-only">
+        {c.compareOther}
+      </label>
+      <Input
+        id="compare-address"
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          if (state === 'notFound') setState('idle');
+        }}
+        placeholder={c.comparePlaceholder}
+        className="flex-1"
+      />
+      <Button type="submit" variant="outline" disabled={state === 'searching'}>
+        {c.compareSubmit}
+      </Button>
+      <p aria-live="polite" className="sr-only">
+        {state === 'notFound' ? c.compareNotFound : ''}
+      </p>
+    </form>
+  );
+};
 
 const Context = () => {
   const { slug } = useParams<{ slug: string }>();
   const [params] = useSearchParams();
+  // The raw query string, kept so the comparison keys are rewritten into the URL the visitor is
+  // actually on — the coordinates of the first address must survive attaching a second.
+  const { search: querySearch } = useLocation();
   const navigate = useNavigate();
   const { locale, lp } = useLocale();
   const c = CONTEXT_COPY[locale];
@@ -105,13 +197,42 @@ const Context = () => {
 
   const notFound = fromUrl === null && geocoded.isFetched && !geocoded.data;
 
+  // ── The second address, bounded to one. See `secondAddressFromParams` for why the plural is
+  // read and refused rather than silently truncated to the first value.
+  const second = secondAddressFromParams(params);
+  const secondSearch = second.kind === 'one' ? fromSlug(second.slug) : '';
+  const secondGeocoded = useAddressFromSlug(secondSearch, second.kind === 'one');
+  const secondPoint =
+    second.kind === 'one'
+      ? (second.point ??
+        (secondGeocoded.data ? { lat: secondGeocoded.data.lat, lng: secondGeocoded.data.lng } : null))
+      : null;
+  const secondLabel = secondGeocoded.data?.label ?? secondSearch;
+  const secondContext = useAddressContext(secondPoint);
+
+  const comparison = useMemo(
+    () =>
+      context.data && secondContext.data
+        ? compareAddresses(
+            findingsFromScores(context.data.scores, context.data.withheldBy),
+            findingsFromScores(secondContext.data.scores, secondContext.data.withheldBy),
+            locale,
+          )
+        : null,
+    [context.data, secondContext.data, locale],
+  );
+
+  // The invocation shown to a visitor is the comparison's when there is one, the sheet's
+  // otherwise — one call, matching what the page is actually displaying.
+  const agentCall =
+    point && secondPoint ? compareToolCall(point, secondPoint) : point ? contextToolCall(point) : null;
+
   return (
     <div className="min-h-screen bg-customBg font-sans flex flex-col">
       <Seo
         title={label ? `${c.metaTitle} — ${label}` : c.metaTitle}
         description={c.metaDescription}
         path={`/contexte/${slug ?? ''}`}
-        enPath={`/en/context/${slug ?? ''}`}
         noindex
       />
 
@@ -121,7 +242,7 @@ const Context = () => {
             Compass
           </Link>
           <Button asChild variant="ghost" size="sm">
-            <Link to={lp('/')}>
+            <Link to={lp('/carte')}>
               <MapIcon size={16} className="mr-2" />
               {c.backToMap}
             </Link>
@@ -166,6 +287,59 @@ const Context = () => {
               </section>
 
               <ContextGaps gaps={gaps} />
+
+              {point && (
+                <Suspense fallback={null}>
+                  <ContextMap
+                    point={point}
+                    points={context.data.points}
+                    scores={context.data.scores}
+                    loaded={context.data.loaded}
+                  />
+                </Suspense>
+              )}
+
+              {comparison && (
+                <ContextCompare comparison={comparison} labelA={label} labelB={secondLabel} />
+              )}
+
+              <section aria-labelledby="compare-form" className="rounded-lg border bg-white p-5">
+                <h2
+                  id="compare-form"
+                  className="text-sm font-semibold uppercase tracking-wide text-muted-foreground"
+                >
+                  {c.compareHeading}
+                </h2>
+                <p className="mt-2 text-sm text-muted-foreground">{c.compareHelp}</p>
+
+                {second.kind === 'refus' && (
+                  <p className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                    {c.compareTooMany}
+                  </p>
+                )}
+
+                {second.kind === 'one' && secondContext.isPending && (
+                  <p className="mt-3 text-sm text-muted-foreground">{c.compareLoading}</p>
+                )}
+
+                {second.kind === 'one' ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-3"
+                    onClick={() => navigate({ search: withComparison(querySearch, null, null) })}
+                  >
+                    <X size={14} className="mr-1" aria-hidden />
+                    {c.compareClear}
+                  </Button>
+                ) : (
+                  <CompareField
+                    onResolved={(l, p) => navigate({ search: withComparison(querySearch, l, p) })}
+                  />
+                )}
+              </section>
+
+              {agentCall && <ContextAgentCall call={agentCall} />}
             </div>
           )}
         </div>

@@ -56,12 +56,25 @@ export type VerdictAxis = 'footfall' | 'transit' | 'walkability' | 'groceries' |
  * injoignable » lead to three different actions — a letter to APUR, a point outside Paris, a
  * mirror — and telling them apart with `includes()` on an English sentence would hang the
  * distinction on a reformulation. The producer of the failure names it.
+ *
+ * The values are a `const` array and the type is derived from it, rather than the reverse. A
+ * caller holding an arbitrary string — the MCP server holds a `QuestionOutcome`, a wider set —
+ * has to decide, at runtime, whether it is one of these; with the type alone it could only do
+ * that against a second hand-written list, free to fall out of step with this one.
  */
-export type Withholding =
-  | 'retenue_licence'
-  | 'hors_corpus'
-  | 'source_injoignable'
-  | 'indetermine';
+export const WITHHOLDINGS = [
+  'retenue_licence',
+  'hors_corpus',
+  'source_injoignable',
+  'indetermine',
+] as const;
+
+export type Withholding = (typeof WITHHOLDINGS)[number];
+
+/** The withholding a wider vocabulary maps to, or `indetermine` when it names no absence.
+ *  Derived from `WITHHOLDINGS`, so a fifth cause is classified the day it is added. */
+export const asWithholding = (motif: string): Withholding =>
+  (WITHHOLDINGS as readonly string[]).includes(motif) ? (motif as Withholding) : 'indetermine';
 
 export interface VerdictAxisRule {
   /** When true, the verdict refuses to compose without this axis. */
@@ -261,6 +274,19 @@ const COPY: Record<
 };
 
 const capitalise = (s: string) => (s ? s[0].toLocaleUpperCase() + s.slice(1) : s);
+
+/**
+ * The clause an axis reads at a band, and the sentence used when a finding was never computed.
+ *
+ * Exported for `comparison.ts`, which shows the same prose in a two-address table. A second
+ * copy of these words elsewhere would read identically the day it was written and drift the
+ * day one of them is reworded — and the drift would show up as a sentence and a table
+ * disagreeing about the same address, which is worse than either being wrong alone.
+ */
+export const clauseText = (axis: VerdictAxis, band: Band, locale: VerdictLocale = 'fr'): string =>
+  CLAUSES[locale][axis][band];
+
+export const noFindingText = (locale: VerdictLocale = 'fr'): string => COPY[locale].noFinding;
 
 /**
  * Turn a full `AreaScores` into the findings this module reasons over.

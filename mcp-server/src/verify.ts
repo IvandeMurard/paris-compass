@@ -14,6 +14,7 @@
 //   LICENCE     the anonymous path — 2017 and 2020 withheld, 2023 served, and no label
 //               borrowed from a neighbouring row to fill a withheld one
 //   PANNE       base injoignable, miroir Overpass injoignable, point hors boîte, rayon absurde
+//   PARITE      « la même réponse pour un agent » — w6-contexte (#119), critère 2
 //
 // Three outcomes rather than two, because a shared public mirror is not a defect:
 //
@@ -28,6 +29,21 @@
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js"
 import { StdioClientTransport, getDefaultEnvironment } from "@modelcontextprotocol/sdk/client/stdio.js"
+
+import {
+  BEARING_AXES,
+  CONTEXT_TOOL,
+  COMPARE_TOOL,
+  DEFAULT_VINTAGE_YEAR,
+  asWithholding,
+  composeVerdict,
+  contextToolCall,
+  findingsFromScores,
+  type AreaScores,
+  type Layer,
+  type Verdict,
+  type Withholding,
+} from "../../src/core"
 
 // Longer than the 70 000 ms abort overpass.ts sets on each mirror. The SDK's own default is
 // 60 000, which is *shorter*: a mirror answering at 65 s produced a client-side timeout instead
@@ -165,7 +181,9 @@ interface MeasuredField {
 
 interface ScoreResponse {
   scores: Record<string, MeasuredField>
-  context_failures?: { layer: string; reason: string }[]
+  context_failures?: { layer: string; reason: string; motif?: string }[]
+  /** The composed verdict, or its refusal — w6-contexte (#119). */
+  verdict?: Verdict
 }
 
 interface TimelineRow {
@@ -204,7 +222,7 @@ function amenitiesOutage(response: ScoreResponse): string | null {
 // INVENTAIRE — what index.ts registers, against what README.md documents
 // ---------------------------------------------------------------------------
 
-async function checkInventory(client: Client): Promise<void> {
+async function checkInventory(client: Client): Promise<string[]> {
   const listed = await client.listTools()
   const found = listed.tools.map((t) => t.name).sort()
   const expected = Object.keys(EXPECTED_TOOLS).sort()
@@ -244,6 +262,10 @@ async function checkInventory(client: Client): Promise<void> {
     undescribed.length === 0,
     undescribed.length === 0 ? "les six sont décrits" : `sans description : ${undescribed.map((t) => t.name).join(", ")}`,
   )
+
+  // Handed to PARITE, which has to confront the tool name a context sheet PRINTS with the
+  // names the server actually registers.
+  return found
 }
 
 // ---------------------------------------------------------------------------
@@ -695,12 +717,163 @@ async function checkOutsideCorpus(client: Client): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// PARITE — « la même réponse pour un agent », w6-contexte (#119), critère 2
+//
+// ── Ce qui est prouvé, et ce qui ne pouvait pas l'être ────────────────────────────────────
+//
+// Le ticket demande que l'écran et l'agent rendent LE MÊME VERDICT pour la même adresse. Pris
+// au pied de la lettre, c'est faux, et c'est voulu : les deux surfaces ne lisent pas le même
+// corpus. Le navigateur compte les locaux dans le marquage `shop=vacant` d'OpenStreetMap,
+// l'agent dans la BDCom de l'APUR — un relevé porte-à-porte, meilleure source. Exiger des
+// chiffres identiques exigerait de dégrader le serveur au niveau du navigateur.
+//
+// Ce qui est partagé, et ce qui doit l'être, c'est la RÈGLE DE COMPOSITION : à constats égaux,
+// la même phrase. Elle vit dans `src/core/verdict.ts`, que ce paquet compile déjà
+// (`mcp-server/tsconfig.json`) — donc la parité était atteignable sans réécriture, et ce qui
+// manquait était sa vérification.
+//
+// ── Pourquoi ce contrôle n'est pas un rejeu de sa propre composition ──────────────────────
+//
+// Recomposer la phrase du serveur à partir de ce que le serveur a gardé pour lui ne prouverait
+// rien. Ici la recomposition part des CHIFFRES PUBLIÉS — le bloc `scores` et le bloc
+// `context_failures` de la réponse, ceux qu'un agent reçoit. Trois défauts distincts rougissent
+// alors, et aucun ne serait vu par un simple « le champ existe » :
+//
+//   - le serveur a écrit sa propre prose au lieu d'appeler le noyau ;
+//   - le serveur a composé sur des chiffres qu'il n'a pas publiés — une phrase invérifiable ;
+//   - le serveur a composé par-dessus une retenue, qui est `#54 w0-conclusion` nommément,
+//     remonté d'un cran dans la pile.
+//
+// ── Ce que ça NE rattrape PAS ─────────────────────────────────────────────────────────────
+//
+//   - Ça n'exécute AUCUN navigateur. La preuve que l'écran passe par la même fonction est
+//     statique et vit ailleurs : `scripts/porte/verdict.ts`, joué par `npm.cmd run test`,
+//     recense les composeurs de verdict du dépôt et exige de chacun qu'il passe par le noyau.
+//     Les deux moitiés sont nécessaires — celle-ci voit le binaire publié, l'autre voit les
+//     deux surfaces — et aucune ne remplace l'autre.
+//   - Ça ne compare pas les CHIFFRES des deux surfaces, et ne le doit pas : voir plus haut.
+//   - Une panne Overpass suspend le contrôle de composition, comme partout ici, mais pas celui
+//     du refus : un verdict qui se composerait pendant une panne est justement le défaut à voir.
+
+/** La retenue par couche, relue sur ce que la réponse PUBLIE — jamais sur un état interne. */
+function publishedWithholdings(response: ScoreResponse): Partial<Record<Layer, Withholding>> {
+  const withheld: Partial<Record<Layer, Withholding>> = {}
+  for (const failure of response.context_failures ?? []) {
+    withheld[failure.layer as Layer] = asWithholding(failure.motif ?? "")
+  }
+  return withheld
+}
+
+async function checkParity(client: Client, listed: string[]): Promise<void> {
+  // V0 — l'appel que la fiche AFFICHE existe vraiment. Un nom d'outil imprimé sur une page et
+  // jamais confronté au serveur est une invitation à une erreur que seul un visiteur verrait.
+  const shown = contextToolCall(MONTORGUEIL)
+  expect(
+    "PARITE",
+    "V0",
+    "l'appel affiché sur une fiche de contexte nomme un outil enregistré",
+    listed.includes(shown.tool) && listed.includes(COMPARE_TOOL) && shown.tool === CONTEXT_TOOL,
+    `src/core/agentCall.ts annonce ${shown.tool} et ${COMPARE_TOOL}`,
+  )
+
+  const outcome = await call(client, CONTEXT_TOOL, { ...MONTORGUEIL, vintage_year: DEFAULT_VINTAGE_YEAR })
+  if (outcome.isError) {
+    record("PARITE", "V1", "score_location rend un verdict", "fail", outcome.text.slice(0, 200))
+    return
+  }
+  const response = parse(outcome) as unknown as ScoreResponse
+
+  const served = response.verdict
+  if (
+    !expect(
+      "PARITE",
+      "V1",
+      "la réponse porte un verdict composé par le noyau, à côté de ses chiffres",
+      Boolean(served?.kind && served.sentence),
+      served ? `kind=${served.kind}` : "aucun champ verdict dans la réponse",
+    )
+  )
+    return
+  const composed = served as Verdict
+
+  // V2 — LE contrôle. La phrase du serveur doit être exactement celle que la fonction publiée
+  // rend à partir des chiffres que le serveur a publiés.
+  const recomposed = composeVerdict(
+    findingsFromScores(response.scores as unknown as AreaScores, publishedWithholdings(response)),
+  )
+  const outage = amenitiesOutage(response)
+  if (outage && composed.kind === "refus" && recomposed.kind === "refus") {
+    record(
+      "PARITE",
+      "V2",
+      "miroir injoignable : le serveur refuse, et le noyau refuse pareil",
+      "outage",
+      `les deux refusent — ${outage.slice(0, 90)}`,
+    )
+  } else {
+    expect(
+      "PARITE",
+      "V2",
+      "le verdict du serveur est celui que le noyau recompose sur les chiffres publiés",
+      composed.kind === recomposed.kind && composed.sentence === recomposed.sentence,
+      composed.sentence === recomposed.sentence
+        ? `identique (${composed.kind}) : ${composed.sentence.slice(0, 90)}`
+        : `serveur « ${composed.sentence.slice(0, 70)} » / noyau « ${recomposed.sentence.slice(0, 70)} »`,
+    )
+  }
+
+  // V3 — le refus tient sur le binaire publié, et pas seulement dans les tests unitaires. Le
+  // millésime 2020 est retenu pour licence, donc les porteurs qui lisent les locaux n'ont pas
+  // de chiffre : une phrase composée par-dessus serait `#54 w0-conclusion` à l'écran.
+  const withheldVintage = await call(client, CONTEXT_TOOL, { ...MONTORGUEIL, vintage_year: 2020 })
+  if (withheldVintage.isError) {
+    record("PARITE", "V3", "verdict sur un millésime retenu", "fail", withheldVintage.text.slice(0, 160))
+    return
+  }
+  const held = parse(withheldVintage) as unknown as ScoreResponse
+  const heldVerdict = held.verdict
+  const bearingAbsent = BEARING_AXES.filter((axis) => held.scores[axis]?.value === null)
+  if (bearingAbsent.length === 0) {
+    record(
+      "PARITE",
+      "V3",
+      "BDCom 2020 retenu : un constat porteur devrait manquer",
+      "fail",
+      "les trois porteurs portent un chiffre alors que le millésime est retenu pour licence",
+    )
+    return
+  }
+  expect(
+    "PARITE",
+    "V3",
+    "un constat porteur retenu fait refuser le verdict, sur le serveur publié",
+    heldVerdict?.kind === "refus" && heldVerdict.missing.some((gap) => bearingAbsent.includes(gap.axis)),
+    heldVerdict?.kind === "refus"
+      ? `refus, manquants : ${heldVerdict.missing.map((g) => `${g.axis}/${g.because}`).join(", ")}`
+      : `le serveur a composé « ${heldVerdict?.sentence.slice(0, 70) ?? "?"} » alors que ${bearingAbsent.join(", ")} manque(nt)`,
+  )
+
+  // V4 — aucune note globale ne s'est glissée dans l'enveloppe. PERIMETRE.md §4 refuse un
+  // agrégat chiffré, et le refuser dans le noyau ne le refuse pas dans le JSON qui l'entoure.
+  const top = Object.keys(response)
+  const aggregate = top.filter((k) => /^(score|overall|global|note|rating|total|grade)$/i.test(k))
+  expect(
+    "PARITE",
+    "V4",
+    "la réponse ne porte aucune note globale au-dessus des axes",
+    aggregate.length === 0,
+    aggregate.length === 0 ? `champs de tête : ${top.join(", ")}` : `agrégat : ${aggregate.join(", ")}`,
+  )
+}
+
+// ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
   const client = await openClient()
   try {
-    await checkInventory(client)
+    const registered = await checkInventory(client)
     await checkProvenance(client)
+    await checkParity(client, registered)
     await checkFreshness(client)
     await checkWithheldVintages(client)
     const found = await checkFindPremises(client)

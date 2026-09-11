@@ -16,6 +16,7 @@ import {
   OSM_ORIGIN,
   type Amenity,
   type AmenityCategory,
+  type NeighbourhoodContext,
   type PremisePoint,
   type Road,
   type ScoringIndex,
@@ -42,7 +43,19 @@ const isAmenityCategory = (value: string): value is AmenityCategory =>
  * calls on the main thread. Building the index once and querying it per premise is the
  * whole fix.
  */
-export function buildScoringIndex(snapshot: OverpassSnapshot, bounds?: BBox): ScoringIndex {
+/**
+ * The snapshot as the core's own context type, before it is indexed.
+ *
+ * Split out of `buildScoringIndex` for `ContextMap` — w6-contexte (#119), step 5. A `GridIndex`
+ * is built for lookup by radius and gives no way back to the points it holds, and a mini-map
+ * needs the points themselves. Re-deriving them beside the index would mean two conversions
+ * from one snapshot, free to drift apart: the map would then draw something the figures were
+ * not computed on, which is the one thing a map beside a figure must never do.
+ */
+export function toNeighbourhoodContext(
+  snapshot: OverpassSnapshot,
+  bounds?: BBox,
+): NeighbourhoodContext {
   const amenities: Amenity[] = [];
   for (const poi of snapshot.pois) {
     if (!isAmenityCategory(poi.category)) continue;
@@ -63,7 +76,11 @@ export function buildScoringIndex(snapshot: OverpassSnapshot, bounds?: BBox): Sc
 
   // `loaded` comes from the snapshot, never from these array lengths: an empty array here
   // would otherwise be indistinguishable from a layer that failed to arrive.
-  return buildIndex({ amenities, premises, roads, bounds, loaded: snapshot.loaded });
+  return { amenities, premises, roads, bounds, loaded: snapshot.loaded };
+}
+
+export function buildScoringIndex(snapshot: OverpassSnapshot, bounds?: BBox): ScoringIndex {
+  return buildIndex(toNeighbourhoodContext(snapshot, bounds));
 }
 
 /**

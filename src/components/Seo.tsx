@@ -1,6 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 import { SITE_NAME, SITE_URL } from '@/content/site';
-import { useLocale } from '@/i18n/locale';
+import { localizePath, useLocale } from '@/i18n/locale';
 
 interface SeoProps {
   title: string;
@@ -8,32 +8,19 @@ interface SeoProps {
   /** Canonical (French) route path, e.g. "/faq". The locale prefix is added automatically. */
   path: string;
   type?: 'website' | 'article';
-  /**
-   * English path, when it is not the French one under /en.
-   *
-   * Every route but one mounts the English tree by prefixing the canonical path, so this stays
-   * undefined. `/contexte/:slug` is the exception — its English route is `/en/context/:slug`,
-   * decided in w6-contexte — and without an override the alternate and canonical links would
-   * point at a URL that does not exist.
-   */
-  enPath?: string;
   /** JSON-LD objects rendered for this route. */
   jsonLd?: Record<string, unknown>[];
   noindex?: boolean;
 }
 
-const Seo = ({
-  title,
-  description,
-  path,
-  enPath: enPathOverride,
-  type = 'website',
-  jsonLd = [],
-  noindex,
-}: SeoProps) => {
+const Seo = ({ title, description, path, type = 'website', jsonLd = [], noindex }: SeoProps) => {
   const { locale } = useLocale();
   const frPath = path === '/' ? '/' : path;
-  const enPath = enPathOverride ?? (path === '/' ? '/en' : `/en${path}`);
+  // Derived, never passed in. Two routes are served at an English path that is not the French
+  // one prefixed — `/contexte` and `/carte` — and half 1 of w6-contexte handed that exception
+  // to the one page that needed it as an `enPath` prop. A second exception is what turns that
+  // into a rule nobody applies twice, so `localizePath` owns it and every caller inherits it.
+  const enPath = localizePath(path, 'en');
   const url = `${SITE_URL}${locale === 'en' ? enPath : frPath}`;
   const fullTitle = path === '/' ? title : `${title} | ${SITE_NAME}`;
 

@@ -75,8 +75,8 @@ npm.cmd run verify:mcp        # builds mcp-server/.build/server.mjs on the way
 | Tool | Input | What it returns |
 | --- | --- | --- |
 | `list_sources` | — | Every dataset the other tools draw from — licence, freshness, what it feeds |
-| `score_location` | `lat`, `lng`, `radius_m?`, `vintage_year?` | Five amenity scores, walkability, footfall, noise — each a `Measured<T>`: value, source, licence, date, method, caveat |
-| `compare_locations` | `a`, `b`, `radius_m?`, `vintage_year?` | Both full score sets, plus a per-axis numeric delta. No combined verdict — refused by design (PERIMETRE.md §4) |
+| `score_location` | `lat`, `lng`, `radius_m?`, `vintage_year?` | A one-sentence `verdict` — or its refusal — plus five amenity scores, walkability, footfall and noise, each a `Measured<T>`: value, source, licence, date, method, caveat |
+| `compare_locations` | `a`, `b`, `radius_m?`, `vintage_year?` | Both full score sets with their own verdicts, a per-axis numeric delta, and which axes are comparable at all. Two points, never a list, and no combined verdict — both refused by design (PERIMETRE.md §1 and §4) |
 | `explain_score` | `lat`, `lng`, `metric`, `radius_m?`, `vintage_year?` | Full detail on one axis, as a sentence and as structured data |
 | `find_premises` | `lat`, `lng`, `radius_m?`, `limit?` | BDCom premises near a point with their `location_id`, plus `total_matched` as the denominator. Candidates, never one match |
 | `trace_premise` | `location_id` | `compass_address_timeline`: BDCom surveys and BODACC notices in order, each with its record, its evidence and its confidence level |
@@ -90,6 +90,21 @@ present it as the answer, so the candidates are returned and the caller chooses.
 vintage; for 2017 and 2020, `20260809000011` withholds not just the contents but the *existence*
 of a record, and a lookup that listed their premises would disclose exactly that. Those years
 still appear in `trace_premise`, as `withheld` rows — the licensed way to say something is there.
+
+### The verdict, and what it shares with the web page
+
+`score_location` returns a `verdict` alongside its figures: one sentence of named axes, or a
+refusal saying which bearing finding is missing and why. It is composed by `src/core/verdict.ts`,
+the same function `/contexte/<adresse>` calls — not by anything in this package. That is what
+« the same answer for an agent » means here, and it is checked rather than claimed: the PARITE
+family of `verify.ts` recomposes the sentence from the figures this server publishes and fails if
+the two differ, and `npm.cmd run test` fails if either surface stops going through the core.
+
+What is **not** shared is the corpus. This server reads premises from APUR's BDCom door-to-door
+survey; the browser reads them from OpenStreetMap's `shop=vacant` tagging. The figures can differ,
+and the server's are the better ones. The composition rule is shared; the data is not.
+
+There is still no score out of 100, here or there.
 
 ## Verify
 

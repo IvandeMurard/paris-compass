@@ -1,13 +1,53 @@
 // Shared by score_location and compare_locations — one point in, one AreaScores out, with
 // the context-build failures surfaced alongside rather than swallowed into a false zero.
 
-import { scoreLocation, type AreaScores, type Layer } from "../../src/core"
+import {
+  asWithholding,
+  composeVerdict,
+  findingsFromScores,
+  scoreLocation,
+  type AreaScores,
+  type Layer,
+  type Verdict,
+  type Withholding,
+} from "../../src/core"
 import { buildNeighbourhoodContext } from "./context"
 import { recordQuestion, type QuestionOutcome } from "./record"
 
 export interface ScorePointResult {
   scores: AreaScores
   failures: { layer: Layer; reason: string; motif: QuestionOutcome }[]
+  /**
+   * The one-sentence verdict — w6-contexte (#119), criterion 2.
+   *
+   * Composed by `src/core/verdict.ts`, the same function `/contexte/:slug` calls, and NOT by
+   * anything in this package. That is the whole of « la même réponse pour un agent »: a
+   * sentence assembled here would be a second implementation of a rule published on the
+   * methodology page, and the two would agree exactly until the first reword.
+   *
+   * It is returned ALONGSIDE `scores` and never instead of them. An agent that wants to
+   * re-derive the sentence has every figure it was built from, which is what makes the parity
+   * checkable rather than merely asserted — `verify.ts` recomposes it from the published
+   * figures and compares.
+   */
+  verdict: Verdict
+}
+
+/**
+ * The structured withholding of each layer that failed, keyed by layer.
+ *
+ * `QuestionOutcome` is a wider vocabulary than `Withholding` — it also carries `repondu`,
+ * `vide` and `erreur`, which are not absences — so the narrowing goes through the core's own
+ * `asWithholding` rather than a mapping written here. A fifth cause added to one vocabulary is
+ * then classified by the other on the same day, instead of silently falling through to a
+ * default nobody revisits.
+ */
+export function withheldByLayer(
+  failures: readonly { layer: Layer; motif: QuestionOutcome }[],
+): Partial<Record<Layer, Withholding>> {
+  const withheld: Partial<Record<Layer, Withholding>> = {}
+  for (const failure of failures) withheld[failure.layer] = asWithholding(failure.motif)
+  return withheld
 }
 
 export async function scorePoint(
@@ -44,5 +84,7 @@ export async function scorePoint(
     }
   }
 
-  return { scores, failures }
+  const verdict = composeVerdict(findingsFromScores(scores, withheldByLayer(failures)))
+
+  return { scores, failures, verdict }
 }

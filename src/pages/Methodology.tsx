@@ -92,6 +92,16 @@ const COPY = {
       'Aucune note sur 100 n’est produite pour une adresse, et ce n’est pas un oubli. Les pondérations entre passage, desserte et calme dépendent du métier — une note unique moyennerait ce qui s’oppose, et un boulanger et un cabinet comptable ne liraient pas le même chiffre de la même façon. Le verdict est une phrase d’axes nommés, dont chacun se déplie sur sa source, sa licence, son millésime et sa méthode.',
     verdictLimit:
       'Ce que cette règle ne rattrape pas : un chiffre présent mais faible se compose quand même. Le flux piéton est une approximation par construction, faute de comptage piéton ouvert en Île-de-France ; refuser sur ce motif refuserait tous les verdicts, partout. La réserve voyage alors avec le constat, et se lit sous le chevron.',
+    compareTitle: 'Pourquoi la comparaison s’arrête à deux adresses',
+    compareBody:
+      'Une fiche de contexte accepte une seconde adresse, et une seule. Ce n’est pas une limite de performance : la comparaison en masse — l’export, le portefeuille, le classement — est le geste que Compass refuse, parce qu’il transforme un contexte instruit en liste à trier. La borne tient dans le code et non dans une intention : la fonction de comparaison prend deux jeux de constats nommés, jamais une liste, et une adresse ne peut donc pas s’ajouter aux deux premières.',
+    compareNoRank:
+      'Aucune des deux adresses n’est déclarée meilleure. Les axes sont posés côte à côte, dans les mêmes mots que la phrase de verdict, et un axe qu’un seul des deux côtés porte est marqué non comparable plutôt que mis en regard d’un vide : deux chiffres alignés se soustraient, et l’un des deux n’existe pas.',
+    parityTitle: 'La même réponse pour un agent, et comment elle est vérifiée',
+    parityBody:
+      'Le verdict est composé par une fonction du noyau, hors de toute page. Le serveur MCP de Compass compile ce même noyau et sert donc la même règle de composition : une fiche affiche l’appel qui rend la réponse correspondante. La parité ne se déclare pas — le contrôle recompose le verdict du serveur à partir des chiffres que le serveur publie, et rougit si les deux diffèrent.',
+    parityLimit:
+      'Ce que cette parité ne dit pas : les deux surfaces ne lisent pas le même corpus. Le navigateur compte les locaux dans OpenStreetMap, l’agent dans la BDCom de l’APUR — un relevé porte-à-porte, meilleure source. Les chiffres peuvent donc différer, et c’est assumé. Ce qui est partagé, c’est la règle de composition, pas le corpus.',
     missingTitle: 'Quand une source manque',
     missingBody:
       'Un score n’est calculé que si la couche de données dont il dépend a réellement été chargée. Si elle manque, Compass n’affiche pas 0 : il affiche « n/d » et indique pourquoi. La distinction compte surtout pour le bruit, où un 0 se lirait « très faible » — soit une rue calme affirmée à partir d’une donnée absente. Un quartier réellement dépourvu d’équipements, lui, reçoit bien un 0 : c’est un comptage, pas une lacune.',
@@ -183,6 +193,16 @@ const COPY = {
       'No score out of 100 is produced for an address, and that is not an oversight. The weights between footfall, transit and quiet depend on the trade — a single score would average things that pull against each other, and a baker and an accountancy practice would not read the same figure the same way. The verdict is a sentence of named axes, each unfolding onto its source, licence, vintage and method.',
     verdictLimit:
       'What this rule does not catch: a figure that is present but weak still composes. Estimated foot traffic is a proxy by construction, since no open pedestrian count covers Île-de-France; refusing on that ground would refuse every verdict, everywhere. The caveat then travels with the finding, and is read under its chevron.',
+    compareTitle: 'Why comparison stops at two addresses',
+    compareBody:
+      'A context sheet accepts one second address, and only one. This is not a performance limit: comparison in bulk — the export, the portfolio, the ranking — is the gesture Compass refuses, because it turns an instructed context into a list to sort. The bound is in the code rather than in an intention: the comparison function takes two named sets of findings, never a list, so a third address has nowhere to go.',
+    compareNoRank:
+      'Neither address is declared better. The axes are set side by side, in the same words the verdict sentence uses, and an axis only one side carries is marked not comparable rather than placed opposite a blank: two aligned figures invite subtraction, and one of the two does not exist.',
+    parityTitle: 'The same answer for an agent, and how it is checked',
+    parityBody:
+      'The verdict is composed by a function of the core, outside any page. The Compass MCP server compiles that same core and therefore serves the same composition rule: a sheet displays the call that returns the corresponding answer. Parity is not declared — the check recomposes the server’s verdict from the figures the server publishes, and goes red if the two differ.',
+    parityLimit:
+      'What this parity does not say: the two surfaces do not read the same corpus. The browser counts premises from OpenStreetMap, the agent from APUR’s BDCom — a door-to-door survey, the better source. The figures may therefore differ, and that is deliberate. What is shared is the composition rule, not the corpus.',
     missingTitle: 'When a source is missing',
     missingBody:
       'A score is only computed if the data layer it depends on actually loaded. When that layer is missing, Compass does not show 0: it shows "n/a" and says why. The distinction matters most for noise, where a 0 would read as "very low" — a quiet street asserted from absent data. A neighbourhood genuinely without amenities does get a 0: that is a count, not a gap.',
@@ -333,6 +353,20 @@ const Methodology = () => {
           <p className="mt-3 text-muted-foreground">{c.verdictSupport}</p>
           <p className="mt-3 text-muted-foreground">{c.verdictNoScore}</p>
           <p className="mt-3 text-muted-foreground">{c.verdictLimit}</p>
+        </section>
+
+        {/* Same obligation, one step further: the two-address bound and the agent parity are
+            rules a visitor is subject to, so they are published rather than merely enforced. */}
+        <section>
+          <h2 className="text-xl font-semibold">{c.compareTitle}</h2>
+          <p className="mt-3 text-muted-foreground">{c.compareBody}</p>
+          <p className="mt-3 text-muted-foreground">{c.compareNoRank}</p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold">{c.parityTitle}</h2>
+          <p className="mt-3 text-muted-foreground">{c.parityBody}</p>
+          <p className="mt-3 text-muted-foreground">{c.parityLimit}</p>
         </section>
 
         <section>
