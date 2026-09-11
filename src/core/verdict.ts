@@ -56,12 +56,25 @@ export type VerdictAxis = 'footfall' | 'transit' | 'walkability' | 'groceries' |
  * injoignable » lead to three different actions — a letter to APUR, a point outside Paris, a
  * mirror — and telling them apart with `includes()` on an English sentence would hang the
  * distinction on a reformulation. The producer of the failure names it.
+ *
+ * The values are a `const` array and the type is derived from it, rather than the reverse. A
+ * caller holding an arbitrary string — the MCP server holds a `QuestionOutcome`, a wider set —
+ * has to decide, at runtime, whether it is one of these; with the type alone it could only do
+ * that against a second hand-written list, free to fall out of step with this one.
  */
-export type Withholding =
-  | 'retenue_licence'
-  | 'hors_corpus'
-  | 'source_injoignable'
-  | 'indetermine';
+export const WITHHOLDINGS = [
+  'retenue_licence',
+  'hors_corpus',
+  'source_injoignable',
+  'indetermine',
+] as const;
+
+export type Withholding = (typeof WITHHOLDINGS)[number];
+
+/** The withholding a wider vocabulary maps to, or `indetermine` when it names no absence.
+ *  Derived from `WITHHOLDINGS`, so a fifth cause is classified the day it is added. */
+export const asWithholding = (motif: string): Withholding =>
+  (WITHHOLDINGS as readonly string[]).includes(motif) ? (motif as Withholding) : 'indetermine';
 
 export interface VerdictAxisRule {
   /** When true, the verdict refuses to compose without this axis. */
