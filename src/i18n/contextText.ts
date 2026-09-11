@@ -98,6 +98,28 @@ export const CONTEXT_COPY = {
       `Carte de ${radius} m autour de l’adresse, avec les points des couches ayant servi aux constats.`,
     mapNotInteractive:
       'Carte volontairement fixe, sans filtres. Pour explorer librement, ouvrir la carte.',
+    compareHeading: 'Comparer à une seconde adresse',
+    compareHelp:
+      'Deux adresses, jamais plus. Compass ne fait pas de portefeuille ni de classement : la comparaison en masse est le geste que ce produit refuse, et la borne tient dans son code, pas dans une intention.',
+    comparePlaceholder: 'Seconde adresse parisienne',
+    compareSubmit: 'Comparer',
+    compareClear: 'Retirer la comparaison',
+    compareLoading: 'Lecture du second quartier…',
+    compareNotFound: 'Seconde adresse introuvable dans la Base Adresse Nationale.',
+    compareTooMany:
+      'Une seule seconde adresse est acceptée. L’URL en portait plusieurs : Compass n’en a lu aucune plutôt que d’en choisir une au hasard.',
+    compareNoWinner:
+      'Aucune des deux n’est déclarée meilleure, et ce n’est pas une prudence : les pondérations entre passage, desserte et calme dépendent du métier. Les axes sont posés côte à côte, la lecture reste au lecteur.',
+    compareIncomparable: 'Non comparable ici',
+    compareThis: 'Cette adresse',
+    compareOther: 'Seconde adresse',
+    agentHeading: 'La même réponse, pour un agent',
+    agentIntro:
+      'Le serveur MCP de Compass rend ce verdict à partir de la même fonction de composition que cette page. Cet appel, contre le serveur publié, répond sur ce point précis.',
+    agentTool: 'Outil',
+    agentArguments: 'Arguments',
+    agentNote:
+      'La parité est vérifiée par npm run verify:mcp, qui recompose le verdict du serveur à partir des chiffres que le serveur publie, et non par cette phrase.',
     methods: {
       measured: 'compté ou relevé',
       modelled: 'sorti d’un modèle publié',
@@ -142,6 +164,28 @@ export const CONTEXT_COPY = {
       `Map of ${radius} m around the address, showing the points of the layers the findings were computed from.`,
     mapNotInteractive:
       'The map is deliberately fixed, with no filters. To explore freely, open the map.',
+    compareHeading: 'Compare with a second address',
+    compareHelp:
+      'Two addresses, never more. Compass builds no portfolio and no ranking: comparison in bulk is the gesture this product refuses, and the bound is in its code rather than in an intention.',
+    comparePlaceholder: 'Second Paris address',
+    compareSubmit: 'Compare',
+    compareClear: 'Remove the comparison',
+    compareLoading: 'Reading the second neighbourhood…',
+    compareNotFound: 'Second address not found in the Base Adresse Nationale.',
+    compareTooMany:
+      'Only one second address is accepted. The URL carried several: Compass read none rather than picking one at random.',
+    compareNoWinner:
+      'Neither is declared better, and that is not caution: the weights between footfall, transit and quiet depend on the trade. The axes are set side by side; the reading stays with the reader.',
+    compareIncomparable: 'Not comparable here',
+    compareThis: 'This address',
+    compareOther: 'Second address',
+    agentHeading: 'The same answer, for an agent',
+    agentIntro:
+      'The Compass MCP server produces this verdict from the same composition function as this page. This call, against the published server, answers on this exact point.',
+    agentTool: 'Tool',
+    agentArguments: 'Arguments',
+    agentNote:
+      'Parity is checked by npm run verify:mcp, which recomposes the server’s verdict from the figures the server publishes — not by this sentence.',
     methods: {
       measured: 'counted or surveyed',
       modelled: 'output of a published model',

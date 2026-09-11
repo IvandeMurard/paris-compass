@@ -263,6 +263,19 @@ const COPY: Record<
 const capitalise = (s: string) => (s ? s[0].toLocaleUpperCase() + s.slice(1) : s);
 
 /**
+ * The clause an axis reads at a band, and the sentence used when a finding was never computed.
+ *
+ * Exported for `comparison.ts`, which shows the same prose in a two-address table. A second
+ * copy of these words elsewhere would read identically the day it was written and drift the
+ * day one of them is reworded — and the drift would show up as a sentence and a table
+ * disagreeing about the same address, which is worse than either being wrong alone.
+ */
+export const clauseText = (axis: VerdictAxis, band: Band, locale: VerdictLocale = 'fr'): string =>
+  CLAUSES[locale][axis][band];
+
+export const noFindingText = (locale: VerdictLocale = 'fr'): string => COPY[locale].noFinding;
+
+/**
  * Turn a full `AreaScores` into the findings this module reasons over.
  *
  * `withheldBy` is how a caller that met a *structured* failure passes it on: the MCP server

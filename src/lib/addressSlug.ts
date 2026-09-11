@@ -66,10 +66,72 @@ export function contextPath(
 
 /** Coordinates carried by a query string, or null when either one is absent or unreadable.
  *  Half a point is not a point: a lone latitude would silently score the Greenwich meridian. */
-export function pointFromParams(params: URLSearchParams): { lat: number; lng: number } | null {
-  const lat = Number(params.get('lat'));
-  const lng = Number(params.get('lng'));
-  if (!params.get('lat') || !params.get('lng')) return null;
+export function pointFromParams(
+  params: URLSearchParams,
+  latKey = 'lat',
+  lngKey = 'lng',
+): { lat: number; lng: number } | null {
+  const lat = Number(params.get(latKey));
+  const lng = Number(params.get(lngKey));
+  if (!params.get(latKey) || !params.get(lngKey)) return null;
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   return { lat, lng };
+}
+
+/** Query keys of the second address. Named once so the reader and the writer cannot drift. */
+export const COMPARE_KEYS = { slug: 'compare', lat: 'clat', lng: 'clng' } as const;
+
+/**
+ * The second address a URL asks to compare against — w6-contexte (#119), step 6.
+ *
+ * **Three outcomes, and the third is the point.** A query string is a multimap: `?compare=a&
+ * compare=b&compare=c` is perfectly legal, and `URLSearchParams.get` would quietly answer « a ».
+ * That silent truncation is how a bound of two becomes a bound of two *by accident* — it holds
+ * until someone notices the first value wins and starts relying on it, or until a framework
+ * changes which value `get` returns.
+ *
+ * So the plural is READ and REFUSED, in the open. Compass takes one second address or none, and
+ * an URL that names several gets neither: choosing one at random would be a ranking nobody
+ * asked for, and the refusal of the broker has to be visible at the boundary the broker would
+ * actually reach for.
+ */
+export type SecondAddress =
+  | { kind: 'none' }
+  | { kind: 'refus'; count: number }
+  | { kind: 'one'; slug: string; point: { lat: number; lng: number } | null };
+
+export function secondAddressFromParams(params: URLSearchParams): SecondAddress {
+  const all = params.getAll(COMPARE_KEYS.slug).filter((s) => s.trim().length > 0);
+  if (all.length === 0) return { kind: 'none' };
+  if (all.length > 1) return { kind: 'refus', count: all.length };
+  const slug = all[0];
+  if (!isResolvableSlug(slug)) return { kind: 'none' };
+  return { kind: 'one', slug, point: pointFromParams(params, COMPARE_KEYS.lat, COMPARE_KEYS.lng) };
+}
+
+/**
+ * The same sheet, with a second address attached — or with it removed when `label` is null.
+ *
+ * Built by rewriting the existing query rather than by appending: appending is exactly how a
+ * third `compare=` ends up in the URL, and the refusal above would then be the only thing
+ * standing between a user and a list. The bound is enforced twice, on purpose.
+ */
+export function withComparison(
+  search: string,
+  label: string | null,
+  point: { lat: number; lng: number } | null,
+): string {
+  const params = new URLSearchParams(search);
+  params.delete(COMPARE_KEYS.slug);
+  params.delete(COMPARE_KEYS.lat);
+  params.delete(COMPARE_KEYS.lng);
+  if (label !== null) {
+    params.set(COMPARE_KEYS.slug, toSlug(label));
+    if (point) {
+      params.set(COMPARE_KEYS.lat, point.lat.toFixed(6));
+      params.set(COMPARE_KEYS.lng, point.lng.toFixed(6));
+    }
+  }
+  const query = params.toString();
+  return query ? `?${query}` : '';
 }

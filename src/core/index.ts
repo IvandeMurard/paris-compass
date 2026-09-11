@@ -10,3 +10,5 @@ export * from './observational';
 export * from './provenance';
 export * from './scoring';
 export * from './verdict';
+export * from './comparison';
+export * from './agentCall';

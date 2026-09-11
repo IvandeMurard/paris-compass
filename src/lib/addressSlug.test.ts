@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { contextPath, fromSlug, isResolvableSlug, pointFromParams, toSlug } from './addressSlug';
+import {
+  contextPath,
+  fromSlug,
+  isResolvableSlug,
+  pointFromParams,
+  secondAddressFromParams,
+  toSlug,
+  withComparison,
+} from './addressSlug';
 
 describe('toSlug', () => {
   it('plie les accents plutôt que de les encoder', () => {
@@ -68,5 +76,64 @@ describe('pointFromParams', () => {
 
   it('refuse une coordonnée illisible plutôt que de rendre NaN', () => {
     expect(pointFromParams(new URLSearchParams('lat=nord&lng=2.34'))).toBeNull();
+  });
+});
+
+describe('secondAddressFromParams — la borne de deux, au bord de l’URL', () => {
+  it('lit une seconde adresse et ses coordonnées', () => {
+    const second = secondAddressFromParams(
+      new URLSearchParams('lat=48.86&lng=2.34&compare=10-rue-oberkampf&clat=48.865&clng=2.371'),
+    );
+    expect(second).toEqual({
+      kind: 'one',
+      slug: '10-rue-oberkampf',
+      point: { lat: 48.865, lng: 2.371 },
+    });
+  });
+
+  it('accepte une seconde adresse sans coordonnées : la fiche les géocodera', () => {
+    const second = secondAddressFromParams(new URLSearchParams('compare=10-rue-oberkampf'));
+    expect(second.kind === 'one' && second.point).toBeNull();
+  });
+
+  it('REFUSE trois adresses au lieu d’en garder la première', () => {
+    // `URLSearchParams.get` aurait répondu « a » en silence, et la borne de deux aurait tenu
+    // par accident. Choisir une adresse au hasard serait un classement que personne n’a demandé.
+    const second = secondAddressFromParams(new URLSearchParams('compare=a-a-a&compare=b-b-b&compare=c-c-c'));
+    expect(second).toEqual({ kind: 'refus', count: 3 });
+  });
+
+  it('refuse aussi deux secondes adresses — deux au total, pas deux en plus', () => {
+    expect(secondAddressFromParams(new URLSearchParams('compare=a-a-a&compare=b-b-b')).kind).toBe('refus');
+  });
+
+  it('ignore une valeur vide plutôt que de la compter', () => {
+    expect(secondAddressFromParams(new URLSearchParams('compare=')).kind).toBe('none');
+    expect(secondAddressFromParams(new URLSearchParams('')).kind).toBe('none');
+  });
+});
+
+describe('withComparison', () => {
+  it('garde les coordonnées de la première adresse en attachant la seconde', () => {
+    const search = withComparison('?lat=48.86&lng=2.34', 'Rue Oberkampf, Paris', {
+      lat: 48.865,
+      lng: 2.371,
+    });
+    const params = new URLSearchParams(search);
+    expect(params.get('lat')).toBe('48.86');
+    expect(params.get('compare')).toBe('rue-oberkampf-paris');
+    expect(params.get('clat')).toBe('48.865000');
+  });
+
+  it('RÉÉCRIT au lieu d’ajouter : une seconde adresse remplace la seconde adresse', () => {
+    const once = withComparison('?lat=48.86&lng=2.34', 'A Paris', { lat: 1, lng: 2 });
+    const twice = withComparison(once, 'B Paris', { lat: 3, lng: 4 });
+    expect(new URLSearchParams(twice).getAll('compare')).toEqual(['b-paris']);
+  });
+
+  it('retire la comparaison sans toucher au reste', () => {
+    const cleared = withComparison('?lat=48.86&lng=2.34&compare=a-paris&clat=1&clng=2', null, null);
+    expect(new URLSearchParams(cleared).getAll('compare')).toEqual([]);
+    expect(new URLSearchParams(cleared).get('lat')).toBe('48.86');
   });
 });
