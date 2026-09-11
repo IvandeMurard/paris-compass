@@ -1,0 +1,4 @@
+{
+  "_lisez-moi": "Les routes indexables que le sitemap n'annonce pas, chacune avec sa raison et sa date. Une route en noindex n'a RIEN a faire ici : son absence du sitemap est deja exigee par la regle, et l'y inscrire ferait croire a une decision la ou il y a une obligation. Vide est un resultat, pas un oubli — au 11 septembre 2026, toute route indexable de src/App.tsx est au sitemap. Voir scripts/porte/sitemap.ts pour ce que la regle ne rattrape pas.",
+  "hors-sitemap": []
+}

@@ -80,7 +80,9 @@ const PageLayout = ({ title, intro, crumbs = [], children }: PageLayoutProps) =>
 
           <div className="mt-12">
             <Button asChild>
-              <Link to={lp('/')}>
+              {/* /carte since w6-contexte: the home page is an address field now, and a button
+                  saying « open the map » that lands on a form is worse than no button. */}
+              <Link to={lp('/carte')}>
                 <Map size={16} className="mr-2" />
                 {t('nav.backToMap')}
               </Link>

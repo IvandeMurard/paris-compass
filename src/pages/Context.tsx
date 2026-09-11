@@ -111,7 +111,6 @@ const Context = () => {
         title={label ? `${c.metaTitle} — ${label}` : c.metaTitle}
         description={c.metaDescription}
         path={`/contexte/${slug ?? ''}`}
-        enPath={`/en/context/${slug ?? ''}`}
         noindex
       />
 
@@ -121,7 +120,7 @@ const Context = () => {
             Compass
           </Link>
           <Button asChild variant="ghost" size="sm">
-            <Link to={lp('/')}>
+            <Link to={lp('/carte')}>
               <MapIcon size={16} className="mr-2" />
               {c.backToMap}
             </Link>

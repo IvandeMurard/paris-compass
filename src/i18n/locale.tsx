@@ -2,25 +2,16 @@ import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { UI, type UiKey } from './ui';
 
+// The path helpers live in `./routes`, a plain TypeScript module: `scripts/generate-sitemap.ts`
+// has to import them and cannot import a component module. They are re-exported here so the
+// dozens of existing `@/i18n/locale` imports keep resolving.
+export { localeFromPath, localizePath, stripLocale, EN_PATH_EXCEPTIONS } from './routes';
+
+import { localeFromPath, localizePath, stripLocale } from './routes';
+
 export type Locale = 'fr' | 'en';
 
 export const LOCALES: Locale[] = ['fr', 'en'];
-
-/** Strips the /en prefix from a pathname and returns the canonical (French) path. */
-export const stripLocale = (pathname: string): string => {
-  if (pathname === '/en') return '/';
-  if (pathname.startsWith('/en/')) return pathname.slice(3);
-  return pathname;
-};
-
-export const localeFromPath = (pathname: string): Locale =>
-  pathname === '/en' || pathname.startsWith('/en/') ? 'en' : 'fr';
-
-/** Prefixes a canonical (French) path with the locale segment. */
-export const localizePath = (path: string, locale: Locale): string => {
-  if (locale === 'fr') return path;
-  return path === '/' ? '/en' : `/en${path}`;
-};
 
 interface LocaleValue {
   locale: Locale;

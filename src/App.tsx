@@ -33,6 +33,7 @@ const SignIn = lazy(() => import("./pages/SignIn"));
 const SignUp = lazy(() => import("./pages/SignUp"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Context = lazy(() => import("./pages/Context"));
+const Carte = lazy(() => import("./pages/Carte"));
 
 const queryClient = new QueryClient();
 
@@ -50,10 +51,12 @@ const AppRoutes = () => (
     <Route path="/glossaire" element={<Glossary />} />
     <Route path="/paris" element={<ParisIndex />} />
     <Route path="/paris/:slug" element={<Arrondissement />} />
-    {/* The one route whose English path is not the French one under /en — w6-contexte. The
-        segment is the product's own noun, so translating it is worth the exception; `Seo`
-        takes an explicit `enPath` for the same reason. */}
+    {/* The two routes whose English path is not the French one under /en — w6-contexte. Both
+        segments are product nouns, so translating them is worth the exception. The pair is
+        declared in `src/i18n/routes.ts`, and `localizePath`, `stripLocale`, `Seo` and the
+        sitemap all derive from it rather than each carrying its own special case. */}
     <Route path="/contexte/:slug" element={<Context />} />
+    <Route path="/carte" element={<Carte />} />
     <Route path="/signin" element={<SignIn />} />
     <Route path="/signup" element={<SignUp />} />
     <Route path="/profile" element={<Profile />} />
@@ -70,6 +73,7 @@ const AppRoutes = () => (
     <Route path="/en/paris" element={<ParisIndex />} />
     <Route path="/en/paris/:slug" element={<Arrondissement />} />
     <Route path="/en/context/:slug" element={<Context />} />
+    <Route path="/en/map" element={<Carte />} />
     <Route path="/en/signin" element={<SignIn />} />
     <Route path="/en/signup" element={<SignUp />} />
     <Route path="/en/profile" element={<Profile />} />

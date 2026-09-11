@@ -11,6 +11,8 @@
  * opposite reason — a pure function is testable without a router.
  */
 
+import { localizePath } from '@/i18n/routes';
+
 /**
  * Slug of an address label.
  *
@@ -47,17 +49,16 @@ export const isResolvableSlug = (slug: string | undefined): slug is string =>
 /**
  * Path of a context page, coordinates included.
  *
- * The English tree mounts this route under `/en/context/` rather than `/en/contexte/`, so the
- * path cannot be built by prefixing the French one — which is what `localizePath` does for
- * every other route. Hence a dedicated builder rather than a call to `lp()`.
+ * The English tree mounts this route under `/en/context/` rather than `/en/contexte/`. That
+ * exception used to be spelled out here; it now lives in `src/i18n/routes.ts` alongside the
+ * one `/carte` needs, so this builder only has to add the slug and the coordinates.
  */
 export function contextPath(
   label: string,
   point: { lat: number; lng: number } | null,
   locale: 'fr' | 'en' = 'fr',
 ): string {
-  const base = locale === 'en' ? '/en/context' : '/contexte';
-  const path = `${base}/${toSlug(label)}`;
+  const path = localizePath(`/contexte/${toSlug(label)}`, locale);
   if (!point) return path;
   // Six decimals is ~0.1 m: enough to name a doorway, short enough to stay readable.
   return `${path}?lat=${point.lat.toFixed(6)}&lng=${point.lng.toFixed(6)}`;
