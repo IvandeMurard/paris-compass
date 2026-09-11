@@ -1,8 +1,9 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte quarante-cinq au 7 septembre 2026**, et la
-phrase est restée fausse trois semaines.
+« quatre défauts, par ordre de gravité » : il en porte 49 au 11 septembre 2026**, et la
+phrase est restée fausse trois semaines. Le nombre est désormais dérivé du tableau
+ci-dessous par `scripts/porte/documents.test.ts` : le recopier faux fait rougir `test`.
 
 Découpé en deux le 31 août 2026, comme `docs/REPRISE.md` la veille : cette page ne garde que
 **ce qui est encore ouvert**. Les trente-trois défauts clos sont dans
