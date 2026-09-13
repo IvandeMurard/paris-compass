@@ -98,6 +98,12 @@ export const CONTEXT_COPY = {
       `Carte de ${radius} m autour de l’adresse, avec les points des couches ayant servi aux constats.`,
     mapNotInteractive:
       'Carte volontairement fixe, sans filtres. Pour explorer librement, ouvrir la carte.',
+    // w6-fiche-robuste (#156). Ce que cette phrase doit faire : dire qu'il manque une
+    // illustration, et dire que rien d'autre ne manque. Une carte d'appui qui ne sait pas se
+    // dessiner ne retire aucun constat, et le lecteur doit pouvoir le lire plutôt que le
+    // supposer devant un cadre vide.
+    mapUnavailable:
+      'La carte d’appui n’a pas pu être dessinée pour ce point. Les constats ci-dessus ne changent pas : la carte les illustre, elle ne les produit pas.',
     compareHeading: 'Comparer à une seconde adresse',
     compareHelp:
       'Deux adresses, jamais plus. Compass ne fait pas de portefeuille ni de classement : la comparaison en masse est le geste que ce produit refuse, et la borne tient dans son code, pas dans une intention.',
@@ -164,6 +170,8 @@ export const CONTEXT_COPY = {
       `Map of ${radius} m around the address, showing the points of the layers the findings were computed from.`,
     mapNotInteractive:
       'The map is deliberately fixed, with no filters. To explore freely, open the map.',
+    mapUnavailable:
+      'The support map could not be drawn for this point. Nothing above changes: the map illustrates the findings, it does not produce them.',
     compareHeading: 'Compare with a second address',
     compareHelp:
       'Two addresses, never more. Compass builds no portfolio and no ranking: comparison in bulk is the gesture this product refuses, and the bound is in its code rather than in an intention.',
@@ -208,6 +216,10 @@ export const GAP_COPY = {
       `${axis} : la zone chargée s’arrête avant le rayon de recherche complet, donc le compte est un plancher et non un total.`,
     proxy: (axis: string) => `${axis} : approximation assumée, pas une mesure.`,
     missing: (axis: string, why: string) => `${axis} : ${why}`,
+    // Le motif vient de `withholdingText`, dans le noyau, jamais retapé ici : deux copies des
+    // mêmes trois mots divergent le jour où l'une est reformulée. w6-fiche-robuste (#156).
+    missingBecause: (axis: string, because: string, why: string) =>
+      `${axis} : ${because} — ${why}`,
   },
   en: {
     osmPremises: (source: string) =>
@@ -218,5 +230,7 @@ export const GAP_COPY = {
       `${axis}: the loaded area stops before the full search radius, so the count is a floor, not a total.`,
     proxy: (axis: string) => `${axis}: an acknowledged proxy, not a measurement.`,
     missing: (axis: string, why: string) => `${axis}: ${why}`,
+    missingBecause: (axis: string, because: string, why: string) =>
+      `${axis}: ${because} — ${why}`,
   },
 } as const;

@@ -8,7 +8,10 @@
  *
  * So every entry below is read off the values that were actually computed:
  *
- *  - a figure with no value contributes its own `missingReason`, written by `src/core`;
+ *  - a figure with no value contributes the CAUSE its caller declared — « source injoignable »,
+ *    « retenue pour licence », « hors du corpus » — followed by its own `missingReason`,
+ *    written by `src/core`. Both halves are needed: the reason says which layer went silent,
+ *    the cause says whether coming back tomorrow would change anything (`#156`);
  *  - a figure carrying a `note` contributes that caveat — a proxy, or coverage cut short by
  *    the edge of the fetched area;
  *  - the premises layer contributes the name of the source it really used, taken from
@@ -26,7 +29,14 @@
  * `npm.cmd run freshness` against the database, which this page does not read.
  */
 
-import { VERDICT_AXIS_ORDER, type AreaScores, type Layer, type VerdictAxis } from '@/core';
+import {
+  findingsFromScores,
+  withholdingText,
+  type AreaScores,
+  type Layer,
+  type VerdictAxis,
+  type Withholding,
+} from '@/core';
 import { AXIS_NAMES, GAP_COPY } from '@/i18n/contextText';
 import type { Locale } from '@/i18n/locale';
 
@@ -46,18 +56,34 @@ export function collectGaps(
    *  and their `source` would then name the layer that failed instead of the one used. */
   premisesSource: string,
   locale: Locale,
+  /**
+   * Why a layer is absent, when the caller met a structured failure — w6-fiche-robuste (#156).
+   *
+   * Resolved per axis by `findingsFromScores`, never by a second copy of its rule here: an
+   * axis reads its layers in the order it gives up on them, and the first declared withholding
+   * is the one that actually stopped the figure. Left out, every absence reads `indetermine`,
+   * which is the honest default and the same one the core takes — « we do not know why » is a
+   * fact, and it is never guessed to be a licence refusal.
+   */
+  withheldBy: Partial<Record<Layer, Withholding>> = {},
 ): Gap[] {
   const copy = GAP_COPY[locale];
   const names = AXIS_NAMES[locale];
   const gaps: Gap[] = [];
 
-  for (const axis of VERDICT_AXIS_ORDER) {
-    const measured = scores[axis];
+  for (const finding of findingsFromScores(scores, withheldBy)) {
+    const { axis, measured } = finding;
     if (measured.value === null) {
       gaps.push({
         key: `missing:${axis}`,
         axis,
-        text: copy.missing(names[axis], measured.missingReason ?? ''),
+        // The cause first, then the core's sentence about the layer. A reader who stops after
+        // three words still knows whether to come back later or never.
+        text: copy.missingBecause(
+          names[axis],
+          withholdingText(finding.withheldBecause ?? 'indetermine', locale),
+          measured.missingReason ?? '',
+        ),
       });
       continue;
     }

@@ -180,6 +180,10 @@ const Context = () => {
             context.data.loaded,
             context.data.origins.premises.source,
             locale,
+            // The same structured motives the verdict reasons over. Without them the block
+            // would say which layer went silent and not why — and on the Overpass outage of
+            // 13 September 2026 that is the only thing worth reading (`#156`).
+            context.data.withheldBy,
           )
         : [],
     [context.data, locale],

@@ -73,7 +73,7 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 47 | La `cadence_note` de `filosofi` annonce « NON CHARGÉ » à tout appelant, alors que la source est chargée depuis le 8 septembre 2026 | **ouvert** — trouvé le 8 septembre 2026 par `w2-filosofi`, P2 | ici |
 | 48 | Deux tables neuves sur trois ont oublié la contrainte de finitude, et la troisième dit pourquoi | **ouvert** — mesuré le 10 septembre 2026 par `w4-meubles`, P2 | ici |
 | 49 | Les raisons d'absence de `src/core` s'affichent en anglais sur les pages françaises | **ouvert** — mesuré le 10 septembre 2026 par `w6-contexte`, P2 | ici |
-| 50 | La fiche de contexte plante quand Overpass tombe, et n'appelle aucune fonction `compass_*` | **ouvert** — mesuré le 13 septembre 2026, `#156` et `#157`, **P0** | ici |
+| 50 | La fiche de contexte plante quand Overpass tombe, et n'appelle aucune fonction `compass_*` | **partiel** — le plantage corrigé le 13 septembre 2026 (`#156`), l'absence de corpus **ouverte** (`#157`, **P0**) | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -843,6 +843,10 @@ les `evidence` de la base sont produites hors de TypeScript, et `I21` les garde 
 Deux défauts sur le même écran, gardés dans une seule section parce qu'ils se masquent l'un
 l'autre : tant que la page meurt, personne ne voit ce qu'elle n'affiche pas.
 
+> **Le plantage est corrigé — `#156`, le 13 septembre 2026 au soir.** Ce qui suit reste écrit
+> tel qu'il a été mesuré ; le correctif et **la correction de la chaîne de cause** sont en fin
+> de section. L'absence de corpus, elle, est entière et reste `#157`.
+
 **Le plantage.** `/contexte/<adresse>` affiche « Lecture du quartier en cours… » pendant
 **2 min 20** — trois miroirs Overpass à 70 s chacun — puis meurt sur
 `Cannot read properties of undefined (reading 'layerPointToLatLng')` dans `ContextMap`, et la
@@ -874,3 +878,55 @@ recopie pas.
 entièrement au vert pendant les deux mesures. C'est
 [`#158`](https://github.com/IvandeMurard/paris-compass/issues/158), et c'est un défaut distinct
 de ces deux-là.
+
+### Le plantage, corrigé le 13 septembre 2026 — et la chaîne de cause était fausse d'un maillon
+
+**Le plantage ne dépendait pas d'Overpass.** C'est la seule chose que ce ticket a dû corriger
+dans son propre énoncé. La chaîne écrite plus haut lit le plantage comme le troisième maillon
+d'une panne amont ; il est **inconditionnel**. `ContextMap` créait sa carte par `L.map()` **sans
+vue**, et une carte Leaflet sans vue n'attache aucune des couches qu'on lui ajoute :
+`Map.addLayer` diffère par `whenReady`, qui sur une carte non chargée s'abonne à un événement
+`load` que personne n'émettra. Le cercle gardait donc `_map === undefined`, et
+`circle.getBounds()` — qui lit `this._map.layerPointToLatLng(...)` — jetait. Que les miroirs
+répondent ou non ne changeait rien : la carte était dessinée dans les deux cas.
+
+**Démontré dans les deux sens, hors navigateur puis dans un navigateur réel.**
+`src/components/context/ContextMap.test.tsx` monte le composant sous jsdom avec le vrai Leaflet ;
+sur le code du 13 septembre au matin (`3cb9b5d`) **quatre de ses cinq cas échouent**, dont deux
+sur le message exact de production, et le premier de ces deux monte un instantané **complet** —
+miroirs debout — ce qui est la démonstration que la panne amont n'était pas la cause. Et dans
+Chrome sans tête, contre le build de production servi depuis le disque, miroirs refusant
+d'emblée : **écran d'erreur à 244 ms, zéro carte, zéro constat, zéro trou**. Le détail des
+scénarios est dans `docs/tickets/w6-fiche-robuste.md`.
+
+**Les trois gestes.** Le cadre de la carte se calcule depuis le point sans carte du tout
+(`src/lib/contextMapFrame.ts`), la vue est posée avant la première couche, et un point sans
+bornes utilisables rend une absence écrite ; le budget d'attente appartient à l'appelant
+(`CONTEXT_BUDGET_MS`, 10 s pour la fiche, marche entière pour `/carte`) ; et le bloc des trous
+nomme la panne — « source injoignable » vient de `withholdingText`, dans le noyau.
+
+**Les miroirs remesurés le même jour, en fin d'après-midi**, requête réelle de la fiche, cinq
+adresses, chemin agent avec un `User-Agent` de navigateur :
+
+| Miroir | Ce qu'il a rendu |
+| --- | --- |
+| `overpass-api.de` | **406 Not Acceptable** (Apache) en **149 à 277 ms**, cinq fois sur cinq — il refuse la requête d'emblée |
+| `overpass.kumi.systems` | **504** à 34 955, 40 179, 42 701 et 43 315 ms, ou rien au-delà de 70 s |
+| `overpass.private.coffee` | **200** en **8 981**, **10 587** et **19 513 ms** ; **504** à 36 574, 38 481 et 40 915 ms ; ou rien au-delà de 70 s |
+
+Marches complètes des trois miroirs : avenue Daumesnil **aucune réponse après 112 981 ms**,
+boulevard Barbès **aucune après 140 175 ms**, rue de Rivoli répondue après 59 869 ms, rue du
+Commerce après 79 156 ms. Le 504 de 695 octets en `text/html` sans `Access-Control-Allow-*` est
+confirmé sur deux miroirs.
+
+**Le « 504 en 5,1 s » de l'énoncé ne se reproduit pas**, et c'est à savoir avant de s'en servir
+comme d'un ordre de grandeur : le même endpoint rend maintenant **406 en 0,2 s**, et les 504
+observés ailleurs prennent **35 à 43 secondes**. La conclusion du ticket tient — 406 comme 504
+sont des pannes amont, aucune ne porte d'en-tête CORS, et le navigateur ne peut que lire les
+deux comme un blocage — mais le chiffre, lui, était un échantillon.
+
+**Ce que le correctif ne rattrape pas.** La fiche est **survivable**, pas **utile** : sous ce
+budget, et avec le miroir qui répond en troisième position derrière un qui met 40 s à expirer,
+elle refuse. C'est `#157` qui la remplit. §49 n'est pas touché non plus : le motif est
+désormais en français — « source injoignable » — mais la phrase qui le suit vient toujours de
+`src/core` en anglais.

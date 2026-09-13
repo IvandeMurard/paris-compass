@@ -289,6 +289,23 @@ export const clauseText = (axis: VerdictAxis, band: Band, locale: VerdictLocale 
 export const noFindingText = (locale: VerdictLocale = 'fr'): string => COPY[locale].noFinding;
 
 /**
+ * The two or three words that name WHY a finding is absent, in the reader's language.
+ *
+ * Exported for the gaps block — w6-fiche-robuste (#156). The refusal sentence above it already
+ * says « source injoignable » because it is composed here; the block that lists what Compass
+ * does not know here was stating only which layer failed to load, which is a symptom and not a
+ * cause. A visitor cannot tell an outage from a licence refusal from a point outside the
+ * corpus by reading « the amenity layer did not load », and those three call for three
+ * different things to happen next.
+ *
+ * A second copy of these words in `src/i18n` would read identically the day it was written and
+ * drift the day one of them is reworded — the same reason `clauseText` is exported rather than
+ * transcribed.
+ */
+export const withholdingText = (because: Withholding, locale: VerdictLocale = 'fr'): string =>
+  WHY[locale][because];
+
+/**
  * Turn a full `AreaScores` into the findings this module reasons over.
  *
  * `withheldBy` is how a caller that met a *structured* failure passes it on: the MCP server
