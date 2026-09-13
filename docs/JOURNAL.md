@@ -17,6 +17,112 @@ Les sections sont dans l'ordre où elles étaient, la plus récente d'abord.
 
 ---
 
+## `#152` — 13 septembre 2026 : le bras ne regardait qu'une catégorie de trace, et la mesure a dit comment l'élargir
+
+**Ivan a trouvé le défaut en regardant une capture d'écran.** Je lui montrais le correctif de
+`#145` fonctionnant à l'écran ; il a répondu que ce n'était pas le site publié. C'était
+`localhost:8080`. La vérification prouvait que **le code marchait**, pas que **la production le
+portait** — deux choses que j'avais laissées se confondre dans la même phrase.
+
+En mesurant la production : `source injoignable` **0 occurrence** sur 623 736 octets servis,
+`Aucun dans 1 km` **1**. Le site publié affirmait donc toujours qu'il n'y a aucun risque quand
+Géorisques tombe. Et `npm.cmd run servi`, construit deux heures plus tôt pour attraper exactement
+ce genre de retard, sortait **0**.
+
+### Ce qui ne se déduit ni du code ni du ticket
+
+**Le bras n'était pas cassé : sa population était trop étroite, et sa limite mal écrite.** Il
+disait être « aveugle à ce qui ne laisse aucune trace textuelle dans un bundle minifié ». Ça se
+lit comme *tout littéral neuf serait attrapé*. La trace était là — `source injoignable` est un
+littéral, il résiste à la minification — et le bras l'a ratée quand même, parce qu'il ne cherchait
+que des routes.
+
+**La phrase juste est « il ne cherche qu'une catégorie de trace ».** Elle a été écrite en cinq
+endroits avant d'élargir quoi que ce soit : le code, le registre, `REGLES-INCIDENTS.md`, le
+journal, `REPRISE.md`. Une limite écrite à un seul endroit se lit rarement là où on en a besoin.
+
+### La décision qui a tout déterminé : refuser une liste
+
+La solution évidente — un registre de chaînes attendues — a été **refusée**, et c'est le contenu
+principal du ticket. Trois raisons :
+
+1. `#134` reproche déjà exactement ça ailleurs dans ce dépôt : des listes tenues à la main à côté
+   de dérivations qui existent.
+2. Elle pourrirait à la première reformulation. Changer « source injoignable » en « source non
+   joignable » rendrait le bras rouge **sans qu'aucun défaut n'existe** — et un rouge sans défaut
+   est celui qu'une session désarme.
+3. Un registre qu'on remplit à la main ne se remplit que pour les changements dont on se
+   souvient, donc jamais pour celui qui compte.
+
+### La mesure qui a décidé de la forme, et qui a évité deux fausses complications
+
+Le ticket posait trois questions ouvertes — exhaustif ou échantillon, symétrie avec une chaîne
+retirée, discrimination. **Une mesure en a réglé deux.**
+
+`src/i18n/ui.ts` porte 129 clés, soit 258 chaînes. Combien la production en sert-elle ?
+
+```
+presentes : 256/258 (99,2 %)
+absentes  : 2  —  map.unreachable [fr] et [en]
+```
+
+**Zéro faux positif.** Les deux seules absentes sont exactement celles que `#145` venait
+d'ajouter. Donc l'exhaustif suffit : pas d'échantillon à définir, pas de datation des entrées à
+inventer — deux complications que j'aurais conçues sans cette mesure, et pour rien.
+
+Un rouge reste lisible pour la même raison : sur un bundle à jour, rien ne manque ; sur un bundle
+en retard, il ne manque que les nouveautés. Ici deux lignes.
+
+### Le seuil vient d'un comptage, pas d'un goût
+
+Un libellé court ne prouve pas sa propre présence. Compté dans le bundle servi :
+
+| chaîne | occurrences | pourquoi |
+| --- | ---: | --- |
+| `Map` | **91** | le constructeur `Map` |
+| `Data` | **92** | `Dataset`, `DataView`… |
+| `Retry` | 15 | |
+| `Reset` | 11 | |
+
+Par tranche de longueur, les chaînes dépassant deux occurrences : **7 sur 13** en dessous de 6
+caractères, **24 sur 69** en dessous de 12, **1 sur 177** au-dessus — et cette unique exception,
+« Arrondissement », est aussi un nom de composant. Douze est l'endroit où le bruit s'arrête, donc
+`LONGUEUR_MINIMALE = 12`.
+
+Ce que ça coûte est écrit là où le seuil est défini : **69 libellés sur 258 ne rougiront jamais**.
+Un bundle périmé dont la seule nouveauté serait « Aucune » ou « Retry » passerait. Baisser le
+seuil échangerait un retard manqué contre un faux rouge, et c'est le faux rouge qui fait désarmer.
+
+### Ce que la session laisse derrière elle
+
+Le bras passe de **30 jetons à 276** — 30 routes, 246 libellés — et sort en **1** sur l'état même
+qui l'avait laissé vert deux heures plus tôt :
+
+```
+2 libellé(s) de src/i18n/ui.ts absent(s) du JavaScript servi,
+alors que 274 autres jetons y sont — donc la mesure fonctionne.
+    map.unreachable [fr]   ABSENT   "source injoignable"
+    map.unreachable [en]   ABSENT   "source unreachable"
+```
+
+Le rouge nomme la **clé** et le **fichier**, pas seulement la phrase : une clé i18n ne se devine
+pas depuis son texte, et le premier réflexe devant un rouge est d'ouvrir le bon fichier.
+
+**Six contrôles neufs**, dont un qui rejoue l'incident en miniature — un bundle qui porte les
+routes mais pas un libellé neuf doit rougir — et un qui surveille la vraie table : si la part de
+libellés prouvables s'effondrait, le bras deviendrait un témoin sans pouvoir de décision, en
+silence. `test` passe de 619 à **625**.
+
+### Ce que ça ne rattrape toujours pas
+
+Trois choses, écrites dans `servi.ts` et dans le registre. Un libellé **neuf et court** passe,
+puisqu'il ne peut pas se prouver. Une chaîne **écrite en dur** dans un composant, hors de `UI`,
+est invisible — argument de plus pour la mettre dans `UI`. Et un changement qui ne crée **aucun**
+littéral — logique interne, style, valeur numérique — échappera à toute inspection de bundle,
+quelle que soit la population.
+
+---
+
 ## `#145` — 13 septembre 2026 : la panne ne disait pas « n/d », elle disait « Aucun dans 1 km »
 
 **Le ticket décrivait le défaut un cran trop doux, et la mesure l'a corrigé dans le mauvais sens
@@ -205,18 +311,21 @@ est juste — une route servie par du code faux passe au vert. Il ne dit pas **p
 déploiement n'a pas eu lieu : le déploiement appartient à Lovable, ce dépôt n'en voit que le
 résultat. Et **il ne surveille qu'une catégorie de trace, les routes**.
 
-**Cette troisième limite a d'abord été écrite trop étroite, et corrigée le soir même.** Le premier
-jet disait « aveugle à tout ce qui ne laisse aucune trace textuelle dans un bundle minifié », ce
-qui se lit comme *tout littéral neuf serait attrapé*. Quelques heures plus tard, `#145` a ajouté à
-l'écran la chaîne `source injoignable` — un littéral parfaitement mesurable — et le bras est resté
-**vert** sur une production qui ne la servait pas, parce que le changement n'ajoutait aucune
-route. Ivan l'a repéré en remarquant que la capture d'écran que je lui montrais n'était pas celle
-du site publié mais celle du serveur de développement : la vérification prouvait que le code
-marchait, pas que la production le portait. La limite juste est écrite dans
-`scripts/porte/servi.ts` et `docs/REGLES-INCIDENTS.md`, l'élargissement est `#152`, et la raison
-de ne pas le bâcler y est : une liste de chaînes tenue à la main est ce que `#134` reproche déjà
-ailleurs. Reste vrai par ailleurs : un changement qui ne crée **aucun** littéral — logique
-interne, style, valeur numérique — échappera toujours à une inspection de bundle.
+**Cette troisième limite a d'abord été écrite trop étroite, puis corrigée ET levée le soir même.**
+Le premier jet disait « aveugle à tout ce qui ne laisse aucune trace textuelle dans un bundle
+minifié », ce qui se lit comme *tout littéral neuf serait attrapé*. Quelques heures plus tard,
+`#145` a ajouté à l'écran la chaîne `source injoignable` — un littéral parfaitement mesurable — et
+le bras est resté **vert** sur une production qui ne la servait pas, parce que le changement
+n'ajoutait aucune route.
+
+Ivan l'a repéré en remarquant que la capture d'écran que je lui montrais n'était pas celle du site
+publié mais celle du serveur de développement : **la vérification prouvait que le code marchait,
+pas que la production le portait.** Deux choses que j'avais laissées se confondre.
+
+La limite juste a été écrite en cinq endroits, puis `#152` l'a levée le même soir en ajoutant une
+seconde population dérivée — `src/i18n/ui.ts`. Le bras est passé de 30 jetons à **276**. Reste
+vrai par ailleurs : un changement qui ne crée **aucun** littéral — logique interne, style, valeur
+numérique — échappera toujours à une inspection de bundle.
 
 ---
 

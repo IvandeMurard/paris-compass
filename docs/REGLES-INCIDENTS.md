@@ -253,12 +253,26 @@ verdict d'un autre rapporte une chose que personne n'a mesurée.
   occurrence** dans 623 736 octets servis, contre `Aucun dans 1 km` **1**, témoins `/carte` **4**
   et `/contexte/` **3**.
 
-  L'élargissement est **volontairement remis** à `#152`, et la raison compte autant que la limite :
-  une liste de chaînes attendues tenue à la main est exactement ce que `#134` reproche ailleurs
-  ici, et elle pourrirait à la première reformulation d'un libellé — un rouge sans défaut, donc un
-  bras qu'on désarme. Ce qui mériterait sa place est une population **dérivée** comme les routes
-  le sont de `src/App.tsx` : `src/i18n/ui.ts` tient déjà chaque chaîne visible dans une table
-  typée. Tant que ce n'est pas conçu, la limite tient et s'écrit, plutôt que de se redécouvrir.
-- Il reste par ailleurs aveugle à ce qui ne laisse **aucun** littéral : une correction de logique
-  interne, un correctif de style, un changement qui ne crée aucune chaîne. C'était vrai dès le
-  premier jet et ça le demeure — ce n'est simplement plus la limite la plus large.
+  **Élargi le jour même par `#152`, et la manière compte autant que le résultat.** Une liste de
+  chaînes attendues tenue à la main a été **refusée** : c'est ce que `#134` reproche ailleurs ici,
+  et elle pourrirait à la première reformulation d'un libellé — un rouge sans défaut, donc un bras
+  qu'on désarme. La population devait être **dérivée**, comme les routes le sont de `src/App.tsx`.
+  `src/i18n/ui.ts` tient déjà chaque chaîne visible dans une table typée : elle est devenue la
+  seconde population, et rien ne se tient à la main.
+
+  **Mesuré avant d'être bâti**, ce qui a décidé de la forme : **256 des 258 chaînes** de `UI`
+  étaient dans le bundle servi, et les deux absentes étaient exactement celles de `#145`. Zéro
+  faux positif — donc l'exhaustif suffit, sans échantillon ni datation des entrées. Le bras est
+  passé de 30 jetons à **276** — 30 routes et 246 libellés — et sort désormais en **1** sur l'état
+  même qui l'avait laissé vert.
+
+  **Un seuil, et il vient d'une mesure.** Un libellé de moins de **12 caractères** ne prouve rien :
+  « Map » se compte **91** fois dans le bundle servi — le constructeur `Map` — et « Data » **92**.
+  Par tranche, les chaînes dépassant deux occurrences : 7 sur 13 en dessous de 6 caractères, 24 sur
+  69 en dessous de 12, **1 sur 177** au-dessus. Douze est l'endroit où le bruit s'arrête. Ça coûte
+  69 libellés sur 258 qui ne rougiront jamais, et c'est écrit plutôt que caché.
+- Il reste aveugle à ce qui ne laisse **aucun** littéral : une correction de logique interne, un
+  correctif de style, un changement qui ne crée aucune chaîne. Aucune inspection de bundle ne
+  verra ça, quelle que soit la population.
+- Et il ne connaît que ce que `src/App.tsx` et `src/i18n/ui.ts` **déclarent**. Une chaîne écrite en
+  dur dans un composant lui est invisible — ce qui est un argument de plus pour la mettre dans `UI`.
