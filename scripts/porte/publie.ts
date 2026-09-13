@@ -32,6 +32,12 @@ import { resolve } from "node:path"
 
 import { parseEnv } from "../build/envPublic"
 
+// Déplacées dans ./bundles.ts le 13 septembre 2026 : le quatorzième bras en a besoin, et les
+// importer d'ici jouait CE bras-ci à l'import — un second parcours du site, un verdict étranger
+// dans le journal d'un autre, et un `process.exitCode` hérité. Le suivi des chunks reste
+// différent d'un bras à l'autre : celui-ci s'arrête au premier trouvé, l'autre les lit tous.
+import { chunkNames, entryFrom } from "./bundles"
+
 const ROOT = resolve(import.meta.dirname, "../..")
 
 /** Surchargeable pour le test, qui joue contre un bouchon local plutôt que contre la production. */
@@ -66,29 +72,6 @@ async function get(url: string): Promise<string> {
   }
   if (!response.ok) throw new Unreachable(`HTTP ${response.status}`)
   return await response.text()
-}
-
-/**
- * Le bundle d'entrée, celui que la page charge elle-même.
- *
- * Restreint à `/assets/` : la page publiée porte aussi des scripts de Lovable (`/~flock.js`)
- * qui ne sont pas notre build et ne prouveraient rien.
- */
-export function entryFrom(html: string): string | null {
-  return /<script[^>]+src="(\/assets\/[^"]+\.js)"/.exec(html)?.[1] ?? null
-}
-
-/**
- * Les chunks qu'un bundle référence, par leur nom haché.
- *
- * Suivis seulement si la référence n'est pas déjà dans l'entrée. C'est ce qui empêche un rouge
- * fragile : le jour où un découpage déplace le client Supabase dans un chunk paresseux —
- * `App-<hash>.js` en est déjà un depuis le §32 — l'entrée seule ne porterait plus rien, et un
- * bras qui ne regarderait qu'elle crierait sur un changement de découpage.
- */
-export function chunkNames(js: string): string[] {
-  const found = [...js.matchAll(/["'./]([A-Za-z0-9_$-]+-[A-Za-z0-9_-]{8}\.js)\b/g)].map((m) => m[1])
-  return [...new Set(found)]
 }
 
 function occurrences(haystack: string, needle: string): number {

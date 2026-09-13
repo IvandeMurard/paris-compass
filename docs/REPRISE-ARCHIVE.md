@@ -672,3 +672,78 @@ rouge depuis le 2 septembre est le défaut que la porte planifiée a montré la 
     250 000 €, 220 000 €, 86 000 €, 50 000 € — ne sont sous aucune baseline. Ils peuvent vieillir
     en silence, exactement comme la médiane l'aurait fait.
 ---
+
+## Les deux publications du serveur MCP — déplacées depuis `docs/REPRISE.md` le 13 septembre 2026
+
+Sorties de la page de reprise parce qu'elles y étaient rayées depuis le 3 septembre et que le
+plafond de `scripts/porte/documents.test.ts` demande à la session qui touche la page d'en sortir
+une entrée close plutôt que de dépenser la marge. Gardées pour leurs mesures datées : les deux
+registres, leur ordre, et ce que chacun a refusé en chemin.
+
+15. ~~**Publier `paris-compass-mcp`.**~~ **Fait le 3 septembre 2026** —
+    [`paris-compass-mcp@0.1.0`](https://www.npmjs.com/package/paris-compass-mcp), et
+    [`#35`](https://github.com/IvandeMurard/paris-compass/issues/35) est fermée avec sa
+    démonstration.
+
+    **Démontré sur ce que npm sert**, pas sur l'arbre : `npm.cmd run mcp:paquet -- --registre`
+    installe le paquet depuis le registre dans un répertoire neuf hors du dépôt, puis
+    l'interroge en JSON-RPC sans le SDK — s'en servir prouverait que notre client sait parler à
+    notre serveur, pas que le protocole passe. **PASS, sortie 0**, 6 outils annoncés, les quatre
+    du « Fait quand » exercés, **aucune configuration** dans le bac d'installation.
+
+    **Deux défauts trouvés en chemin, qui auraient été publiés :**
+
+    - `prepublishOnly` **ne tourne pas sur `npm pack`**. La première archive emportait un `dist/`
+      périmé et levait encore l'ancienne erreur de configuration. Corrigé en `prepack`. Sans le
+      contrôle d'avant-publication, c'est ce paquet-là qui serait sur npm ;
+    - le contrôle ne regardait que l'archive **locale**, ce qui prouve l'empaquetage et jamais la
+      publication — le §32 une fois de plus. Le drapeau `--registre` ferme cet écart.
+
+    **La 2FA d'npm a bloqué deux tentatives**, et la sortie est le navigateur :
+    `npm.cmd publish --access public --auth-type=web`. Un OTP npm ne s'envoie jamais par
+    courriel — c'est un code TOTP de l'application appairée, ou un passkey, et dans le second cas
+    le prompt `Enter OTP:` ne peut rien recevoir. Compte `compass222`, 2FA en `auth-and-writes`.
+
+    *Ce qui reste ouvert, et qui n'est pas rien :* **le compte npm a été créé le 2 septembre à
+    17:40 et sa 2FA activée neuf minutes plus tard.** Si les codes de récupération n'ont pas été
+    conservés, le paquet dépend d'un seul appareil. À vérifier avant qu'il y ait des
+    utilisateurs, pas après.
+
+    *Et ce qu'aucun bras ne couvre :* `mcp:paquet` est excusé dans `cadence.json` — un `npm pack`
+    et une installation réseau chaque matin dépenseraient ça contre un artefact qui ne bouge
+    qu'à la publication. Une version publiée qui se casserait après coup, un dépendant retiré du
+    registre par exemple, ne serait pas vue. À rejouer à la main avant chaque publication.
+
+16. ~~**Publier au registre MCP.**~~ **Fait le 3 septembre 2026, `0.1.2`.**
+    [`io.github.IvandeMurard/paris-compass-mcp`](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.IvandeMurard/paris-compass-mcp)
+    — `status: active`, `isLatest: true`. Le serveur est **détectable** là où les clients MCP
+    cherchent, en plus d'être accessible par npm.
+
+    Vérifié une dernière fois sur ce que npm sert : `mcp:paquet -- --registre` rend **PASS,
+    sortie 0**, `initialize → paris-compass 0.1.2`, six outils, les quatre du « Fait quand »
+    exercés, sans configuration.
+
+    **Trois refus du registre, tous découverts après une publication npm.** C'est la leçon, et
+    elle a coûté deux montées de version :
+
+    | Refus | Cause | Ce qui l'attrape maintenant |
+    | --- | --- | --- |
+    | `Registry validation failed` | `mcpName` absent du paquet npm | `mcpRegistry.test.ts` |
+    | `422 expected length <= 100` | description de 209 caractères | idem, plafond **et** plancher |
+    | `403 You do not have permission` | `io.github.ivandemurard` ≠ `io.github.IvandeMurard` — le registre compare **à la casse** | idem, recoupé au propriétaire du dépôt |
+
+    Chacun n'apparaît qu'au `publish`, donc **après** que npm a figé la version : corriger impose
+    de republier. Les six règles de `scripts/mcpRegistry.test.ts` les refusent désormais à chaque
+    `npm.cmd run test`, donc aussi sur la porte planifiée. Le mode d'emploi complet, avec le
+    tableau des messages et leur cause réelle, est dans **`mcp-server/PUBLISHING.md`**.
+
+    *Un piège de séquence, à retenir :* le jeton du registre est de courte durée. Le nôtre a
+    expiré pendant qu'on corrigeait la casse et republiait sur npm — `login github` puis
+    `publish` s'enchaînent, ils ne se laissent pas séparer par un autre chantier.
+
+    *Ce qui reste à décider, et qui n'est pas technique :* les descriptions de `lat` et `lng` sont
+    en français quand tout le reste de la surface est en anglais. Un agent s'en accommode ; un
+    lecteur humain du registre y verra une négligence. À trancher avant que le serveur ait des
+    utilisateurs.
+
+---

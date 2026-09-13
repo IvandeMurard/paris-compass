@@ -1,0 +1,40 @@
+{
+  "_lisez-moi": [
+    "Les routes qu'on accepte de ne PAS trouver dans le JavaScript servi — #142, 13 septembre 2026.",
+    "",
+    "La regle est dans scripts/porte/servi.ts, jouee hors ligne par scripts/porte/servi.test.ts et",
+    "contre le site publie par scripts/porte/servi-verify.ts (`npm.cmd run servi`, planifie sur",
+    "porte.yml). Toute route declaree dans src/App.tsx qui PEUT se prouver doit apparaitre dans le",
+    "JavaScript servi, ou figurer ici avec sa raison et sa date ; sinon le bras sort en 1.",
+    "",
+    "CE QUI N'A PAS BESOIN D'UNE DISPENSE. Une route dite « non discriminante » n'entre pas dans la",
+    "population : son jeton est contenu dans celui d'une autre route — `/presentation` vit dans",
+    "`/en/presentation` — donc sa presence ne prouve rien et son absence ne prouve rien non plus.",
+    "Le bras l'imprime comme telle et ne rougit jamais dessus. Ce n'est pas une dispense, c'est une",
+    "limite de la mesure, et elle se calcule toute seule a chaque passage.",
+    "",
+    "CE QUI EN A BESOIN : une route que la mesure POURRAIT prouver et qu'on accepte de ne pas voir.",
+    "Le cas prevu est une route dont le chemin cesse d'etre un litteral dans le bundle — construit a",
+    "l'execution, assemble depuis des morceaux. Ce cas n'existe pas aujourd'hui : les 32 routes de",
+    "src/App.tsx sont toutes ecrites en clair dans `<Route path=\"…\">`.",
+    "",
+    "NE PAS RANGER ICI UN RETARD DE DEPLOIEMENT. Une route absente parce que Lovable n'a pas encore",
+    "publie n'est pas une dispense : c'est exactement le rouge que ce bras existe pour rendre, et le",
+    "ranger ici serait desserrer un seuil pour eteindre une alerte — le geste que CLAUDE.md interdit",
+    "par son nom. Attendre la publication, ou dire pourquoi elle n'aura pas lieu."
+  ],
+
+  "dispenses": [],
+
+  "_lisez-moi-dispenses": [
+    "Le tableau est vide, et c'est un resultat : au 13 septembre 2026 les 32 routes sont des",
+    "litteraux, et les 18 qui se prouvent sont toutes servies. Mesure du jour, sur",
+    "https://paris-compass.lovable.app : 623 736 octets lus en deux bundles, `/contexte/` a 3",
+    "occurrences, `/carte` a 4, `/en/context/` a 1, `/en/map` a 2.",
+    "",
+    "Ces quatre-la rendaient ZERO le matin meme, dans le releve qui a ecrit #142 — le site a ete",
+    "republie entre les deux. C'est la demonstration la plus nette de ce que ce bras apporte : la",
+    "fenetre s'est ouverte le 11 septembre et refermee le 13, et sans lui personne n'aurait su ni",
+    "qu'elle s'etait ouverte, ni qu'elle s'etait refermee."
+  ]
+}
