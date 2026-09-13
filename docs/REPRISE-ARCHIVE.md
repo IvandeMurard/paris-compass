@@ -576,6 +576,26 @@ La numérotation est celle de `docs/REPRISE.md`, conservée telle quelle parce q
     `compass_street_rotation`, qui porte la garde depuis le 28 août. Le fond part dans #89, le
     sabotage manquant dans #94.
 
+18. ~~**`w6-contexte` (#119) est fait à MOITIÉ.**~~ **Livré en entier le 11 septembre 2026** —
+    `e4402fa` à 10:12 (moitié 1, PR #124) et `3ca6be6` à 10:43 (moitié 2, étapes 3 à 6, PR
+    #130). Remesuré le 13 septembre : `/carte` est bien dans `public/sitemap.xml`, donc le
+    critère n° 6 est démontré. **Cette entrée a dit deux jours durant qu'il restait à faire
+    des étapes livrées** — c'est ce que `#142` signale, et c'est la raison pour laquelle un
+    état non redaté est plus coûteux qu'un état absent.
+
+    ~~**Ce qui reste n'est pas du travail, c'est de l'hygiène de ticket, et c'est une décision
+    d'Ivan.**~~ **Scindé et fermé le 13 septembre 2026.** Le **corps** de `#119` ne
+    correspondait ni à son titre ni à son ticket : il portait le plan accueil du 8 septembre —
+    typographie, palette, page `/travaux` — que `docs/tickets/w6-contexte.md` met explicitement
+    hors périmètre. `#119` est close, et ce plan vit désormais dans
+    [`#148`](https://github.com/IvandeMurard/paris-compass/issues/148), qui ne prétend plus être
+    `w6-contexte`.
+
+    **Ce que la clôture ne dit pas, et qui a été mesuré le soir même** : `w6-contexte` est
+    livré ET servi, et la fiche ne rend pourtant rien — elle plante. Voir le point **19** de
+    `docs/REPRISE.md`, qui a remplacé celui-ci en tête de « La suite ». Un ticket fermé sur ses
+    critères n'est pas un produit qui marche, et les deux se mesurent séparément.
+
 ---
 
 ## Deux rouges de la porte, fermés — déplacés depuis `docs/REPRISE.md` le 9 septembre 2026
