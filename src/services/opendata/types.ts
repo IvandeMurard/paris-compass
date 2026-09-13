@@ -1,4 +1,4 @@
-import type { AreaScores } from '@/core';
+import type { AreaScores, Withholding } from '@/core';
 import type { PremiseNaming } from '@/i18n/premiseName';
 
 export interface BBox {
@@ -72,3 +72,23 @@ export interface Premise {
   /** Noise lives inside this record too — it is a score, and it carries the heaviest caveat. */
   scores: AreaScores;
 }
+
+/**
+ * What a per-source lookup came back with — and the difference `null` could not carry.
+ *
+ * `#145`, 13 September 2026. `fetchAirQuality` and `fetchRisks` both returned `T | null`, and
+ * `null` meant two unrelated things: the source answered and has nothing for this point, or the
+ * source did not answer at all. The screen rendered `n/d` for both, so a visitor read an outage
+ * as a measured absence — the exact failure `Measured<T>` exists to prevent, one layer below it.
+ *
+ * The vocabulary is not new: `Withholding` already names the four causes, and the address-context
+ * path in `useAddressContext` already sets `source_injoignable` when every Overpass mirror
+ * refuses. This type only brings the same distinction to the lookups that had lost it.
+ */
+export type Reading<T> =
+  /** The source answered and had a value. */
+  | { state: 'read'; value: T }
+  /** The source answered, and there is genuinely nothing here. A measured zero. */
+  | { state: 'empty' }
+  /** The source did not answer, or answered something unusable. Nothing was measured. */
+  | { state: 'withheld'; because: Withholding };

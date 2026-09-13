@@ -82,6 +82,10 @@ export const UI = {
   'map.env.risks': { fr: 'Risques recensés :', en: 'Recorded risks:' },
   'map.env.noRisk': { fr: 'Aucun dans 1 km', en: 'None within 1 km' },
   'map.na': { fr: 'n/d', en: 'n/a' },
+  // #145 — distinct de `map.na`, et c'est tout l'objet du ticket. « n/d » dit que la valeur n'est
+  // pas disponible ; celle-ci dit que la SOURCE n'a pas répondu, donc que rien n'a été mesuré.
+  // Confondre les deux fait lire une panne comme une absence mesurée.
+  'map.unreachable': { fr: 'source injoignable', en: 'source unreachable' },
   'map.zoomIn': { fr: 'Zoomer', en: 'Zoom in' },
   'map.zoomOut': { fr: 'Dézoomer', en: 'Zoom out' },
   'map.locate': { fr: 'Me localiser', en: 'Locate me' },

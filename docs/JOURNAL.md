@@ -17,6 +17,99 @@ Les sections sont dans l'ordre où elles étaient, la plus récente d'abord.
 
 ---
 
+## `#145` — 13 septembre 2026 : la panne ne disait pas « n/d », elle disait « Aucun dans 1 km »
+
+**Le ticket décrivait le défaut un cran trop doux, et la mesure l'a corrigé dans le mauvais sens
+pour nous.** `#145` disait que l'écran affichait `n/d` là où une source avait échoué. Vérifié
+dans un navigateur, sur la vraie panne : la ligne « Risques recensés » n'affichait pas `n/d`,
+elle affichait **« Aucun dans 1 km »**. Une panne de Géorisques se lisait comme une **affirmation
+rassurante** : *il n'y a aucun risque ici*. Ce n'est pas une information manquante, c'est une
+information fausse.
+
+### Ce qui ne se déduit ni du code ni du ticket
+
+**La cause tient en un type, pas en un composant.** `fetchAirQuality` et `fetchRisks` rendaient
+toutes deux `T | null`, et `null` portait deux sens sans rapport : *la source a répondu et n'a
+rien pour ce point*, ou *la source n'a pas répondu*. L'écran ne pouvait pas les distinguer parce
+que la valeur ne les distinguait plus — la différence était perdue au `catch`, pas à l'affichage.
+Corriger le rendu sans corriger le type aurait tenu jusqu'au prochain appelant.
+
+Le vocabulaire existait déjà et n'a pas eu à être inventé : `Withholding` nomme les quatre causes
+depuis `w6-contexte`, et `useAddressContext` posait déjà `source_injoignable` quand les trois
+miroirs Overpass refusent. **Le chemin de la fiche d'adresse était juste ; c'est le chemin de la
+carte qui avait perdu la distinction.** `Reading<T>` la lui rend, avec trois états et pas deux :
+`read`, `empty`, `withheld`.
+
+### Ce que le relevé a corrigé dans le diagnostic du ticket
+
+`#145` posait trois hypothèses et demandait de mesurer avant d'écrire. Deux sont tombées.
+
+**Le refus CORS n'était pas une politique — confirmé, et pour une raison plus nette que supposé.**
+Mesuré côté serveur, dix fois, sur les trois miroirs : `overpass-api.de` rend **406**,
+`overpass.kumi.systems` et `overpass.private.coffee` rendent **429** avec un corps explicite
+(*« Please include a meaningful User-Agent string »*). **Aucune de ces réponses ne porte
+d'en-tête `Access-Control-Allow-Origin`** — une réponse d'erreur n'en porte jamais. Le navigateur
+a donc raison de dire « CORS », et il a tort de laisser croire que c'est la cause : **il dit la
+même chose quelle que soit la panne**. C'est la leçon transférable, et elle vaut au-delà
+d'Overpass.
+
+**Overpass n'était PAS la panne muette, et c'est là que le ticket se trompait.** La console
+d'Ivan montrait **deux** erreurs pour **trois** miroirs : le troisième a répondu. Le repli a
+fonctionné, `usePremises` n'était pas en erreur, et la carte avait raison de ne rien dire sur
+Overpass — elle avait ses données. La panne réellement muette était **Géorisques**, dont
+`environment.ts` faisait un `console.error` suivi d'un `return null`.
+
+Compter les erreurs de console valait donc plus que les lire. Deux sur trois est un repli qui
+marche ; trois sur trois aurait été une couche perdue.
+
+### Ce qui a été vu à l'écran, et qui vaut mieux qu'un test
+
+Vérifié dans un navigateur sur le serveur de développement, sur la panne réelle et non simulée.
+**Les trois états se sont produits en une dizaine de minutes**, parce que Géorisques est
+intermittent :
+
+| Ce que Géorisques a fait | Ce que le panneau affiche |
+| --- | --- |
+| n'a pas répondu (`TypeError: Failed to fetch`) | **source injoignable** |
+| a répondu, aucun risque dans le rayon | Aucun dans 1 km |
+| a répondu avec des risques | Inondation, Remontée de nappe |
+
+L'intermittence est ce qui rend la distinction nécessaire : avant, les deux premières lignes
+rendaient **la même chose**, et c'était la rassurante.
+
+### La bêtise de la session
+
+**J'ai lu le panneau une première fois sur un module périmé et j'ai failli conclure que le
+correctif ne prenait pas.** Le rendu montrait encore « Aucun dans 1 km » pendant que la console
+disait que Géorisques avait échoué — donc, apparemment, le correctif ne marchait pas. C'était un
+morceau chargé paresseusement, servi depuis le cache d'avant l'édition. Un rechargement complet a
+rendu le bon affichage.
+
+Ce qui est à retenir n'est pas l'erreur mais sa forme : **une mesure prise à travers un cache
+ressemble exactement à un correctif qui ne fonctionne pas.** Même famille que les deux passes à
+zéro de `#142`, une couche plus haut.
+
+### Ce que la session laisse derrière elle
+
+`Reading<T>` dans `src/services/opendata/types.ts`, les deux lectures d'environnement qui la
+rendent, l'écran qui affiche `source injoignable` en italique gris, et **8 contrôles** dans
+`src/services/opendata/environment.test.ts` — dont un qui échoue si quelqu'un refusionne les deux
+cas pour simplifier un appelant, et un qui vérifie que la console reste bavarde : c'est par elle
+que `#145` a été trouvé, et ce qui change est qu'elle n'est plus le **seul** endroit où la panne
+existe.
+
+### Ce que ça ne rattrape pas
+
+La distinction s'arrête à ces deux lectures. **Tout appelant qui fait encore `catch → return
+null` garde le défaut**, et rien ne l'en empêche mécaniquement — il n'y a pas de règle
+d'énumération ici, contrairement aux cinq registres de `scripts/porte/`. Écrire cette règle
+demanderait de recenser les lectures par source, ce que ce ticket ne fait pas.
+
+Et rendre l'absence visible ne la comble pas : la carte reste incomplète pendant une panne, ce
+qui est assumé — le produit préfère dire ce qu'il ne sait pas.
+
+---
+
 ## `#142` — 13 septembre 2026 : le site publié était en retard de deux jours, et il s'est rattrapé pendant que j'écrivais le bras
 
 **Le défaut a disparu avant que je le corrige, et c'est ce qui justifie le mieux le livrable.**
