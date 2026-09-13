@@ -183,3 +183,61 @@ sans condition est une opinion, et une opinion ne se recoupe pas six mois plus t
 - Il ne dit rien du **délai**. Dependabot propose désormais chaque lundi ; personne ne garantit
   qu'une session lise le lundi. C'est la limite déjà écrite pour `#77` : une semaine sans session
   reste une semaine sans lecteur.
+
+---
+
+## Un bras qui COMPTE porte un témoin — corollaire de « un rouge se corrige dans le bras ».
+
+`#142`, 13 septembre 2026. La règle mère dit qu'un bras décide et que le rapport n'interprète
+pas. Ce corollaire dit ce qu'un bras doit prouver **avant** d'avoir le droit de décider.
+
+**L'incident.** `w6-contexte` (`#119`) était sur `main` depuis le 11 septembre — deux
+propositions, une revue, six étapes. Le 13, aucune de ses quatre routes n'était servie :
+`/contexte/`, `/carte`, `/en/context/` et `/en/map` rendaient **zéro** occurrence dans 770 756
+octets de JavaScript publié, pendant que `/methodologie` en rendait 6 et `/presentation` 4.
+Treize bras étaient au vert, `porte:publie` compris — vert le 11 à 12:19, après les deux fusions.
+
+**Ce n'était le défaut d'aucun bras.** `porte:publie` cherche une **configuration**, et son
+en-tête l'écrit. Un bundle vieux de trois semaines porte la même référence Supabase qu'un bundle
+d'aujourd'hui : il passe, légitimement. Le défaut est que **rien ne couvrait ce qu'il laisse** —
+aucun bras ne recoupait le code servi au code fusionné. `DIAGNOSTIC.md` §32 avait déjà fait vivre
+le produit dans cet angle mort ; l'angle était toujours là, une porte plus loin.
+
+**Le témoin, et pourquoi il n'est pas une politesse.** Les **deux premières passes** du relevé
+rendaient zéro sur les huit chaînes, **témoins compris**, parce qu'elles ne suivaient pas le
+morceau à la demande. Publiées telles quelles, elles auraient dit « le site est vide » alors que
+c'était la mesure qui l'était. Un chiffre seul ne distingue pas une **absence** d'un **instrument
+cassé** — et les deux se ressemblent d'autant plus que le résultat est spectaculaire.
+
+D'où la forme retenue : quand aucun jeton connu n'est trouvé, le verdict est `mesure cassée`,
+**sortie 2 et non 1**. Démontré le 13 septembre contre un bouchon dont le morceau à la demande
+répond 503 : le bras refuse de juger au lieu de crier que trente routes ont disparu.
+
+**Le second refus : ne pas prouver ce qu'on ne peut pas prouver.** Une route ne prouve sa
+présence que si son jeton ne vit pas dans celui d'une autre. `/presentation` est contenu dans
+`/en/presentation` : le trouver dit qu'**une** des deux est arrivée, jamais laquelle. Ces routes
+restent **témoins** et ne rougissent jamais — quinze des trente le 13 septembre. C'est la même
+exigence que `Measured<T>` : dire ce qui a été mesuré, pas ce qui arrangerait.
+
+**Ce que le bras a rendu le jour même, et c'est la meilleure démonstration de son utilité.** À
+16:17 il sortait **vert** : les quatre routes étaient servies. Le site avait été republié entre
+14:04 et 16:17. **La fenêtre s'est donc ouverte le 11 et refermée le 13, et personne n'aurait su
+ni l'un ni l'autre.** Corriger les quatre routes n'aurait rien corrigé — elles s'étaient
+corrigées toutes seules. C'est `CLAUDE.md` sur « corriger une donnée n'est pas corriger un
+défaut », dans le cas où la donnée se répare pendant qu'on écrit le ticket.
+
+**Un défaut trouvé en construisant, et gardé ici parce qu'il est instructif.** Le bras importait
+`entryFrom` et `chunkNames` depuis `publie.ts`, qui joue son arme à l'import : `npm.cmd run
+servi` **rejouait le dixième bras**, imprimait son verdict au-dessus du sien, et pouvait hériter
+de son `process.exitCode`. Repéré en lisant la sortie, pas le code de sortie — elle était verte.
+Les deux fonctions vivent maintenant dans `scripts/porte/bundles.ts`. Un bras qui hérite du
+verdict d'un autre rapporte une chose que personne n'a mesurée.
+
+**Ce que ça ne rattrape pas**, et il y a trois limites, pas une :
+
+- Il prouve qu'une **route** est arrivée, jamais qu'un **comportement** est juste. Une route
+  servie par du code faux passe au vert.
+- Il ne dit pas **pourquoi** le déploiement n'a pas eu lieu. Le déploiement appartient à Lovable ;
+  ce dépôt n'en voit que le résultat.
+- Il est aveugle à ce qui ne laisse aucune trace textuelle dans un bundle minifié : une correction
+  de logique interne, un correctif de style, un changement qui ne crée aucune chaîne littérale.

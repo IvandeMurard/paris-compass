@@ -17,6 +17,105 @@ Les sections sont dans l'ordre où elles étaient, la plus récente d'abord.
 
 ---
 
+## `#142` — 13 septembre 2026 : le site publié était en retard de deux jours, et il s'est rattrapé pendant que j'écrivais le bras
+
+**Le défaut a disparu avant que je le corrige, et c'est ce qui justifie le mieux le livrable.**
+`paris-compass-db` avait mesuré le matin : `w6-contexte` (`#119`) était sur `main` depuis le
+11 septembre, et aucune de ses quatre routes n'était servie — `/contexte/`, `/carte`,
+`/en/context/`, `/en/map` à **zéro occurrence** dans 770 756 octets de JavaScript publié, avec
+`/methodologie` à 6 et `/presentation` à 4 comme témoins. À 16:17, quand j'ai remesuré avant de
+commencer, les quatre étaient là : 3, 4, 1 et 2 occurrences. Le site avait été republié entre
+14:04 et 16:17.
+
+La fenêtre s'est donc ouverte le 11 et refermée le 13. **Personne n'aurait su ni l'un ni
+l'autre.** Corriger les quatre routes n'aurait rien corrigé — elles s'étaient corrigées seules.
+C'est la règle de `CLAUDE.md` sur « corriger une donnée n'est pas corriger un défaut », dans le
+cas limite où la donnée se répare pendant qu'on rédige le ticket.
+
+### Ce qui ne se déduit ni du code ni du ticket
+
+**Aucun des treize bras n'était en faute, et c'est le cœur du problème.** `porte:publie`, le
+dixième, regarde le site publié depuis le 2 septembre — mais il y cherche une **configuration**.
+Son en-tête le dit lui-même. Un bundle vieux de trois semaines porte la même référence Supabase
+qu'un bundle d'aujourd'hui, donc il passe, légitimement. Le défaut est que **rien ne couvrait ce
+qu'il laisse**. `DIAGNOSTIC.md` §32 avait déjà fait vivre le produit dans cet angle mort ;
+l'angle était toujours là, une porte plus loin.
+
+**Deux routes sur trente ne peuvent pas se prouver, et le dire est la moitié du travail.** Une
+route ne démontre sa présence que si son jeton ne vit pas dans celui d'une autre.
+`/presentation` est contenu dans `/en/presentation` : le trouver dit qu'*une* des deux est
+arrivée, jamais laquelle. Quinze routes sur trente sont dans ce cas. Elles restent **témoins** —
+elles peuvent montrer que l'instrument fonctionne — mais ne rougissent jamais.
+
+Ce calcul se refait à chaque passage plutôt que d'être figé, et un test le surveille : si l'une
+des quatre routes de `w6-contexte` devenait non discriminante — une jumelle anglaise à
+l'orthographe identique suffirait — le bras cesserait de pouvoir attraper cet incident-là **en
+silence**. Le test est ce qui rend ce silence bruyant.
+
+### La bêtise évitée, et elle ne vient pas de moi
+
+**Les deux premières passes du relevé fondateur rendaient zéro sur les huit chaînes, témoins
+compris**, parce qu'elles ne suivaient pas le morceau à la demande. Publiées telles quelles,
+elles auraient dit « le site est vide » quand c'était la mesure qui l'était. `paris-compass-db`
+l'a vu et a mis le contrepoint dans l'issue plutôt que dans une note.
+
+C'est devenu une règle du bras : quand **aucun** jeton connu n'est trouvé, le verdict est
+`mesure cassée`, **sortie 2 et non 1**. Un chiffre seul ne distingue pas une absence d'un
+instrument cassé, et les deux se ressemblent d'autant plus que le résultat est spectaculaire.
+Démontré contre un bouchon dont le morceau à la demande répond 503 : le bras refuse de juger au
+lieu de crier que trente routes ont disparu.
+
+### La bêtise de la session, celle-là bien à moi
+
+**Le bras importait `entryFrom` et `chunkNames` depuis `publie.ts`, qui joue son arme à
+l'import.** `npm.cmd run servi` **rejouait donc le dixième bras** : un second parcours du site,
+le verdict de `porte:publie` imprimé au-dessus du sien, et un `process.exitCode` qui pouvait être
+hérité — un bras rapportant un code que personne n'a mesuré pour lui.
+
+Repéré en lisant la **sortie**, pas le code de sortie : il était vert, et il avait imprimé
+`PASS — la configuration est figée dans le bundle servi` avant sa propre ligne. Un vert qui dit
+quelque chose de vrai sur la mauvaise question. Les deux fonctions vivent maintenant dans
+`scripts/porte/bundles.ts`, importées par les deux bras, et le suivi des morceaux reste différent
+de l'un à l'autre : le dixième s'arrête au premier trouvé, le quatorzième les lit tous.
+
+### Ce que la session laisse derrière elle
+
+**`npm.cmd run servi`**, quatorzième bras de `porte.yml`, sans secret — il lit une page publique.
+Il dérive sa population de `src/App.tsx` au lieu de lister des chaînes, comme
+`scripts/porte/sitemap.ts` le fait déjà, et suit tous les morceaux à la demande.
+
+**Démontré dans les trois états**, pas seulement testé vert : **1** contre un bouchon servant le
+bundle du matin, les quatre routes nommées et 26 témoins ; **2** quand le morceau ne répond pas ;
+**0** contre la production. Et 16 tests hors ligne qui rejouent l'incident sur la **vraie** table
+de routes.
+
+**`docs/REPRISE.md` §18 cesse de mentir.** Elle disait encore que `#119` était « fait à moitié, et
+la moitié qui reste est celle qui retire », deux jours après que les deux moitiés soient fusionnées.
+Une session démarrant aujourd'hui aurait refait des étapes livrées. Remesuré : `/carte` est bien
+dans `public/sitemap.xml`, donc le critère n° 6 est démontré.
+
+**Et la page est plus petite qu'au début de la session** — 99 100 octets avant, 96 568 après,
+malgré tout ce qui y a été ajouté. Les entrées 15 et 16, rayées depuis le 3 septembre, sont parties
+à `docs/REPRISE-ARCHIVE.md`. Deuxième fois que `scripts/porte/documents.test.ts` obtient ce geste.
+
+### Ce qui reste, et qui n'est pas à moi
+
+Le **corps** de `#119` ne correspond ni à son titre ni à son ticket : il porte le plan accueil du
+8 septembre — typographie, palette, page `/travaux` — que `docs/tickets/w6-contexte.md` met hors
+périmètre. Le fermer perdrait ce plan ; le laisser ouvert fait dire à la table qu'un ticket livré
+est ouvert. Il faut le scinder, et c'est une décision produit.
+
+### Ce que ça ne rattrape pas
+
+Trois limites, pas une. Le bras prouve qu'une **route** est arrivée, jamais qu'un **comportement**
+est juste — une route servie par du code faux passe au vert. Il ne dit pas **pourquoi** le
+déploiement n'a pas eu lieu : le déploiement appartient à Lovable, ce dépôt n'en voit que le
+résultat. Et il est aveugle à tout ce qui ne laisse aucune trace textuelle dans un bundle
+minifié — une correction de logique interne, un correctif de style, un changement qui ne crée
+aucune chaîne littérale nouvelle.
+
+---
+
 ## `#115` — 9 septembre 2026 : six alertes, aucune atteignable, et le défaut qui n'était aucune des six
 
 **Le point de départ n'était pas un ticket : c'était une capture d'écran.** Ivan a montré la page

@@ -265,6 +265,23 @@ jobs:
           cat "$PORTE/avis.log"
           printf 'avis\t%s\t%s\n' "$code" "$PORTE/avis.log" >> "$PORTE/bras.tsv"
 
+      # Le quatorzième bras, et le seul qui recoupe le code SERVI au code SUIVI — #142. Le
+      # dixième, `porte:publie`, regarde déjà le site publié, mais il y cherche une
+      # CONFIGURATION : un bundle vieux de trois semaines porte la même référence Supabase que
+      # celui d'aujourd'hui, donc il passe. Ce n'est pas un défaut du dixième, c'est une limite
+      # qu'il déclare — et que rien ne couvrait. Le 13 septembre 2026, `w6-contexte` était sur
+      # `main` depuis deux jours et aucune de ses quatre routes n'était servie, pendant que
+      # treize bras étaient au vert.
+      #
+      # Il ne porte aucun secret : il lit une page publique et ses bundles. Il rend 3 si le site
+      # ne répond pas, et 2 — pas 1 — si aucune route connue n'est trouvée : ça ne veut pas dire
+      # que le site est vide, ça veut dire que la mesure a lu autre chose.
+      - name: servi
+        run: |
+          npm run servi > "$PORTE/servi.log" 2>&1 && code=0 || code=$?
+          cat "$PORTE/servi.log"
+          printf 'servi\t%s\t%s\n' "$code" "$PORTE/servi.log" >> "$PORTE/bras.tsv"
+
       # ── Le compte rendu ─────────────────────────────────────────────────────────────────
 
       - name: Compte rendu
