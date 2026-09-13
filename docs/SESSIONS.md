@@ -210,7 +210,7 @@ fautive.
 
 <!-- BEGIN sessions -- généré par `npm.cmd run sessions`, ne pas éditer à la main -->
 
-*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 11/09/2026.*
+*Table dérivée de `docs/tickets/` et de l'état GitHub, régénérée le 13/09/2026.*
 
 | # | Ticket | Issue | État | Prio | Modèle |
 | --- | --- | --- | --- | --- | --- |
@@ -252,7 +252,7 @@ fautive.
 | 36 | `w5-entretien` | [#30](https://github.com/IvandeMurard/paris-compass/issues/30) | ouvert | P1 | Opus 5 |
 | 37 | `w5-confiance-agent` | [#28](https://github.com/IvandeMurard/paris-compass/issues/28) | ouvert | P1 | Opus 5 |
 | 38 | `w5-parse` | [#32](https://github.com/IvandeMurard/paris-compass/issues/32) | ouvert | P2 | Opus 5 |
-| 39 | `w6-contexte` | [#119](https://github.com/IvandeMurard/paris-compass/issues/119) | ouvert | P1 | Opus 5 |
+| ~~39~~ | ~~`w6-contexte`~~ | [#119](https://github.com/IvandeMurard/paris-compass/issues/119) | **fait** | P1 | Opus 5 |
 | 40 | `w6-liberations` | [#34](https://github.com/IvandeMurard/paris-compass/issues/34) | ouvert | P1 | Opus 5 |
 | 41 | `w6-dossier` | [#33](https://github.com/IvandeMurard/paris-compass/issues/33) | ouvert | P1 | Opus 5 |
 | 42 | `w6-modes` | [#36](https://github.com/IvandeMurard/paris-compass/issues/36) | ouvert | P1 | Opus 5 |
