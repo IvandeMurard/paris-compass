@@ -30,6 +30,16 @@ const END = "<!-- END sessions -->"
 /** Order is a human decision, so it is declared here rather than inferred. Unlisted
  *  tickets fall to the end, sorted by id — visible, never silently dropped. */
 const ORDER = [
+  // --- P0, 13 September 2026: the product page does not work ----------------------------
+  // Measured as an anonymous visitor: /contexte/<address> shows a loading line for 2 min 20
+  // and then an error screen, on two addresses. These three head the queue because nothing
+  // else can be measured on a page that crashes — and because the gate was entirely green
+  // while it happened. Order decided by Ivan: the crash, then the corpus, then the arm that
+  // would have caught both. They sit before every closed w0 ticket on purpose: what matters
+  // is that they precede every ticket still OPEN, and the queue derives itself from that.
+  "w6-fiche-robuste",
+  "w6-fiche-corpus",
+  "w1-porte-page",
   "w0-deploy",
   "w0-history",
   "w0-provenance",
