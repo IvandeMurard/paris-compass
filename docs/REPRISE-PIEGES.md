@@ -1060,8 +1060,32 @@ qui ressemble exactement à un test qui passe. Les deux lignes à changer sont d
 `vitest.config.ts` — le motif, et `@vitest-environment jsdom` en tête du fichier concerné.
 
 **Et la divergence de verrous qui va avec.** `jsdom` est entré en dépendance de développement le
-13 septembre 2026 (30.0.1, 38 paquets, 26 Mo, `npm audit` à zéro vulnérabilité). `package-lock.json`
-le porte, **`bun.lockb` non** : la régénération passe par Docker (`CLAUDE.md`, « Bun ne tourne pas
-sur cette machine ») et n'a pas été faite. Sans conséquence attendue — Lovable bâtit par
-`vite build`, qui ne charge aucune dépendance de test — mais c'est un écart écrit plutôt que tu,
-et la règle des verrous identiques ne vaut que pour les paquets nommés par un avis.
+13 septembre 2026 (`^26.1.0`, `npm audit` à zéro vulnérabilité). `package-lock.json` le porte,
+**`bun.lockb` non** : la régénération passe par Docker (`CLAUDE.md`, « Bun ne tourne pas sur cette
+machine ») et n'a pas été faite. Sans conséquence attendue — Lovable bâtit par `vite build`, qui
+ne charge aucune dépendance de test — mais c'est un écart écrit plutôt que tu, et la règle des
+verrous identiques ne vaut que pour les paquets nommés par un avis.
+
+## `pr.yml` tourne en Node 20 et `porte.yml` en Node 22 : une proposition verte n'est pas une porte verte — 13 septembre 2026
+
+**Mesuré en payant le rouge.** `jsdom` a d'abord été installé en **30.0.1**, sa dernière version.
+`npm.cmd run test` passait ici — Node 24 — et **la proposition est sortie rouge** :
+
+```
+Error: [vitest-pool]: Failed to start forks worker for test files …/ContextMap.test.tsx.
+Caused by: TypeError: webidl.util.markAsUncloneable is not a function
+```
+
+La cause est dans le manifeste du paquet, pas dans le code :
+`jsdom@30.0.1` déclare `engines: { node: '^22.22.2 || ^24.15.0 || >=26.0.0' }` et dépend
+d'`undici@^8`. **`npm ci` n'applique pas `engines`** : l'installation réussit sans un mot, et
+l'incompatibilité n'apparaît qu'à l'exécution, sous la forme d'une méthode absente. `jsdom@26.1.0`
+déclare `engines: { node: '>=18' }` — c'est la plus petite version qui suffit, et c'est elle qui
+est posée, `^26.1.0` excluant d'office la 27 qui relève le plancher.
+
+**Le piège plus large, et il survivra à jsdom.** `.github/workflows/pr.yml` épingle
+`node-version: 20` ; `.github/workflows/porte.yml` épingle `"22"`. Les deux portes ne jouent donc
+pas le même moteur, et une dépendance qui exige Node 22 sera **verte le matin dans la porte
+planifiée et rouge dans chaque proposition** — ou l'inverse. Rien ne recoupe les deux fichiers.
+Avant d'ajouter une dépendance de développement, lire son `engines` **contre le plus bas des
+deux**, pas contre le Node du poste.
