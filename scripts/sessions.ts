@@ -22,6 +22,8 @@ import { readFileSync, writeFileSync, readdirSync } from "fs"
 import { execFileSync } from "child_process"
 import { resolve } from "path"
 
+import { modeleDe } from "./session-choix"
+
 const DOC = resolve("docs/SESSIONS.md")
 const TICKETS = resolve("docs/tickets")
 const BEGIN = "<!-- BEGIN sessions -- généré par `npm.cmd run sessions`, ne pas éditer à la main -->"
@@ -203,20 +205,9 @@ const BLOQUE: Record<string, string> = {
  * une phrase que le produit assumera. Ce n'est pas la difficulté du SQL qui départage, c'est
  * la présence ou non d'un arbitrage irréversible dans le ticket.
  */
-const MODEL: Record<string, string> = {
-  "w0-plu": "Sonnet 5",
-  "w1-chantiers": "Sonnet 5",
-  "w1-terrasses": "Sonnet 5",
-  "w2-idfm": "Sonnet 5",
-  "w2-filosofi": "Sonnet 5",
-  "w2-mobiliscope": "Sonnet 5",
-  "w2-bpe-marches-velo": "Sonnet 5",
-  "w4-meubles": "Sonnet 5",
-  "w4-ecoles": "Sonnet 5",
-  "w4-frequentation": "Sonnet 5",
-  "w3-osm-notes": "Sonnet 5",
-}
-const DEFAULT_MODEL = "Opus 5"
+// Le choix de modèle vit dans scripts/session-choix.ts depuis le 13 septembre 2026 : ce
+// fichier appelle main() à l'import, donc brief.ts ne pouvait pas le lui emprunter. Un seul
+// propriétaire, deux lecteurs — plutôt qu'une seconde table tenue à la main à côté.
 
 interface Issue {
   number: number
@@ -282,7 +273,7 @@ function build(rows: Row[]): string {
     const bloque = !done && BLOQUE[r.id] !== undefined
     const state = r.issue ? (done ? "**fait**" : bloque ? "**bloqué**" : "ouvert") : "**pas d'issue**"
     const idx = done ? `~~${n}~~` : `${n}`
-    lines.push(`| ${idx} | ${label} | ${num} | ${state} | ${r.priority} | ${MODEL[r.id] ?? DEFAULT_MODEL} |`)
+    lines.push(`| ${idx} | ${label} | ${num} | ${state} | ${r.priority} | ${modeleDe(r.id)} |`)
   }
 
   // Les raisons sous la table plutôt que dans une colonne : une raison utile est une phrase,
