@@ -40,7 +40,10 @@
 //   - Ça voit qu'un fichier APPELLE le noyau, jamais qu'il AFFICHE ce que le noyau a rendu.
 //     Un composant qui appellerait `composeVerdict` puis peindrait sa propre phrase passerait
 //     ici au vert. Même limite que l'échappement d'observabilité (#81) : on vérifie la
-//     déclaration, pas l'application.
+//     déclaration, pas l'application. **C'est par ce trou que le défaut du 13 septembre 2026
+//     est passé** — la fiche appelait bien le noyau, et l'écran mourait avant de l'afficher. Le
+//     quinzième bras, `page` (./page.ts, #158), ouvre la page pour cette raison précise ; il ne
+//     remplace rien ici : il dit qu'une réponse arrive, jamais qu'elle vient d'ici.
 //   - Une prose reconstruite par concaténation — « desserte » + « forte » — n'est pas vue.
 //   - Les fichiers de test sortent de la population, parce qu'ils portent les fixtures de la
 //     règle : `src/core/verdict.test.ts` écrit des clauses attendues, et une population qui les

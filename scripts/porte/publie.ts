@@ -10,8 +10,11 @@
 // celle dont l'absence est toujours un défaut de ce dépôt, jamais une humeur d'amont.
 //
 // **Ce qu'il ne juge pas**, écrit ici pour que personne ne lise dans un vert plus qu'il ne porte :
-//   - que la page s'affiche. Il y faudrait un navigateur sans tête, écarté par décision — voir
-//     `docs/REPRISE.md`, point 2 des recommandations du 2 septembre 2026 ;
+//   - que la page s'affiche. Le navigateur sans tête avait été écarté par décision le 2 septembre
+//     2026 ; le 13 septembre la page produit a passé une journée muette sous quatorze bras verts,
+//     et la décision a été renversée. C'est le quinzième bras, `page` — ./page.ts, #158 — et il
+//     reste distinct de celui-ci : le dixième cherche une CONFIGURATION dans le bundle, le
+//     quinzième ouvre la page ;
 //   - les couples `void 0`. Comptés et imprimés, jamais un verdict : une sortie minifiée peut en
 //     produire un innocemment, et un rouge qui part sur une coïncidence est un rouge qu'on coupe ;
 //   - par quel chemin Lovable a bâti. Un vert dit que les valeurs sont arrivées, pas que la garde

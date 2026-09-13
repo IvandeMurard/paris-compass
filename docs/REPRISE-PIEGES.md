@@ -1124,3 +1124,28 @@ session qui conclut « la fusion a échoué » et relance, ou qui repart d'un `g
 travaille sur un dépôt déjà fusionné. **Vérifier l'état de la proposition avant de croire le code
 de sortie** — c'est la même règle que le rapport de la porte, dans l'autre sens : ici le code de
 sortie parle d'autre chose que de ce qu'on croit lui avoir demandé.
+
+---
+
+## Un bras neuf va dans `porte.yml` **OU** dans `cadence.json`, jamais dans les deux — 13 septembre 2026
+
+w1-porte-page (#158). Le ticket demandait, mot pour mot, que le quinzième bras soit « dans
+`porte.yml` **et** dans `cadence.json` ». Les deux ensemble sont un **rouge** : `classifyArms`
+(`scripts/porte/arms.ts`) rend l'état `contradictoire` pour un script à la fois planifié par un
+workflow et excusé dans `scripts/porte/cadence.json`, et `arms.test.ts` fait échouer
+`npm.cmd run test` dessus. Le suivre à la lettre aurait rougi la porte du matin.
+
+**La règle est un OU exclusif, et `cadence.json` est la branche des NON planifiés.** Son
+`_lisez-moi` le dit — « soit joué par un workflow qui porte un `on.schedule`, soit nommé ici
+avec une raison écrite » — mais `CLAUDE.md` la résume en une phrase qui se lit dans l'autre
+sens : « un script ajouté à `package.json` fait échouer `test` tant qu'il n'est ni planifié ni
+justifié dans `scripts/porte/cadence.json` ». Les deux disent la même chose ; la première se lit
+vite comme une conjonction, et le ticket l'avait lue comme ça.
+
+**Ce qu'il faut faire, en une ligne :** ajouter l'étape dans `.github/workflows/porte.yml`, ne
+rien écrire dans `cadence.json`, et lancer `npx vitest run scripts/porte/arms.test.ts` — il dit
+`planifie` avec le nom du fichier qui déclenche, ou il nomme l'incohérence.
+
+**Et c'est un cas de plus de la règle du dépôt sur les tickets** : les chiffres et les
+prescriptions d'un ticket ont été écrits sans accès en lecture au dépôt. Ce qu'un ticket dit de
+FAIRE se vérifie contre le code qui le contrôlera, pas contre la phrase du ticket.

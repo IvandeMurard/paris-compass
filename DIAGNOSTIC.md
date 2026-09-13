@@ -930,3 +930,30 @@ budget, et avec le miroir qui répond en troisième position derrière un qui me
 elle refuse. C'est `#157` qui la remplit. §49 n'est pas touché non plus : le motif est
 désormais en français — « source injoignable » — mais la phrase qui le suit vient toujours de
 `src/core` en anglais.
+
+### Corrigé sur `main`, et le visiteur le rencontre encore — mesuré le 13 septembre 2026 au soir
+
+**Le correctif est fusionné depuis 21:07 UTC et la production plante toujours.** Premier relevé
+du quinzième bras (`#158`), le soir même, sur `https://paris-compass.lovable.app` :
+`/contexte/rue-de-bretagne-paris?lat=48.863100&lng=2.362100` reste sur « Lecture du quartier en
+cours… » au-delà du délai de 14 000 ms — bras en **1** à deux passages, 14 176 et 14 055 ms —
+puis meurt à **95 945 ms** sur le message exact d'avant le correctif, `Cannot read properties of
+undefined (reading 'layerPointToLatLng')`. Au même moment, le build de `main` servi depuis le
+disque rend son **refus nommé à 10 214 ms** et son **verdict à 9 580 ms** quand un miroir répond.
+
+**La cause n'est pas dans le dépôt** : `npm.cmd run servi` sort en **1** le même soir — 623 736
+octets en deux bundles, `index-C6IZoiXB.js` et `App-DyTrLRE9.js`, **274 jetons sur 276 trouvés**,
+les deux manquants étant `map.unreachable [fr]` et `[en]`, posés par `#145`. Le bundle servi est
+donc antérieur non pas à `#156` mais à une fusion encore plus ancienne. Lovable n'a pas republié.
+
+**Ce que ça change à la lecture de cette section.** Le plantage reste écrit « corrigé » parce
+qu'il l'est là où ce dépôt peut agir ; mais **un défaut corrigé que le visiteur rencontre encore
+n'est pas un défaut résolu pour lui**, et rien avant le quinzième bras ne pouvait le dire.
+`porte:publie` lit une configuration, qu'un bundle de trois semaines porte aussi bien qu'un
+neuf ; `servi` dit que le site est en retard, jamais ce que ce retard coûte à l'écran. C'est
+exactement la distinction que `#158` existe pour tenir, et son premier passage l'a rendue.
+
+**Ce que ça ne rattrape toujours pas.** Ni ce dépôt ni ce bras ne publient : le déploiement
+appartient à Lovable. Le bras dit que la page est muette, jamais pourquoi, et il restera rouge
+chaque matin jusqu'à la republication — ce qui est le comportement voulu, et non un bras à
+désarmer.
