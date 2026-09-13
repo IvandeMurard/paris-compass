@@ -767,3 +767,11 @@ registres, leur ordre, et ce que chacun a refusé en chemin.
     utilisateurs.
 
 ---
+
+## Les comptes de tests antérieurs au 13 septembre 2026 — déplacés depuis `docs/REPRISE.md` le 13 septembre 2026
+
+Sortis de la ligne « Tests unitaires » par `w1-porte-page` (`#158`) pour tenir le plafond de `scripts/porte/documents.test.ts`, qui refuse de se laisser monter pour éteindre son propre rouge. La mesure courante — **660 sur 49 fichiers** — reste dans `docs/REPRISE.md` avec les deux relevés qui la précèdent immédiatement ; ce qui suit est la chaîne plus ancienne, gardée pour ses dates.
+
+**396** mesurés plus tôt le même jour — dont les 20 de `scripts/porte/observabilite.test.ts` ajoutés par `w1-observabilite-echappement` (#81), qui énumèrent les fichiers atteignant PostgREST et exigent de chacun l'échappement ou une raison écrite. **376** mesurés le 5 septembre 2026 — dont les 10 de `scripts/ingest/lib/arcgis.test.ts` ajoutés par `w1-geometrie` (#68), qui éprouvent `featurePoint` sur la chaîne `"NaN"` que le service envoie pour un point absent. **366** mesurés plus tôt le même jour — dont les 15 de `scripts/porte/etat.test.ts` ajoutés par `w1-porte-lue` (#77) et les 14 de `scripts/porte/catalogue.test.ts`. **Le chiffre de 335 daté du 3 septembre était déjà faux** : remesuré sans le fichier neuf, le dépôt en portait **337**. Historique : 273 après `#71` , puis 299 avec `scripts/porte/cadences.test.ts`, la réconciliation distant/migrations et deux cas ajoutés de part et d'autre dans `scripts/ingest/workflow.test.ts` et `scripts/porte/workflow.test.ts`, puis **301** en tranchant les cadences sans seuil, puis **325** le 2 septembre 2026 avec les 14 tests de `scripts/build/envPublic.test.ts` , les 6 de `scripts/porte/publie.test.ts` , les 4 de `scripts/esbuildInvocation.test.ts` , les 6 de `scripts/eval/drift.test.ts` et les 4 de `scripts/mcpRegistry.test.ts`
+
+---

@@ -59,6 +59,7 @@ npm.cmd run porte:publie    # la page publiée porte-t-elle sa configuration
 npm.cmd run ledger          # le ledger de migrations contre les migrations suivies par git
 npm.cmd run avis            # les avis de securite npm contre leurs verdicts d'atteignabilite
 npm.cmd run servi           # les routes servies par le site publie contre celles que main declare
+npm.cmd run page            # ouvre /contexte/ dans Chrome sans tete : un verdict, un refus nomme, ou rouge
 npm.cmd run porte:sabotage  # demontre la porte : bras non planifie, rouge, panne amont
 
 # Le serveur MCP publié — voir mcp-server/PUBLISHING.md pour la suite complète

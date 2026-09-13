@@ -282,6 +282,32 @@ jobs:
           cat "$PORTE/servi.log"
           printf 'servi\t%s\t%s\n' "$code" "$PORTE/servi.log" >> "$PORTE/bras.tsv"
 
+      # Le quinzième bras, et le seul qui OUVRE la page produit — w1-porte-page (#158). Le 13
+      # septembre 2026 à 16 h 30, `porte:etat` rendait « aucun rouge ouvert » et
+      # `/contexte/<adresse>` affichait une ligne de chargement pendant 2 min 20 avant un écran
+      # d'erreur. Les quatorze autres vérifiaient la base, le ledger, le catalogue, les cadences,
+      # les avis, l'échappement, le plan du site, la parité agent/écran et le code servi ; aucun
+      # n'ouvrait la page. `verify:mcp` parle MCP à un binaire et ne lancera jamais de navigateur,
+      # c'est un choix écrit ; `servi` a bien vu `/contexte/` servie, mais une route servie n'est
+      # pas une page qui répond.
+      #
+      # Une seule affirmation : quelque chose de DÉCIDABLE arrive à l'écran. Un refus nommé est un
+      # succès — c'est le comportement que #156 a construit, et un bras qui rougirait sur une
+      # panne Overpass serait coupé en quinze jours. Il ne rougit que si la page ne dit rien.
+      #
+      # Il ne porte aucun secret : il ouvre une page publique. Il rend 3 si le site ne sert pas le
+      # document, et 2 — pas 1 — si le navigateur manque ou si la sonde n'a rien rendu : ça ne
+      # veut pas dire que la page est muette, ça veut dire que rien n'a été mesuré.
+      #
+      # `ubuntu-latest` livre `google-chrome` d'office ; ./chrome.ts le trouve, ou rend 2 en le
+      # disant. Aucun paquet npm n'est ajouté pour ça — le protocole DevTools tient en quatre
+      # commandes, et un navigateur de 130 Mo téléchargé chaque matin serait cher pour ça.
+      - name: page
+        run: |
+          npm run page > "$PORTE/page.log" 2>&1 && code=0 || code=$?
+          cat "$PORTE/page.log"
+          printf 'page\t%s\t%s\n' "$code" "$PORTE/page.log" >> "$PORTE/bras.tsv"
+
       # ── Le compte rendu ─────────────────────────────────────────────────────────────────
 
       - name: Compte rendu
