@@ -1089,3 +1089,38 @@ pas le même moteur, et une dépendance qui exige Node 22 sera **verte le matin 
 planifiée et rouge dans chaque proposition** — ou l'inverse. Rien ne recoupe les deux fichiers.
 Avant d'ajouter une dépendance de développement, lire son `engines` **contre le plus bas des
 deux**, pas contre le Node du poste.
+
+## `gh pr merge --delete-branch` échoue depuis un worktree, APRÈS avoir fusionné — 13 septembre 2026
+
+**Le message ment sur ce qui s'est passé.** Lancé depuis `.claude/worktrees/<ID>`, à la fin de
+la session de `#156` :
+
+```
+failed to run git: fatal: 'main' is already used by worktree at 'C:/.../paris-compass'
+```
+
+et le code de sortie est **1**. Lu vite, ça dit « la fusion a échoué ». C'est faux : **la fusion
+a réussi** — `gh pr view <N> --json state` rend `MERGED` avec son commit de squash. Ce qui a
+échoué est l'étape d'après, purement locale : `gh` veut basculer le dépôt sur `main` avant de
+supprimer la branche, et `main` est déjà occupé par l'arbre partagé. La branche **distante reste
+donc en place**, seule trace du travail à demi terminé.
+
+**La suite qui marche**, et c'est la seule chose à retenir :
+
+```powershell
+gh pr merge <N> --squash --delete-branch   # sort en 1, mais la fusion est faite
+gh pr view <N> --json state,mergeCommit    # verifier : MERGED
+git push origin --delete ticket/<ID>       # faire soi-meme ce que gh n'a pas pu faire
+```
+
+**Pourquoi ça va se reproduire.** La règle « une session, un worktree » (`#143`) et la règle
+« une session, une branche, une proposition » (`#82`, `CLAUDE.md`) se contredisent sur ce point
+précis : la seconde donne une commande qui suppose qu'on peut basculer sur `main`, la première
+garantit qu'on ne peut pas. Chaque session qui suit le prompt commun jusqu'au bout tombera
+dessus.
+
+**Et le vrai danger n'est pas la branche orpheline**, c'est la lecture du code de sortie. Une
+session qui conclut « la fusion a échoué » et relance, ou qui repart d'un `git merge` à la main,
+travaille sur un dépôt déjà fusionné. **Vérifier l'état de la proposition avant de croire le code
+de sortie** — c'est la même règle que le rapport de la porte, dans l'autre sens : ici le code de
+sortie parle d'autre chose que de ce qu'on croit lui avoir demandé.
