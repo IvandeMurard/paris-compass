@@ -13,6 +13,7 @@ import { execFileSync } from "child_process"
 import { resolve } from "path"
 
 import { etatCourant } from "./porte/etat"
+import { choixDe } from "./session-choix"
 
 const SESSIONS = resolve("docs/SESSIONS.md")
 const TICKETS = resolve("docs/tickets")
@@ -150,6 +151,17 @@ function main() {
       "sur l'état courant. Il ne se consulte que sur une question précise — pourquoi",
       "telle décision a été prise — et jamais en entier.",
     ].join("\n"),
+  )
+
+  // Comment lancer la session, AVANT le prompt et sur stderr — comme les rouges en fin de
+  // sortie. Ce n'est pas du texte à coller : c'est un réglage que la personne devant le
+  // terminal pose dans l'application avant de coller quoi que ce soit, et le noyer dans le
+  // bloc collable serait le meilleur moyen qu'il ne soit jamais appliqué.
+  const choix = choixDe(id, ticket[0] ?? "")
+  process.stderr.write(
+    `\n[lancement] modèle ${choix.modele} · effort ${choix.effort}\n` +
+      `            ${choix.raison}\n` +
+      `            Le modèle est une décision, l'effort en est dérivé — scripts/session-choix.ts.\n`,
   )
 
   console.log(`\n=== ${id} · issue #${num} — à coller tel quel ===\n`)

@@ -182,8 +182,29 @@ tapé à la main vieillit dès qu'une session ferme une issue — c'est arrivé 
 | Partie | Origine | Qui la change |
 | --- | --- | --- |
 | Le bloc entre `BEGIN sessions` et `END sessions` | **dérivé** de `docs/tickets/` et de l'état GitHub | `npm.cmd run sessions`, jamais la main |
-| L'ordre et le choix de modèle | décisions humaines | les constantes `ORDER` et `MODEL` de `scripts/sessions.ts` |
+| L'ordre | décision humaine | la constante `ORDER` de `scripts/sessions.ts` |
+| Le modèle, et l'effort qui s'en dérive | le modèle est une décision, l'effort une règle | `scripts/session-choix.ts` |
 | Les consignes par session, plus bas | jugement sur un ticket | à la main, hors du bloc généré |
+
+**Avec quel modèle et quel effort lancer — `npm.cmd run brief` le dit tout seul**, en tête de
+sa sortie et **hors du bloc collable** : c'est un réglage à poser dans l'application avant de
+coller, pas une instruction à la session. Le modèle reste une décision par ticket ; l'effort
+s'en dérive, pour qu'il n'y ait pas une troisième liste à tenir en phase :
+
+| | Effort | Pourquoi |
+| --- | --- | --- |
+| Un ticket **P0** | `max` | P0 est aussi le quatrième signe qu'une revue est due — le dépôt a déjà jugé que ces tickets méritent une seconde lecture, donc ils méritent une première plus lente |
+| Sinon, un ticket routé vers **Sonnet 5** | `medium` | Plomberie d'ingestion : endpoint, licence et cadence sont déjà tranchés, l'effort n'y achète rien |
+| Tout le reste | `high` | Du jugement, pas de l'exécution |
+
+Un ticket dont la première ligne ne porte pas `[P0]`/`[P1]`/`[P2]` est traité comme `high` et
+non comme `medium` : un en-tête mal formé doit coûter du calcul, jamais de l'attention.
+
+**Ce que cette règle n'est pas** : une mesure. Rien n'a été éprouvé en A/B sur ce dépôt, et le
+dire autrement serait la « documentation présentée comme une mesure » que `CLAUDE.md` interdit.
+Elle encode un jugement — les sessions qui ont le plus coûté ici sont celles qui ont livré une
+règle ne gardant rien (`#132`, `#133`, `porte:publie`), et toutes portaient `P0` ou touchaient
+les instruments.
 
 Le générateur **refuse de réécrire** s'il ne peut pas joindre GitHub : mieux vaut une table
 datée qu'une table devinée. Il signale aussi les tickets sans issue et compte ce qui reste
