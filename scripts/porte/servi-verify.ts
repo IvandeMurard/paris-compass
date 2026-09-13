@@ -63,7 +63,7 @@ function lireDispenses(): Dispense[] {
     throw new Error(`${DISPENSES} : la clé « dispenses » manque ou n'est pas un tableau.`)
   }
   for (const d of liste as Dispense[]) {
-    if (!d.route?.trim() || !d.raison?.trim() || !d.mesureLe?.trim()) {
+    if (!d.nom?.trim() || !d.raison?.trim() || !d.mesureLe?.trim()) {
       // An empty reason is a silence, and cadence.json refuses silences for the same reason.
       throw new Error(`${DISPENSES} : une dispense sans route, sans raison ou sans date.`)
     }
@@ -103,16 +103,22 @@ async function main(): Promise<void> {
   }
 
   for (const line of lus) out(`  lu   ${line}`)
-  out(`  total ${js.length} octets de JavaScript servi, ${jetons.length} routes déclarées`)
+  const routes = jetons.filter((j) => j.origine === "route").length
+  out(
+    `  total ${js.length} octets de JavaScript servi · ${jetons.length} jetons attendus — ` +
+      `${routes} routes de src/App.tsx, ${jetons.length - routes} libellés de src/i18n/ui.ts`,
+  )
 
   const verdict = verdictServi(jetons, js, dispenses)
 
   const muettes = verdict.constats.filter((c) => c.occurrences === 0)
   if (muettes.length > 0) {
-    out("\n  Routes sans occurrence :")
+    out("\n  Jetons sans occurrence :")
     for (const c of muettes) {
-      const quoi = c.discriminant ? "ABSENTE" : "non discriminante, ne décide rien"
-      out(`    ${c.jeton.padEnd(24)} ${quoi}`)
+      const quoi = c.discriminant ? "ABSENT" : "non discriminant, ne décide rien"
+      // Le nom d'abord : il dit quel fichier ouvrir. Une clé i18n ne se devine pas depuis sa
+      // phrase, et une phrase tronquée à vingt-quatre caractères encore moins.
+      out(`    ${c.nom.padEnd(30)} ${quoi.padEnd(34)} ${JSON.stringify(c.jeton).slice(0, 60)}`)
     }
   }
 

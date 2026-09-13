@@ -44,41 +44,76 @@
 //     wrong code passes.
 //   - It says nothing about WHY a deployment did not happen. Deployment belongs to Lovable; this
 //     repository sees only the result.
-//   - **It watches ONE kind of trace — routes — and nothing else.** This is the widest limit and
-//     the one first written too narrowly, so it is stated plainly. The first draft said the arm
-//     was "blind to anything leaving no literal text in a minified bundle", which reads as though
-//     any new literal would be caught. It would not. The population is the route table and only
-//     the route table.
+//   - **A SHORT new label still slips through.** Labels shorter than `LONGUEUR_MINIMALE` — 12
+//     characters, a measured number — are witnesses only, because at that length a string occurs
+//     incidentally in minified code: `Map` appears 91 times in the served bundle, `Data` 92. That
+//     costs 69 of the 258 labels: a stale bundle whose only novelty is « Aucune » or « Retry »
+//     passes. Lowering the threshold would trade a missed staleness for a false red, and a false
+//     red is the one a session switches off.
+//   - It is blind to what leaves no literal at all: an internal logic fix, a style correction, a
+//     change creating no new string. No bundle inspection will ever see those, whatever the
+//     population.
+//   - **It only knows what `src/App.tsx` and `src/i18n/ui.ts` declare.** A user-facing string
+//     written straight into a component — not routed through `UI` — is invisible here. That is
+//     also an argument for putting it in `UI`.
 //
-//     Measured the same day. `#145` added the string `source injoignable` to the screen — a
-//     literal, minification-proof, as measurable as any path. It merged, production kept serving
-//     the old bundle, and this arm stayed GREEN because the change added no route. A visitor
-//     still read an outage as « Aucun dans 1 km ». So the honest sentence is not « it needs a
-//     textual trace » — the trace was there — but « it only ever looks for routes ».
+// ── The limit this arm used to carry, kept because it explains the shape ──────────────────
 //
-//     Widening it is deliberately NOT done here, and the reasoning is in `#152`: a hand-kept list
-//     of expected strings is exactly the kind of list `#134` already objects to elsewhere in this
-//     repository, and it would rot the first time a copy changes. What would earn its place is a
-//     population DERIVED the way routes are — from `src/i18n/ui.ts`, say, where every user-facing
-//     string already lives in one typed table. Until that is designed, the limit stands and is
-//     written here rather than discovered again.
-//   - It is therefore also blind to what leaves no literal at all: an internal logic fix, a style
-//     correction, a change creating no new string. That was true of the first draft too, and it
-//     remains true — it is just no longer the widest limit.
+// Until #152 the population was the route table ALONE, and the header said the arm was "blind to
+// anything leaving no literal text in a minified bundle" — which reads as though any new literal
+// would be caught. It would not, and the day proved it: `#145` added `source injoignable` to the
+// screen, merged, production kept serving the old bundle, and this arm stayed GREEN because the
+// change added no route. A visitor still read an outage as « Aucun dans 1 km ».
+//
+// What that episode settled is HOW to widen, not just that one should. A hand-kept list of
+// expected strings was refused — `#134` objects to exactly that elsewhere here, and such a list
+// rots the first time a copy is reworded, producing a red with no defect behind it. The
+// population had to be DERIVED, like the routes. `src/i18n/ui.ts` already holds every
+// user-facing string in one typed table, so it became the second population and nothing is
+// maintained by hand.
+
+import { UI } from "../../src/i18n/ui"
 
 import { prefixOf, readRoutes, type RouteDeclaration } from "./sitemap"
 
-/** One route, reduced to the literal a production bundle must carry. */
+/** Which derived population a token came from. Both are derived; neither is a hand-kept list. */
+export type Origine = "route" | "libellé"
+
+/** One thing the repository declares, reduced to the literal a production bundle must carry. */
 export interface Jeton {
-  path: string
-  /** The string searched for: the path itself, or the fixed prefix of a parameterised route. */
+  /** What this token identifies: a route path, or an i18n key with its locale. */
+  nom: string
+  origine: Origine
+  /** The string searched for: a path, a parameterised route's fixed prefix, or a UI label. */
   jeton: string
   /**
-   * False when another route's token contains this one. Such a route stays a witness and never
-   * makes the arm red: its presence cannot be told apart from its twin's.
+   * False when the token cannot prove its own presence — another token contains it, or it is
+   * short enough to occur incidentally in minified code. Such a token stays a WITNESS and never
+   * makes the arm red: its presence cannot be told apart from an accident.
    */
   discriminant: boolean
 }
+
+/**
+ * Below this length a UI label proves nothing, and the number comes from a measurement — #152.
+ *
+ * Counted in the 623 736 octets served on 13 September 2026. `Map` occurs **91** times (the
+ * `Map` constructor), `Data` **92** (inside `Dataset` and friends), `Retry` 15, `Reset` 11.
+ * Finding them says nothing about the UI table. By length band, strings occurring more than
+ * twice:
+ *
+ *     longueur < 6   :  7 sur 13
+ *     longueur < 12  : 24 sur 69
+ *     longueur >= 12 :  1 sur 177   (« Arrondissement », qui est aussi un nom de composant)
+ *
+ * Twelve is where the noise stops, so twelve is the threshold. It is not a taste, and it is not
+ * round for comfort — it is the point the measurement puts it at, and re-measuring is how it
+ * moves.
+ *
+ * **What it costs**: 69 labels of the 258 never turn the arm red. A stale bundle missing only a
+ * short new label — « Aucune », « Retry » — passes. That is written in the header's limits.
+ */
+export const LONGUEUR_MINIMALE = 12
 
 /**
  * The literal a route contributes to the bundle.
@@ -92,32 +127,58 @@ export function jetonDeRoute(path: string): string | null {
   return prefix === null ? path : `${prefix}/`
 }
 
-/** The tokens the route table declares, each marked for whether it can prove itself. */
-export function jetonsAttendus(appSource: string): Jeton[] {
+/**
+ * Everything the repository declares and a current bundle must therefore carry.
+ *
+ * **Two derived populations, and not one hand-kept list** — that is the whole point of #152.
+ * Routes come from `src/App.tsx` the way `sitemap.ts` already reads them; labels come from the
+ * `UI` table itself, which already holds every user-facing string in one typed place. Nothing
+ * here is written by hand, so nothing here rots when a copy changes: rename a label and the
+ * population renames itself.
+ *
+ * Measured on 13 September 2026 before being built: **256 of the 258 UI strings** were in the
+ * served bundle, and the two absent were exactly the two `#145` had just added. A hundred-percent
+ * expectation is therefore realistic, and no sampling is needed.
+ */
+export function jetonsAttendus(appSource: string, ui: typeof UI = UI): Jeton[] {
+  const bruts: Omit<Jeton, "discriminant">[] = []
+
   const routes: RouteDeclaration[] = readRoutes(appSource)
-  const bruts: { path: string; jeton: string }[] = []
   for (const r of routes) {
     const jeton = jetonDeRoute(r.path)
     if (jeton === null) continue
     if (bruts.some((b) => b.jeton === jeton)) continue
-    bruts.push({ path: r.path, jeton })
+    bruts.push({ nom: r.path, origine: "route", jeton })
   }
+
+  for (const [cle, valeurs] of Object.entries(ui)) {
+    for (const langue of ["fr", "en"] as const) {
+      const jeton = valeurs[langue]
+      if (!jeton || bruts.some((b) => b.jeton === jeton)) continue
+      bruts.push({ nom: `${cle} [${langue}]`, origine: "libellé", jeton })
+    }
+  }
+
   return bruts.map((b) => ({
     ...b,
-    discriminant: !bruts.some((autre) => autre.jeton !== b.jeton && autre.jeton.includes(b.jeton)),
+    discriminant:
+      b.jeton.length >= (b.origine === "libellé" ? LONGUEUR_MINIMALE : 1) &&
+      !bruts.some((autre) => autre.jeton !== b.jeton && autre.jeton.includes(b.jeton)),
   }))
 }
 
 export interface Dispense {
-  route: string
+  nom: string
   raison: string
   mesureLe: string
 }
 
 export type EtatServi = "servi" | "absent" | "témoin absent"
 
-export interface ConstatRoute {
-  path: string
+export interface Constat {
+  nom: string
+  /** Carried through so a red can name the file to open, rather than a word covering both. */
+  origine: Origine
   jeton: string
   discriminant: boolean
   occurrences: number
@@ -128,9 +189,9 @@ export type Issue = "servi" | "en retard" | "mesure cassée"
 
 export interface VerdictServi {
   issue: Issue
-  constats: ConstatRoute[]
+  constats: Constat[]
   /** Discriminating routes the served bundles do not carry. Empty unless `issue` is `en retard`. */
-  manquantes: ConstatRoute[]
+  manquantes: Constat[]
   /** How many tokens were found at all — the instrument's own proof of life. */
   temoins: number
   dire: string
@@ -138,6 +199,22 @@ export interface VerdictServi {
 
 function occurrences(botte: string, aiguille: string): number {
   return botte.split(aiguille).length - 1
+}
+
+/**
+ * Names what is missing by where it was declared, not by a single word covering both.
+ *
+ * A red saying « 2 routes absentes » when the two are UI labels sends the reader to
+ * `src/App.tsx` and wastes the first minute of the repair. The populations are derived from two
+ * different files, so the message says which.
+ */
+function decompte(constats: readonly Constat[]): string {
+  const routes = constats.filter((c) => c.origine === "route").length
+  const libelles = constats.length - routes
+  const parts: string[] = []
+  if (routes > 0) parts.push(`route(s) de src/App.tsx`)
+  if (libelles > 0) parts.push(`libellé(s) de src/i18n/ui.ts`)
+  return parts.join(" et ")
 }
 
 /**
@@ -151,12 +228,19 @@ export function verdictServi(
   js: string,
   dispenses: readonly Dispense[] = [],
 ): VerdictServi {
-  const dispensees = new Set(dispenses.map((d) => d.route))
+  const dispensees = new Set(dispenses.map((d) => d.nom))
 
-  const constats: ConstatRoute[] = jetons.map((j) => {
+  const constats: Constat[] = jetons.map((j) => {
     const n = occurrences(js, j.jeton)
     const etat: EtatServi = n > 0 ? "servi" : j.discriminant ? "absent" : "témoin absent"
-    return { path: j.path, jeton: j.jeton, discriminant: j.discriminant, occurrences: n, etat }
+    return {
+      nom: j.nom,
+      origine: j.origine,
+      jeton: j.jeton,
+      discriminant: j.discriminant,
+      occurrences: n,
+      etat,
+    }
   })
 
   const temoins = constats.filter((c) => c.occurrences > 0).length
@@ -178,7 +262,7 @@ export function verdictServi(
     }
   }
 
-  const manquantes = constats.filter((c) => c.etat === "absent" && !dispensees.has(c.path))
+  const manquantes = constats.filter((c) => c.etat === "absent" && !dispensees.has(c.nom))
 
   if (manquantes.length === 0) {
     const muets = constats.filter((c) => c.etat === "témoin absent").length
@@ -201,10 +285,9 @@ export function verdictServi(
     manquantes,
     temoins,
     dire:
-      `Le site publié ne porte pas ce que \`main\` porte : ${manquantes.length} route(s) ` +
-      `déclarée(s) dans src/App.tsx sont absentes du JavaScript servi, alors que ${temoins} ` +
-      "autres jetons y sont — donc la mesure fonctionne. Le bundle servi est antérieur à une " +
-      "fusion. Le déploiement appartient à Lovable ; ce bras dit qu'il n'a pas eu lieu, jamais " +
-      "pourquoi.",
+      `Le site publié ne porte pas ce que \`main\` porte : ${manquantes.length} ` +
+      `${decompte(manquantes)} absent(s) du JavaScript servi, alors que ${temoins} autres jetons ` +
+      "y sont — donc la mesure fonctionne. Le bundle servi est antérieur à une fusion. Le " +
+      "déploiement appartient à Lovable ; ce bras dit qu'il n'a pas eu lieu, jamais pourquoi.",
   }
 }
