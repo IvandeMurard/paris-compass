@@ -275,7 +275,7 @@ export const UI = {
     fr: 'Adresse introuvable dans la Base Adresse Nationale. Vérifiez l’orthographe, ou explorez la carte.',
     en: 'Address not found in the Base Adresse Nationale. Check the spelling, or explore the map.',
   },
-  'home.noAddress': { fr: 'Pas d’adresse en tête ?', en: 'No address in mind?' },
+  'home.noAddress': { fr: 'Pas d’adresse en tête ?', en: 'No address in mind?' },
   'home.openMap': { fr: 'Explorer la carte', en: 'Explore the map' },
   'home.readMore': { fr: 'Ce que Compass fait, et refuse de faire', en: 'What Compass does, and refuses to do' },
 

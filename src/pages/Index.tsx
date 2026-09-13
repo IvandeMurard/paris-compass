@@ -154,7 +154,11 @@ const Index = () => {
       {/* Below the fold, by construction: the map is second rank, not hidden. */}
       <section className="border-t bg-white">
         <div className="mx-auto flex max-w-2xl flex-col gap-3 px-6 py-10 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground">{t('home.noAddress')}</p>
+          {/* `shrink-0`: at max-w-2xl minus px-6 the row has 624 px, and the sentence plus the
+              two buttons want 625 at their natural size. One pixel short, and the only shrinkable
+              child is this sentence — it broke, orphaning its question mark. Let the buttons wrap
+              instead: they already do, and a wrapped button group still reads as a button group. */}
+          <p className="shrink-0 text-sm text-muted-foreground">{t('home.noAddress')}</p>
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline" size="sm">
               <Link to={lp('/carte')}>
