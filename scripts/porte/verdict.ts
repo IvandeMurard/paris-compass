@@ -20,9 +20,13 @@
 //   1. LES COMPOSEURS — les fichiers qui appellent `composeVerdict(`. Chacun doit l'importer
 //      du noyau : un fichier qui appelle une fonction de ce nom sans l'importer de là en a
 //      écrit une seconde. Et l'ensemble doit couvrir les DEUX surfaces — au moins un fichier
-//      sous `src/`, au moins un sous `mcp-server/`. C'est cette exigence-là qui tient le
-//      critère 2 : le jour où quelqu'un retire la composition du serveur MCP, `test` rougit,
-//      sans base, sans réseau et sans attendre la porte du matin.
+//      atteint depuis `src/App.tsx`, au moins un atteint depuis `mcp-server/src/index.ts`.
+//      Les deux surfaces sont DÉRIVÉES des imports, jamais lues sur les chemins : un fichier
+//      qu'aucune des deux entrées n'atteint est du harnais, et un fichier que les deux
+//      atteignent est le noyau — voir `surfaceOf`, qui porte l'incident. C'est cette
+//      exigence-là qui tient le critère 2 : le jour où quelqu'un retire la composition du
+//      serveur MCP ou de l'écran, `test` rougit, sans base, sans réseau et sans attendre la
+//      porte du matin.
 //
 //   2. LA PROSE DE VERDICT — les fichiers qui portent verbatim une clause du verdict. Les
 //      clauses ne sont PAS listées ici : elles sont dérivées à l'exécution en interrogeant
@@ -44,6 +48,14 @@
 //     par observabilite.ts, le 6 septembre 2026.
 //   - Ça ne dit rien des CHIFFRES : les deux surfaces lisent des corpus différents, et c'est
 //     assumé. Ce qui est partagé est la règle de composition.
+//   - Ça exige de CHAQUE surface un site d'appel qu'elle seule atteint. Le jour où toute la
+//     composition de l'écran passerait par `src/core/` — un `useVerdict` déplacé dans le
+//     noyau, par exemple — la règle rougirait alors que rien n'est cassé, et la réponse serait
+//     de discuter la règle, pas de l'assouplir en silence. C'est le prix assumé de ne pas
+//     laisser le noyau se porter caution pour ses deux consommateurs.
+//   - Ça suit les imports STATIQUES et les `import("…")` littéraux. Un chemin construit à
+//     l'exécution sort de la surface, et la direction de l'erreur est le rouge : le fichier
+//     cesserait d'être atteint et le recensement le dirait.
 
 import { execFileSync } from "child_process"
 import { readFileSync } from "fs"
@@ -117,8 +129,8 @@ export interface Composer {
   path: string
   /** Vrai quand le fichier importe `composeVerdict` d'un chemin qui désigne le noyau. */
   importsCore: boolean
-  /** « front » ou « agent » — la surface à laquelle ce fichier appartient. */
-  surface: "front" | "agent"
+  /** La surface à laquelle ce fichier appartient, dérivée des deux entrées. */
+  surface: Surface
 }
 
 /** Vrai quand ce texte appelle la composition. */
@@ -140,14 +152,66 @@ export function importsComposeFromCore(body: string): boolean {
   return false
 }
 
-export const surfaceOf = (path: string): "front" | "agent" =>
-  path.startsWith("mcp-server/") ? "agent" : "front"
-
 /** L'entrée du serveur MCP. Ce que le paquet publié démarre, et rien d'autre. */
 export const AGENT_ENTRY = "mcp-server/src/index.ts"
 
+/** L'entrée de l'écran. La table des routes : ce que le navigateur monte, et rien d'autre. */
+export const FRONT_ENTRY = "src/App.tsx"
+
 /**
- * Les fichiers que le serveur ATTEINT depuis son entrée, en suivant les imports relatifs.
+ * L'alias du navigateur, tel que `tsconfig.json` le déclare (`"@/*": ["./src/*"]`).
+ *
+ * Recopié ici plutôt que lu, et la direction de l'erreur est ce qui l'autorise : si l'alias
+ * changeait de cible, la traversée cesserait de résoudre les imports de l'écran, la surface
+ * front se viderait et le recensement rougirait faute de composeur. Un alias périmé se
+ * signale ; il ne se tait pas.
+ */
+const ALIAS = { prefix: "@/", root: "src" } as const
+
+export type Surface = "front" | "agent" | "partagee" | "hors-surface"
+
+/**
+ * La surface d'un fichier, DÉRIVÉE des deux surfaces servies — jamais lue sur son chemin.
+ *
+ * Ce que le chemin disait, et pourquoi c'était faux (#132, le 11 septembre 2026) : « tout ce
+ * qui n'est pas sous `mcp-server/` est du front ». Or `src/core/comparison.ts` compose un
+ * verdict et appartient aux deux surfaces. Il tenait donc lieu de composeur front, et
+ * neutraliser la composition dans `src/pages/Context.tsx` laissait le bras VERT : l'écran
+ * pouvait cesser de composer sans que rien ne le dise. C'est le trou que `#130` avait fermé du
+ * côté agent, à la moitié restée ouverte.
+ *
+ * Un fichier atteint par les DEUX entrées est `partagee`, et il ne crédite aucune des deux
+ * surfaces. La raison est celle qui écarte déjà `CORE_VERDICT` : le noyau n'est pas un
+ * consommateur de la règle, il EST la règle. Un appel à `composeVerdict` depuis `src/core/`
+ * est le noyau qui s'appelle lui-même — il ne prouve rien de l'écran ni de l'agent. Et la
+ * population du partage est dérivée, pas listée : au 13 septembre 2026 elle vaut exactement
+ * les 8 fichiers de `src/core/`, ce qui est la doctrine « `src/core/` est fait pour les deux
+ * côtés » lue sur l'arbre plutôt qu'écrite à la main.
+ *
+ * `hors-surface` est le harnais : `mcp-server/src/verify.ts` et `smoke-test.ts` sont des
+ * entrées à eux, que rien n'importe.
+ */
+export const surfaceOf = (
+  path: string,
+  mounted: ReadonlySet<string>,
+  served: ReadonlySet<string>,
+): Surface => {
+  const front = mounted.has(path)
+  const agent = served.has(path)
+  if (front && agent) return "partagee"
+  if (front) return "front"
+  if (agent) return "agent"
+  return "hors-surface"
+}
+
+/**
+ * Les fichiers qu'une entrée ATTEINT, en suivant ses imports.
+ *
+ * Deux entrées s'en servent : `AGENT_ENTRY` pour ce que le serveur MCP sert, `FRONT_ENTRY`
+ * pour ce que le navigateur monte. Trois formes d'import sont suivies, parce que ce sont les
+ * trois que le dépôt écrit : le chemin relatif, l'alias `@/` du navigateur, et l'import
+ * dynamique `import("…")` — sans ce dernier, l'écran s'arrêterait à `src/App.tsx`, dont
+ * quinze des seize pages sont montées en `lazy()`.
  *
  * Mesuré, pas supposé, et la raison a été payée le 11 septembre 2026. La première écriture de
  * cette règle demandait « au moins un composeur sous `mcp-server/` ». La contre-preuve — retirer
@@ -160,23 +224,37 @@ export const AGENT_ENTRY = "mcp-server/src/index.ts"
  * qu'on cesserait d'enregistrer, ce qui est exactement le bon comportement : un outil que le
  * serveur n'atteint plus ne sert plus personne.
  *
- * **Ce que ça ne rattrape pas** : les imports dynamiques et les chemins construits ne sont pas
- * suivis. Le serveur n'en a aucun aujourd'hui ; le jour où il en aurait un, la direction de
- * l'erreur est le rouge — le fichier sortirait du surface servi et le recensement le dirait.
+ * **Ce que ça ne rattrape pas** : un spécificateur construit à l'exécution — une variable, une
+ * concaténation — n'est pas suivi ; seul le littéral l'est. Le dépôt n'en a aucun aujourd'hui ;
+ * le jour où il en aurait un, la direction de l'erreur est le rouge — le fichier sortirait de
+ * la surface et le recensement le dirait.
  */
 export function reachableFrom(entry: string, read: (path: string) => string): Set<string> {
   const seen = new Set<string>()
   const queue = [entry]
   const candidates = (from: string, spec: string): string[] => {
-    const parts = from.split("/").slice(0, -1)
-    for (const segment of spec.split("/")) {
-      if (segment === ".") continue
-      else if (segment === "..") parts.pop()
-      else parts.push(segment)
+    let parts: string[]
+    if (spec.startsWith(ALIAS.prefix)) {
+      parts = [ALIAS.root, ...spec.slice(ALIAS.prefix.length).split("/")]
+    } else {
+      parts = from.split("/").slice(0, -1)
+      for (const segment of spec.split("/")) {
+        if (segment === ".") continue
+        else if (segment === "..") parts.pop()
+        else parts.push(segment)
+      }
     }
     const base = parts.join("/")
     return [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, base]
   }
+  /** Ce qu'un fichier importe : la forme statique et la forme dynamique, l'externe écarté. */
+  const specifiers = (body: string): string[] =>
+    [
+      ...body.matchAll(/from\s*["']([^"']+)["']/g),
+      ...body.matchAll(/import\(\s*["']([^"']+)["']\s*\)/g),
+    ]
+      .map((m) => m[1])
+      .filter((spec) => spec.startsWith(".") || spec.startsWith(ALIAS.prefix))
 
   while (queue.length > 0) {
     const path = queue.pop() as string
@@ -188,8 +266,8 @@ export function reachableFrom(entry: string, read: (path: string) => string): Se
       continue
     }
     seen.add(path)
-    for (const m of body.matchAll(/from\s*["'](\.[^"']*)["']/g)) {
-      for (const candidate of candidates(path, m[1])) {
+    for (const spec of specifiers(body)) {
+      for (const candidate of candidates(path, spec)) {
         if (seen.has(candidate)) break
         try {
           read(candidate)
@@ -232,8 +310,10 @@ export function censusVerdictComposers(
   read: (path: string) => string,
   phrases: readonly string[],
   waivers: readonly ProseWaiver[],
-  /** Le surface réellement servi par l'agent. Voir `reachableFrom` pour ce qu'il écarte. */
+  /** La surface réellement servie par l'agent. Voir `reachableFrom` pour ce qu'elle écarte. */
   served: ReadonlySet<string> = reachableFrom(AGENT_ENTRY, read),
+  /** La surface réellement montée par l'écran, dérivée de la table des routes. */
+  mounted: ReadonlySet<string> = reachableFrom(FRONT_ENTRY, read),
 ): VerdictCensus {
   const waived = new Set(waivers.map((w) => w.path))
   const composers: Composer[] = []
@@ -250,7 +330,7 @@ export function censusVerdictComposers(
 
     if (callsCompose(body)) {
       const importsCore = importsComposeFromCore(body)
-      composers.push({ path, importsCore, surface: surfaceOf(path) })
+      composers.push({ path, importsCore, surface: surfaceOf(path, mounted, served) })
       if (!importsCore) detached.push(path)
     }
 
@@ -261,11 +341,14 @@ export function censusVerdictComposers(
 
   const problems: string[] = []
   if (composers.length === 0) problems.push("recensement vide : plus aucun appelant de composeVerdict")
+  // Chaque surface doit avoir SON site d'appel, et la surface est celle que l'entrée atteint,
+  // pas celle que le chemin suggère. Un composeur `partagee` ne crédite personne : le noyau
+  // qui s'appelle lui-même ne dit rien de ses deux consommateurs.
   if (!composers.some((c) => c.surface === "front"))
-    problems.push("aucun composeur sous src/ : l'écran ne compose plus de verdict")
-  // Le composeur de l'agent doit être SERVI, pas seulement présent : un contrôleur qui compose
-  // pour vérifier ne rend de verdict à personne. C'est le trou que la contre-preuve a montré.
-  if (!composers.some((c) => c.surface === "agent" && served.has(c.path)))
+    problems.push(
+      `aucun composeur atteint depuis ${FRONT_ENTRY} : l'écran ne compose plus de verdict`,
+    )
+  if (!composers.some((c) => c.surface === "agent"))
     problems.push(
       `aucun composeur atteint depuis ${AGENT_ENTRY} : « la même réponse pour un agent » est redevenue fausse`,
     )
