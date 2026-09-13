@@ -203,9 +203,20 @@ est ouvert. Il faut le scinder, et c'est une décision produit.
 Trois limites, pas une. Le bras prouve qu'une **route** est arrivée, jamais qu'un **comportement**
 est juste — une route servie par du code faux passe au vert. Il ne dit pas **pourquoi** le
 déploiement n'a pas eu lieu : le déploiement appartient à Lovable, ce dépôt n'en voit que le
-résultat. Et il est aveugle à tout ce qui ne laisse aucune trace textuelle dans un bundle
-minifié — une correction de logique interne, un correctif de style, un changement qui ne crée
-aucune chaîne littérale nouvelle.
+résultat. Et **il ne surveille qu'une catégorie de trace, les routes**.
+
+**Cette troisième limite a d'abord été écrite trop étroite, et corrigée le soir même.** Le premier
+jet disait « aveugle à tout ce qui ne laisse aucune trace textuelle dans un bundle minifié », ce
+qui se lit comme *tout littéral neuf serait attrapé*. Quelques heures plus tard, `#145` a ajouté à
+l'écran la chaîne `source injoignable` — un littéral parfaitement mesurable — et le bras est resté
+**vert** sur une production qui ne la servait pas, parce que le changement n'ajoutait aucune
+route. Ivan l'a repéré en remarquant que la capture d'écran que je lui montrais n'était pas celle
+du site publié mais celle du serveur de développement : la vérification prouvait que le code
+marchait, pas que la production le portait. La limite juste est écrite dans
+`scripts/porte/servi.ts` et `docs/REGLES-INCIDENTS.md`, l'élargissement est `#152`, et la raison
+de ne pas le bâcler y est : une liste de chaînes tenue à la main est ce que `#134` reproche déjà
+ailleurs. Reste vrai par ailleurs : un changement qui ne crée **aucun** littéral — logique
+interne, style, valeur numérique — échappera toujours à une inspection de bundle.
 
 ---
 

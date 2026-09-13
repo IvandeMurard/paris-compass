@@ -239,5 +239,26 @@ verdict d'un autre rapporte une chose que personne n'a mesurée.
   servie par du code faux passe au vert.
 - Il ne dit pas **pourquoi** le déploiement n'a pas eu lieu. Le déploiement appartient à Lovable ;
   ce dépôt n'en voit que le résultat.
-- Il est aveugle à ce qui ne laisse aucune trace textuelle dans un bundle minifié : une correction
-  de logique interne, un correctif de style, un changement qui ne crée aucune chaîne littérale.
+- **Il ne surveille qu'une catégorie de trace — les routes — et rien d'autre.** C'est la limite la
+  plus large, et elle a d'abord été écrite trop étroite : « aveugle à ce qui ne laisse aucune
+  trace textuelle dans un bundle minifié » se lit comme *tout littéral neuf serait attrapé*. Il ne
+  le serait pas.
+
+  **Mesuré le jour même, et c'est pour ça que la correction est ici plutôt que dans un ticket
+  futur.** `#145` a ajouté à l'écran la chaîne `source injoignable` — un littéral, résistant à la
+  minification, aussi mesurable qu'un chemin. Fusionné, la production a continué de servir
+  l'ancien bundle, et le bras est resté **VERT** parce que le changement n'ajoutait aucune route.
+  Le site publié affirmait toujours « Aucun dans 1 km » quand Géorisques tombait — donc qu'il n'y
+  a aucun risque, alors que rien n'avait été mesuré. Mesure : `source injoignable` **0
+  occurrence** dans 623 736 octets servis, contre `Aucun dans 1 km` **1**, témoins `/carte` **4**
+  et `/contexte/` **3**.
+
+  L'élargissement est **volontairement remis** à `#152`, et la raison compte autant que la limite :
+  une liste de chaînes attendues tenue à la main est exactement ce que `#134` reproche ailleurs
+  ici, et elle pourrirait à la première reformulation d'un libellé — un rouge sans défaut, donc un
+  bras qu'on désarme. Ce qui mériterait sa place est une population **dérivée** comme les routes
+  le sont de `src/App.tsx` : `src/i18n/ui.ts` tient déjà chaque chaîne visible dans une table
+  typée. Tant que ce n'est pas conçu, la limite tient et s'écrit, plutôt que de se redécouvrir.
+- Il reste par ailleurs aveugle à ce qui ne laisse **aucun** littéral : une correction de logique
+  interne, un correctif de style, un changement qui ne crée aucune chaîne. C'était vrai dès le
+  premier jet et ça le demeure — ce n'est simplement plus la limite la plus large.
