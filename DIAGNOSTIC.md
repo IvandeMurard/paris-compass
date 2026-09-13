@@ -1,7 +1,7 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte 49 au 11 septembre 2026**, et la
+« quatre défauts, par ordre de gravité » : il en porte 50 au 13 septembre 2026**, et la
 phrase est restée fausse trois semaines. Le nombre est désormais dérivé du tableau
 ci-dessous par `scripts/porte/documents.test.ts` : le recopier faux fait rougir `test`.
 
@@ -73,6 +73,7 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 47 | La `cadence_note` de `filosofi` annonce « NON CHARGÉ » à tout appelant, alors que la source est chargée depuis le 8 septembre 2026 | **ouvert** — trouvé le 8 septembre 2026 par `w2-filosofi`, P2 | ici |
 | 48 | Deux tables neuves sur trois ont oublié la contrainte de finitude, et la troisième dit pourquoi | **ouvert** — mesuré le 10 septembre 2026 par `w4-meubles`, P2 | ici |
 | 49 | Les raisons d'absence de `src/core` s'affichent en anglais sur les pages françaises | **ouvert** — mesuré le 10 septembre 2026 par `w6-contexte`, P2 | ici |
+| 50 | La fiche de contexte plante quand Overpass tombe, et n'appelle aucune fonction `compass_*` | **ouvert** — mesuré le 13 septembre 2026, `#156` et `#157`, **P0** | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -834,3 +835,42 @@ que `#61` interdit.
 
 **Ce que ça ne rattrape pas.** Même corrigée, la règle ne dira rien des phrases écrites en SQL :
 les `evidence` de la base sont produites hors de TypeScript, et `I21` les garde séparément.
+
+---
+
+## 50. La fiche plante quand Overpass tombe, et ne lit pas le corpus — mesuré le 13 septembre 2026
+
+Deux défauts sur le même écran, gardés dans une seule section parce qu'ils se masquent l'un
+l'autre : tant que la page meurt, personne ne voit ce qu'elle n'affiche pas.
+
+**Le plantage.** `/contexte/<adresse>` affiche « Lecture du quartier en cours… » pendant
+**2 min 20** — trois miroirs Overpass à 70 s chacun — puis meurt sur
+`Cannot read properties of undefined (reading 'layerPointToLatLng')` dans `ContextMap`, et la
+frontière d'erreur emporte toute la page. Mesuré en visiteur anonyme sur deux adresses, même
+résultat. Overpass rendait **504 sans en-tête `Access-Control-Allow-*`** — mesuré hors
+navigateur, 5,1 s, 695 octets, `Content-Type: text/html` : une panne amont, pas une politique,
+et le navigateur ne peut que la lire comme un blocage CORS.
+
+**Ce qui rend ce défaut pire que sa cause** : `src/hooks/useAddressContext.ts` écrit que ce
+chemin est *« the only path on which the browser can reach the refusal branch of
+`composeVerdict` »*. Le refus que `w6-contexte` existe pour produire est donc inatteignable
+dans le seul cas qui l'atteint. C'est `#54` retourné — le produit avait appris à ne pas
+conclure par-dessus une retenue, pas à y survivre.
+
+**L'absence de corpus.** `useAddressContext.ts` attribue tous les axes à
+`uniformOrigins(OSM_ORIGIN(today()))`. Aucun appel `compass_*` sur le chemin de l'écran : ni
+BDCom 2023, ni les cessions BODACC, ni `compass_address_timeline`, ni les quatre fonctions de
+la phase 6. Le code l'annonce lui-même, deux fois, comme une intention jamais tenue — *« The
+day the front reads `compass_*` … »*.
+
+**Pourquoi c'est écrit ici et pas seulement dans une issue** : la répétition est le risque. Une
+session qui rebranche la fiche sans lire ceci refera dépendre le corpus d'un miroir public
+gratuit, et une issue fermée ne se relit pas. Les mesures complètes, les contre-preuves et les
+« Fait quand » sont dans [`#156`](https://github.com/IvandeMurard/paris-compass/issues/156) et
+[`#157`](https://github.com/IvandeMurard/paris-compass/issues/157) — cette section ne les
+recopie pas.
+
+**Ce que ça ne rattrape pas.** Rien ici ne surveille la page dans la durée : la porte était
+entièrement au vert pendant les deux mesures. C'est
+[`#158`](https://github.com/IvandeMurard/paris-compass/issues/158), et c'est un défaut distinct
+de ces deux-là.

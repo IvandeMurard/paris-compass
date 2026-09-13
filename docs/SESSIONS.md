@@ -53,11 +53,11 @@ Trois choses avant d'écrire quoi que ce soit :
   quatre étaient faux. Remesure ce que tu comptes réutiliser, ne le recopie pas.
 - Le ticket redit peut-être une section de PLAN.md. Si oui, dis-le et traite les
   deux comme un seul chantier — ne laisse pas deux backlogs diverger.
-- git pull sur main, puis travaille sur une branche : git switch -c ticket/<ID>.
-  main refuse la poussee directe depuis le 6 septembre. A la fin : pousse la
-  branche, ouvre la proposition (gh pr create), et fusionne-la toi-meme — aucune
-  approbation n'est requise, c'est la trace qui l'est. gh pr merge --squash
-  --delete-branch.
+- Travaille dans TON worktree, jamais dans l'arbre partage : plusieurs sessions
+  vivent dans le meme checkout et un git switch deplace les fichiers des autres
+  (#143). git pull sur main, puis git worktree add .claude/worktrees/<ID> -b
+  ticket/<ID>, et travaille la. A la fin, depuis ce worktree : gh pr create puis
+  gh pr merge --squash --delete-branch. La trace est exigee, pas l'approbation.
 
 Termine par : ce qui est démontré, ce qui ne l'est pas, et ce que tu as laissé
 de côté. Si le ticket devient faux en cours de route, arrête-toi et dis-le

@@ -897,19 +897,29 @@ docs/tickets/w2-idfm.md.
 
 ## La suite, par ordre
 
-18. ~~**`w6-contexte` (#119) est fait à MOITIÉ.**~~ **Livré en entier le 11 septembre 2026** —
-    `e4402fa` à 10:12 (moitié 1, PR #124) et `3ca6be6` à 10:43 (moitié 2, étapes 3 à 6, PR
-    #130). Remesuré le 13 septembre : `/carte` est bien dans `public/sitemap.xml`, donc le
-    critère n° 6 est démontré. **Cette entrée a dit deux jours durant qu'il restait à faire
-    des étapes livrées** — c'est ce que `#142` signale, et c'est la raison pour laquelle un
-    état non redaté est plus coûteux qu'un état absent.
+19. **La refonte est servie, et la fiche ne rend rien.** Mesuré le 13 septembre 2026 en
+    visiteur anonyme, sur deux adresses : `/contexte/<adresse>` affiche « Lecture du quartier
+    en cours… » pendant **2 min 20**, puis un écran d'erreur —
+    `Cannot read properties of undefined (reading 'layerPointToLatLng')`. Overpass rend **504
+    sans en-tête CORS** (mesuré hors navigateur : 5,1 s, 695 octets, `Content-Type: text/html`
+    — donc une panne amont, pas une politique), les trois miroirs coûtent 70 s chacun, puis
+    `ContextMap` plante et la frontière d'erreur emporte toute la page.
 
-    **Ce qui reste n'est pas du travail, c'est de l'hygiène de ticket, et c'est une décision
-    d'Ivan.** Le **corps** de `#119` ne correspond ni à son titre ni à son ticket : il porte
-    le plan accueil du 8 septembre — typographie, palette, page `/travaux` — que
-    `docs/tickets/w6-contexte.md` met explicitement hors périmètre. Fermer `#119` parce que
-    `w6-contexte` a livré perdrait ce plan ; le laisser ouvert fait dire à la table qu'un
-    ticket livré est ouvert. Il faut le **scinder**, et personne ne peut le faire à sa place.
+    **La branche de refus de `composeVerdict` est donc inatteignable exactement dans le cas
+    qu'elle couvre** — `src/hooks/useAddressContext.ts` écrit que ce chemin est *« the only
+    path on which the browser can reach the refusal branch »*. Le noyau est juste ; l'écran
+    meurt avant de l'afficher.
+
+    **Et plus profond : la fiche n'appelle aucune fonction `compass_*`.** Tous ses axes
+    portent `uniformOrigins(OSM_ORIGIN(today()))`. BDCom 2023, les cessions BODACC, la
+    chronologie et les quatre fonctions de la phase 6 ne sont pas sur la page produit.
+
+    Trois P0, dans cet ordre décidé par Ivan : [`#156`](https://github.com/IvandeMurard/paris-compass/issues/156)
+    (la fiche cesse de planter), [`#157`](https://github.com/IvandeMurard/paris-compass/issues/157)
+    (la fiche lit le corpus — **le corpus d'abord, OSM en second**),
+    [`#158`](https://github.com/IvandeMurard/paris-compass/issues/158) (le quinzième bras :
+    celui qui ouvre la page). **La porte était entièrement au vert pendant la panne**, et
+    c'est le fond de `#158`.
 
 17. **`ticket/w2-idfm` attend une seule commande, et elle n'est pas dans mes mains.**
     Ouvert le 7 septembre 2026, **revu** le même jour (revue de #97), **corrigé** dans la
@@ -939,7 +949,7 @@ docs/tickets/w2-idfm.md.
     défaut — 156 locaux mesurés reçoivent une station qui n'est pas la plus proche) et §45 (la
     sonde de catalogue IDFM dérivera vers le vert sur une édition gelée).
 
-Les points **1, 3, 4, 8, 9, 10, 11 et 15 sont rayés** et sont partis dans
+Les points **1, 3, 4, 8, 9, 10, 11, 15 et 18 sont rayés** et sont partis dans
 `docs/REPRISE-ARCHIVE.md`, avec leur numérotation d'origine — `docs/PLAN.md` et
 `docs/PLAN-ACTION-VACANCE.md` y renvoient par leur numéro. Restent ceux-ci.
 
