@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { unavailable, withValue, type AreaScores, type Layer, type Measured, type Origin } from '@/core';
+import {
+  unavailable,
+  withValue,
+  type AreaScores,
+  type Layer,
+  type Measured,
+  type Origin,
+  type Withholding,
+} from '@/core';
 import { collectGaps } from './contextGaps';
 
 const OSM: Origin = { source: 'OpenStreetMap via Overpass', licence: 'ODbL-1.0', asOf: '2026-09-10' };
@@ -63,6 +71,35 @@ describe('collectGaps', () => {
     const gaps = collectGaps(scores(), ALL, OSM.source, 'fr');
     // Deux seulement : la source des locaux, et le loyer commercial. Aucun axe n'en ajoute.
     expect(gaps.map((g) => g.key)).toEqual(['premises-source', 'commercial-rent']);
+  });
+
+  it('nomme la panne, pas seulement la couche qui s’est tue — w6-fiche-robuste (#156)', () => {
+    // The outage of 13 September 2026, exactly as `useAddressContext` hands it over. « The
+    // amenity layer did not load » is a symptom; « source injoignable » is what tells a reader
+    // whether coming back tomorrow changes anything. Both halves are on the line.
+    const withheld: Partial<Record<Layer, Withholding>> = {
+      amenities: 'source_injoignable',
+      roads: 'source_injoignable',
+      premises: 'source_injoignable',
+    };
+    const gaps = collectGaps(
+      scores({ transit: unavailable(OSM, 'The amenity layer did not load for this area.') }),
+      [],
+      OSM.source,
+      'fr',
+      withheld,
+    );
+
+    const transit = gaps.find((g) => g.key === 'missing:transit')?.text ?? '';
+    expect(transit).toContain('source injoignable');
+    expect(transit).toContain('The amenity layer did not load for this area.');
+  });
+
+  it('ne devine jamais une retenue de licence quand personne n’a déclaré de motif', () => {
+    // The honest default, and the same one `findingsFromScores` takes: « we do not know why »
+    // is a fact. Guessing a cause here would put a licence refusal on screen on an outage.
+    const gaps = collectGaps(scores({ transit: unavailable(OSM, 'x') }), [], OSM.source, 'fr');
+    expect(gaps.find((g) => g.key === 'missing:transit')?.text).toContain('indéterminé');
   });
 
   it('rend la même structure en anglais', () => {

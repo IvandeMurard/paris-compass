@@ -18,7 +18,7 @@ import type { FetchOptions } from './http';
 const fetchJson = vi.hoisted(() => vi.fn());
 vi.mock('./http', () => ({ fetchJson }));
 
-const { fetchOverpassSnapshot } = await import('./overpass');
+const { fetchOverpassSnapshot, MIRROR_TIMEOUT_MS } = await import('./overpass');
 
 const BBOX = { south: 48.86, west: 2.34, north: 48.87, east: 2.35 };
 
@@ -74,6 +74,53 @@ describe('fetchOverpassSnapshot', () => {
     expect(fetchJson).toHaveBeenCalledTimes(2);
     expect(snapshot.premises).toHaveLength(1);
     expect(snapshot.premises[0].status).toBe('occupied');
+  });
+
+  it('donne à chaque miroir le temps qui reste, jamais soixante-dix secondes de plus', async () => {
+    // The caller asked for an answer within a delay. If the first mirror eats most of it, the
+    // second must not be handed a fresh seventy-second timeout — that is how three mirrors
+    // turned a ten-second contract into 2 min 20 (`#156`, `DIAGNOSTIC.md` §50).
+    const walk = async (spentPerMirror: number) => {
+      const timeouts: (number | undefined)[] = [];
+      let clock = 0;
+      fetchJson.mockImplementation(async (_url: string, options: FetchOptions = {}) => {
+        timeouts.push(options.timeoutMs);
+        clock += spentPerMirror;
+        throw new Error('mirror refused');
+      });
+      const now = vi.spyOn(Date, 'now').mockImplementation(() => clock);
+      await expect(fetchOverpassSnapshot(BBOX, { budgetMs: 10000 })).rejects.toThrow();
+      now.mockRestore();
+      return timeouts;
+    };
+
+    // Mirrors that fail quickly: each is tried, each with what is actually left.
+    expect(await walk(4000)).toEqual([10000, 6000, 2000]);
+    // A first mirror that eats the whole budget: there is no second attempt at all. That is
+    // the point — the caller asked for an answer within a delay, not for three tries.
+    expect(await walk(10000)).toEqual([10000]);
+  });
+
+  it('laisse la marche entière quand aucun budget n’est donné', async () => {
+    // `/carte` keeps this: the visitor asked for OpenStreetMap data and the map IS the screen.
+    const timeouts: (number | undefined)[] = [];
+    fetchJson.mockImplementation(async (_url: string, options: FetchOptions = {}) => {
+      timeouts.push(options.timeoutMs);
+      throw new Error('mirror refused');
+    });
+
+    await expect(fetchOverpassSnapshot(BBOX)).rejects.toThrow();
+
+    expect(timeouts).toEqual([MIRROR_TIMEOUT_MS, MIRROR_TIMEOUT_MS, MIRROR_TIMEOUT_MS]);
+  });
+
+  it('rend l’instantané d’un miroir qui répond dans le budget', async () => {
+    // The budget bounds the wait, it does not refuse an answer that arrives inside it.
+    queue({ elements: [A_SHOP] });
+
+    const snapshot = await fetchOverpassSnapshot(BBOX, { budgetMs: 10000 });
+
+    expect(snapshot.premises).toHaveLength(1);
   });
 
   it('declares every layer it loaded, so the core never has to infer it', async () => {

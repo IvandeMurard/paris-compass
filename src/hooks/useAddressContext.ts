@@ -13,6 +13,15 @@
  * the product's whole argument is that it names what is missing. It is also the only path on
  * which the browser can reach the refusal branch of `composeVerdict`, since the Overpass
  * snapshot otherwise carries all three layers or none.
+ *
+ * **That reasoning was correct and it did not reach the screen — w6-fiche-robuste (#156).**
+ * Measured in production on 13 September 2026: the refusal was composed exactly as described
+ * above, and then `ContextMap` threw while drawing its support illustration and the error
+ * boundary took the whole page, refusal included. The branch that this file exists to make
+ * reachable was unreachable in the one case that reaches it. Two things now stand between that
+ * measurement and a repeat: the mini-map cannot throw the page away any more
+ * (`src/lib/contextMapFrame.ts`), and the wait before this refusal is bounded by
+ * `CONTEXT_BUDGET_MS` rather than by how long three saturated mirrors take to expire.
  */
 
 import { useQuery } from '@tanstack/react-query';
@@ -57,6 +66,32 @@ export function boxAround(point: { lat: number; lng: number }, radiusM = AMENITY
   };
 }
 
+/**
+ * How long this page will wait for a neighbourhood before it answers without one — geste 2 of
+ * w6-fiche-robuste (#156).
+ *
+ * **The number is about the reader, not about Overpass.** Measured in production on
+ * 13 September 2026: three mirrors at seventy seconds each, **2 min 20** of « Lecture du
+ * quartier en cours… » on `/contexte/rue-de-bretagne-paris` before the sheet could say
+ * anything (`DIAGNOSTIC.md` §50). Two minutes is not a slow answer, it is no answer: nobody
+ * stays. Ten seconds is the published limit for keeping a reader's attention on a task, and it
+ * is the widest bound that is still a statement about the human rather than about how long a
+ * saturated mirror takes to give up.
+ *
+ * **What it costs, measured rather than assumed.** On the same day, the one mirror that
+ * answered the sheet's real query — `overpass.private.coffee`, 2 188 elements, 685 983 octets
+ * — took **10 587 ms**. Under this budget that answer is abandoned 587 ms before it lands, and
+ * the sheet refuses on a day when patience would have been repaid. That is the trade the
+ * doctrine asks for and it is written here rather than discovered later: the page owes a
+ * verdict *or its refusal* in a readable delay, and a refusal it can explain beats a verdict
+ * nobody waited for. What fills the sheet when Overpass will not is `w6-fiche-corpus` (#157),
+ * which does not depend on a free public mirror at all.
+ *
+ * `/carte` keeps the unbounded walk. A visitor there asked for OpenStreetMap data and the map
+ * IS the screen, so waiting buys something; here it buys a spinner.
+ */
+export const CONTEXT_BUDGET_MS = 10000;
+
 export interface AddressContext {
   scores: AreaScores;
   /** Where each layer was read from — the same object `scoreLocation` was given, so the gaps
@@ -95,7 +130,7 @@ export async function fetchAddressContext(point: {
   // and the type will not let it be forgotten.
   const origins = uniformOrigins(OSM_ORIGIN(today()));
   try {
-    const snapshot = await fetchOverpassSnapshot(bbox);
+    const snapshot = await fetchOverpassSnapshot(bbox, { budgetMs: CONTEXT_BUDGET_MS });
     const points = toNeighbourhoodContext(snapshot, bbox);
     return {
       scores: scoreLocation(point, buildIndex(points), origins),
@@ -106,9 +141,11 @@ export async function fetchAddressContext(point: {
       bbox,
     };
   } catch {
-    // Three mirrors refused, or the payload was malformed. `fetchOverpassSnapshot` has already
-    // walked all of them once; the layer is unreachable, not empty, and the difference is the
-    // whole point — an empty context declared `loaded` would score a measured zero.
+    // The mirrors refused, the payload was malformed, or the budget ran out before any of them
+    // answered. The three are one outcome here — the layer is unreachable, not empty, and that
+    // difference is the whole point: an empty context declared `loaded` would score a measured
+    // zero. Which of the three it was is not re-read from the message; `OverpassUnreachableError`
+    // carries what the UI is allowed to say about the hosts.
     const empty: NeighbourhoodContext = {
       amenities: [],
       premises: [],
@@ -136,8 +173,9 @@ export function useAddressContext(point: { lat: number; lng: number } | null) {
     queryFn: () => fetchAddressContext(point as { lat: number; lng: number }),
     enabled: point !== null,
     staleTime: 30 * 60 * 1000,
-    // Same reasoning as `usePremises`: the snapshot fetcher already tries three mirrors, and a
-    // fourth attempt costs seventy seconds and changes nothing.
+    // Same reasoning as `usePremises`: the snapshot fetcher already walks the mirrors, and a
+    // further attempt changes nothing. It matters more under a budget, not less — a retry
+    // would spend `CONTEXT_BUDGET_MS` a second time and double the delay this ticket bounded.
     retry: false,
     refetchOnWindowFocus: false,
   });
