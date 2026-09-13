@@ -10,20 +10,27 @@
 import { describe, expect, it } from "vitest"
 
 import { canonicalEntries, allEntries } from "../generate-sitemap"
-import { localizePath } from "../../src/i18n/routes"
+import { localizePath, stripLocale } from "../../src/i18n/routes"
 import {
   declaresNoindex,
+  englishRoutes,
+  isEnglish,
   prefixOf,
   readAppSource,
   readPageModules,
   readRoutes,
   readWaivers,
   routeFacts,
+  verdictEnglish,
   verdictSitemap,
+  type RouteDeclaration,
   type RouteFact,
 } from "./sitemap"
 
 const en = (path: string) => localizePath(path, "en")
+
+/** Une route anglaise, telle que la table la déclare. Le composant ne compte pas ici. */
+const route = (path: string): RouteDeclaration => ({ path, component: "X" })
 
 const fact = (path: string, noindex: boolean, file = `src/pages/X.tsx`): RouteFact => ({
   path,
@@ -153,6 +160,94 @@ describe("le verdict", () => {
   })
 })
 
+describe("l'arbre anglais", () => {
+  // Le décor : quatre routes canoniques, leurs quatre routes anglaises, et un sitemap qui les
+  // annonce dans les deux locales. `/contexte/:slug` est en noindex, comme dans le vrai dépôt.
+  const facts = [fact("/", false), fact("/carte", false), fact("/guides/:slug", false), fact("/contexte/:slug", true)]
+  const routes = [route("/en"), route("/en/map"), route("/en/guides/:slug"), route("/en/context/:slug")]
+  const canonical = ["/", "/carte", "/guides/ouvrir-un-commerce"]
+  const verdict = (
+    r: RouteDeclaration[] = routes,
+    all: string[] = both(canonical),
+    f: RouteFact[] = facts,
+    waivers: { route: string; raison: string; date: string }[] = [],
+  ) => verdictEnglish(f, r, canonical, all, waivers, stripLocale)
+
+  it("reconnaît une route anglaise, la racine /en comprise", () => {
+    expect(isEnglish("/en")).toBe(true)
+    expect(isEnglish("/en/map")).toBe(true)
+    expect(isEnglish("/carte")).toBe(false)
+    // Le piège du préfixe nu : /environnement n'est pas anglais.
+    expect(isEnglish("/environnement")).toBe(false)
+  })
+
+  it("lit l'arbre anglais de la table des routes, et lui seul", () => {
+    const source = `
+      <Route path="/carte" element={<Carte />} />
+      <Route path="/en/map" element={<Carte />} />
+      <Route path="*" element={<NotFound />} />
+    `
+    expect(englishRoutes(source).map((r) => r.path)).toEqual(["/en/map"])
+  })
+
+  it("passe quand chaque URL anglaise est servie et chaque route anglaise annoncée", () => {
+    expect(verdict().ok).toBe(true)
+    expect(verdict().population).toHaveLength(4)
+  })
+
+  it("ROUGIT quand l'arbre anglais disparaît — la contre-preuve de #133", () => {
+    const v = verdict([])
+    expect(v.ok).toBe(false)
+    expect(v.detail).toContain("recensement vide")
+  })
+
+  it("rougit sur une URL anglaise que plus aucune route ne sert", () => {
+    const v = verdict(routes, [...both(canonical), "/en/fantome"])
+    expect(v.problems.map((p) => p.regle)).toContain("anglais-sans-route")
+  })
+
+  it("rougit quand la route anglaise n'est pas celle que la table des exceptions écrit", () => {
+    // Le vrai piège : une route posée à /en/carte pendant que le sitemap annonce /en/map.
+    // Les deux sens parlent, et chacun nomme son côté.
+    const v = verdict([route("/en"), route("/en/carte"), route("/en/guides/:slug"), route("/en/context/:slug")])
+    expect(v.problems.map((p) => p.regle)).toEqual(
+      expect.arrayContaining(["anglais-sans-route", "route-anglaise-hors-sitemap"]),
+    )
+  })
+
+  it("rougit sur une route anglaise que stripLocale ne ramène à aucune route canonique", () => {
+    // La table des exceptions de src/i18n/routes.ts et la table des routes ont divergé.
+    const v = verdict([...routes, route("/en/orphelin")])
+    expect(v.problems.map((p) => p.regle)).toEqual(["route-anglaise-sans-canonique"])
+  })
+
+  it("rougit sur une route anglaise indexable que le sitemap oublie", () => {
+    const all = both(canonical).filter((p) => p !== "/en/map")
+    const v = verdict(routes, all)
+    expect(v.problems.map((p) => p.regle)).toContain("route-anglaise-hors-sitemap")
+  })
+
+  it("ne réclame RIEN au sitemap pour une route anglaise en noindex", () => {
+    // /en/context/:slug est servi et doit rester hors du sitemap : l'exiger contredirait la
+    // décision du 10 septembre. Un bras qui le réclamerait se ferait désarmer le jour même.
+    expect(verdict().problems).toEqual([])
+    expect(both(canonical).some((p) => p.startsWith("/en/context/"))).toBe(false)
+  })
+
+  it("ne réclame rien non plus quand une raison écrite porte l'absence du canonique", () => {
+    const all = both(canonical).filter((p) => p !== "/en/map" && p !== "/carte")
+    const waived = [{ route: "/carte", raison: "essai", date: "2026-09-13" }]
+    expect(verdict(routes, all, facts, waived).ok).toBe(true)
+  })
+
+  it("ne réclame pas de route anglaise à une route canonique qui n'en a pas", () => {
+    // La parité n'est PAS exigée : une route française seulement passe, tant que le sitemap
+    // n'annonce pas son URL anglaise. C'est la règle 1 qui attrape le cas non intentionnel.
+    const f = [...facts, fact("/franco-seulement", false)]
+    expect(verdict(routes, both(canonical), f).ok).toBe(true)
+  })
+})
+
 describe("le dépôt lui-même", () => {
   const facts = routeFacts(readAppSource())
   const canonical = canonicalEntries.map((e) => e.path)
@@ -182,6 +277,23 @@ describe("le dépôt lui-même", () => {
       allEntries.map((e) => e.path),
       readWaivers(),
       en,
+    )
+    expect(verdict.problems).toEqual([])
+    expect(verdict.ok).toBe(true)
+  })
+
+  it("recense l'arbre anglais — une table sans route /en est un échec, pas un vide", () => {
+    expect(englishRoutes(readAppSource()).length).toBeGreaterThan(5)
+  })
+
+  it("arbre anglais et moitié anglaise du sitemap s'accordent dans les deux sens", () => {
+    const verdict = verdictEnglish(
+      facts,
+      englishRoutes(readAppSource()),
+      canonical,
+      allEntries.map((e) => e.path),
+      readWaivers(),
+      stripLocale,
     )
     expect(verdict.problems).toEqual([])
     expect(verdict.ok).toBe(true)

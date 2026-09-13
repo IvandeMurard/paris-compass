@@ -30,6 +30,12 @@
 // un rouge au même titre qu'une route indexable absente du sitemap. Une route ne peut pas être
 // oubliée en silence, et une entrée ne peut pas survivre à la route qu'elle annonçait.
 //
+// Et dans les deux LANGUES : `verdictSitemap` tient la moitié canonique, `verdictEnglish` tient
+// l'arbre `/en`. La seconde a été écrite le 13 septembre 2026 parce que la première ne bouclait
+// que sur des chemins français par construction — l'en-tête de `routeFacts` affirmait depuis
+// deux jours qu'un autre contrôle couvrait l'anglais, et cet autre contrôle n'existait pas
+// (#133).
+//
 // ── Ce que ça NE rattrape PAS, et la limite est nette ─────────────────────────────────────
 //
 //   - Ça lit ce que le DÉPÔT déclare, jamais ce que le site PUBLIÉ sert. Le déploiement
@@ -138,9 +144,12 @@ export function prefixOf(path: string): string | null {
  * Les routes canoniques, avec leur verdict d'indexation.
  *
  * Canoniques seulement : l'arbre anglais monte les MÊMES composants, donc son `noindex` est le
- * même par construction, et le recouper deux fois compterait une décision pour deux. Ce que
- * l'arbre anglais mérite, c'est l'autre contrôle — que chaque URL anglaise du sitemap soit bien
- * servie par une route `/en`, ce que `verdictSitemap` fait à part.
+ * même par construction, et le recouper deux fois compterait une décision pour deux. Ce
+ * raisonnement reste juste pour ce qu'il couvre, et il ne couvre pas l'existence des routes :
+ * **qu'une route existe n'est pas une propriété de son composant**. C'est `verdictEnglish` qui
+ * confronte l'arbre anglais aux entrées `/en` du sitemap — et le 11 septembre 2026 cette phrase
+ * décrivait une intention, pas du code : supprimer les seize routes `/en` de `src/App.tsx`
+ * laissait le bras VERT (#133).
  */
 export function routeFacts(
   appSource: string,
@@ -278,6 +287,143 @@ export function verdictSitemap(
     population,
     problems,
     detail: `${population.length} route(s) canonique(s) recensée(s), ${facts.filter((f) => f.noindex).length} en noindex et absente(s) du sitemap`,
+  }
+}
+
+/** Le préfixe de locale, tel que `src/i18n/routes.ts` le monte. Une route anglaise est une
+ *  route sous ce segment, et rien d'autre. */
+const EN = "/en"
+
+/** Vrai quand ce chemin appartient à l'arbre anglais — la racine `/en` comprise. */
+export const isEnglish = (path: string): boolean => path === EN || path.startsWith(`${EN}/`)
+
+/** Les routes que l'arbre anglais déclare, dans l'ordre du fichier. */
+export function englishRoutes(appSource: string): RouteDeclaration[] {
+  return readRoutes(appSource).filter((r) => isEnglish(r.path))
+}
+
+/** Vrai quand cette URL est servie par l'une de ces routes — l'expansion d'une route
+ *  paramétrée est reconnue sur son préfixe, comme partout ailleurs dans ce module. */
+function servedBy(url: string, routes: readonly RouteDeclaration[]): boolean {
+  return routes.some((r) => {
+    const prefix = prefixOf(r.path)
+    return prefix === null ? r.path === url : url.startsWith(`${prefix}/`)
+  })
+}
+
+/**
+ * L'arbre anglais contre les entrées `/en` du sitemap, dans les deux sens — #133.
+ *
+ * ── Le défaut que ça ferme ────────────────────────────────────────────────────────────────
+ *
+ * `verdictSitemap` ne boucle que sur `canonicalPaths`, français par construction. La moitié
+ * anglaise du sitemap n'était donc confrontée à rien : le 11 septembre 2026, supprimer les
+ * seize lignes `path="/en…"` de `src/App.tsx` laissait le bras vert, avec un sitemap qui
+ * continuait d'annoncer aux moteurs trente-trois URL que plus aucune route ne servait. C'est
+ * exactement le « sitemap de 404 douces » que l'en-tête de ce fichier dit prévenir.
+ *
+ * ── Trois énoncés, et la correspondance est dérivée ───────────────────────────────────────
+ *
+ * La population est l'arbre anglais lui-même, lu sur `src/App.tsx`. Vide est un ÉCHEC : une
+ * énumération qui ne trouve plus rien a cessé de fonctionner.
+ *
+ *   1. `anglais-sans-route` — une URL `/en…` au sitemap que plus aucune route ne sert. Le sens
+ *      qui a motivé le ticket.
+ *   2. `route-anglaise-sans-canonique` — une route `/en…` dont `stripLocale` ne rend aucune
+ *      route canonique. La table des exceptions de `src/i18n/routes.ts` et la table des routes
+ *      se sont contredites ; c'est d'elle que la correspondance dérive, jamais d'une seconde
+ *      liste écrite ici.
+ *   3. `route-anglaise-hors-sitemap` — une route anglaise indexable dont le canonique EST au
+ *      sitemap et dont l'URL anglaise ne l'est pas. Le sens inverse du premier.
+ *
+ * Le `noindex` est lu sur le fait CANONIQUE : l'arbre anglais monte les mêmes composants, donc
+ * la même balise. C'est la moitié du raisonnement de `routeFacts` qui reste vraie.
+ *
+ * ── Ce que ça NE rattrape PAS ─────────────────────────────────────────────────────────────
+ *
+ *   - Ça n'exige pas la PARITÉ : une route canonique sans route anglaise passe au vert tant
+ *     que le sitemap n'annonce pas son URL anglaise. Le jour où un chemin serait volontairement
+ *     français seulement, la règle n'a rien à dire ; le jour où il ne le serait pas
+ *     volontairement, c'est le sitemap qui le trahit, par la règle 1.
+ *   - Même limite que le reste du module : ça lit le DÉPÔT, jamais le site publié. Une route
+ *     servie par Lovable et absente d'ici lui échappe.
+ *   - Une route paramétrée n'est vérifiée que sur son préfixe.
+ */
+export function verdictEnglish(
+  facts: readonly RouteFact[],
+  routes: readonly RouteDeclaration[],
+  canonicalPaths: readonly string[],
+  allPaths: readonly string[],
+  waivers: readonly SitemapWaiver[],
+  strip: (path: string) => string,
+): SitemapVerdict {
+  const problems: SitemapProblem[] = []
+  const population = routes.map((r) => r.path)
+  const waived = new Set(waivers.map((w) => w.route))
+  const canonical = new Set(canonicalPaths)
+  const listed = new Set(allPaths)
+  const byPath = new Map(facts.map((f) => [f.path, f]))
+
+  if (population.length === 0)
+    return {
+      ok: false,
+      population,
+      problems,
+      detail: `recensement vide : aucune route ${EN} dans src/App.tsx, alors que le sitemap en annonce ${allPaths.filter(isEnglish).length}`,
+    }
+
+  for (const url of allPaths.filter(isEnglish)) {
+    if (servedBy(url, routes)) continue
+    problems.push({
+      route: url,
+      regle: "anglais-sans-route",
+      detail: `le sitemap annonce ${url}, qu'aucune route ${EN} de src/App.tsx ne sert`,
+    })
+  }
+
+  for (const route of routes) {
+    const canonicalPath = strip(route.path)
+    const fact = byPath.get(canonicalPath)
+    if (!fact) {
+      problems.push({
+        route: route.path,
+        regle: "route-anglaise-sans-canonique",
+        detail: `${route.path} se canonicalise en ${canonicalPath}, que src/App.tsx ne déclare pas — src/i18n/routes.ts et la table des routes divergent`,
+      })
+      continue
+    }
+    if (fact.noindex || waived.has(fact.path)) continue
+
+    const prefix = prefixOf(route.path)
+    const canonicalListed =
+      fact.prefix === null
+        ? canonical.has(fact.path)
+        : canonicalPaths.some((p) => p.startsWith(`${fact.prefix}/`))
+    if (!canonicalListed) continue
+
+    const englishListed =
+      prefix === null ? listed.has(route.path) : allPaths.some((p) => p.startsWith(`${prefix}/`))
+    if (!englishListed)
+      problems.push({
+        route: route.path,
+        regle: "route-anglaise-hors-sitemap",
+        detail: `${fact.file} est indexable et ${fact.path} est au sitemap, mais l'URL anglaise ${route.path} n'y est pas`,
+      })
+  }
+
+  if (problems.length > 0)
+    return {
+      ok: false,
+      population,
+      problems,
+      detail: `${problems.length} contradiction(s) entre l'arbre ${EN} et la moitié anglaise du sitemap`,
+    }
+
+  return {
+    ok: true,
+    population,
+    problems,
+    detail: `${population.length} route(s) ${EN} recensée(s), toutes canonicalisées et accordées au sitemap`,
   }
 }
 
