@@ -1001,3 +1001,67 @@ de rendu, et pour toute capture faite dans un onglet d'arrière-plan. Ce n'est p
 seulement : c'est une propriété du produit, et le jour où le référencement des pages générées se
 rediscutera (voir `docs/tickets/w6-contexte.md`, « Le référencement »), c'est `defer` qu'il faudra
 regarder en premier.
+
+## Une carte Leaflet sans vue n'attache AUCUNE des couches qu'on lui ajoute — 13 septembre 2026
+
+**Le symptôme ne ressemble pas à sa cause.** `instance.fitBounds(circle.getBounds())` jette
+`Cannot read properties of undefined (reading 'layerPointToLatLng')`. On cherche ce qui est
+`undefined` du côté de la carte ; c'est le **cercle** qui n'a pas de carte.
+
+**Le mécanisme, lu dans `node_modules/leaflet/src`.** `Map.addLayer` ne pose pas `layer._map`
+lui-même : il appelle `this.whenReady(layer._layerAdd, layer)`. `whenReady` exécute tout de suite
+si `this._loaded` est vrai, et **s'abonne à l'événement `load` sinon**. `_loaded` ne devient vrai
+qu'au premier `setView`. Une carte créée par `L.map(node, options)` sans `center`/`zoom` et sans
+`setView` n'est donc jamais chargée : chaque couche ajoutée est mise en attente d'un événement
+que personne n'émettra, `layer._map` reste `undefined`, et la première méthode de couche qui lit
+`this._map` jette. `Circle.getBounds()` est celle-là — elle fait
+`this._map.layerPointToLatLng(...)`.
+
+**Ce qui rend le piège coûteux** : rien ne prévient. Les `addTo` réussissent, `L.circle` réussit,
+la carte existe, le conteneur porte `.leaflet-container`. Le seul symptôme est la méthode qui lit
+`_map`, et elle peut arriver dix lignes plus loin ou jamais — `ContextMap` a vécu du 11 au
+13 septembre 2026 en plantant **à chaque montage**, miroirs debout ou non, sans que personne le
+sache : la page mourait dans la frontière d'erreur et la panne Overpass concomitante fournissait
+une explication toute faite (`DIAGNOSTIC.md` §50, `#156`).
+
+**La règle qui en sort** : poser la vue AVANT la première couche, et ne jamais demander à une
+couche des bornes que l'appelant peut calculer lui-même. `src/lib/contextMapFrame.ts` calcule le
+cadre depuis le point, sans Leaflet ; `L.latLng(p).toBounds(d)` fait aussi le travail sans carte,
+si l'on veut rester chez Leaflet.
+
+**Et le corollaire de test** : un défaut qui n'existe qu'une fois monté ne se voit pas dans un
+harnais `environment: 'node'`. Celui-ci se reproduit en trois lignes sous jsdom avec le vrai
+Leaflet, et **jsdom suffit** — mesuré : la séquence corrigée monte même sur un conteneur de
+taille nulle, Leaflet bornant le zoom à 19 au lieu de 14 sans rien jeter.
+
+## Un budget d'attente ne rend pas atteignable le miroir qui répond — 13 septembre 2026
+
+**Mesuré sur les trois miroirs d'`OVERPASS_ENDPOINTS`, requête réelle de la fiche, cinq
+adresses** : `overpass-api.de` refuse en **0,15 à 0,28 s** (406 Apache, avec ou sans
+`User-Agent` de navigateur), `overpass.kumi.systems` met **35 à 43 s** à rendre un 504 ou ne
+répond pas du tout avant 70 s, et `overpass.private.coffee` — le seul qui ait répondu — prend
+**9, 10,6, 19,5 ou 49,5 s**, quand il ne rend pas lui aussi un 504 à 36-41 s.
+
+**La conséquence n'est pas intuitive.** Le miroir qui répond est **troisième**. Sous un budget
+total de dix secondes, le premier échoue en 0,2 s, le deuxième consomme les 9,8 s restantes, et
+le troisième n'est jamais interrogé. Monter le budget à vingt secondes ne change que la durée du
+même refus. **Un budget borne ce qu'on dépense, il ne réordonne pas ce qu'on interroge** — et
+face à une liste où le lent précède le vivant, ces deux choses ne sont pas la même.
+
+À se rappeler avant de croire qu'un délai trop court est la raison d'un refus : regarder d'abord
+lequel des miroirs a été atteint. La trace est dans l'onglet réseau, un seul appel au lieu de
+trois.
+
+## Un test qui monte un composant n'est plus couvert par `include: 'src/**/*.test.ts'` — 13 septembre 2026
+
+Le harnais tourne en `environment: 'node'` et n'incluait que `.ts`. Un fichier `.test.tsx` posé
+à côté d'un composant **ne tourne pas et ne dit rien** : `vitest run` sort en 0 en l'ignorant, ce
+qui ressemble exactement à un test qui passe. Les deux lignes à changer sont dans
+`vitest.config.ts` — le motif, et `@vitest-environment jsdom` en tête du fichier concerné.
+
+**Et la divergence de verrous qui va avec.** `jsdom` est entré en dépendance de développement le
+13 septembre 2026 (30.0.1, 38 paquets, 26 Mo, `npm audit` à zéro vulnérabilité). `package-lock.json`
+le porte, **`bun.lockb` non** : la régénération passe par Docker (`CLAUDE.md`, « Bun ne tourne pas
+sur cette machine ») et n'a pas été faite. Sans conséquence attendue — Lovable bâtit par
+`vite build`, qui ne charge aucune dépendance de test — mais c'est un écart écrit plutôt que tu,
+et la règle des verrous identiques ne vaut que pour les paquets nommés par un avis.
