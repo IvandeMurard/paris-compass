@@ -44,8 +44,27 @@
 //     wrong code passes.
 //   - It says nothing about WHY a deployment did not happen. Deployment belongs to Lovable; this
 //     repository sees only the result.
-//   - It is blind to anything leaving no literal text in a minified bundle: an internal logic
-//     fix, a style correction, any change creating no new string.
+//   - **It watches ONE kind of trace — routes — and nothing else.** This is the widest limit and
+//     the one first written too narrowly, so it is stated plainly. The first draft said the arm
+//     was "blind to anything leaving no literal text in a minified bundle", which reads as though
+//     any new literal would be caught. It would not. The population is the route table and only
+//     the route table.
+//
+//     Measured the same day. `#145` added the string `source injoignable` to the screen — a
+//     literal, minification-proof, as measurable as any path. It merged, production kept serving
+//     the old bundle, and this arm stayed GREEN because the change added no route. A visitor
+//     still read an outage as « Aucun dans 1 km ». So the honest sentence is not « it needs a
+//     textual trace » — the trace was there — but « it only ever looks for routes ».
+//
+//     Widening it is deliberately NOT done here, and the reasoning is in `#152`: a hand-kept list
+//     of expected strings is exactly the kind of list `#134` already objects to elsewhere in this
+//     repository, and it would rot the first time a copy changes. What would earn its place is a
+//     population DERIVED the way routes are — from `src/i18n/ui.ts`, say, where every user-facing
+//     string already lives in one typed table. Until that is designed, the limit stands and is
+//     written here rather than discovered again.
+//   - It is therefore also blind to what leaves no literal at all: an internal logic fix, a style
+//     correction, a change creating no new string. That was true of the first draft too, and it
+//     remains true — it is just no longer the widest limit.
 
 import { prefixOf, readRoutes, type RouteDeclaration } from "./sitemap"
 
