@@ -237,7 +237,7 @@ fautive.
 | --- | --- | --- | --- | --- | --- |
 | ~~1~~ | ~~`w6-fiche-robuste`~~ | [#156](https://github.com/IvandeMurard/paris-compass/issues/156) | **fait** | P0 | Opus 5 |
 | 2 | `w6-fiche-corpus` | [#157](https://github.com/IvandeMurard/paris-compass/issues/157) | ouvert | P0 | Opus 5 |
-| 3 | `w1-porte-page` | [#158](https://github.com/IvandeMurard/paris-compass/issues/158) | ouvert | P0 | Opus 5 |
+| ~~3~~ | ~~`w1-porte-page`~~ | [#158](https://github.com/IvandeMurard/paris-compass/issues/158) | **fait** | P0 | Opus 5 |
 | ~~4~~ | ~~`w0-deploy`~~ | [#7](https://github.com/IvandeMurard/paris-compass/issues/7) | **fait** | P0 | Opus 5 |
 | ~~5~~ | ~~`w0-history`~~ | [#51](https://github.com/IvandeMurard/paris-compass/issues/51) | **fait** | P0 | Opus 5 |
 | ~~6~~ | ~~`w0-provenance`~~ | [#10](https://github.com/IvandeMurard/paris-compass/issues/10) | **fait** | P0 | Opus 5 |
