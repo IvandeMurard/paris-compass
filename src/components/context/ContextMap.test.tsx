@@ -49,6 +49,7 @@ const OSM: Origin = {
 const plain = (n: number): Measured<number> => withValue(n, OSM, 'derived');
 
 const scores = (partial: Partial<AreaScores> = {}): AreaScores => ({
+  density: plain(65),
   walkability: plain(70),
   schools: plain(70),
   healthcare: plain(70),

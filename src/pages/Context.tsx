@@ -184,6 +184,8 @@ const Context = () => {
             // would say which layer went silent and not why — and on the Overpass outage of
             // 13 September 2026 that is the only thing worth reading (`#156`).
             context.data.withheldBy,
+            // What the corpus holds and may not serve — w6-fiche-corpus (#157).
+            context.data.transitions,
           )
         : [],
     [context.data, locale],

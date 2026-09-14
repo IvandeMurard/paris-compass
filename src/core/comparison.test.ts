@@ -43,7 +43,12 @@ describe('compareAddresses', () => {
   });
 
   it('dit que la paire elle-même n’apprend rien quand aucun porteur ne se compare', () => {
-    const withheld = { footfall: absent('x'), transit: absent('x'), walkability: absent('x') };
+    const withheld = {
+      density: absent('x'),
+      footfall: absent('x'),
+      transit: absent('x'),
+      walkability: absent('x'),
+    };
     const c = compareAddresses(findings(), findings(withheld));
     expect(c.bearingComparable).toBe(false);
     // Les axes d’appui, eux, restent comparables : refuser le verdict n’est pas refuser d’informer.

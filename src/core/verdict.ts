@@ -45,7 +45,13 @@ import { noiseLabel, scoreLabel, type AreaScores, type Layer } from './scoring';
  *  that module is the browser's, and `src/core` must stay callable from the MCP server. */
 export type VerdictLocale = 'fr' | 'en';
 
-export type VerdictAxis = 'footfall' | 'transit' | 'walkability' | 'groceries' | 'noise';
+export type VerdictAxis =
+  | 'density'
+  | 'footfall'
+  | 'transit'
+  | 'walkability'
+  | 'groceries'
+  | 'noise';
 
 /**
  * Why a finding carries no value, in a form a machine can read.
@@ -86,12 +92,24 @@ export interface VerdictAxisRule {
 /**
  * Which axes carry the verdict, and which merely colour it.
  *
- * The three bearing ones are the three that answer the closed question a taker arrives with —
- * *does this address hold up?* : how many people pass (`footfall`), how well it is served
- * (`transit`), and what can be reached on foot (`walkability`). Food shops and road noise
- * qualify an answer; they cannot be the answer, so their absence does not block one.
+ * The four bearing ones are those that answer the closed question a taker arrives with —
+ * *does this address hold up?* : how much commerce stands here (`density`), how many people
+ * pass (`footfall`), how well it is served (`transit`), and what can be reached on foot
+ * (`walkability`). Food shops and road noise qualify an answer; they cannot be the answer, so
+ * their absence does not block one.
+ *
+ * **`density` is bearing, and that was a choice — w6-fiche-corpus (#157).** It is the only
+ * axis that reads the corpus and nothing else, so making it bearing is what « le corpus
+ * d'abord » means in code rather than in prose: Compass does not sign a verdict about a
+ * commercial address without the commercial premises survey of that address. It costs a
+ * refusal outside Paris intra-muros, where `compass_scoring_context_within` answers
+ * `hors_corpus` — which is the correct answer for a product whose corpus stops at the city
+ * limits, and a better one than a verdict composed from OpenStreetMap alone in Massy. It
+ * costs nothing inside Paris, where the layer answers and the three Overpass axes were
+ * already bearing.
  */
 export const VERDICT_AXES: Readonly<Record<VerdictAxis, VerdictAxisRule>> = {
+  density: { bearing: true, layers: ['premises'] },
   footfall: { bearing: true, layers: ['premises', 'amenities'] },
   transit: { bearing: true, layers: ['amenities'] },
   walkability: { bearing: true, layers: ['amenities'] },
@@ -99,8 +117,11 @@ export const VERDICT_AXES: Readonly<Record<VerdictAxis, VerdictAxisRule>> = {
   noise: { bearing: false, layers: ['roads'] },
 };
 
-/** Reading order of the findings, on screen and in the sentence. */
+/** Reading order of the findings, on screen and in the sentence. The corpus leads, and the
+ *  order is the doctrine of #157 made visible: what the database holds first, what a free
+ *  public mirror adds second. */
 export const VERDICT_AXIS_ORDER: readonly VerdictAxis[] = [
+  'density',
   'footfall',
   'transit',
   'walkability',
@@ -179,6 +200,11 @@ export function bandOf(axis: VerdictAxis, score: number): Band {
 /** Clause wording, per axis and per band. Prose, so it lives next to the rule it renders. */
 const CLAUSES: Record<VerdictLocale, Record<VerdictAxis, Record<Band, string>>> = {
   fr: {
+    density: {
+      fort: 'tissu commercial dense',
+      moyen: 'tissu commercial moyen',
+      faible: 'tissu commercial clairsemé',
+    },
     footfall: { fort: 'passage soutenu', moyen: 'passage moyen', faible: 'passage faible' },
     transit: { fort: 'desserte forte', moyen: 'desserte moyenne', faible: 'desserte faible' },
     walkability: {
@@ -198,6 +224,11 @@ const CLAUSES: Record<VerdictLocale, Record<VerdictAxis, Record<Band, string>>> 
     },
   },
   en: {
+    density: {
+      fort: 'a dense commercial fabric',
+      moyen: 'a moderate commercial fabric',
+      faible: 'a sparse commercial fabric',
+    },
     footfall: { fort: 'steady footfall', moyen: 'moderate footfall', faible: 'low footfall' },
     transit: {
       fort: 'strong transit access',
@@ -223,6 +254,7 @@ const CLAUSES: Record<VerdictLocale, Record<VerdictAxis, Record<Band, string>>> 
  *  list reads faster than a sentence nobody finishes. */
 const SUBJECTS: Record<VerdictLocale, Record<VerdictAxis, string>> = {
   fr: {
+    density: 'le tissu commercial',
     footfall: 'le passage',
     transit: 'la desserte',
     walkability: 'les services à pied',
@@ -230,6 +262,7 @@ const SUBJECTS: Record<VerdictLocale, Record<VerdictAxis, string>> = {
     noise: 'le bruit routier',
   },
   en: {
+    density: 'the commercial fabric',
     footfall: 'footfall',
     transit: 'transit access',
     walkability: 'services within walking distance',

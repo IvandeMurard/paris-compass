@@ -66,6 +66,20 @@ export function collectGaps(
    * fact, and it is never guessed to be a licence refusal.
    */
   withheldBy: Partial<Record<Layer, Withholding>> = {},
+  /**
+   * What `compass_activity_transitions` answered — w6-fiche-corpus (#157).
+   *
+   * It is here rather than among the findings because on every ordinary Paris address today it
+   * answers « withheld »: a transition derives from two vintages and only 2023 is
+   * redistributable, so no pair is servable until the APUR replies. A thing Compass holds and
+   * cannot serve is exactly what this block is for — and it is the one entry that puts
+   * « retenue de licence » in front of a visitor on an address where everything else worked,
+   * which is the difference between having a licence problem and saying so.
+   *
+   * `null` when the call itself failed. An outage contributes nothing here rather than
+   * borrowing the words of a licence refusal.
+   */
+  transitions: { withheld: boolean; evidence: string | null } | null = null,
 ): Gap[] {
   const copy = GAP_COPY[locale];
   const names = AXIS_NAMES[locale];
@@ -97,7 +111,19 @@ export function collectGaps(
   // Named only when the layer actually answered — otherwise its absence is already above, and
   // saying both would count one hole twice.
   if (loaded.includes('premises')) {
-    gaps.push({ key: 'premises-source', text: copy.osmPremises(premisesSource) });
+    gaps.push({ key: 'premises-source', text: copy.premisesSource(premisesSource) });
+  }
+
+  // The withheld half only. A matrix that came back servable is a finding and not a hole, and
+  // the day the APUR answers this entry disappears on its own rather than being remembered.
+  if (transitions?.withheld) {
+    gaps.push({
+      key: 'transitions-withheld',
+      text: copy.transitionsWithheld(
+        withholdingText('retenue_licence', locale),
+        transitions.evidence ?? '',
+      ).trim(),
+    });
   }
 
   gaps.push({ key: 'commercial-rent', text: copy.noCommercialRent });

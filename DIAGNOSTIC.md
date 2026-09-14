@@ -1,7 +1,7 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte 50 au 13 septembre 2026**, et la
+« quatre défauts, par ordre de gravité » : il en porte 52 au 14 septembre 2026**, et la
 phrase est restée fausse trois semaines. Le nombre est désormais dérivé du tableau
 ci-dessous par `scripts/porte/documents.test.ts` : le recopier faux fait rougir `test`.
 
@@ -73,7 +73,9 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 47 | La `cadence_note` de `filosofi` annonce « NON CHARGÉ » à tout appelant, alors que la source est chargée depuis le 8 septembre 2026 | **ouvert** — trouvé le 8 septembre 2026 par `w2-filosofi`, P2 | ici |
 | 48 | Deux tables neuves sur trois ont oublié la contrainte de finitude, et la troisième dit pourquoi | **ouvert** — mesuré le 10 septembre 2026 par `w4-meubles`, P2 | ici |
 | 49 | Les raisons d'absence de `src/core` s'affichent en anglais sur les pages françaises | **ouvert** — mesuré le 10 septembre 2026 par `w6-contexte`, P2 | ici |
-| 50 | La fiche de contexte plante quand Overpass tombe, et n'appelle aucune fonction `compass_*` | **partiel** — le plantage corrigé le 13 septembre 2026 (`#156`), l'absence de corpus **ouverte** (`#157`, **P0**) | ici |
+| 50 | La fiche de contexte plante quand Overpass tombe, et n'appelle aucune fonction `compass_*` | clos les 13 et 14 septembre 2026 — le plantage par `#156`, l'absence de corpus par `#157` | ici |
+| 51 | Un compte de locaux plafonné à mille par PostgREST, rendu comme un total — `compass_scoring_context_within` | clos le 14 septembre 2026 par `w6-fiche-corpus`, `#157` | ici |
+| 52 | L'axe `tissu commercial` lit 100 sur la moitié de Paris : honnête, et presque sans pouvoir discriminant | **ouvert** — mesuré le 14 septembre 2026 par `w6-fiche-corpus`, P2, **décision Ivan** | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -957,3 +959,130 @@ exactement la distinction que `#158` existe pour tenir, et son premier passage l
 appartient à Lovable. Le bras dit que la page est muette, jamais pourquoi, et il restera rouge
 chaque matin jusqu'à la republication — ce qui est le comportement voulu, et non un bras à
 désarmer.
+
+### L'absence de corpus, close le 14 septembre 2026 — `w6-fiche-corpus` (`#157`)
+
+**La fiche appelle `compass_*`.** Les locaux viennent de `compass_scoring_context_within`,
+millésime 2023, avec la licence et la date lues sur `compass_vintages` — jamais écrites dans le
+code, parce que seule la base les connaît. Les équipements et la voirie restent sur Overpass, donc
+`LayerOrigins` cesse d'être uniforme sur cette page comme elle l'a cessé sur le chemin de l'agent
+le 15 août. Un axe neuf, **`density`**, ne lit que la couche du corpus : c'est le constat qui reste
+affiché quand les trois miroirs sont muets, et il est porteur.
+
+**Ce que ça règle, et ce que ça ne règle pas.** L'inversion de dépendance est défaite : mesuré rue
+de Bretagne le 14 septembre 2026, chemin anonyme, **920 locaux dans 400 m en 144 à 735 ms** contre
+8 981 à 43 315 ms pour un miroir Overpass quand il répond. Mais servir le corpus ne le rend pas
+lisible : la fiche porte désormais **six** constats, borne haute de ce que `w6-contexte` demande,
+et le choix de ce qu'on montre reste ouvert. §49 n'est pas touché — les raisons d'absence écrites
+par `src/core` sont toujours en anglais, et les trois raisons neuves du corpus sont en français,
+ce qui rend le mélange plus visible, pas moins.
+
+**Et la vacance n'est toujours pas servie, pour une raison de licence et non de code.** BDCom 2023
+est `retail_only` : **0 local vacant sur 60 845 relevés**, contre 7 853 en 2017 et 8 764 en 2020,
+mesuré le 14 septembre 2026. `PremisePoint.status` ne peut donc valoir que `occupied` sur cette
+couche, des deux côtés. La distinction est morte dans les données et vivante dans le type — la
+supprimer ferait ressembler la réponse de l'APUR à un changement de code.
+
+---
+
+## 51. Un compte de locaux plafonné à mille, rendu comme un total — mesuré le 14 septembre 2026 par `w6-fiche-corpus`
+
+**Fichiers :** `mcp-server/src/context.ts` (`fetchPremises`), `src/core/scoring.ts`
+
+`compass_scoring_context_within` sélectionne tous les locaux du rayon et rend `total_matched` sur
+chaque ligne — le compte AVANT tout plafond. PostgREST, lui, plafonne la réponse à sa propre limite
+de lignes. La colonne était dans le type de ligne du serveur MCP **depuis le 15 août** et n'était
+lue nulle part : la couche était déclarée chargée, la mandataire de passage calculée sur ce qui
+était arrivé, et le chiffre rendu à l'agent comme un nombre mesuré estampillé « APUR BDCom 2023 »,
+sans la moindre réserve.
+
+**Mesuré rue de Bretagne (48.8631 / 2.3621), BDCom 2023, par PostgREST en `anon`, le 14 septembre
+2026** — et l'en-tête `Range` ne le lève pas, c'est un réglage de serveur :
+
+| Rayon | Lignes rendues | `total_matched` | Part rendue |
+| ---: | ---: | ---: | ---: |
+| 300 m | 584 | 584 | 100 % |
+| 400 m | 920 | 920 | 100 % |
+| 500 m | 1 000 | 1 416 | 70,6 % |
+| 600 m | 1 000 | 1 981 | 50,5 % |
+| 800 m | 1 000 | 3 528 | 28,3 % |
+| 2 000 m | 1 000 | **17 190** | **5,8 %** |
+
+**Le rayon de 2 000 m n'est pas théorique** : c'est celui que `score_location`, `explain_score` et
+`compare_locations` annoncent dans leur schéma d'entrée (`radius_m: z.number().positive().max(2000)`),
+et un agent qui lit ce schéma le croit — c'est l'argument exact qui a fait reconduire le plafond en
+fermant `#64`. À ce rayon l'agent recevait donc **5,8 %** du corpus, présenté comme le tout.
+
+**C'est §16 sous une autre forme** — un point hors corpus rendu comme un quartier sans commerces —
+et la parenté est utile : dans les deux cas la requête RÉUSSIT, la couche compte comme chargée, et
+le défaut n'a aucun symptôme. Ici il est même plus discret, parce que le chiffre rendu est
+plausible : une densité calculée sur mille locaux au lieu de dix-sept mille ne ressemble pas à une
+erreur, elle ressemble à un quartier moins dense.
+
+**Corrigé le 14 septembre 2026, sur les deux surfaces à la fois**, parce qu'une réserve qui ne
+tiendrait que sur l'écran ferait diverger les deux réponses — ce que `#157` exige au contraire de
+tenir. `scoreLocation` prend un quatrième argument facultatif, `LayerNotes`, et la troncature y
+remonte en `note` plutôt qu'en absence : un plancher est une vraie lecture, et le retirer coûterait
+plus qu'il ne protège. Le noyau ne peut pas la déduire seul — on lui passe un tableau, et un
+tableau est tout ce qu'il a —, donc elle vient de l'appelant qui a fait la requête et détient les
+deux nombres. La fiche, elle, demande le corpus à **400 m** et pas plus : c'est le rayon que ses
+deux chiffres comptent, donc demander plus large achèterait une troncature et pas des lignes.
+
+**Ce que ça ne rattrape pas.** La limite du serveur n'est pas levée, seulement dite : au-delà
+d'environ mille locaux dans le rayon, la réponse reste un plancher, et un appelant qui veut le
+total doit rétrécir son rayon. Pagination et agrégation côté base sont toutes deux possibles et
+aucune n'est faite ici — ce serait un ticket, pas un à-côté de session.
+
+---
+
+## 52. L'axe `tissu commercial` lit 100 sur la moitié de Paris — mesuré le 14 septembre 2026 par `w6-fiche-corpus`
+
+**Fichier :** `src/core/scoring.ts` (`PREMISE_SATURATION`)
+
+L'axe neuf de `#157` est honnête — un compte de locaux relevés, une courbe saturante publiée, une
+provenance qui se déplie — et **presque constant sur la population qui compte**. La constante de
+saturation vaut 90, héritée de la moitié « locaux » de la mandataire de passage, où elle ne pesait
+que 65 % d'un mélange. Seule, elle atteint 100 dès **415 locaux**, ce qu'une rue commerçante
+parisienne dépasse largement.
+
+**Mesuré à 400 m, BDCom 2023, appelant anonyme, douze points**, avec ce que d'autres constantes
+auraient rendu sur les mêmes comptes :
+
+| Lieu | Locaux | s = 90 | s = 200 | s = 400 |
+| --- | ---: | ---: | ---: | ---: |
+| Les Halles (1er) | 1 200 | 100 | 100 | 95 |
+| rue Montorgueil (2e) | 1 171 | 100 | 100 | 95 |
+| rue de Bretagne (3e) | 920 | **100** | 99 | 90 |
+| Batignolles (17e) | 745 | 100 | 98 | 84 |
+| place d'Italie (13e) | 425 | 99 | 88 | 65 |
+| rue de Belleville (19e) | 404 | 99 | 87 | 64 |
+| avenue Foch (16e) | 261 | 94 | 73 | 48 |
+| porte de Vanves (14e) | 104 | 69 | 41 | 23 |
+| quai de Bercy (12e) | 95 | 65 | 38 | 21 |
+| parc des Buttes-Chaumont (19e) | 80 | 59 | 33 | 18 |
+| bois de Boulogne (16e) | 1 | 1 | 0 | 0 |
+| bois de Vincennes (12e) | 0 | 0 | 0 | 0 |
+
+**Six points sur douze rendent 99 ou 100**, et ce sont exactement les adresses qu'un preneur
+regarde. L'axe sépare un parc d'une rue ; il ne sépare pas Belleville des Halles, qui est la
+question posée.
+
+**Ce n'est pas corrigé, et le refus de corriger est le fond du point.** Trois raisons, dans
+l'ordre : `PREMISE_SATURATION` est **partagée** avec la mandataire de passage et **publiée** sur
+`src/pages/Methodology.tsx` (« même courbe saturante, constante 90 »), donc la bouger change un
+chiffre rendu à l'agent comme au visiteur, sur un axe dont `#157` ne traite pas ; lui donner une
+constante propre ferait deux nombres comptant la même chose dans le même rayon, ce que ce dépôt
+range parmi les manières dont deux nombres divergent ; et **choisir 200 ou 400 aujourd'hui sur
+douze points serait choisir un nombre parce que le tableau est plus joli** — le geste que la règle
+des baselines refuse ailleurs. Ce qu'il faut est une décision produit sur ce que « dense » veut
+dire pour un preneur, et une mesure sur une population, pas douze points.
+
+**Ce que ça ne remet pas en cause.** L'axe reste porteur à bon droit : ce qu'il porte est la
+**disponibilité** — il est le seul constat qui survit à trois miroirs morts — et le **refus** hors
+corpus, où il rend `n/d` et empêche un verdict composé sur Massy à partir d'OpenStreetMap seul. Les
+deux tiennent quelle que soit la constante. Ce qui est faible est son pouvoir *discriminant* à
+l'intérieur de Paris commerçant, et rien de ce qu'il affiche n'est faux.
+
+**Décision attendue d'Ivan**, et elle est étroite : garder 90 partagée, ou publier une constante
+propre au tissu commercial avec la mesure qui la justifie. `#157` n'a pas tranché seul parce que la
+première branche touche une formule publiée que son périmètre écarte.

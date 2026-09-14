@@ -286,6 +286,79 @@ export type Database = {
           withheld: boolean;
         }[];
       };
+      /**
+       * The bare points feeding `NeighbourhoodContext.premises` — w6-fiche-corpus (#157).
+       *
+       * No score and no label: Postgres does the spatial selection, `src/core` does the
+       * arithmetic. The same function the MCP server has called since 15 August, so the two
+       * surfaces read one corpus rather than two.
+       */
+      compass_scoring_context_within: {
+        Args: {
+          p_lat: number;
+          p_lng: number;
+          p_radius_m?: number;
+          p_vintage_year?: number;
+        };
+        Returns: {
+          lat: number | null;
+          lng: number | null;
+          is_vacant: boolean | null;
+          /**
+           * How many the radius holds, BEFORE PostgREST's `db-max-rows` cap. Repeated on
+           * every row: it is a window count, not a per-row value — and it is the only thing
+           * that tells a caller its array is a floor rather than a total. Ignoring it is
+           * `DIAGNOSTIC.md` §51.
+           */
+          total_matched: number | null;
+          /** One row, no coordinates: the vintage may not be served to this caller. */
+          withheld: boolean;
+          /** One row, no coordinates: the point is in none of the 80 quartiers. */
+          out_of_corpus: boolean;
+        }[];
+      };
+      /** Licence, survey date and scope per BDCom vintage. The only place that knows them. */
+      compass_vintages: {
+        Args: Record<string, never>;
+        Returns: {
+          vintage_year: number;
+          vintage_scope: string;
+          licence: string;
+          licence_note: string | null;
+          as_of: string;
+          source_url: string | null;
+          record_count: number | null;
+          ingested_at: string | null;
+        }[];
+      };
+      /**
+       * What a premise around here became between two vintages — `PLAN.md` §6.1.
+       *
+       * Withheld in full from an anonymous caller, and structurally rather than incidentally:
+       * a transition derives from two vintages and only 2023 is redistributable, so every
+       * possible pair contains a vintage whose licence nobody has read. The answer is then ONE
+       * marked row carrying the reason, never an empty result.
+       */
+      compass_activity_transitions: {
+        Args: {
+          p_lat: number;
+          p_lng: number;
+          p_radius_m?: number;
+          p_from_vintage?: number;
+          p_to_vintage?: number;
+        };
+        Returns: {
+          from_niv18: number | null;
+          from_label: string | null;
+          to_niv18: number | null;
+          to_label: string | null;
+          premises: number | null;
+          is_same_trade: boolean | null;
+          withheld: boolean;
+          licence: string | null;
+          evidence: string | null;
+        }[];
+      };
     };
     Enums: {
       compass_confidence: 'etabli' | 'corrobore' | 'probable' | 'indetermine';
