@@ -42,6 +42,13 @@ const ORDER = [
   "w6-fiche-robuste",
   "w6-fiche-corpus",
   "w1-porte-page",
+  // Ouvert en passant par la session de #156, placé ici le 14 septembre 2026. Il suit
+  // w6-fiche-corpus et non les tickets produit, pour une raison de connaissance et non de
+  // valeur : c'est la session qui vient de découpler la fiche d'Overpass qui sait ce qu'il
+  // reste à /carte. Placé plus loin, il serait repris par quelqu'un qui devrait tout
+  // remesurer. Ce n'est pas un P0 — la fiche n'en dépendra plus — mais /carte interroge
+  // toujours la même liste, sans budget, et rien ne dit si son ordre est encore juste.
+  "w1-overpass-ordre",
   "w0-deploy",
   "w0-history",
   "w0-provenance",
