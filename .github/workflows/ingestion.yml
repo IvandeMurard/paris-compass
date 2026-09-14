@@ -134,7 +134,7 @@ jobs:
           echo "source=${source}" >> "$GITHUB_OUTPUT"
           echo "Source retenue : ${source}"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
