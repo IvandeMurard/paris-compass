@@ -18,6 +18,7 @@ import {
   OSM_ORIGIN,
   buildIndex,
   type Layer,
+  type LayerNotes,
   type LayerOrigins,
   type NeighbourhoodContext,
   type Origin,
@@ -58,6 +59,8 @@ export function motifOf(reason: unknown): QuestionOutcome {
 
 export interface ContextResult {
   index: ScoringIndex
+  /** Caveats only this builder can know — today, a premises layer PostgREST truncated. */
+  layerNotes: LayerNotes
   /**
    * Which layers failed to load, and why — surfaced to the caller, never swallowed.
    *
@@ -118,12 +121,33 @@ interface ScoringContextRow {
   out_of_corpus: boolean
 }
 
+/**
+ * Les locaux BDCom d'un rayon, ET ce qui manque du rayon — corrigé le 14 septembre 2026.
+ *
+ * `total_matched` était dans le type de ligne depuis le 15 août et n'était lu nulle part.
+ * PostgREST plafonne une réponse à `db-max-rows`, donc au-delà d'environ mille locaux ce
+ * module recevait un PLANCHER et le déclarait chargé : la mandataire de passage était calculée
+ * sur ce qui était arrivé, rendue comme un nombre mesuré et estampillée « APUR BDCom 2023 »
+ * sans la moindre réserve. Mesuré rue de Bretagne le 14 septembre 2026 : 920 sur 920 à 400 m,
+ * 1 000 sur 1 981 à 600 m, 1 000 sur **17 190** à 2 000 m — et `score_location` annonce
+ * justement 2 000 m dans son schéma d'entrée. `DIAGNOSTIC.md` §51.
+ *
+ * Ce n'est pas une absence et ça ne se traite pas comme telle : un plancher est une vraie
+ * lecture, et le retirer coûterait plus qu'il ne protège. Il remonte donc en `note`, par la
+ * même porte que la troncature géographique du noyau.
+ */
+interface PremisesLayer {
+  points: PremisePoint[]
+  /** Renseignée quand PostgREST a rendu moins de lignes que le rayon n'en contient. */
+  note?: string
+}
+
 async function fetchPremises(
   lat: number,
   lng: number,
   radiusM: number,
   vintageYear: number,
-): Promise<PremisePoint[]> {
+): Promise<PremisesLayer> {
   const { data, error } = await supabase.rpc("compass_scoring_context_within", {
     p_lat: lat,
     p_lng: lng,
@@ -167,11 +191,24 @@ async function fetchPremises(
     )
   }
 
-  return rows.map((r) => ({
+  const points: PremisePoint[] = rows.map((r) => ({
     lat: r.lat as number,
     lng: r.lng as number,
     status: r.is_vacant ? "vacant" : "occupied",
   }))
+
+  const totalMatched = Number(rows[0]?.total_matched ?? points.length)
+  if (totalMatched > points.length) {
+    return {
+      points,
+      note:
+        `The premises layer is truncated: the service returned ${points.length} of the ` +
+        `${totalMatched} premises the ${Math.round(radiusM)} m radius holds, because PostgREST ` +
+        `caps a response at its own row limit. Every figure below that reads this layer is a ` +
+        `FLOOR, not a total. A narrower radius returns the whole set.`,
+    }
+  }
+  return { points }
 }
 
 /**
@@ -216,12 +253,14 @@ export async function buildNeighbourhoodContext(
     failures.push({ layer: "amenities", reason, motif }, { layer: "roads", reason, motif })
   }
 
-  const premises = premisesResult.status === "fulfilled" ? premisesResult.value : []
+  const premises = premisesResult.status === "fulfilled" ? premisesResult.value.points : []
+  const layerNotes: LayerNotes = {}
   // Rows that arrived but cannot be attributed are rows that must not be scored: an
   // unattributable figure is one `Measured<T>` exists to keep off the screen. So a metadata
   // failure withdraws the layer even when the rows themselves came back.
   if (premisesResult.status === "fulfilled" && originResult.status === "fulfilled") {
     loaded.push("premises")
+    if (premisesResult.value.note) layerNotes.premises = premisesResult.value.note
   }
   if (premisesResult.status === "rejected") {
     const reason = premisesResult.reason instanceof Error ? premisesResult.reason.message : String(premisesResult.reason)
@@ -241,5 +280,5 @@ export async function buildNeighbourhoodContext(
   }
 
   const context: NeighbourhoodContext = { amenities, roads, premises, loaded }
-  return { index: buildIndex(context), failures, origins }
+  return { index: buildIndex(context), layerNotes, failures, origins }
 }

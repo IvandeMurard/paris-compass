@@ -67,8 +67,16 @@ export async function scorePoint(
   // Origins travel with the context, not with this call: the layers come from two different
   // datasets, and only the builder that chose them can say which is which. Stamping one
   // origin here is what made every figure claim OpenStreetMap, BDCom's included.
-  const { index, failures, origins } = await buildNeighbourhoodContext(lat, lng, radiusM, vintageYear)
-  const scores = scoreLocation({ lat, lng }, index, origins)
+  const { index, layerNotes, failures, origins } = await buildNeighbourhoodContext(
+    lat,
+    lng,
+    radiusM,
+    vintageYear,
+  )
+  // `layerNotes` travels with the context for the same reason `origins` does: the builder that
+  // made the request is the only code that knows its answer was capped, and a caveat the caller
+  // cannot see is a caveat that does not exist.
+  const scores = scoreLocation({ lat, lng }, index, origins, layerNotes)
 
   if (appelee) {
     const latencyMs = Date.now() - debut

@@ -775,3 +775,72 @@ Sortis de la ligne « Tests unitaires » par `w1-porte-page` (`#158`) pour tenir
 **396** mesurés plus tôt le même jour — dont les 20 de `scripts/porte/observabilite.test.ts` ajoutés par `w1-observabilite-echappement` (#81), qui énumèrent les fichiers atteignant PostgREST et exigent de chacun l'échappement ou une raison écrite. **376** mesurés le 5 septembre 2026 — dont les 10 de `scripts/ingest/lib/arcgis.test.ts` ajoutés par `w1-geometrie` (#68), qui éprouvent `featurePoint` sur la chaîne `"NaN"` que le service envoie pour un point absent. **366** mesurés plus tôt le même jour — dont les 15 de `scripts/porte/etat.test.ts` ajoutés par `w1-porte-lue` (#77) et les 14 de `scripts/porte/catalogue.test.ts`. **Le chiffre de 335 daté du 3 septembre était déjà faux** : remesuré sans le fichier neuf, le dépôt en portait **337**. Historique : 273 après `#71` , puis 299 avec `scripts/porte/cadences.test.ts`, la réconciliation distant/migrations et deux cas ajoutés de part et d'autre dans `scripts/ingest/workflow.test.ts` et `scripts/porte/workflow.test.ts`, puis **301** en tranchant les cadences sans seuil, puis **325** le 2 septembre 2026 avec les 14 tests de `scripts/build/envPublic.test.ts` , les 6 de `scripts/porte/publie.test.ts` , les 4 de `scripts/esbuildInvocation.test.ts` , les 6 de `scripts/eval/drift.test.ts` et les 4 de `scripts/mcpRegistry.test.ts`
 
 ---
+
+## Le point 17 — `ticket/w2-idfm` attendait une fusion, elle a eu lieu — déplacé depuis `docs/REPRISE.md` le 14 septembre 2026
+
+Sorti de « La suite, par ordre » par `w6-fiche-corpus` (`#157`), pour la raison que le plafond de
+`scripts/porte/documents.test.ts` annonce lui-même : la session qui touche à cette page y déplace
+une entrée close plutôt que de dépenser la marge. Celle-ci l'était depuis une semaine sans que
+personne le dise — le point annonçait « il ne reste donc que la fusion de #97 », et **`#97` est
+fusionnée depuis le 7 septembre 2026 à 22:03 UTC, `#19` close**. Mesuré à la commande, pas relu.
+
+Ce qu'il portait, et qui reste vrai : les trois migrations IDFM sont posées et au ledger, les
+données chargées — 258 stations, 29 489 lignes de profil, 85 410 locaux rattachés —, le catalogue
+porte la source en `ingérée`, et la revue avait trouvé la porte ROUGE sur quatre défaillances que
+le bras n'avait jamais jouées : `I23`/`I24`/`I32` sur `idfm_validation_profile` avec RLS active et
+zéro politique de lecture, `I42` sur `idfm_station.geom` sans contrainte de finitude. Corrigé par
+une **troisième** migration, `20260907000003_idfm_lecture_publique.sql`, les deux premières étant
+au ledger et ne se réécrivant pas (`#83`).
+
+**Les deux points ouverts qui le suivaient ne sont pas clos et ne partent pas avec lui** :
+`DIAGNOSTIC.md` §44 — l'exclusion de Porte de Clichy est plus large que le défaut, 156 locaux
+mesurés reçoivent une station qui n'est pas la plus proche — et §45 — la sonde de catalogue IDFM
+dérivera vers le vert sur une édition gelée. Les deux vivent dans `DIAGNOSTIC.md`, qui est leur
+place ; ce point n'en était que l'écho.
+
+---
+
+## Les points 3 et 4 — la remontée de l'absence et de la provenance jusqu'à l'interface — déplacés depuis `docs/REPRISE.md` le 14 septembre 2026
+
+Sortis de « La suite, par ordre » par `w6-fiche-corpus` (`#157`) pour tenir le plafond de
+`scripts/porte/documents.test.ts`. Ils étaient rayés depuis août, et **la page annonçait déjà leur
+départ** — la phrase « les points 1, 3, 4, 8… sont partis dans `docs/REPRISE-ARCHIVE.md` » était
+fausse pour deux d'entre eux, qui étaient restés en place sous elle. Ils sont ici, intacts.
+
+3. ~~**Corriger `?? 0`** dans `src/services/opendata/scoring.ts`.~~ **Fait le
+   9 août.** L'absence remonte maintenant jusqu'à l'interface : `AreaScores` et
+   `NoiseEstimate` sont nullables, la carte affiche « n/d » et un point gris
+   plutôt qu'un rouge qui se lirait comme une mauvaise note, et un score inconnu
+   n'exclut plus un local du filtre — l'exclure reviendrait à affirmer qu'il est
+   hors bornes. Couvert par `src/services/opendata/scoring.test.ts`.
+
+   **Suite, le même jour, un cran plus bas.** Le chemin nul câblé jusqu'à
+   l'interface était correct mais inatteignable : le noyau n'émettait jamais de
+   valeur nulle, et un `saturating(0, n)` valait 0 — donc une couche absente
+   produisait un zéro *mesuré*. Deux correctifs :
+
+   - `NeighbourhoodContext.loaded` (obligatoire) déclare les couches réellement
+     chargées. Un tableau vide ne tranche pas entre « rien ici » et « rien reçu » ;
+     seul l'appelant le sait, et le noyau reste pur en refusant de deviner.
+     `scoreLocation` rend `unavailable()` par couche manquante, y compris pour les
+     composites qui lisent deux couches.
+   - **Le défaut réellement atteignable en production était ailleurs** : Overpass
+     répond **HTTP 200** avec `elements: []` et un `remark` quand sa requête expire.
+     Le `validate` l'acceptait. Tous les scores tombaient à 0 et le bruit devenait
+     « très faible » — une rue calme affirmée à partir d'une panne. Voir
+     `DIAGNOSTIC.md` §3.e.
+
+   `src/pages/Methodology.tsx` publie désormais la règle, section « Quand une
+   source manque » (règle de `CLAUDE.md` : formule modifiée, page mise à jour).
+4. ~~**Remonter la provenance dans l'interface.**~~ **Fait le 12 août**, dans le
+   dépôt et non côté Lovable. `computeScores` ne déballe plus `Measured<T>` : le
+   noyau rend, l'interface affiche. Le bruit a rejoint les autres scores, sa
+   forme propre `{ score, label }` étant celle qui lui faisait perdre sa réserve.
+   Trois règles tenues en un point unique — absent en « n/d », estimation
+   annoncée, source et millésime collés au nombre. Le marqueur de réserve est un
+   **lien** vers `/methodologie`, pas une infobulle : une réserve au survol
+   n'existe pas sur écran tactile et ne survit pas à une lecture à voix haute.
+   La décision d'affichage est isolée dans `src/components/figureText.ts`, sans
+   JSX, parce que le harnais tourne en `environment: 'node'`.
+
+---

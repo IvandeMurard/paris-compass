@@ -49,7 +49,7 @@ describe('composeVerdict — la règle qui porte le ticket', () => {
       expect(verdict.sentence.toLowerCase()).toContain(clause.text.toLowerCase());
     }
     expect(verdict.sentence).toBe(
-      'Passage soutenu, desserte forte, services à pied nombreux.',
+      'Tissu commercial dense, passage soutenu, desserte forte, services à pied nombreux.',
     );
   });
 
@@ -81,7 +81,7 @@ describe('composeVerdict — la règle qui porte le ticket', () => {
     ]);
     // The findings that DID resolve are not destroyed by the refusal — they are still named,
     // separately. Refusing to conclude is not refusing to inform.
-    expect(refus.available).toEqual(['footfall', 'walkability']);
+    expect(refus.available).toEqual(['density', 'footfall', 'walkability']);
   });
 
   it('refuse aussi sur un constat porteur indéterminé, sans motif déclaré', () => {
@@ -148,7 +148,7 @@ describe('composeVerdict — la règle qui porte le ticket', () => {
     expect(compose.kind).toBe('compose');
     if (compose.kind === 'compose') {
       expect(compose.sentence).toBe(
-        'Steady footfall, strong transit access, many services within walking distance.',
+        'A dense commercial fabric, steady footfall, strong transit access, many services within walking distance.',
       );
     }
     const refus = composeVerdict(
@@ -189,6 +189,7 @@ describe('bandOf', () => {
 
 describe('findingsFromScores', () => {
   const scores = (partial: Partial<AreaScores> = {}): AreaScores => ({
+    density: score(65),
     walkability: score(70),
     schools: score(70),
     healthcare: score(70),
@@ -231,11 +232,28 @@ describe('findingsFromScores', () => {
 });
 
 describe('la table des axes', () => {
-  it('déclare exactement trois porteurs, et l’ordre de lecture les contient tous', () => {
-    expect([...BEARING_AXES]).toEqual(['footfall', 'transit', 'walkability']);
+  it('déclare exactement quatre porteurs, et l’ordre de lecture les contient tous', () => {
+    expect([...BEARING_AXES]).toEqual(['density', 'footfall', 'transit', 'walkability']);
     for (const axis of VERDICT_AXIS_ORDER) {
       expect(VERDICT_AXES[axis], axis).toBeDefined();
     }
     expect(VERDICT_AXIS_ORDER.length).toBe(Object.keys(VERDICT_AXES).length);
+  });
+
+  /**
+   * La règle que w6-fiche-corpus (#157) a ajoutée, et la seule qui protège la doctrine du
+   * ticket : « le corpus d'abord ». Un axe qui ne lit QUE la couche `premises` existe, il est
+   * porteur, et il vient en premier.
+   *
+   * Sans lui la fiche peut repasser à des constats entièrement suspendus à un miroir public
+   * sans qu'aucun contrôle ne le voie — c'est exactement l'état du 13 septembre 2026, où les
+   * cinq axes lisaient Overpass et la porte était au vert.
+   */
+  it('garde un axe porteur qui ne dépend que du corpus', () => {
+    const corpusSeuls = BEARING_AXES.filter(
+      (axis) => VERDICT_AXES[axis].layers.length === 1 && VERDICT_AXES[axis].layers[0] === 'premises',
+    );
+    expect(corpusSeuls.length).toBeGreaterThan(0);
+    expect(VERDICT_AXIS_ORDER[0]).toBe(corpusSeuls[0]);
   });
 });

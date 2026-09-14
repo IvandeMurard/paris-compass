@@ -16,6 +16,7 @@ const plain = (n: number): Measured<number> => withValue(n, OSM, 'derived');
 const withNote = (n: number, note: string): Measured<number> => withValue(n, OSM, 'estimated', note);
 
 const scores = (partial: Partial<AreaScores> = {}): AreaScores => ({
+  density: plain(65),
   walkability: plain(70),
   schools: plain(70),
   healthcare: plain(70),
@@ -58,6 +59,66 @@ describe('collectGaps', () => {
   it('nomme la source réellement lue pour les locaux', () => {
     const gaps = collectGaps(scores(), ALL, OSM.source, 'fr');
     expect(gaps.find((g) => g.key === 'premises-source')?.text).toContain('OpenStreetMap via Overpass');
+  });
+
+  /**
+   * La phrase de provenance des locaux suit la source, et c'est un contrôle et non un détail —
+   * w6-fiche-corpus (#157).
+   *
+   * Elle disait « un marquage bénévole, pas le relevé porte-à-porte de l'APUR ». Le jour où la
+   * fiche a cessé de compter les locaux sur OpenStreetMap, cette phrase est devenue exactement
+   * fausse — et rien ne l'aurait dit : elle est de la prose, elle ne type-checke pas, et le
+   * chiffre qu'elle accompagne était juste. Une phrase de provenance qui survit au changement
+   * de source qu'elle décrit est un mensonge qui s'écrit tout seul.
+   */
+  it('CONTRE-PREUVE : la phrase change avec la source, elle ne la décrit pas de mémoire', () => {
+    const apur = collectGaps(scores(), ALL, 'APUR BDCom 2023', 'fr').find(
+      (g) => g.key === 'premises-source',
+    )?.text;
+    const osm = collectGaps(scores(), ALL, OSM.source, 'fr').find(
+      (g) => g.key === 'premises-source',
+    )?.text;
+
+    expect(apur).toContain('APUR BDCom 2023');
+    expect(apur).toContain('relevé porte-à-porte');
+    // Le trou de CETTE source-là : 2023 ne couvre que le commerce, donc un local vacant n'y est
+    // pas — mesuré, 0 vacant sur 60 845 relevés, contre 7 853 en 2017.
+    expect(apur).toContain('vacant');
+    // Les deux phrases citent le marquage bénévole, et elles n'en disent pas la même chose :
+    // l'une l'écarte, l'autre l'annonce comme la source du compte.
+    expect(apur).toContain('pas un marquage bénévole');
+    expect(osm).toContain('un marquage bénévole, pas le relevé porte-à-porte');
+    expect(osm).not.toContain('APUR BDCom');
+    expect(apur).not.toBe(osm);
+  });
+
+  it('met « retenue de licence » devant le lecteur sur une adresse ordinaire', () => {
+    // Le seul endroit de cette page où un visiteur parisien voit une retenue de licence, et
+    // c'est voulu : une transition dérive de deux millésimes et un seul est redistribuable,
+    // donc `compass_activity_transitions` rend une ligne marquée sur TOUTE adresse. Mesuré rue
+    // de Bretagne le 14 septembre 2026, en 68 ms.
+    const evidence = 'Une transition dérive de deux millésimes, et 2020 n’est pas redistribuable.';
+    const gaps = collectGaps(scores(), ALL, 'APUR BDCom 2023', 'fr', {}, {
+      withheld: true,
+      evidence,
+    });
+
+    const entry = gaps.find((g) => g.key === 'transitions-withheld')?.text ?? '';
+    expect(entry).toContain('retenu pour licence');
+    expect(entry).toContain(evidence);
+  });
+
+  it('une matrice servable n’est pas un trou, et une panne n’est pas une retenue', () => {
+    const servable = collectGaps(scores(), ALL, 'APUR BDCom 2023', 'fr', {}, {
+      withheld: false,
+      evidence: 'Relevé de terrain APUR.',
+    });
+    expect(servable.some((g) => g.key === 'transitions-withheld')).toBe(false);
+
+    // `null` = l'appel lui-même a échoué. Emprunter les mots d'une retenue de licence ferait
+    // écrire à l'APUR pour une panne de réseau.
+    const panne = collectGaps(scores(), ALL, 'APUR BDCom 2023', 'fr', {}, null);
+    expect(panne.some((g) => g.key === 'transitions-withheld')).toBe(false);
   });
 
   it('porte toujours l’absence de loyer commercial, quel que soit le point', () => {

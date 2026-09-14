@@ -1,0 +1,258 @@
+/**
+ * Ce que la fiche de contexte lit, et ce qui lui reste quand un miroir tombe —
+ * w6-fiche-corpus (#157).
+ *
+ * **Le contrôle qui porte le ticket est le deuxième**, et il est écrit en contre-preuve :
+ * miroirs Overpass injoignables, la fiche doit rendre QUAND MÊME un constat, et ce constat
+ * doit porter « APUR BDCom 2023 ». Le 13 septembre 2026 tous les axes de cette page portaient
+ * `uniformOrigins(OSM_ORIGIN(today()))`, et un test qui n'aurait vérifié que le chemin heureux
+ * serait passé au vert ce jour-là aussi — la fiche décorait OpenStreetMap et la porte était
+ * entièrement verte.
+ *
+ * Aucun réseau : les deux sources sont bouchonnées, et c'est ce qui permet de jouer les
+ * combinaisons qu'on ne peut pas provoquer sur le distant — un millésime retenu, notamment,
+ * qui n'existe pas pour un appelant anonyme sur 2023.
+ */
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { AmenityCategory, PremisePoint } from '@/core';
+
+const fetchOverpassSnapshot = vi.fn();
+const fetchCorpusPremises = vi.fn();
+const fetchPremisesOrigin = vi.fn();
+const fetchActivityTransitions = vi.fn();
+
+vi.mock('@/services/opendata/overpass', () => ({
+  fetchOverpassSnapshot: (...args: unknown[]) => fetchOverpassSnapshot(...args),
+}));
+
+vi.mock('@/services/compass/addressCorpus', async () => {
+  const actual = await vi.importActual<typeof import('@/services/compass/addressCorpus')>(
+    '@/services/compass/addressCorpus',
+  );
+  return {
+    ...actual,
+    fetchCorpusPremises: (...args: unknown[]) => fetchCorpusPremises(...args),
+    fetchPremisesOrigin: (...args: unknown[]) => fetchPremisesOrigin(...args),
+    fetchActivityTransitions: (...args: unknown[]) => fetchActivityTransitions(...args),
+  };
+});
+
+const { fetchAddressContext } = await import('./useAddressContext');
+const { CorpusUnavailable } = await import('@/services/compass/addressCorpus');
+const { BDCOM_ORIGIN } = await import('@/core');
+
+const POINT = { lat: 48.8631, lng: 2.3621 };
+
+/** La provenance que `compass_vintages` rend pour 2023 — relevée le 14 septembre 2026. */
+const BDCOM_2023 = BDCOM_ORIGIN(2023, 'ODbL-1.0', '2023-06');
+
+/** Un instantané Overpass qui répond, avec de quoi faire aboutir les trois axes OSM. */
+function overpassSnapshot() {
+  const near = (dLat: number, category: AmenityCategory) => ({
+    lat: POINT.lat + dLat,
+    lng: POINT.lng,
+    category,
+  });
+  return {
+    pois: [
+      near(0.0001, 'transit'),
+      near(0.0002, 'transit'),
+      near(0.0003, 'groceries'),
+      near(0.0004, 'schools'),
+      near(0.0005, 'healthcare'),
+      near(0.0006, 'parks'),
+    ],
+    roads: [{ lat: POINT.lat + 0.0002, lng: POINT.lng, weight: 3 }],
+    // Des locaux OSM dans l'instantané, et la fiche ne doit PLUS les regarder : c'est le
+    // `shop=vacant` bénévole que le corpus remplace. Ils sont là pour que le contrôle
+    // ci-dessous ait quelque chose à ne pas trouver.
+    premises: [
+      { id: 'osm/1', lat: POINT.lat, lng: POINT.lng, tags: {}, status: 'vacant' as const },
+    ],
+    loaded: ['amenities', 'roads', 'premises'] as const,
+  };
+}
+
+/** Des locaux BDCom autour du point, tous occupés — le millésime 2023 n'en porte aucun vacant. */
+function corpusPremises(n: number): { points: PremisePoint[]; totalMatched: number; truncated: boolean } {
+  const points: PremisePoint[] = Array.from({ length: n }, (_, i) => ({
+    lat: POINT.lat + i * 0.00001,
+    lng: POINT.lng,
+    status: 'occupied' as const,
+  }));
+  return { points, totalMatched: n, truncated: false };
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  fetchOverpassSnapshot.mockResolvedValue(overpassSnapshot());
+  fetchCorpusPremises.mockResolvedValue(corpusPremises(120));
+  fetchPremisesOrigin.mockResolvedValue(BDCOM_2023);
+  fetchActivityTransitions.mockResolvedValue({
+    withheld: true,
+    evidence: 'Une transition dérive de deux millésimes, et 2020 n’est pas redistribuable.',
+    licence: 'custom',
+    pairs: 0,
+  });
+});
+
+describe('fetchAddressContext — le corpus d’abord', () => {
+  it('attribue les locaux à l’APUR et le reste à OpenStreetMap : les origines ne sont plus uniformes', async () => {
+    const context = await fetchAddressContext(POINT);
+
+    expect(context.origins.premises.source).toBe('APUR BDCom 2023');
+    expect(context.origins.premises.licence).toBe('ODbL-1.0');
+    expect(context.origins.premises.asOf).toBe('2023-06');
+    expect(context.origins.amenities.source).toBe('OpenStreetMap via Overpass');
+    // La règle du ticket, écrite comme une inégalité plutôt que comme deux égalités : c'est
+    // l'uniformité elle-même qui devait disparaître.
+    expect(context.origins.premises.source).not.toBe(context.origins.amenities.source);
+  });
+
+  it('IGNORE les locaux de l’instantané Overpass, même quand il en porte', async () => {
+    // Le bouchon rend un local OSM marqué `vacant`. Si la fiche le comptait encore, il
+    // arriverait ici — et le marquage bénévole reprendrait la place du relevé de terrain sans
+    // que la provenance affichée change d'un mot.
+    const { points } = await fetchAddressContext(POINT);
+    expect(points.premises).toHaveLength(120);
+    expect(points.premises.some((p) => p.status === 'vacant')).toBe(false);
+  });
+
+  it('rend un constat porté par APUR BDCom 2023, avec sa licence et son millésime', async () => {
+    const { scores } = await fetchAddressContext(POINT);
+
+    expect(scores.density.value).not.toBeNull();
+    expect(scores.density.source).toBe('APUR BDCom 2023');
+    expect(scores.density.licence).toBe('ODbL-1.0');
+    expect(scores.density.asOf).toBe('2023-06');
+    // Le passage lit les deux couches, donc il les nomme les deux — jamais « la principale ».
+    expect(scores.footfall.source).toContain('APUR BDCom 2023');
+    expect(scores.footfall.source).toContain('OpenStreetMap via Overpass');
+    // Et le millésime d'un composite est celui du plus ancien de ses ingrédients.
+    expect(scores.footfall.asOf).toBe('2023-06');
+  });
+
+  it('CONTRE-PREUVE : miroirs injoignables, le constat du corpus tient et garde sa provenance', async () => {
+    fetchOverpassSnapshot.mockRejectedValue(new Error('les trois miroirs ont refusé'));
+
+    const { scores, loaded, withheldBy } = await fetchAddressContext(POINT);
+
+    // Ce qui tombe, tombe.
+    expect(loaded).toEqual(['premises']);
+    expect(withheldBy.amenities).toBe('source_injoignable');
+    expect(withheldBy.roads).toBe('source_injoignable');
+    expect(scores.transit.value).toBeNull();
+    expect(scores.noise.value).toBeNull();
+    // Ce qui tient, tient — et c'est tout le ticket. Avant le 14 septembre 2026 cette ligne
+    // rendait `null` : un miroir public gratuit vidait la fiche d'un corpus qu'il ne portait pas.
+    expect(scores.density.value).not.toBeNull();
+    expect(scores.density.source).toBe('APUR BDCom 2023');
+  });
+
+  it('un miroir mort ne suspend pas l’appel au corpus dans son budget', async () => {
+    // Le budget de dix secondes est passé à Overpass et à personne d'autre. Si le corpus
+    // partageait ce minuteur, le miroir aurait le pouvoir d'annuler la base — l'inversion que
+    // ce ticket a défaite.
+    await fetchAddressContext(POINT);
+    expect(fetchOverpassSnapshot).toHaveBeenCalledWith(expect.anything(), { budgetMs: 10000 });
+    expect(fetchCorpusPremises).toHaveBeenCalledWith(POINT.lat, POINT.lng, 400);
+  });
+});
+
+describe('fetchAddressContext — les trois absences ne se confondent pas', () => {
+  it('millésime retenu : « retenue de licence », et la couche est retirée plutôt que comptée à zéro', async () => {
+    fetchCorpusPremises.mockRejectedValue(
+      new CorpusUnavailable('licence APUR non lue', 'retenue_licence'),
+    );
+
+    const { scores, loaded, withheldBy } = await fetchAddressContext(POINT);
+
+    expect(withheldBy.premises).toBe('retenue_licence');
+    expect(loaded).not.toContain('premises');
+    // Le point capital : PAS un zéro mesuré. Une licence que personne n'a lue rendue comme une
+    // absence de commerces serait le défaut que tout ce mécanisme existe pour empêcher.
+    expect(scores.density.value).toBeNull();
+    expect(scores.density.missingReason).toBeTruthy();
+  });
+
+  it('hors corpus : « hors corpus », et jamais le même motif qu’une licence', async () => {
+    fetchCorpusPremises.mockRejectedValue(
+      new CorpusUnavailable('point hors de Paris intra-muros', 'hors_corpus'),
+    );
+
+    const { withheldBy, scores } = await fetchAddressContext(POINT);
+
+    expect(withheldBy.premises).toBe('hors_corpus');
+    expect(scores.density.value).toBeNull();
+  });
+
+  it('CONTRE-PREUVE : un rayon réellement vide DANS Paris rend un zéro mesuré, pas une absence', async () => {
+    // Mesuré le 14 septembre 2026 au bois de Vincennes : dans le quartier Picpus, zéro local
+    // BDCom à 400 m. C'est la seule réponse que le relevé donne avec certitude, et la traiter
+    // comme « inconnu » la détruirait.
+    fetchCorpusPremises.mockResolvedValue(corpusPremises(0));
+
+    const { scores, loaded, withheldBy } = await fetchAddressContext(POINT);
+
+    expect(loaded).toContain('premises');
+    expect(withheldBy.premises).toBeUndefined();
+    expect(scores.density.value).toBe(0);
+    expect(scores.density.missingReason).toBeUndefined();
+    expect(scores.density.source).toBe('APUR BDCom 2023');
+  });
+
+  it('des lignes sans leur licence sont des lignes qu’on ne score pas', async () => {
+    fetchPremisesOrigin.mockRejectedValue(new Error('compass_vintages: indisponible'));
+
+    const { scores, loaded, withheldBy, origins } = await fetchAddressContext(POINT);
+
+    expect(loaded).not.toContain('premises');
+    // Ni « retenue de licence » ni « hors corpus » : on ne sait pas, et on le dit.
+    expect(withheldBy.premises).toBe('indetermine');
+    expect(scores.density.value).toBeNull();
+    // Le chiffre absent nomme quand même le jeu de données qui se tait.
+    expect(origins.premises.source).toBe('APUR BDCom 2023');
+  });
+});
+
+describe('fetchAddressContext — un compte plafonné est un plancher, et il le dit', () => {
+  it('remonte la troncature en réserve sur les deux chiffres qui lisent la couche', async () => {
+    // Mesuré rue de Bretagne le 14 septembre 2026 : 1 000 lignes rendues sur 3 528 à 800 m.
+    fetchCorpusPremises.mockResolvedValue({
+      ...corpusPremises(1000),
+      totalMatched: 3528,
+      truncated: true,
+    });
+
+    const { scores } = await fetchAddressContext(POINT);
+
+    expect(scores.density.note).toContain('1000');
+    expect(scores.density.note).toContain('3528');
+    expect(scores.density.note).toContain('plancher');
+    // Le passage lit la même couche, donc il porte la même réserve — en plus de la sienne.
+    expect(scores.footfall.note).toContain('plancher');
+    expect(scores.footfall.note).toContain('proxy');
+  });
+
+  it('aucune réserve quand rien n’a été coupé', async () => {
+    const { scores } = await fetchAddressContext(POINT);
+    expect(scores.density.note).toBeUndefined();
+  });
+});
+
+describe('fetchAddressContext — ce que le corpus détient et ne peut pas servir', () => {
+  it('remonte la retenue des transitions d’activité, avec la phrase écrite par la fonction', async () => {
+    const { transitions } = await fetchAddressContext(POINT);
+    expect(transitions?.withheld).toBe(true);
+    expect(transitions?.evidence).toContain('2020');
+  });
+
+  it('une panne de cet appel ne devient pas une retenue de licence', async () => {
+    fetchActivityTransitions.mockRejectedValue(new Error('réseau'));
+    const { transitions } = await fetchAddressContext(POINT);
+    // `null`, jamais `{ withheld: true }` : un incident et un refus de licence appellent deux
+    // actions différentes, et les confondre ferait écrire à l'APUR pour une panne de réseau.
+    expect(transitions).toBeNull();
+  });
+});

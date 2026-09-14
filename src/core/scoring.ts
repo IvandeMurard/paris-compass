@@ -59,14 +59,34 @@ export type LayerOrigins = Readonly<Record<Layer, Origin>>;
 /**
  * Every layer from the same place — the honest shape when it is genuinely true.
  *
- * True of the browser today: amenities, roads and premises all come out of one Overpass
- * snapshot (`src/services/opendata/scoring.ts`). It stops being true the day the front
- * reads `compass_*` (PLAN.md 2.7), and on that day the type will force the choice
- * instead of letting the old assumption ride.
+ * Still true of `/carte`, whose three layers all come out of one Overpass snapshot
+ * (`src/services/opendata/scoring.ts`). It stopped being true of `/contexte/:slug` on
+ * 14 September 2026: that sheet reads premises from `compass_scoring_context_within`
+ * and amenities and roads from Overpass — w6-fiche-corpus (#157) — so it builds its
+ * `LayerOrigins` a layer at a time, as the MCP server has since 15 August. The type is
+ * what made the difference visible rather than assumed.
  */
 export function uniformOrigins(source: Origin): LayerOrigins {
   return { amenities: source, roads: source, premises: source };
 }
+
+/**
+ * A caveat the CALLER knows and the core cannot derive, one per layer.
+ *
+ * There is exactly one thing this exists for today and it is worth naming rather than
+ * generalising: a premises layer can arrive **truncated**. `compass_scoring_context_within`
+ * matches every premise in the radius and PostgREST hands back at most `db-max-rows`, so a
+ * caller can receive a thousand rows out of seventeen thousand. Measured on 14 September 2026
+ * at rue de Bretagne, BDCom 2023: 920 of 920 at 400 m, 1 000 of 1 981 at 600 m, 1 000 of
+ * **17 190** at 2 000 m. The core cannot see this — it is handed an array, and an array is all
+ * it has — so the count would come back as a total when it is a floor.
+ *
+ * The caller that made the request is the only code that holds both numbers, which is why the
+ * note is passed in rather than inferred, and why it is a `note` rather than an absence: a
+ * floor is a real reading, and dropping it would lose more than it protects. Same discipline as
+ * `TRUNCATED` below, which says the same thing about geographic coverage.
+ */
+export type LayerNotes = Partial<Record<Layer, string>>;
 
 /** Everything the core needs to score a location. Assembled by the caller, never fetched here. */
 export interface NeighbourhoodContext {
@@ -106,6 +126,32 @@ export const SATURATION: Record<AmenityCategory, number> = {
   transit: 25,
 };
 
+/**
+ * Saturation constant of the premises count, shared by `density` and by the premises half of
+ * the footfall proxy.
+ *
+ * One constant rather than two, because the two figures count the same things in the same
+ * radius and must agree: written twice they are two numbers to keep equal, which is how they
+ * diverge. It was a literal `90` inside `footfall` until `density` needed it too.
+ */
+export const PREMISE_SATURATION = 90;
+
+/**
+ * **What 90 costs `density`, measured rather than left to be discovered** — `DIAGNOSTIC.md` §52.
+ *
+ * It was sized for the premises HALF of the footfall proxy, where it carries 65 % of a blend.
+ * Standing alone it reaches 100 at 415 premises, which any commercial Paris street clears.
+ * Measured at 400 m on 14 September 2026: Les Halles 1 200 premises, rue de Bretagne 920,
+ * Belleville 404 — all three read 99 or 100. Six of twelve sampled points do. The axis separates
+ * a park from a street; it does not separate Belleville from Les Halles.
+ *
+ * It is left alone deliberately. The constant is shared with footfall and PUBLISHED on the
+ * methodology page, so moving it changes a figure on an axis this ticket does not treat; and
+ * choosing 200 or 400 off twelve points would be choosing a number because the table looks
+ * better. What the axis bears — availability when the mirrors die, and refusal outside the
+ * corpus — holds at any constant. The decision is Ivan's, and §52 states it.
+ */
+
 /** Weights of each family inside the walkability composite. Must sum to 1. */
 export const WALKABILITY_WEIGHTS: Record<AmenityCategory, number> = {
   schools: 0.15,
@@ -121,6 +167,21 @@ export function saturating(count: number, saturation: number): number {
 }
 
 export interface AreaScores {
+  /**
+   * How many commercial premises stand within `FOOTFALL_RADIUS_M` — the one figure that reads
+   * the premises layer and nothing else.
+   *
+   * It exists because of what that buys: on the sheet the premises layer is APUR's BDCom
+   * survey and the other two are Overpass, so this is the finding that survives three dead
+   * mirrors. Footfall cannot — it mixes premises with transit access, so a silent Overpass
+   * takes it down with everything else, which is precisely how a sheet built on a free public
+   * mirror ends up saying nothing (w6-fiche-corpus, #157).
+   *
+   * It is a count of premises, not of businesses and not of vacancies: BDCom records a
+   * surveyed ground-floor commercial unit, and the caller must say which vintage's scope that
+   * is. On the 2023 vintage it is retail and commercial services only.
+   */
+  density: Measured<number>;
   walkability: Measured<number>;
   schools: Measured<number>;
   healthcare: Measured<number>;
@@ -207,11 +268,22 @@ export function scoreLocation(
   point: Point,
   index: ScoringIndex,
   origins: LayerOrigins,
+  /** Caveats only the caller can know — see `LayerNotes`. Absent by default, never invented. */
+  layerNotes: LayerNotes = {},
 ): AreaScores {
   const amenityNote = coverageNote(point, AMENITY_RADIUS_M, index.bounds);
   const hasAmenities = index.loaded.has('amenities');
   const hasPremises = index.loaded.has('premises');
   const hasRoads = index.loaded.has('roads');
+
+  // Two caveats about one figure are two caveats, not a choice between them. Joined rather
+  // than overwritten: a truncated premises layer at the edge of a truncated fetch area is a
+  // real combination, and keeping only the last one written would drop whichever the reader
+  // most needed.
+  const noteOf = (...parts: readonly (string | undefined)[]): string | undefined => {
+    const kept = parts.filter((p): p is string => Boolean(p));
+    return kept.length > 0 ? kept.join(' ') : undefined;
+  };
 
   const byCategory = {} as Record<AmenityCategory, Measured<number>>;
   const rawByCategory = {} as Record<AmenityCategory, number>;
@@ -224,7 +296,12 @@ export function scoreLocation(
     const count = countAmenities(point, category, index);
     const score = saturating(count, SATURATION[category]);
     rawByCategory[category] = score;
-    byCategory[category] = withValue(score, origins.amenities, 'derived', amenityNote);
+    byCategory[category] = withValue(
+      score,
+      origins.amenities,
+      'derived',
+      noteOf(amenityNote, layerNotes.amenities),
+    );
   }
 
   // Every composite below is guarded by the layers it reads. A composite computed from a
@@ -239,9 +316,25 @@ export function scoreLocation(
         ),
         origins.amenities,
         'derived',
-        amenityNote,
+        noteOf(amenityNote, layerNotes.amenities),
       )
     : unavailable<number>(origins.amenities, MISSING.amenities);
+
+  // Counted once and read twice — by `density`, which is this layer alone, and by the
+  // premises half of the footfall proxy. Two walks of the same index would be the same
+  // arithmetic written twice, free to drift the day one of them changes radius.
+  const occupiedNearby = hasPremises
+    ? index.premises.within(point, FOOTFALL_RADIUS_M).filter((p) => p.status === 'occupied').length
+    : 0;
+
+  const density = hasPremises
+    ? withValue(
+        saturating(occupiedNearby, PREMISE_SATURATION),
+        origins.premises,
+        'derived',
+        layerNotes.premises,
+      )
+    : unavailable<number>(origins.premises, MISSING.premises);
 
   // Footfall mixes two layers, so it survives only if both are there — and when it does,
   // it is attributed to both. Naming only the premises source would hide that 35 % of the
@@ -252,19 +345,25 @@ export function scoreLocation(
   } else if (!hasAmenities) {
     footfall = unavailable<number>(origins.amenities, MISSING.amenities);
   } else {
-    const occupiedNearby = index.premises
-      .within(point, FOOTFALL_RADIUS_M)
-      .filter((p) => p.status === 'occupied').length;
     footfall = withValue(
-      clamp(Math.round(saturating(occupiedNearby, 90) * 0.65 + rawByCategory.transit * 0.35)),
+      clamp(
+        Math.round(
+          saturating(occupiedNearby, PREMISE_SATURATION) * 0.65 + rawByCategory.transit * 0.35,
+        ),
+      ),
       combineOrigins(origins.premises, origins.amenities),
       'estimated',
-      'No open pedestrian count exists for Île-de-France. This is a proxy from active-business density and transport access: it compares two locations against each other, it does not predict footfall.',
+      noteOf(
+        'No open pedestrian count exists for Île-de-France. This is a proxy from active-business density and transport access: it compares two locations against each other, it does not predict footfall.',
+        layerNotes.premises,
+        amenityNote,
+      ),
     );
   }
 
   return {
     ...byCategory,
+    density,
     walkability,
     footfall,
     noise: hasRoads
@@ -272,7 +371,10 @@ export function scoreLocation(
           noiseExposure(point, index.roads),
           origins.roads,
           'estimated',
-          'Modelled from the proximity and class of major roads only. Buildings, traffic volume and time of day are not taken into account.',
+          noteOf(
+            'Modelled from the proximity and class of major roads only. Buildings, traffic volume and time of day are not taken into account.',
+            layerNotes.roads,
+          ),
         )
       : unavailable<number>(origins.roads, MISSING.roads),
   };

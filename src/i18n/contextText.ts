@@ -15,6 +15,7 @@ import type { Locale } from '@/i18n/locale';
 
 export const AXIS_NAMES: Record<Locale, Record<VerdictAxis, string>> = {
   fr: {
+    density: 'Tissu commercial',
     footfall: 'Passage',
     transit: 'Desserte',
     walkability: 'Services à pied',
@@ -22,6 +23,7 @@ export const AXIS_NAMES: Record<Locale, Record<VerdictAxis, string>> = {
     noise: 'Bruit routier',
   },
   en: {
+    density: 'Commercial fabric',
     footfall: 'Footfall',
     transit: 'Transit access',
     walkability: 'Services on foot',
@@ -41,6 +43,7 @@ export const AXIS_NAMES: Record<Locale, Record<VerdictAxis, string>> = {
  */
 export const AXIS_WHAT: Record<Locale, Record<VerdictAxis, string>> = {
   fr: {
+    density: `Locaux commerciaux relevés dans ${FOOTFALL_RADIUS_M} m, avec rendement décroissant. Un relevé de terrain, pas un marquage bénévole — et le seul constat de cette page qui ne dépende d’aucun miroir public.`,
     footfall: `Approximation dans ${FOOTFALL_RADIUS_M} m, à partir de la densité de commerces actifs et de l’accès aux transports. Aucun comptage piéton n’est publié en Île-de-France.`,
     transit: `Arrêts et stations comptés dans ${AMENITY_RADIUS_M} m, avec rendement décroissant.`,
     walkability: `Composite pondéré des cinq familles d’aménités dans ${AMENITY_RADIUS_M} m. Les poids sont publiés.`,
@@ -48,6 +51,7 @@ export const AXIS_WHAT: Record<Locale, Record<VerdictAxis, string>> = {
     noise: `Exposition modélisée depuis la proximité et la classe des voies, jusqu’à ${NOISE_RADIUS_M} m. Ni le bâti, ni le trafic, ni l’heure n’entrent dedans.`,
   },
   en: {
+    density: `Commercial premises surveyed within ${FOOTFALL_RADIUS_M} m, with diminishing returns. A field survey, not volunteer tagging — and the only finding on this page that depends on no public mirror.`,
     footfall: `A proxy within ${FOOTFALL_RADIUS_M} m, built from active-business density and transport access. No pedestrian count is published for Île-de-France.`,
     transit: `Stops and stations counted within ${AMENITY_RADIUS_M} m, with diminishing returns.`,
     walkability: `Weighted composite of the five amenity families within ${AMENITY_RADIUS_M} m. The weights are published.`,
@@ -208,8 +212,32 @@ export const CONTEXT_COPY = {
  *  their wording. */
 export const GAP_COPY = {
   fr: {
-    osmPremises: (source: string) =>
-      `Les locaux comptés ici viennent de ${source} — un marquage bénévole, pas le relevé porte-à-porte de l’APUR. Un local vacant qu’aucun contributeur n’a marqué n’est pas compté.`,
+    /**
+     * D'où viennent les locaux comptés, et ce que cette source-là ne voit pas.
+     *
+     * Deux phrases, une par source, parce que les deux trous sont différents et qu'une phrase
+     * qui couvrirait les deux ne dirait ni l'un ni l'autre : OpenStreetMap ne voit pas ce
+     * qu'aucun contributeur n'a marqué, BDCom 2023 ne voit pas ce qui n'est pas du commerce.
+     * Le choix se fait sur `Origin.source`, jamais sur une intention — c'est la même règle que
+     * partout ailleurs sur cette page : le chiffre porte sa provenance, et la prose la lit.
+     *
+     * **La première était seule et elle est devenue fausse le 14 septembre 2026**, le jour où
+     * la fiche a cessé de compter les locaux sur OpenStreetMap. Une phrase de provenance qui
+     * survit au changement de source qu'elle décrit est un mensonge qui s'écrit tout seul.
+     */
+    premisesSource: (source: string) =>
+      source.startsWith('APUR')
+        ? `Les locaux comptés ici viennent de ${source} — le relevé porte-à-porte de l’APUR, pas un marquage bénévole. Ce millésime couvre le commerce de détail et les services commerciaux : un local vacant, ou un rez-de-chaussée non commercial, n’y figure pas et n’est donc pas compté.`
+        : `Les locaux comptés ici viennent de ${source} — un marquage bénévole, pas le relevé porte-à-porte de l’APUR. Un local vacant qu’aucun contributeur n’a marqué n’est pas compté.`,
+    /**
+     * Ce que la matrice de transition d'activité ne peut pas dire, et pourquoi — #157.
+     *
+     * `evidence` est la phrase que la fonction SQL a écrite sur sa propre réponse. Elle est
+     * relayée telle quelle : la réécrire ici en ferait une seconde version de la raison, libre
+     * de diverger le jour où la licence change. Même discipline que `withholdingText`.
+     */
+    transitionsWithheld: (because: string, evidence: string) =>
+      `Ce qu’un local d’ici est devenu entre deux millésimes — ${because}. ${evidence}`,
     noCommercialRent:
       'Aucun loyer commercial n’est publié en données ouvertes en France. L’encadrement parisien ne couvre que le logement : il n’est ni affiché ni multiplié par une surface ici.',
     truncated: (axis: string) =>
@@ -222,8 +250,12 @@ export const GAP_COPY = {
       `${axis} : ${because} — ${why}`,
   },
   en: {
-    osmPremises: (source: string) =>
-      `The premises counted here come from ${source} — volunteer tagging, not APUR's door-to-door survey. A vacant unit nobody tagged is not counted.`,
+    premisesSource: (source: string) =>
+      source.startsWith('APUR')
+        ? `The premises counted here come from ${source} — APUR's door-to-door survey, not volunteer tagging. This vintage covers retail and commercial services: a vacant unit, or a non-commercial ground floor, is not in it and is therefore not counted.`
+        : `The premises counted here come from ${source} — volunteer tagging, not APUR's door-to-door survey. A vacant unit nobody tagged is not counted.`,
+    transitionsWithheld: (because: string, evidence: string) =>
+      `What a premise here became between two vintages — ${because}. ${evidence}`,
     noCommercialRent:
       'No commercial rent is published as open data in France. The Paris rent control scheme covers housing only: it is neither shown nor multiplied by a floor area here.',
     truncated: (axis: string) =>

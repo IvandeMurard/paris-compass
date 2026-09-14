@@ -1149,3 +1149,59 @@ rien écrire dans `cadence.json`, et lancer `npx vitest run scripts/porte/arms.t
 **Et c'est un cas de plus de la règle du dépôt sur les tickets** : les chiffres et les
 prescriptions d'un ticket ont été écrits sans accès en lecture au dépôt. Ce qu'un ticket dit de
 FAIRE se vérifie contre le code qui le contrôlera, pas contre la phrase du ticket.
+
+---
+
+## PostgREST plafonne une RPC à mille lignes, et un compte plafonné ressemble à un quartier moins dense — 14 septembre 2026
+
+`w6-fiche-corpus` (#157). Une fonction `compass_*_within` peut apparier dix-sept mille locaux et
+n'en rendre que mille : PostgREST coupe à `db-max-rows`, sans erreur, sans en-tête d'avertissement,
+avec un `200`. Mesuré rue de Bretagne sur `compass_scoring_context_within`, BDCom 2023, en `anon` :
+920 sur 920 à 400 m, **1 000 sur 1 416** à 500 m, 1 000 sur 3 528 à 800 m, **1 000 sur 17 190** à
+2 000 m. Le `content-range` rendu est `0-999/*` — il dit combien on a reçu, jamais combien il y en
+avait.
+
+**Demander plus ne sert à rien.** Un en-tête `Range: 0-4999` ne lève pas le plafond : c'est un
+réglage de serveur, pas une préférence de client. Remesuré, même réponse à la ligne près.
+
+**Ce qui rend ce piège dangereux est qu'il n'a pas de symptôme.** Une requête qui échoue se voit ;
+celle-ci réussit, la couche compte comme chargée, et le chiffre calculé dessus est *plausible* —
+une densité sur mille locaux au lieu de dix-sept mille ne ressemble pas à une erreur, elle
+ressemble à un quartier plus calme. C'est §16 sous une autre forme, et il a vécu sur le chemin de
+l'agent du 15 août au 14 septembre 2026 sans que rien ne le voie.
+
+**Ce qu'il faut faire, en une ligne :** lire `total_matched` — la colonne existe sur toutes les
+fonctions `_within` pour exactement cette raison — et, s'il dépasse le nombre de lignes reçues, le
+dire. Soit en réserve sur le chiffre (`Measured.note`), soit en rétrécissant le rayon : la fiche
+demande le corpus à **400 m**, le rayon que ses chiffres comptent vraiment, plutôt qu'à 800 m où
+elle aurait acheté une troncature et pas des lignes.
+
+---
+
+## Un worktree neuf n'a ni `node_modules` ni les fichiers d'environnement, et trois bras s'arrêtent dessus — 14 septembre 2026
+
+La règle « une session, un worktree » (#143) et l'outillage ne se rencontrent pas : `git worktree
+add` copie ce que git suit, et `node_modules`, `.env.local` et `mcp-server/.env` ne le sont
+délibérément pas. Trois arrêts, dans cet ordre, et le premier est le seul qui se lit vite.
+
+| Ce qui s'arrête | Ce qu'il dit | Ce qu'il lui faut |
+| --- | --- | --- |
+| `npm.cmd run typecheck`, `test`, `build` | `tsc`/`vitest` introuvable | `node_modules` à la racine du worktree |
+| `npm.cmd run verify:mcp` | « `mcp-server/node_modules` est absent » | `mcp-server/node_modules` **et** `mcp-server/.env` |
+| Toute sonde lisant `DATABASE_URL` | une connexion vers rien | `.env.local`, ignoré par `*.local` |
+
+**Une jonction évite de réinstaller 313 Mo**, et c'est la voie qui a tenu :
+
+```powershell
+cmd /c "mklink /J node_modules C:\...\paris-compass\node_modules"
+cmd /c "mklink /J mcp-server\node_modules C:\...\paris-compass\mcp-server\node_modules"
+```
+
+**Donner le chemin ABSOLU de la cible.** Un chemin relatif est résolu depuis le répertoire
+courant du shell et non depuis l'emplacement du lien : lancé depuis la racine du worktree,
+`..\..\..\..\mcp-server\node_modules` remonte un cran de trop et crée une jonction vers un
+répertoire qui n'existe pas. Elle est créée **sans erreur** — c'est `ls` qui la montre pendante,
+et `verify:mcp` qui redit « absent » après qu'on croit l'avoir réparé.
+
+Les trois fichiers copiés sont ignorés par `.gitignore`, donc ils ne peuvent pas partir dans la
+proposition. Rien à nettoyer à la fin : `git worktree remove` emporte tout.

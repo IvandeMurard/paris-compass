@@ -16,6 +16,7 @@ const plain = (n: number): Measured<number> => withValue(n, OSM, 'derived');
 const absent = (why: string): Measured<number> => unavailable<number>(OSM, why);
 
 const scores = (partial: Partial<AreaScores> = {}): AreaScores => ({
+  density: plain(65),
   walkability: plain(70),
   schools: plain(70),
   healthcare: plain(70),
@@ -45,10 +46,18 @@ describe('drawableLayers', () => {
   });
 
   it('retire la couche d’un axe retenu — un point qui n’a rien illustré ne se dessine pas', () => {
-    // footfall et transit tombent : il ne reste rien qui lise `premises`.
+    // `density` et `footfall` tombent : il ne reste rien qui lise `premises`. Les deux, depuis
+    // w6-fiche-corpus (#157) — un seul suffisait quand `footfall` était le seul à lire cette
+    // couche, et c'est le genre de test qui passe au vert en cessant de prouver son énoncé.
     const withheld = absent('retenu');
     const layers = drawableLayers(
-      scores({ footfall: withheld, walkability: withheld, groceries: withheld, transit: withheld }),
+      scores({
+        density: withheld,
+        footfall: withheld,
+        walkability: withheld,
+        groceries: withheld,
+        transit: withheld,
+      }),
       ALL,
     );
     expect(layers.has('premises')).toBe(false);

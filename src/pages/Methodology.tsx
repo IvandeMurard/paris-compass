@@ -77,15 +77,20 @@ const COPY = {
       'BDCom est un recensement triennal. Un local devenu boulangerie, puis vacant, puis kebab entre deux enquêtes s’affiche « boulangerie → kebab » : un local peut paraître stable en ayant tourné trois fois. Et une suite d’activités ne dit jamais pourquoi quelqu’un est parti — vente réussie, dépôt de bilan, départ en retraite et immeuble repris s’affichent à l’identique.',
     detectTitle: 'Détection des locaux',
     detectBody:
-      'Les locaux proviennent d’OpenStreetMap : un local est considéré comme vacant lorsqu’il porte un attribut de local vide ou de commerce désaffecté, et comme occupé lorsqu’une activité y est renseignée. La couverture dépend donc des contributions de la communauté : un local fermé récemment et non signalé n’apparaîtra pas.',
+      'Sur la carte, les locaux proviennent d’OpenStreetMap : un local est considéré comme vacant lorsqu’il porte un attribut de local vide ou de commerce désaffecté, et comme occupé lorsqu’une activité y est renseignée. La couverture dépend donc des contributions de la communauté : un local fermé récemment et non signalé n’apparaîtra pas.',
+    detectSheetBody:
+      'Sur la fiche de contexte d’une adresse, non : les locaux y viennent du relevé de terrain de l’APUR, millésime 2023, sous licence ODbL-1.0. C’est une enquête porte-à-porte plutôt qu’un marquage bénévole, et ce millésime-là ne couvre que le commerce de détail et les services commerciaux — un local vacant, ou un rez-de-chaussée non commercial, n’y figure pas et n’est donc pas compté. Le compte porte sa réserve quand le service renvoie moins de locaux que le rayon n’en contient.',
+    densityTitle: 'Tissu commercial',
+    densityBody:
+      'Le nombre de locaux commerciaux relevés dans un rayon de 400 mètres, ramené sur 0-100 par la même courbe saturante que les familles d’équipements, avec une constante de 90. C’est le seul constat de la fiche qui ne lise que le relevé de l’APUR : il reste donc affiché quand les miroirs OpenStreetMap ne répondent pas. Un nombre de vitrines n’est ni un chiffre d’affaires ni une garantie de passage — il dit qu’un commerce s’y trouve déjà, pas qu’il y prospère.',
     provenanceTitle: 'D’où vient chaque chiffre',
     provenanceBody:
-      'Chaque score porte la source de la couche de données qu’il lit réellement, et non une source unique valable pour toute la fiche. Les cinq familles d’équipements, la marchabilité et le bruit viennent d’OpenStreetMap. Le flux piéton estimé, lui, mélange deux couches : la densité de commerces actifs et l’accès aux transports. Il nomme donc les deux sources, cumule leurs licences — un chiffre composé oblige à respecter les deux — et porte la plus ancienne de leurs deux dates, parce qu’un chiffre composé n’est jamais plus frais que son ingrédient le plus ancien. Dans le navigateur, les trois couches proviennent aujourd’hui du même instantané OpenStreetMap, donc la mention est unique. Ce n’est pas le cas de l’interface destinée aux agents, qui lit les locaux dans la BDCom de l’APUR et les équipements dans OpenStreetMap : le flux piéton y cite les deux.',
+      'Chaque score porte la source de la couche de données qu’il lit réellement, et non une source unique valable pour toute la fiche. Les cinq familles d’équipements, la marchabilité et le bruit viennent d’OpenStreetMap. Le flux piéton estimé, lui, mélange deux couches : la densité de commerces actifs et l’accès aux transports. Il nomme donc les deux sources, cumule leurs licences — un chiffre composé oblige à respecter les deux — et porte la plus ancienne de leurs deux dates, parce qu’un chiffre composé n’est jamais plus frais que son ingrédient le plus ancien. Sur la carte, les trois couches proviennent du même instantané OpenStreetMap, donc la mention y est unique. Sur la fiche de contexte d’une adresse, elle ne l’est plus depuis le 14 septembre 2026 : les locaux viennent de la BDCom de l’APUR et les équipements d’OpenStreetMap, exactement comme dans l’interface destinée aux agents, et le flux piéton y cite les deux.',
     verdictTitle: 'Comment le verdict d’une fiche de contexte est composé',
     verdictIntro:
       'La fiche de contexte d’une adresse ouvre sur une phrase. Cette phrase n’est pas rédigée : elle est composée par une fonction publiée, à partir des constats déjà calculés, et elle nomme ceux qu’elle a utilisés. Comme les formules ci-dessus, la règle est ici parce qu’elle est affichée à tout le monde.',
     verdictRule:
-      'Trois constats portent le verdict — le passage, la desserte et les services à pied. Quand l’un des trois est retenu pour licence, hors du corpus, issu d’une source injoignable ou simplement indéterminé, le verdict ne se compose pas : la fiche dit lequel manque et pourquoi, et affiche séparément les constats qui ont abouti. Conclure par-dessus une absence est le défaut que cette règle existe pour empêcher.',
+      'Quatre constats portent le verdict — le tissu commercial, le passage, la desserte et les services à pied. Quand l’un des quatre est retenu pour licence, hors du corpus, issu d’une source injoignable ou simplement indéterminé, le verdict ne se compose pas : la fiche dit lequel manque et pourquoi, et affiche séparément les constats qui ont abouti. Conclure par-dessus une absence est le défaut que cette règle existe pour empêcher. Le tissu commercial est porteur depuis le 14 septembre 2026, et c’est une décision : Compass ne signe pas de verdict sur une adresse commerciale sans le relevé des commerces de cette adresse. Hors de Paris intra-muros, où le corpus s’arrête, le verdict refuse donc désormais.',
     verdictSupport:
       'Les commerces alimentaires et le bruit routier viennent en appui. Leur absence ne bloque rien, et leur présence n’entre pas dans la phrase : ils qualifient une réponse, ils ne sont pas la réponse.',
     verdictNoScore:
@@ -178,15 +183,20 @@ const COPY = {
       'BDCom is a triennial census. A unit that became a bakery, then vacant, then a kebab shop between two surveys shows as "bakery → kebab": a premise can look stable having turned over three times. And a sequence of activities never says why anyone left — a successful sale, a bankruptcy, a retirement and a repossessed building all render identically.',
     detectTitle: 'Detecting spaces',
     detectBody:
-      'Spaces come from OpenStreetMap: a space is considered vacant when it carries a vacant-shop or disused-shop attribute, and occupied when an activity is recorded. Coverage therefore depends on community contributions: a recently closed space that hasn’t been reported won’t appear.',
+      'On the map, spaces come from OpenStreetMap: a space is considered vacant when it carries a vacant-shop or disused-shop attribute, and occupied when an activity is recorded. Coverage therefore depends on community contributions: a recently closed space that hasn’t been reported won’t appear.',
+    detectSheetBody:
+      'On the context sheet of an address, they do not: premises there come from APUR’s field survey, 2023 vintage, under ODbL-1.0. That is a door-to-door survey rather than volunteer tagging, and that vintage covers retail and commercial services only — a vacant unit, or a non-commercial ground floor, is not in it and is therefore not counted. The count carries a caveat whenever the service returns fewer premises than the radius holds.',
+    densityTitle: 'Commercial fabric',
+    densityBody:
+      'The number of surveyed commercial premises within a 400-metre radius, mapped onto 0-100 by the same saturating curve as the amenity families, with a constant of 90. It is the only finding on the sheet that reads APUR’s survey and nothing else, so it stays on screen when the OpenStreetMap mirrors do not answer. A number of shopfronts is neither revenue nor a guarantee of footfall — it says trade is already here, not that it thrives here.',
     provenanceTitle: 'Where each figure comes from',
     provenanceBody:
-      'Every score carries the source of the data layer it actually reads, not one source stamped on the whole card. The five amenity families, walkability and noise come from OpenStreetMap. Estimated foot traffic mixes two layers instead — active-shop density and transport access — so it names both sources, carries both licences (a composite figure binds you to both), and takes the older of the two dates, because a composite is never fresher than its oldest ingredient. In the browser all three layers currently come from the same OpenStreetMap snapshot, so a single mention is accurate. That is not true of the agent-facing interface, which reads premises from APUR’s BDCom survey and amenities from OpenStreetMap: there, foot traffic cites both.',
+      'Every score carries the source of the data layer it actually reads, not one source stamped on the whole card. The five amenity families, walkability and noise come from OpenStreetMap. Estimated foot traffic mixes two layers instead — active-shop density and transport access — so it names both sources, carries both licences (a composite figure binds you to both), and takes the older of the two dates, because a composite is never fresher than its oldest ingredient. On the map all three layers come from the same OpenStreetMap snapshot, so a single mention is accurate there. On the context sheet of an address it stopped being accurate on 14 September 2026: premises come from APUR’s BDCom survey and amenities from OpenStreetMap, exactly as in the agent-facing interface, and foot traffic cites both.',
     verdictTitle: 'How a context sheet composes its verdict',
     verdictIntro:
       'The context sheet of an address opens on one sentence. That sentence is not written by hand: it is composed by a published function from the findings already computed, and it names the ones it used. Like the formulas above, the rule is here because the sentence is shown to everyone.',
     verdictRule:
-      'Three findings bear the verdict — footfall, transit access and services on foot. When one of the three is withheld for licence, outside the corpus, coming from an unreachable source or simply undetermined, the verdict does not compose: the sheet says which one is missing and why, and shows the findings that did resolve separately. Concluding over an absence is the defect this rule exists to prevent.',
+      'Four findings bear the verdict — the commercial fabric, footfall, transit access and services on foot. When one of the four is withheld for licence, outside the corpus, coming from an unreachable source or simply undetermined, the verdict does not compose: the sheet says which one is missing and why, and shows the findings that did resolve separately. Concluding over an absence is the defect this rule exists to prevent. The commercial fabric has been bearing since 14 September 2026, and that is a decision: Compass does not sign a verdict about a commercial address without the survey of the commerce at that address. Outside Paris intra-muros, where the corpus stops, the verdict therefore now refuses.',
     verdictSupport:
       'Food shops and road noise come alongside. Their absence blocks nothing, and their presence does not enter the sentence: they qualify an answer, they are not the answer.',
     verdictNoScore:
@@ -274,6 +284,14 @@ const Methodology = () => {
           </div>
         </section>
 
+        {/* Avant le flux piéton, parce que c'est l'ordre de lecture de la fiche et que cet
+            ordre EST la doctrine de #157 : ce que la base tient d'abord, ce qu'un miroir
+            public gratuit ajoute ensuite. */}
+        <section>
+          <h2 className="text-xl font-semibold">{c.densityTitle}</h2>
+          <p className="mt-3 text-muted-foreground">{c.densityBody}</p>
+        </section>
+
         <section>
           <h2 className="text-xl font-semibold">{c.footTitle}</h2>
           <p className="mt-3 text-muted-foreground">{c.footBody}</p>
@@ -302,6 +320,12 @@ const Methodology = () => {
         <section>
           <h2 className="text-xl font-semibold">{c.detectTitle}</h2>
           <p className="mt-3 text-muted-foreground">{c.detectBody}</p>
+          {/* Deux écrans, deux sources, et il faut le dire plutôt que le laisser déduire —
+              w6-fiche-corpus (#157). La carte compte des locaux marqués par des bénévoles, la
+              fiche compte un relevé de terrain, et les deux nombres ne veulent pas dire la
+              même chose. Une page de méthode qui n'en décrirait qu'un serait fausse sur
+              l'autre. */}
+          <p className="mt-3 text-muted-foreground">{c.detectSheetBody}</p>
         </section>
 
         {/* Published here because the interface now renders it. `CLAUDE.md`: a rule that

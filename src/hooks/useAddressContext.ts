@@ -1,10 +1,20 @@
 /**
  * Everything a context page needs for one point — w6-contexte (#119).
  *
- * Two queries, kept apart because they fail apart: the address (BAN) and the neighbourhood
- * (Overpass). A page can hold a resolved address and no neighbourhood, and that is not an
- * error screen — it is the case the verdict was written to refuse, so it must reach the page
- * intact rather than being swallowed by a thrown query.
+ * Two queries, kept apart because they fail apart: the address (BAN) and the neighbourhood.
+ * A page can hold a resolved address and no neighbourhood, and that is not an error screen —
+ * it is the case the verdict was written to refuse, so it must reach the page intact rather
+ * than being swallowed by a thrown query.
+ *
+ * **The corpus first, Overpass second — w6-fiche-corpus (#157), decided by Ivan on
+ * 13 September 2026.** Until 14 September every layer of this page came out of one Overpass
+ * snapshot and every axis was stamped `uniformOrigins(OSM_ORIGIN(today()))`: the sheet
+ * decorated OpenStreetMap, and the corpus fourteen gate arms were built to guard had no
+ * product consumer at all. The premises layer now comes from
+ * `compass_scoring_context_within` — APUR's door-to-door survey, dated, licensed and guarded —
+ * and only amenities and roads still come from a free public mirror. The inversion is the
+ * whole point: a dead mirror now DEGRADES the sheet instead of emptying it, where before a
+ * saturated volunteer mirror held a month of traceability work hostage.
  *
  * **Why an unreachable mirror still returns scores.** `scoreLocation` already knows how to
  * produce a figure that says why it is absent: pass it a context whose `loaded` is empty and
@@ -27,18 +37,30 @@
 import { useQuery } from '@tanstack/react-query';
 import {
   AMENITY_RADIUS_M,
+  BDCOM_ORIGIN,
   M_PER_DEG_LAT,
   buildIndex,
   mPerDegLng,
   scoreLocation,
-  uniformOrigins,
   OSM_ORIGIN,
   type AreaScores,
   type Layer,
+  type LayerNotes,
   type LayerOrigins,
   type NeighbourhoodContext,
+  type Origin,
+  type PremisePoint,
   type Withholding,
 } from '@/core';
+import {
+  SHEET_RADIUS_M,
+  SHEET_VINTAGE,
+  fetchActivityTransitions,
+  fetchCorpusPremises,
+  fetchPremisesOrigin,
+  withholdingOf,
+  type TransitionsVerdict,
+} from '@/services/compass/addressCorpus';
 import { geocode, type GeocodeResult } from '@/services/opendata/geocoding';
 import { fetchOverpassSnapshot } from '@/services/opendata/overpass';
 import { toNeighbourhoodContext } from '@/services/opendata/scoring';
@@ -46,6 +68,32 @@ import type { BBox } from '@/services/opendata/types';
 
 /** Overpass answers with the current state of the map, so the query date is the vintage. */
 const today = () => new Date().toISOString().slice(0, 10);
+
+/**
+ * Provenance of a premises layer whose own metadata could not be read.
+ *
+ * `scoreLocation` still needs an origin for a layer that never loaded: `unavailable()` stamps
+ * it on the missing figure so a reader learns WHICH dataset is silent, not merely that
+ * something is. Reached only when `compass_vintages` itself fails — the same stand-in the MCP
+ * server uses, written the same way on purpose.
+ */
+const UNKNOWN_BDCOM: Origin = BDCOM_ORIGIN(
+  SHEET_VINTAGE,
+  'inconnue — compass_vintages n’a pas pu être lu',
+  'inconnu',
+);
+
+/**
+ * What the sheet says about a premises count PostgREST capped.
+ *
+ * French, because it reaches a French reader through `Measured.note`, and the core's own notes
+ * are the exception rather than the rule here — they are English and predate the sheet. The
+ * numbers are interpolated from what was actually received, never typed: a literal here would
+ * be the unmeasured figure this whole page refuses.
+ */
+const truncatedNote = (rendered: number, total: number) =>
+  `Le service a renvoyé ${rendered} locaux sur les ${total} que le rayon contient : le compte ` +
+  `est un plancher, pas un total.`;
 
 /**
  * The box fetched around the point.
@@ -84,8 +132,15 @@ export function boxAround(point: { lat: number; lng: number }, radiusM = AMENITY
  * the sheet refuses on a day when patience would have been repaid. That is the trade the
  * doctrine asks for and it is written here rather than discovered later: the page owes a
  * verdict *or its refusal* in a readable delay, and a refusal it can explain beats a verdict
- * nobody waited for. What fills the sheet when Overpass will not is `w6-fiche-corpus` (#157),
- * which does not depend on a free public mirror at all.
+ * nobody waited for. What fills the sheet when Overpass will not is the corpus —
+ * `w6-fiche-corpus` (#157), delivered 14 September 2026: the premises layer no longer passes
+ * through this budget at all, so the trade above now costs three axes rather than five.
+ *
+ * **And the budget is not the corpus's.** It is passed to `fetchOverpassSnapshot` and to
+ * nothing else. Bounding a database call that answers in 144 to 735 ms with a ten-second
+ * reader-attention limit would be a bound that never fires, and putting the two behind one
+ * timer would hand the mirror the power to cancel the corpus — the exact dependency this
+ * ticket inverted.
  *
  * `/carte` keeps the unbounded walk. A visitor there asked for OpenStreetMap data and the map
  * IS the screen, so waiting buys something; here it buys a spinner.
@@ -110,60 +165,114 @@ export interface AddressContext {
    */
   points: NeighbourhoodContext;
   bbox: BBox;
+  /**
+   * What `compass_activity_transitions` answered — w6-fiche-corpus (#157).
+   *
+   * Not an axis and not a figure: on every ordinary Paris address today it answers « withheld »,
+   * because a transition derives from two vintages and only 2023 is redistributable. It reaches
+   * the gaps block, which is where a thing Compass cannot say belongs. `null` when the call
+   * itself failed — an outage and a licence refusal must not read alike.
+   */
+  transitions: TransitionsVerdict | null;
 }
 
-const ALL_LAYERS: readonly Layer[] = ['amenities', 'roads', 'premises'];
+/** The Overpass layers. `premises` is deliberately absent: it comes from the corpus now. */
+const OVERPASS_LAYERS: readonly Layer[] = ['amenities', 'roads'];
 
 /**
  * Scores for one point, provenance included, with an unreachable source reported as an
  * absence per layer rather than as a thrown query.
+ *
+ * **Four independent calls, four independent failures.** A saturated Overpass mirror must not
+ * blank a premises count that arrived in 200 ms, and a database hiccup must not blank a road
+ * layer that arrived fine. `allSettled` is what makes « un miroir mort dégrade la fiche au lieu
+ * de la vider » true rather than intended; a single `try` around the lot is exactly the shape
+ * that produced the 13 September outage, one level up.
+ *
+ * The vintage metadata is its own call and deliberately not bundled with the rows: a withheld
+ * vintage returns no rows while its licence and date stay public, and those are precisely what
+ * a reader needs in order to understand the refusal.
  */
 export async function fetchAddressContext(point: {
   lat: number;
   lng: number;
 }): Promise<AddressContext> {
   const bbox = boxAround(point);
-  // Every layer of the browser's context comes out of one Overpass snapshot — amenities, roads
-  // *and* premises, the latter from OSM's `shop=vacant` tagging rather than BDCom. So the three
-  // per-layer origins are legitimately identical here, and `uniformOrigins` says so rather than
-  // leaving it assumed. The day the front reads `compass_*`, the premises origin becomes APUR's
-  // and the type will not let it be forgotten.
-  const origins = uniformOrigins(OSM_ORIGIN(today()));
-  try {
-    const snapshot = await fetchOverpassSnapshot(bbox, { budgetMs: CONTEXT_BUDGET_MS });
-    const points = toNeighbourhoodContext(snapshot, bbox);
-    return {
-      scores: scoreLocation(point, buildIndex(points), origins),
-      origins,
-      withheldBy: {},
-      loaded: snapshot.loaded,
-      points,
-      bbox,
-    };
-  } catch {
-    // The mirrors refused, the payload was malformed, or the budget ran out before any of them
-    // answered. The three are one outcome here — the layer is unreachable, not empty, and that
-    // difference is the whole point: an empty context declared `loaded` would score a measured
-    // zero. Which of the three it was is not re-read from the message; `OverpassUnreachableError`
-    // carries what the UI is allowed to say about the hosts.
-    const empty: NeighbourhoodContext = {
-      amenities: [],
-      premises: [],
-      roads: [],
-      bounds: bbox,
-      loaded: [],
-    };
-    const withheldBy: Partial<Record<Layer, Withholding>> = {};
-    for (const layer of ALL_LAYERS) withheldBy[layer] = 'source_injoignable';
-    return {
-      scores: scoreLocation(point, buildIndex(empty), origins),
-      origins,
-      withheldBy,
-      loaded: [],
-      points: empty,
-      bbox,
-    };
+
+  const [overpass, premises, premisesOrigin, transitions] = await Promise.allSettled([
+    fetchOverpassSnapshot(bbox, { budgetMs: CONTEXT_BUDGET_MS }),
+    fetchCorpusPremises(point.lat, point.lng, SHEET_RADIUS_M),
+    fetchPremisesOrigin(),
+    fetchActivityTransitions(point.lat, point.lng, SHEET_RADIUS_M),
+  ]);
+
+  const loaded: Layer[] = [];
+  const withheldBy: Partial<Record<Layer, Withholding>> = {};
+  const layerNotes: LayerNotes = {};
+
+  // ── Overpass: amenities and roads, and nothing else any more ────────────────────────────
+  // The mirrors refused, the payload was malformed, or the budget ran out before any of them
+  // answered. The three are one outcome here — the layer is unreachable, not empty, and that
+  // difference is the whole point: an empty context declared `loaded` would score a measured
+  // zero. Which of the three it was is not re-read from the message.
+  const snapshot = overpass.status === 'fulfilled' ? overpass.value : null;
+  const osmPoints = snapshot ? toNeighbourhoodContext(snapshot, bbox) : null;
+  if (snapshot && osmPoints) {
+    for (const layer of OVERPASS_LAYERS) {
+      if (snapshot.loaded.includes(layer)) loaded.push(layer);
+      else withheldBy[layer] = 'source_injoignable';
+    }
+  } else {
+    for (const layer of OVERPASS_LAYERS) withheldBy[layer] = 'source_injoignable';
   }
+
+  // ── The corpus: premises, from APUR's survey ────────────────────────────────────────────
+  // Rows that arrived but cannot be attributed are rows that must not be scored: a figure
+  // nobody can source is the one `Measured<T>` exists to keep off the screen. So a metadata
+  // failure withdraws the layer even when the rows themselves came back — the same rule the
+  // MCP server applies, because it is the same rule.
+  const premisePoints: PremisePoint[] =
+    premises.status === 'fulfilled' ? premises.value.points : [];
+  if (premises.status === 'fulfilled' && premisesOrigin.status === 'fulfilled') {
+    loaded.push('premises');
+    if (premises.value.truncated) {
+      layerNotes.premises = truncatedNote(premises.value.points.length, premises.value.totalMatched);
+    }
+  } else if (premises.status === 'rejected') {
+    withheldBy.premises = withholdingOf(premises.reason);
+  } else {
+    // The rows are here and their licence is not. `indetermine` rather than a guess: « we do
+    // not know why » is itself a fact, and it is never `retenue_licence` by guesswork.
+    withheldBy.premises = 'indetermine';
+  }
+
+  const points: NeighbourhoodContext = {
+    amenities: osmPoints?.amenities ?? [],
+    roads: osmPoints?.roads ?? [],
+    premises: premisePoints,
+    bounds: bbox,
+    loaded,
+  };
+
+  // Overpass answers with the current state of the map, so the query date is its vintage.
+  // BDCom's is not today's date and must never be given it: `as_of` comes from the survey,
+  // read off `compass_vintages` rather than written here.
+  const osm = OSM_ORIGIN(today());
+  const origins: LayerOrigins = {
+    amenities: osm,
+    roads: osm,
+    premises: premisesOrigin.status === 'fulfilled' ? premisesOrigin.value : UNKNOWN_BDCOM,
+  };
+
+  return {
+    scores: scoreLocation(point, buildIndex(points), origins, layerNotes),
+    origins,
+    withheldBy,
+    loaded,
+    points,
+    bbox,
+    transitions: transitions.status === 'fulfilled' ? transitions.value : null,
+  };
 }
 
 /** The neighbourhood around a point. Never disabled by a failure: see the header. */
