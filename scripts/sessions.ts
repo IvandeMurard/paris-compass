@@ -48,6 +48,12 @@ const ORDER = [
   // reste à /carte. Placé plus loin, il serait repris par quelqu'un qui devrait tout
   // remesurer. Ce n'est pas un P0 — la fiche n'en dépendra plus — mais /carte interroge
   // toujours la même liste, sans budget, et rien ne dit si son ordre est encore juste.
+  // Passe DEVANT w1-overpass-ordre, le 14 septembre 2026, et le rend presque sans objet pour
+  // la fiche : une fois `amenities` servi par le corpus, l'ordre des miroirs ne décide plus
+  // que de /carte. Mesuré le même jour — la fiche rend un constat sur six, et une seule
+  // couche explique les trois axes porteurs manquants. C'est le dernier ticket entre l'état
+  // courant et « un verdict se compose », pour le navigateur et pour l'agent à la fois.
+  "w6-amenites-corpus",
   "w1-overpass-ordre",
   "w0-deploy",
   "w0-history",

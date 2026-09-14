@@ -43,9 +43,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Node 22, comme porte.yml et ingestion.yml — aligné le 14 septembre 2026 parce que la
+      # divergence est devenue bloquante, pas par hygiène. Depuis #157 un chemin testé
+      # construit un client Supabase, `realtime-js` exige un WebSocket natif, et Node 20 n'en a
+      # pas : `useAddressContext.test.ts` échouait sur TOUTE proposition pendant que la porte du
+      # matin, en 22, restait verte. Une proposition verte doit vouloir dire une porte verte ;
+      # deux pins différents rendaient cette phrase fausse. Node 20 est par ailleurs en fin de
+      # vie depuis avril 2026.
+      #
+      # Ce que ça ne rattrape pas : rien ne recoupe encore les trois fichiers entre eux. Le jour
+      # où l'un bouge seul, la divergence revient sans que personne ne le voie.
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "22"
           cache: npm
 
       - name: Installer
