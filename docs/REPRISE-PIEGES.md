@@ -1205,3 +1205,51 @@ et `verify:mcp` qui redit « absent » après qu'on croit l'avoir réparé.
 
 Les trois fichiers copiés sont ignorés par `.gitignore`, donc ils ne peuvent pas partir dans la
 proposition. Rien à nettoyer à la fin : `git worktree remove` emporte tout.
+
+---
+
+## Smart App Control bloque le binaire natif de `@swc/core`, et `vite` refuse de démarrer — 26 août 2026, levé depuis
+
+**Déplacé de `CLAUDE.md` le 14 septembre 2026**, où il occupait 1 591 octets sur un fichier
+chargé à chaque session pour un cas qui ne se présente presque jamais. Le plafond de
+`scripts/porte/documents.test.ts` était atteint à l'octet près, et la règle du dépôt est
+qu'ajouter une règle coûte un retrait. Ce qui reste dans `CLAUDE.md` est la phrase de
+reconnaissance du symptôme, les trois commandes de contournement, et les deux règles
+permanentes — les deux configurations restent en phase, et toute montée de `vite` exige de
+lancer les deux builds. Rien n'est perdu : c'est le récit qui est ici.
+
+**Le symptôme.** `vite` refuse de démarrer sur « Failed to load native binding ».
+
+**La cause, le 26 août 2026.** Windows Smart App Control bloquait le binaire natif de
+`@swc/core` sur cette machine. Il n'a **ni liste d'autorisation ni exception par fichier** : on
+ne peut pas lui faire accepter ce fichier-là, et le désactiver est **irréversible sans
+réinstaller Windows**.
+
+**Depuis, le blocage a disparu — remesuré quatre fois**, le 28 août, le 31 août et deux fois le
+2 septembre 2026 : `require('@swc/core').transformSync` rend du code, et `npm.cmd run build` /
+`npm.cmd run build:dev` vont au bout en produisant des hashes identiques à `build:local`.
+
+**Ce qui se remesure ici est l'identité des trois chemins, pas les hashes eux-mêmes.** Ceux-ci
+bougent dès qu'une dépendance ou une source bouge, et les recopier sans les redater est le piège
+que `CLAUDE.md` interdit ailleurs.
+
+| Mesure | Empreintes |
+| --- | --- |
+| Les trois premières | `index-DKJzmj15.js`, `MapView-8C8F8Ymz.js`, `index-C7sT89I7.css` |
+| La quatrième, 2 septembre | `index-z86I-NBQ.js`, `MapView-CcIGsnA-.js`, `index-CXVx5M-3.css` |
+
+La quatrième suit la montée de `browserslist` en 4.28.8 et de `postcss-selector-parser` en
+6.1.4 — **les trois chemins toujours d'accord entre eux**. L'écart n'est pas attribuable à la
+seule montée : le dépôt a aussi reçu entre-temps le correctif de l'écran blanc (`2aaab7e`), qui
+touche l'environnement de build.
+
+**Pourquoi le contournement reste en place.** Rien n'explique la disparition — pas de changement
+connu de la politique Smart App Control entre les dates — **donc le blocage peut revenir**. Les
+trois commandes `*:local` lisent `vite.config.local.ts`, volontairement séparé de
+`vite.config.ts` que Lovable réécrit.
+
+**Ce que ça ne rattrape pas.** Le 26 août, les chemins `*:local` ne remplaçaient pas les portes
+d'origine à l'identique : le bundle produit divergeait de celui de SWC. Depuis le 28 et le
+31 août les deux chemins rendent le même bundle — mais si Smart App Control se remet à bloquer
+SWC, cette divergence peut revenir sans préavis, et aucune mesure ne la verrait avant qu'on
+compare les deux builds.
