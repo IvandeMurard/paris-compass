@@ -12,3 +12,4 @@ export * from './scoring';
 export * from './verdict';
 export * from './comparison';
 export * from './agentCall';
+export * from './dossier';

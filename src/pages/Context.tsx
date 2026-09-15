@@ -33,6 +33,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ContextAgentCall from '@/components/context/ContextAgentCall';
 import ContextCompare from '@/components/context/ContextCompare';
+import ContextDossier from '@/components/context/ContextDossier';
 import ContextFinding from '@/components/context/ContextFinding';
 import ContextGaps from '@/components/context/ContextGaps';
 import ContextVerdict from '@/components/context/ContextVerdict';
@@ -45,7 +46,7 @@ import {
   VERDICT_AXIS_ORDER,
 } from '@/core';
 import { useAddressContext, useAddressFromSlug } from '@/hooks/useAddressContext';
-import { CONTEXT_COPY } from '@/i18n/contextText';
+import { CONTEXT_COPY, dossierLabels } from '@/i18n/contextText';
 import { useLocale } from '@/i18n/locale';
 import {
   contextPath,
@@ -57,7 +58,7 @@ import {
 } from '@/lib/addressSlug';
 import { collectGaps } from '@/lib/contextGaps';
 import { pendingAxes } from '@/lib/contextLayers';
-import { geocode } from '@/services/opendata/geocoding';
+import { banSource, geocode } from '@/services/opendata/geocoding';
 
 // Leaflet is loaded only once a sheet has figures to illustrate. Criterion 3 asks that the
 // verdict and the findings be readable without scrolling; a mapping library in the critical
@@ -165,12 +166,19 @@ const Context = () => {
 
   const context = useAddressContext(point);
 
-  const verdict = useMemo(
+  // Derived once and read three times — by the verdict, by the comparison and by the dossier.
+  // The dossier used to be able to take `scores` and re-derive the withholdings on its side;
+  // giving all three the SAME array is what makes it impossible for the exported file and the
+  // sentence above it to disagree about why a figure is missing (w6-dossier, #33).
+  const findings = useMemo(
     () =>
-      context.data
-        ? composeVerdict(findingsFromScores(context.data.scores, context.data.withheldBy), locale)
-        : null,
-    [context.data, locale],
+      context.data ? findingsFromScores(context.data.scores, context.data.withheldBy) : null,
+    [context.data],
+  );
+
+  const verdict = useMemo(
+    () => (findings ? composeVerdict(findings, locale) : null),
+    [findings, locale],
   );
 
   // Which findings are still travelling rather than missing — w6-fiche-delai (#180). Derived
@@ -228,14 +236,14 @@ const Context = () => {
 
   const comparison = useMemo(
     () =>
-      context.data && secondContext.data
+      findings && secondContext.data
         ? compareAddresses(
-            findingsFromScores(context.data.scores, context.data.withheldBy),
+            findings,
             findingsFromScores(secondContext.data.scores, secondContext.data.withheldBy),
             locale,
           )
         : null,
-    [context.data, secondContext.data, locale],
+    [findings, secondContext.data, locale],
   );
 
   // The invocation shown to a visitor is the comparison's when there is one, the sheet's
@@ -355,6 +363,24 @@ const Context = () => {
                   />
                 )}
               </section>
+
+              {/* The export leaves from HERE and from nowhere else — `docs/PLAN.md` §2.6. It
+                  needs the point, so it renders with the sheet that resolved one. */}
+              {point && findings && verdict && (
+                <ContextDossier
+                  address={{
+                    label,
+                    lat: point.lat,
+                    lng: point.lng,
+                    ...banSource(locale, geocoded.data !== undefined),
+                  }}
+                  findings={findings}
+                  pending={enCours}
+                  operands={context.data.operands}
+                  verdict={verdict}
+                  labels={dossierLabels(locale)}
+                />
+              )}
 
               {agentCall && <ContextAgentCall call={agentCall} />}
             </div>

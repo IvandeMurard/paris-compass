@@ -294,6 +294,27 @@ export const SERVICE_WEIGHTS: Record<ServiceFamily, number> = {
  */
 export const TRANSIT_DECAY_M = FOOTFALL_RADIUS_M;
 
+/**
+ * The two halves of the footfall proxy, and why they are constants rather than two literals.
+ *
+ * They were `* 0.65` and `* 0.35` written inside the blend, and the methodology page published
+ * « 65% density … and 35% rail access » beside them — two statements of one weighting, free to
+ * disagree the day one moves. w6-dossier needed a third statement of it, inside the exported
+ * dossier, and three copies of a number is where this repository stops: the figure is now named
+ * once and read everywhere, including by the file a banker is handed.
+ *
+ * Must sum to 1, like `WALKABILITY_WEIGHTS` and `SERVICE_WEIGHTS`.
+ */
+export const FOOTFALL_WEIGHTS = { premises: 0.65, rail: 0.35 } as const;
+
+/**
+ * What the summed road exposure is multiplied by before it becomes a 0-100 figure.
+ *
+ * Same reason as `FOOTFALL_WEIGHTS`: it was a literal `5` inside `noiseExposure`, and a dossier
+ * that claims a figure is re-derivable has to hand over the constant, not a rounded result.
+ */
+export const NOISE_SCALE = 5;
+
 /** Saturating score: n items mapped onto 0-100, with diminishing returns. */
 export function saturating(count: number, saturation: number): number {
   return clamp(Math.round(100 * (1 - Math.exp(-count / saturation))));
@@ -464,13 +485,76 @@ export function countAmenities(
  * geometry alone, ignores buildings, and is not a measurement.
  */
 export function noiseExposure(point: Point, roads: readonly Road[]): number {
-  let exposure = 0;
+  const { sum } = roadExposure(point, roads);
+  return clamp(Math.round(sum * NOISE_SCALE));
+}
+
+/**
+ * The operand of the noise proxy: `Σ weight × (1 − d / NOISE_RADIUS_M)` over the roads in range.
+ *
+ * Split out of `noiseExposure` for w6-dossier, which has to publish what the formula was applied
+ * TO and not only what it returned. `noiseExposure` calls it, so there is one traversal and one
+ * definition: a dossier that recomputed the sum on its own side would be a second arithmetic,
+ * right on the day it was written and free to drift afterwards — the reason `occupiedNearby` is
+ * counted once and read twice a few lines below.
+ *
+ * `counted` is the number of roads that contributed. It is not decorative: a sum of 0 over 40
+ * roads in range is a measured silence, and a sum of 0 over none is a radius with no major road
+ * in it, which are two different sentences about the same figure.
+ */
+export function roadExposure(
+  point: Point,
+  roads: readonly Road[],
+): { sum: number; counted: number } {
+  let sum = 0;
+  let counted = 0;
   for (const road of roads) {
     const d = distanceM(point, road);
     if (d > NOISE_RADIUS_M) continue;
-    exposure += road.weight * (1 - d / NOISE_RADIUS_M);
+    sum += road.weight * (1 - d / NOISE_RADIUS_M);
+    counted += 1;
   }
-  return clamp(Math.round(exposure * 5));
+  return { sum, counted };
+}
+
+/**
+ * What each derived figure was computed FROM — w6-dossier (#33).
+ *
+ * `AreaScores` carries the results and their provenance; this carries the operands. The two are
+ * deliberately separate objects rather than one wider `Measured<T>`: every field of `AreaScores`
+ * is a `Measured<number>` on the 0-100 scale, and slipping a raw count in beside them would put
+ * a premises count and a premises SCORE under one type, which is the confusion the whole scale
+ * exists to avoid.
+ *
+ * It exists because « chaque figure est re-dérivable » is not satisfied by a formula alone. A
+ * reader handed « 100 × (1 − e^(−n/90)) = 99 » cannot check the arithmetic without `n`; handed
+ * `n`, they can, and handed the source, the licence, the vintage and the radius they can also go
+ * and recount `n` themselves. Both halves are needed, and only the second was missing.
+ *
+ * **`null` means the layer did not load**, never zero — the same distinction `unavailable()`
+ * enforces one level up. `stationsLoaded` is the one case where the distinction cannot be read
+ * off a `null` alone: a rail layer that answered and found no stop within the search radius also
+ * reports `nearestStationM: null`, and that is a measurement, not an absence.
+ */
+export interface ScoringOperands {
+  /** Occupied premises inside `FOOTFALL_RADIUS_M`. */
+  occupiedPremises: number | null;
+  /** Surveyed merchant premises inside `SERVICE_RADIUS_M`, per family. */
+  serviceCounts: Record<ServiceFamily, number> | null;
+  /** Metres to the nearest IDFM rail stop. `null` when the layer is silent OR found none. */
+  nearestStationM: number | null;
+  /** Whether the rail layer answered at all — what tells a measured « none » from an absence. */
+  stationsLoaded: boolean;
+  /** `Σ weight × (1 − d / NOISE_RADIUS_M)` over roads in range, before rounding and scaling. */
+  roadExposure: number | null;
+  /** How many roads contributed to that sum. */
+  roadsCounted: number | null;
+}
+
+/** A scored point and the operands its figures were derived from. */
+export interface ScoredLocation {
+  scores: AreaScores;
+  operands: ScoringOperands;
 }
 
 /**
@@ -486,6 +570,24 @@ export function scoreLocation(
   /** Caveats only the caller can know — see `LayerNotes`. Absent by default, never invented. */
   layerNotes: LayerNotes = {},
 ): AreaScores {
+  return scoreLocationDetailed(point, index, origins, layerNotes).scores;
+}
+
+/**
+ * The same scoring, plus the operands each figure was derived from — w6-dossier (#33).
+ *
+ * `scoreLocation` is this function with its second half dropped, and it keeps its name and its
+ * signature because it is what the MCP server, `/carte` and thirty tests call. A caller that has
+ * to publish a re-derivation — the dossier — asks for both here, in ONE traversal of the index.
+ * Recounting them beside the scorer was the other design: it would have been correct the day it
+ * was written, and wrong the day `SERVICE_RADIUS_M` moved under one of the two copies.
+ */
+export function scoreLocationDetailed(
+  point: Point,
+  index: ScoringIndex,
+  origins: LayerOrigins,
+  layerNotes: LayerNotes = {},
+): ScoredLocation {
   const amenityNote = coverageNote(point, AMENITY_RADIUS_M, index.bounds);
   const hasAmenities = index.loaded.has('amenities');
   const hasPremises = index.loaded.has('premises');
@@ -631,7 +733,8 @@ export function scoreLocation(
     footfall = withValue(
       clamp(
         Math.round(
-          saturating(occupiedNearby, PREMISE_SATURATION) * 0.65 + (rail.value ?? 0) * 0.35,
+          saturating(occupiedNearby, PREMISE_SATURATION) * FOOTFALL_WEIGHTS.premises +
+            (rail.value ?? 0) * FOOTFALL_WEIGHTS.rail,
         ),
       ),
       combineOrigins(origins.premises, origins.stations),
@@ -644,7 +747,10 @@ export function scoreLocation(
     );
   }
 
-  return {
+  // Walked once, read twice — by the `noise` figure and by the operand the dossier publishes.
+  const roads = hasRoads ? roadExposure(point, index.roads) : null;
+
+  const scores: AreaScores = {
     ...byCategory,
     density,
     services,
@@ -652,9 +758,9 @@ export function scoreLocation(
     rail,
     walkability,
     footfall,
-    noise: hasRoads
+    noise: roads
       ? withValue(
-          noiseExposure(point, index.roads),
+          clamp(Math.round(roads.sum * NOISE_SCALE)),
           origins.roads,
           'estimated',
           noteOf(
@@ -663,6 +769,18 @@ export function scoreLocation(
           ),
         )
       : unavailable<number>(origins.roads, MISSING.roads),
+  };
+
+  return {
+    scores,
+    operands: {
+      occupiedPremises: hasPremises ? occupiedNearby : null,
+      serviceCounts: hasServices ? serviceCounts : null,
+      nearestStationM: hasStations ? index.nearestStationM : null,
+      stationsLoaded: hasStations,
+      roadExposure: roads ? roads.sum : null,
+      roadsCounted: roads ? roads.counted : null,
+    },
   };
 }
 

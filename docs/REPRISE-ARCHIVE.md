@@ -906,6 +906,17 @@ Numérotation d'origine conservée.
 
 ---
 
+## Tests unitaires — les relevés de 718 à 660, du 14 au 15 septembre 2026
+
+**Sortis de `docs/REPRISE.md` le 15 septembre 2026 au soir** par `w6-dossier` (#33), pour tenir le
+plafond de `scripts/porte/documents.test.ts` : le fichier faisait 102 953 octets pour un plafond de
+103 000, soit **47 octets de marge**, et aucun relevé neuf n'y entrait. Monter le plafond est
+interdit — `CLAUDE.md` le range avec le desserrage d'une baseline — sortir une entrée close ne
+l'est pas. Troisième application du même geste après le 13 et le 15 septembre. Chaque relevé garde
+sa date et ce que son ticket avait ajouté.
+
+Antérieurement **718 sur 52 fichiers, mesurés le 15 septembre 2026** — dont les six que `w6-amenites-corpus` ajoute à `src/hooks/useAddressContext.test.ts`, qui jouent hors réseau ce que le distant ne peut pas produire à la demande : miroirs coupés et verdict qui SE COMPOSE (le critère du ticket, écrit en contre-preuve de `#157` dont le même appel refusait), un arrêt ferré trouvé et un arrêt absent comme deux LECTURES distinctes, une couche ferrée injoignable qui retire l'axe, et le **hors corpus qui fait tomber les trois couches du corpus ensemble** — celui-là a été écrit après que l'écran a montré le défaut, pas avant (`DIAGNOSTIC.md` §53). Antérieurement **689 sur 51 fichiers, mesurés le 14 septembre 2026** — dont les 13 de `src/hooks/useAddressContext.test.ts` et les 12 de `src/services/compass/addressCorpus.test.ts` (`#157`), qui jouent hors réseau les combinaisons que le distant ne peut pas produire : un millésime retenu, qui n'existe pas pour un appelant anonyme sur 2023, et un compte plafonné par PostgREST. Le contrôle qui porte le ticket est écrit en contre-preuve — miroirs injoignables, un constat doit RESTER, et porter « APUR BDCom 2023 ». Antérieurement **660 sur 49 fichiers, mesurés le 13 septembre 2026 au soir** — dont les 20 de `scripts/porte/page.test.ts` (`#158`), qui rejouent la règle du quinzième bras sur **quatre sondes capturées au navigateur**, dont les deux temps de la contre-preuve : la fiche bloquée sur « Lecture du quartier en cours… », puis plantée sur `layerPointToLatLng`. Deux cas tiennent la frontière que ce bras ne franchit pas — une mesure cassée sort en 2 jamais en 1, un libellé que `main` ne déclare plus sort en 3.
+
 ## Tests unitaires — les relevés de 640 à 416, du 6 au 13 septembre 2026
 
 **Sortis de `docs/REPRISE.md` le 15 septembre 2026** par `w6-amenites-corpus` (#169), pour tenir
@@ -914,6 +925,61 @@ relevés de 396 à 273, et pour la même raison : monter le plafond est interdit
 close ne l'est pas. Chaque relevé garde sa date et ce que son ticket avait ajouté.
 
 Antérieurement **640 sur 48 fichiers, le même jour** — dont les 15 de `w6-fiche-robuste` (`#156`), et **le premier fichier de ce dépôt qui MONTE un composant** : `src/components/context/ContextMap.test.tsx` tourne sous `@vitest-environment jsdom` avec le vrai Leaflet, parce que le défaut n'existe qu'une fois la carte montée. Quatre de ses cinq cas échouent sur `3cb9b5d`, dont deux sur le message exact de production. `node` reste l'environnement par défaut, et c'est une règle : une décision sur des mots ou une géométrie se teste sans DOM. Antérieurement **625 sur 46 fichiers, mesurés le 13 septembre 2026** — dont les 6 de `#152` sur la seconde population du bras `servi` : l'un rejoue l'incident en miniature, un autre surveille que la part de libellés prouvables ne s'effondre pas, ce qui ferait du bras un témoin sans pouvoir de décision, en silence. Antérieurement **619 sur 46 fichiers, mesurés le 13 septembre 2026** — dont les 8 de `src/services/opendata/environment.test.ts` (`#145`), qui tiennent la distinction entre une source qui n'a rien et une source qui n'a pas répondu. L'un d'eux échoue si quelqu'un refusionne les deux cas pour simplifier un appelant. Antérieurement **611 sur 45 fichiers, mesurés le 13 septembre 2026** sur `ticket/servi-contre-suivi` — dont les 16 de `scripts/porte/servi.test.ts` (`#142`), qui rejouent l'incident fondateur **sur la vraie table de routes** : un bundle portant les anciennes routes et pas les quatre neuves rougit en nommant les quatre, et un bundle où rien n'est trouvé rend « mesure cassée » et non un rouge. L'écart avec les 440 du 9 septembre n'est pas de mon fait seul : d'autres sessions ont écrit entre-temps. **440, mesurés le 9 septembre 2026** sur `ticket/avis-atteignabilite` — dont les 18 de `scripts/porte/avis.test.ts` ajoutés par le treizième bras (`#115`), qui jouent la règle d'atteignabilité hors ligne : un avis non jugé rougit, un verdict à demi écrit rougit, un verdict qui dit ATTEIGNABLE rougit quand même, une entrée qu'aucun avis ne porte plus rougit, et une raison que le dépôt contredit rougit toute seule. **422** plus tôt le même jour, après la montée de `vitest` en 4.1.11 — le chiffre est inchangé de part et d'autre de la montée, et c'est ce qui la valide. Antérieurement **418**, remesurés le 6 septembre 2026 au soir sur `ticket/w6-analyse`, qui n'ajoute aucun test — le chiffre de 416 daté du même jour avait été pris avant `#85` et `#86`. Antérieurement **416**, mesurés le 6 septembre 2026 — dont les 20 de `scripts/porte/ledger.test.ts` ajoutés par `w1-ledger` (#82), qui jouent la comparaison des deux listes sans base et vérifient que chaque divergence consignée nomme encore un fichier suivi, **avec l'empreinte contre laquelle elle a été écrite** : une seconde réécriture de `20260825000002` fait échouer `test` seul, sans secret ni connexion.
+
+## Le point 20 — les quatre axes porteurs lisent le corpus — déplacé depuis `docs/REPRISE.md` le 15 septembre 2026 au soir
+
+Sorti par `w6-dossier` (#33) pour tenir le plafond de `scripts/porte/documents.test.ts`, qui ne
+laissait plus que 47 octets : monter le plafond est interdit, sortir une entrée close ne l'est pas.
+Même geste que le point 19 le matin même. **Ce qui y reste vivant est la dernière ligne : `rail`
+est ferré seulement, et personne n'a tranché que « desserte » pouvait devenir « desserte ferrée ».**
+
+20. **Les quatre axes porteurs lisent le corpus. Overpass ne peut plus refuser un verdict.**
+    `w6-amenites-corpus` (#169) fermée le 15 septembre 2026. Le détail de la livraison est dans
+    `docs/tickets/w6-amenites-corpus.md`, section « Livré » ; ce qui suit est l'état.
+
+    **Miroirs Overpass COUPÉS AU RÉSOLVEUR** — pas lents, irrésolvables — rue de Bretagne, Chrome
+    sans tête contre le build local : **verdict composé en 1 316 à 2 411 ms**, « Tissu commercial
+    dense, passage soutenu, desserte ferrée moyenne, services marchands à pied moyennement
+    présents. », **cinq constats sur six**. Le 14 septembre, le même point rendait **un sur six**
+    et un refus. Hors corpus (Massy) : refus nommé sur quatre axes, et trois causes distinctes au
+    même écran — hors du corpus, source injoignable, retenu pour licence.
+
+    **Deux des trois moyens du ticket n'existaient pas, et `docs/PLAN.md` §3.2 portait la même
+    erreur** — donc aucun des deux ne pouvait corriger l'autre. `compass_station_profile` ne rend
+    **aucun comptage** : sa colonne est `pct_validations`, la part d'une journée de station par
+    tranche horaire, 24 tranches sommant à 99,99 % à Oberkampf. `compass_scoring_context_within`
+    ne porte **aucun code d'activité** : six colonnes. Les deux fichiers sont corrigés, le piège
+    est dans `docs/REPRISE-PIEGES.md`. Les volumes, eux, tiennent : **258 arrêts, 29 489 lignes de
+    profil, 85 410 locaux rattachés sur 85 418**, remesurés, et un appelant anonyme les atteint —
+    le piège de `#97` est bien levé.
+
+    **Trois axes changent de NOM, et le nom EST l'honnêteté.** `transit` → `rail` (une distance à
+    l'arrêt **ferré**, pas un comptage de nœuds), `walkability` → `services` (un relevé de
+    commerces, pas des « aménités » qui contiennent écoles et bureaux de poste), `groceries` →
+    `alimentaire`. Les anciens restent dans `AreaScores` sur Overpass et **`/carte` les affiche
+    encore**. `Methodology.tsx` publie les deux formules neuves, règle de `CLAUDE.md`.
+
+    **Les constantes sont remesurées, jamais recopiées.** Celles d'OSM sizent un marquage
+    bénévole — 18 pour l'alimentaire — quand BDCom trouve **87 commerces alimentaires dans 400 m
+    rue de Bretagne** : les réutiliser aurait rendu **100 partout**, le défaut de `DIAGNOSTIC.md`
+    §52. Chacune est la médiane mesurée de sa famille divisée par ln 2, sur douze points
+    parisiens. L'axe **sépare Auteuil (32) de Montorgueil (64)** là où `density` lit 97 contre
+    100. Douze points, pas quatre-vingts quartiers : l'ordre de grandeur est juste, la
+    re-dérivation sur la population entière est un meilleur nombre et le bloqueur de personne.
+
+    **Un défaut trouvé à l'ÉCRAN, pas en relecture** — `DIAGNOSTIC.md` §53. À Massy, les deux
+    couches neuves affichaient **0/100** : leurs fonctions réussissent hors de Paris et rendent
+    zéro ligne, donc elles comptaient « chargées et vides ». Corrigé sur les deux surfaces —
+    `compass_scoring_context_within` reste seule autorité sur la frontière. **Ce que ça ne
+    rattrape pas** : les appelants sont protégés, pas les fonctions ; un agent appelant
+    `compass_premises_within` en direct reçoit toujours zéro ligne à Massy. C'est le §36, ouvert,
+    et sa sortie est une migration.
+
+    **Ce qui attend une décision d'Ivan.** `rail` est **ferré seulement** — 258 arrêts, les bus
+    n'y sont pas — là où le comptage OSM qu'il remplace les incluait : plus fiable où il regarde,
+    aveugle où il ne regarde pas. Le libellé a été changé pour le dire sans attendre, mais
+    personne n'a tranché que « desserte » pouvait devenir « desserte ferrée ». Et `services`
+    reste aveugle au non marchand jusqu'à `w2-bpe-marches-velo` (#17).
 
 ## Le point 12 — le contrôle de la page publiée après republication — déplacé depuis `docs/REPRISE.md` le 15 septembre 2026
 

@@ -58,7 +58,7 @@ import {
   SERVICE_RADIUS_M,
   buildIndex,
   mPerDegLng,
-  scoreLocation,
+  scoreLocationDetailed,
   OSM_ORIGIN,
   type AreaScores,
   type Layer,
@@ -67,6 +67,7 @@ import {
   type NeighbourhoodContext,
   type Origin,
   type PremisePoint,
+  type ScoringOperands,
   type ServicePoint,
   type Withholding,
 } from '@/core';
@@ -180,6 +181,16 @@ export const CONTEXT_BUDGET_MS = 10000;
 
 export interface AddressContext {
   scores: AreaScores;
+  /**
+   * What each figure was derived FROM — w6-dossier (#33).
+   *
+   * The counts and the distance, not the 0-100 results. The sheet does not display them; the
+   * dossier publishes them, because « chaque figure est re-dérivable » is not satisfied by a
+   * formula whose operand nobody can see. They come out of the SAME traversal of the index that
+   * produced `scores` — `scoreLocationDetailed` — rather than from a second walk beside it,
+   * which would have been one more pair of numbers to keep equal.
+   */
+  operands: ScoringOperands;
   /** Where each layer was read from — the same object `scoreLocation` was given, so the gaps
    *  block can name the premises source without going through a figure that may be absent. */
   origins: LayerOrigins;
@@ -441,8 +452,11 @@ export function composeContext(
     loaded,
   };
 
+  const scored = scoreLocationDetailed(point, buildIndex(points), corpus.origins, corpus.notes);
+
   return {
-    scores: scoreLocation(point, buildIndex(points), corpus.origins, corpus.notes),
+    scores: scored.scores,
+    operands: scored.operands,
     origins: corpus.origins,
     withheldBy,
     loaded,

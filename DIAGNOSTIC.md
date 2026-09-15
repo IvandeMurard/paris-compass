@@ -1,7 +1,7 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte 54 au 15 septembre 2026**, et la
+« quatre défauts, par ordre de gravité » : il en porte 55 au 15 septembre 2026**, et la
 phrase est restée fausse trois semaines. Le nombre est désormais dérivé du tableau
 ci-dessous par `scripts/porte/documents.test.ts` : le recopier faux fait rougir `test`.
 
@@ -78,6 +78,7 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 52 | L'axe `tissu commercial` lit 100 sur la moitié de Paris : honnête, et presque sans pouvoir discriminant | **ouvert** — mesuré le 14 septembre 2026 par `w6-fiche-corpus`, P2, **décision Ivan** | ici |
 | 53 | Hors corpus, deux couches neuves rendaient un ZÉRO mesuré au lieu d'une absence — `services` et `stations` | clos le 15 septembre 2026 par `w6-amenites-corpus`, trouvé à l'écran | ici |
 | 54 | `brief` assemblait un prompt de session complet pour une issue FERMÉE, sans le dire | clos le 15 septembre 2026 — trouvé en étant la victime | ici |
+| 55 | Le dossier exporté citait la BAN sur un libellé qu'elle n'avait pas rendu, et perdait « mesure en cours » | clos le 15 septembre 2026 par `w6-dossier`, trouvé à l'écran | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -1215,3 +1216,52 @@ verbe est donc le signal, et la liste des verbes est une liste, avec ce que ça 
 - **Le garde-fou protège `brief`, pas une session lancée à la main.** Une session dont le prompt
   est écrit sans passer par `npm.cmd run brief` ne voit aucun bandeau. C'est exactement ce qui
   s'est produit ici.
+
+## 55. Le dossier exporté citait la Base Adresse Nationale sur un libellé qu'elle n'avait pas rendu
+
+**Trouvé à l'écran le 15 septembre 2026**, à la première exécution de la démonstration de
+`w6-dossier` (#33) — pas en relecture, et pas par un test : le fichier téléchargé par un vrai
+Chrome sans tête a été ouvert et lu ligne à ligne, et son en-tête disait ceci.
+
+> `"address": { "label": "rue de bretagne paris", "source": "Base Adresse Nationale",`
+> `"licence": "Licence Ouverte (Etalab 2.0)" }`
+
+**Ni la moitié ni l'autre ne venaient de la BAN.** `src/pages/Context.tsx` rend
+`geocoded.data?.label ?? search`, où `search` est le slug de l'URL dé-slugifié — d'où les
+minuscules et l'accent manquant, que la BAN n'aurait jamais rendus. Les coordonnées, elles,
+viennent de la chaîne de requête. Le clic a eu lieu **2,1 s** après le verdict, c'est-à-dire
+pendant que la BAN répondait encore : la fiche affiche à ce moment-là le texte provisoire, ce qui
+est son comportement voulu depuis `w6-contexte`, et le dossier le recopiait en lui attribuant un
+producteur.
+
+**C'est `Measured<T>` à l'envers, à l'endroit exact où ça compte le plus** : une provenance qui
+nomme quelqu'un qui n'a rien produit, dans le seul document de ce produit qui soit destiné à être
+transmis à un tiers et signé. Un lecteur qui voudrait recouper ce libellé auprès de la BAN ne le
+retrouverait pas, et conclurait que c'est la BAN qui a tort.
+
+**Corrigé dans `src/services/opendata/geocoding.ts`** : `banSource(locale, resolved)` rend la
+provenance de la BAN **seulement** quand elle a répondu, et sinon celle de l'URL, nommée comme
+telle — « Libellé et coordonnées lus dans l'URL — la Base Adresse Nationale n'avait pas
+répondu », licence « indéterminée ». Les deux cas sont mesurés dans le même navigateur : clic à
+0,9 s, provenance URL ; clic après 13 s, « Rue de Bretagne 75003 Paris », BAN, Licence Ouverte
+(Etalab 2.0).
+
+**Le second défaut de la même exécution, et il a la même forme.** `noise` descendait en
+`indetermine` alors que la couche OpenStreetMap était encore **en route** : `#180` a construit à
+l'écran la distinction entre « source injoignable » — un trou sur lequel revenir — et « mesure en
+cours » — une réponse qui arrive, et le fichier la perdait au dernier pas, dans l'objet qui
+circule. `DossierFigure.pending` la porte désormais, et ce n'est **pas** un cinquième
+`Withholding` : les quatre reflètent `public.question_outcome` et nomment chacun une issue
+décidée, celle-ci nomme une issue non décidée.
+
+### Ce que ça ne rattrape pas
+
+- **La provenance de l'adresse est déclarée par l'appelant, jamais vérifiée.** `banSource` croit
+  le booléen qu'on lui passe ; un appelant qui passerait `true` sur un libellé inventé produirait
+  la même fausse citation. La règle vit dans `src/pages/Context.tsx`, qui est le seul appelant, et
+  elle n'est pas mécanique.
+- **Aucun des deux défauts n'était visible sans ouvrir le fichier.** Le test unitaire du dossier
+  était vert sur les deux, et il le serait resté : il joue des gabarits où la BAN a toujours
+  répondu et où rien n'est en vol. Ce qui les a montrés est d'avoir lu un fichier réel, produit
+  par un vrai navigateur contre le vrai distant — et le test qui les tient aujourd'hui a été écrit
+  **après**, ce qui est l'ordre que `DIAGNOSTIC.md` §53 avait déjà établi.

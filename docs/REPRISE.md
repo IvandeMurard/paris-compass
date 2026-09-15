@@ -28,7 +28,7 @@ a bougé les 31 août et 1er septembre, et rien d'autre :
 | Mesure | Valeur, mesurée le 31 août 2026, sauf mention du 1er septembre |
 | --- | --- |
 | Ledger distant `supabase_migrations` | **54 posées, 54 suivies par git, 0 en écart — mesuré le 7 septembre 2026** (`npm.cmd run ledger`, sortie 0) : 52 appariées corps compris et 2 divergences consignées. La cinquante-quatrième est `20260906000001_analyses_du_schema.sql`, posée par `supabase db push` le 6 septembre 2026 au soir — `w6-analyse` (#50). **53, et recoupé pour la première fois aux migrations SUIVIES par git : 53 des deux côtés, mesuré le 6 septembre 2026 par le douzième bras** (`npm.cmd run ledger`, `w1-ledger` #82). Le recoupement va au-delà des identifiants — le ledger garde `statements text[]`, donc le texte appliqué — et **51 des 53 corps sont identiques caractère pour caractère** ; les deux autres sont `20260825000002` et `20260825000003`, réécrites après leur application le 25 août pour repasser leurs commentaires en anglais, consignées avec leurs empreintes dans `scripts/porte/ledger.json` et documentées en `DIAGNOSTIC.md` §39. **53** — mesuré le 5 septembre 2026 après `w1-geometrie` (#68), qui en pose **une** : `…20260905000006` rend `premise_location.geom` nullable, rattrape les quinze `POINT(NaN NaN)` et pose un `check` de finitude sur les **huit** colonnes `geography` du schéma. Il était à **52** — mesuré le 5 septembre 2026 après `w1-observabilite` (#72), qui en pose **cinq** : `…0001` le journal des questions, puis quatre qui la finissent et dont **trois viennent de défauts que seule une exécution a montrés** — `…0002` le cast d'enum (un `case` ne se convertit pas tout seul), `…0003` l'échappement de la porte (elle se comptait elle-même, dix seaux sur un produit sans trafic), `…0004` la volatilité (derrière PostgREST, une fonction `STABLE` tourne en lecture seule et ne journalise rien, en silence), `…0005` la latence, omise. Les trois pièges sont dans `docs/REPRISE-PIEGES.md`. Il était à **47** depuis le 31 août : ni `#69`, ni `#70`, ni `#71`, ni `#73` n'avaient posé de migration |
-| Tests unitaires | **746 sur 53 fichiers, remesurés le 15 septembre 2026 au soir** par `w6-fiche-delai` (#180), qui en ajoute **huit** : quatre sur un miroir qui ne répond JAMAIS — la forme qui manquait, un miroir qui refuse répondant vite —, deux sur `pendingAxes`, deux sur le trou qui n'en est pas un. **`main` en portait 738 sur 53**, mesuré la même minute sur `2dabf49` : la ligne qui suit annonçait 718 sur 52, fausse de vingt tests avant que ce ticket commence. Antérieurement **718 sur 52 fichiers, mesurés le 15 septembre 2026** — dont les six que `w6-amenites-corpus` ajoute à `src/hooks/useAddressContext.test.ts`, qui jouent hors réseau ce que le distant ne peut pas produire à la demande : miroirs coupés et verdict qui SE COMPOSE (le critère du ticket, écrit en contre-preuve de `#157` dont le même appel refusait), un arrêt ferré trouvé et un arrêt absent comme deux LECTURES distinctes, une couche ferrée injoignable qui retire l'axe, et le **hors corpus qui fait tomber les trois couches du corpus ensemble** — celui-là a été écrit après que l'écran a montré le défaut, pas avant (`DIAGNOSTIC.md` §53). Antérieurement **689 sur 51 fichiers, mesurés le 14 septembre 2026** — dont les 13 de `src/hooks/useAddressContext.test.ts` et les 12 de `src/services/compass/addressCorpus.test.ts` (`#157`), qui jouent hors réseau les combinaisons que le distant ne peut pas produire : un millésime retenu, qui n'existe pas pour un appelant anonyme sur 2023, et un compte plafonné par PostgREST. Le contrôle qui porte le ticket est écrit en contre-preuve — miroirs injoignables, un constat doit RESTER, et porter « APUR BDCom 2023 ». Antérieurement **660 sur 49 fichiers, mesurés le 13 septembre 2026 au soir** — dont les 20 de `scripts/porte/page.test.ts` (`#158`), qui rejouent la règle du quinzième bras sur **quatre sondes capturées au navigateur**, dont les deux temps de la contre-preuve : la fiche bloquée sur « Lecture du quartier en cours… », puis plantée sur `layerPointToLatLng`. Deux cas tiennent la frontière que ce bras ne franchit pas — une mesure cassée sort en 2 jamais en 1, un libellé que `main` ne déclare plus sort en 3. **Les relevés antérieurs — 640 à 416, du 6 au 13 septembre 2026 — sont dans `docs/REPRISE-ARCHIVE.md`**, sortis d'ici le 15 septembre 2026 pour tenir le budget de `documents.test.ts`, comme les 396 à 273 l'avaient été le 13. **Les relevés antérieurs — 396 à 273 — sont dans `docs/REPRISE-ARCHIVE.md`**, sortis d'ici le 13 septembre 2026 pour tenir le budget de `documents.test.ts`. |
+| Tests unitaires | **785 sur 55 fichiers, remesurés le 15 septembre 2026 au soir** par `w6-dossier` (#33), qui ajoute **un fichier et 22 tests** — `src/core/dossier.test.ts` : chaque figure du dossier exporté re-dérivée depuis un objet sorti de `JSON.parse`, la population énumérée depuis `VERDICT_AXIS_ORDER`, les constantes comparées à celles du noyau, un refus de verdict, une couche encore en vol, un axe non fourni. **`main` en portait 763 sur 54** — 785 mesurés ici moins les 22 du fichier neuf, aucun autre fichier de test touché ; le relevé de 746 ci-dessous datait d'avant la fusion de `#190`. **Trois sabotages ont été joués contre ce fichier**, chacun restauré, et le deuxième — un opérande arrondi — était **VERT** tant que le gabarit posait une distance ronde de 190 m : passé à 187 m, les trois rougissent. Le contrôle était sain, le gabarit était aveugle (`docs/REPRISE-PIEGES.md`). Antérieurement **746 sur 53 fichiers, remesurés le 15 septembre 2026 au soir** par `w6-fiche-delai` (#180), qui en ajoute **huit** : quatre sur un miroir qui ne répond JAMAIS — la forme qui manquait, un miroir qui refuse répondant vite —, deux sur `pendingAxes`, deux sur le trou qui n'en est pas un. **`main` en portait 738 sur 53**, mesuré la même minute sur `2dabf49` : la ligne qui suit annonçait 718 sur 52, fausse de vingt tests avant que ce ticket commence. **Les relevés antérieurs — 718 à 660, du 14 au 15 septembre 2026 — sont dans `docs/REPRISE-ARCHIVE.md`**, sortis d'ici le 15 septembre 2026 au soir par `w6-dossier` (#33) pour tenir le budget de `documents.test.ts`, qui ne laissait plus que 47 octets. **Les relevés antérieurs — 640 à 416, du 6 au 13 septembre 2026 — sont dans `docs/REPRISE-ARCHIVE.md`**, sortis d'ici le 15 septembre 2026 pour tenir le budget de `documents.test.ts`, comme les 396 à 273 l'avaient été le 13. **Les relevés antérieurs — 396 à 273 — sont dans `docs/REPRISE-ARCHIVE.md`**, sortis d'ici le 13 septembre 2026 pour tenir le budget de `documents.test.ts`. |
 | **Sources et cadences** | **8 sources dans `compass_source_freshness()`, 8 entrées `cron`**, mesuré le 1er septembre 2026. Les huit du distant sont exactement les huit que les migrations déclarent — recoupé par `freshness`, zéro écart. Entretien remesuré le 5 septembre 2026 : **3 par `schedule`** (`bodacc`, `sirene`, `sirene_stock`), **2 par `workflow-dispatch`** (`geography`, `chantiers`), 3 depuis un terminal — le relevé du 1er septembre disait 1 / 1 / 6 et deux crons mensuels ont eu leur tour depuis. Les cadences les plus lentes n'ont toujours pas eu le leur, donc `freshness` sort en **3** et le dira jusqu'à ce qu'elles l'aient eu |
 | Invariants | **56 — remesuré le 14 septembre 2026** (`grep -c '^-- @invariant' eval/invariants.sql`), et le chiffre est remesuré parce que `w6-fiche-corpus` (#157) allait en recopier un faux : son énoncé disait 50, ce qui était vrai le 7 septembre après `w2-idfm`. Dix de plus sont entrés depuis sans que cette ligne bouge. Antérieurement **46 — mesuré le 7 septembre 2026** (même commande) : `I43` à `I46` ajoutés par `w6-analyse` (#50), un par analyse neuve, tous `@as anon` et tous en deux moitiés — un côté qui vérifie qu'on ne divulgue pas, un côté qui vérifie qu'on ne retient pas trop. Les quatre **dérivent leur millésime de `bdcom_vintage`** au lieu de l'épingler, pour ne pas rougir sur une réponse correcte le jour où l'APUR répond, et les quatre énoncent ce qu'ils ne rattrapent pas. Aucun n'a encore d'acte dans `eval:sabotage` — #94. **42** — `I42` ajouté le 5 septembre 2026 par `w1-geometrie` (#68) : aucune colonne `geography`/`geometry` du schéma ne porte de coordonnée non finie, **et** chacune porte un `check` validé qui l'interdit — population énumérée depuis `pg_attribute`, donc la table suivante y entre en rouge tant qu'elle n'a pas sa contrainte. Rouge à **9 lignes** avant la migration (une de contenu, huit de forme), vert après, et démontré rouge deux fois dans l'acte 6 de `eval:sabotage`. **41** — `I39`, `I40` et `I41` ajoutés le 5 septembre 2026 par `w1-observabilite` (#72) : la rétention du journal, l'énumération de ses colonnes, et la retenue du quartier d'une question unique. Les trois sont **joués sous sabotage** dans l'acte 5 de `eval:sabotage`, en transaction annulée — colonne `ip` ajoutée, clé étrangère du quartier retirée, ligne de 400 jours insérée : les trois rougissent, et l'écriture suivante purge la ligne périmée d'elle-même. Le recensement de `I24` est passé de **6 à 7 fonctions** (`compass_question_summary` y entre d'office, `DIAGNOSTIC.md` §37), toutes couvertes. **38** — `I38` ajouté le 5 septembre 2026 par `w1-catalogue`, sur la table de codes des chantiers ; mesuré à **0 ligne** sur le distant, et démontré à **2 lignes** sous sabotage en transaction annulée, volume inchangé à 120 chantiers — **le rechargement du 5 septembre a porté la table à 113 lignes**, et `I38` reste à 0 sur ce contenu-là. Trois d'entre eux, `I1`, `I2` et `I7`, sont **joués en 22 instructions** au lieu d'une. Même population, toutes les tranches jouées |
 | **Journal des questions** (`question_tally`) | **0 ligne, mesuré le 6 septembre 2026** — et mesuré *après* avoir rejoué les deux bras qui passent par PostgREST avec la vraie clé publiable, `eval:anon` (15 contrôles) puis `verify:mcp` (41 contrôles) : le journal est resté à zéro. C'est ce qui démontre que l'échappement de `#72` **s'applique** et n'est pas seulement déclaré — et la dernière porte planifiée, le 5 septembre à 11:21 UTC, avait tourné **avant** que l'échappement soit poussé (18:26 UTC), donc rien ne l'avait encore éprouvé sur un runner. Le zéro n'est pas un tuyau mort : un contre-test délibéré — un appel PostgREST sans l'en-tête, depuis `scripts/eval/sonde-w1-81.ts`, le 6 septembre — a bien écrit **un seau**, nommé et daté ici avant purge : *jour 2026-09-06, `rpc`, `compass_premises_within`, axe `premises`, rayon 800 m, millésime 2023, quartier `13`, issue `repondu`, 1 appel, 568 ms*. Purgé nommément le même jour, table revenue à 0 |
@@ -944,6 +944,39 @@ docs/tickets/w2-idfm.md.
 
 ## La suite, par ordre
 
+22. **Une fiche se télécharge, et chaque chiffre du fichier se refait sans nous croire.**
+    `w6-dossier` (#33) fermée le 15 septembre 2026. Le détail, les deux instants de clic comparés
+    et ce qui n'est pas fait sont dans `docs/tickets/w6-dossier.md`, section « Livré » ; ce qui
+    suit est l'état.
+
+    **Mesuré Chrome sans tête, build local, téléchargement écrit sur le disque et relu** : le
+    fichier part **167 ms** après le clic et porte **6 figures — 5 chiffrées, 1 retenue — zéro
+    provenance incomplète et zéro écart de re-dérivation**. Chaque ligne descend avec sa source,
+    sa licence, son millésime, sa méthode, la formule, ses constantes, le rayon et **l'opérande** :
+    `density` 100 sur **920 locaux** dans 400 m, `rail` 45 sur **317,07 m**, `services` 59 sur cinq
+    comptes par famille. C'est l'opérande qui manquait — `Measured<T>` portait déjà les quatre
+    premiers mots du ticket, et un lecteur ne pouvait toujours refaire aucun calcul.
+
+    **La doctrine tient dans la structure, pas dans la discipline** : `buildDossier` prend une
+    adresse et n'a pas de forme plurielle, le bouton n'existe que sur la fiche, et
+    `downloadDossier` non plus. Il n'y a rien à retirer pour refuser l'export de masse ; il
+    faudrait écrire une boucle.
+
+    **Deux défauts trouvés à l'ÉCRAN et pas en relecture** — `DIAGNOSTIC.md` §55, corrigés avant
+    la livraison : le fichier créditait la **BAN** d'un libellé qu'elle n'avait pas rendu (la fiche
+    affiche le slug de l'URL tant que le géocodeur répond), et il perdait la distinction « mesure
+    en cours » / « source injoignable » que `#180` avait construite. Le test unitaire était vert
+    sur les deux et le serait resté.
+
+    **Ce qui attend une décision d'Ivan** : **le PDF n'est pas fait.** Le ticket écrit
+    « (PDF/JSON) », JSON est livré, et le PDF coûterait une dépendance, un avis de sécurité à
+    juger, et le format où « re-dérivable » se vérifie par machine est déjà celui qui est là.
+
+    **Ce qui n'est PAS fait** : le dossier porte les figures de la FICHE — pas
+    `compass_address_timeline`, pas les avis BODACC, pas la suite d'activités. Et **aucun bras de
+    porte n'ouvre le navigateur pour ce chemin** : `page` s'arrête au verdict et ne clique rien,
+    donc une régression du bouton passerait au vert chaque matin.
+
 21. **La fiche rend son verdict en moins d'une seconde et demie, miroirs pendus.**
     `w6-fiche-delai` (#180) fermée le 15 septembre 2026. Le détail, les six passages comparés et
     la méthode sont dans `docs/tickets/w6-fiche-delai.md`, section « Livré » ; ce qui suit est
@@ -964,53 +997,11 @@ docs/tickets/w2-idfm.md.
     recette du puits. **Ce qui n'est PAS fait** : le corpus reste sur le chemin critique, et un
     appel à froid a été mesuré à 2 974 ms.
 
-20. **Les quatre axes porteurs lisent le corpus. Overpass ne peut plus refuser un verdict.**
-    `w6-amenites-corpus` (#169) fermée le 15 septembre 2026. Le détail de la livraison est dans
-    `docs/tickets/w6-amenites-corpus.md`, section « Livré » ; ce qui suit est l'état.
-
-    **Miroirs Overpass COUPÉS AU RÉSOLVEUR** — pas lents, irrésolvables — rue de Bretagne, Chrome
-    sans tête contre le build local : **verdict composé en 1 316 à 2 411 ms**, « Tissu commercial
-    dense, passage soutenu, desserte ferrée moyenne, services marchands à pied moyennement
-    présents. », **cinq constats sur six**. Le 14 septembre, le même point rendait **un sur six**
-    et un refus. Hors corpus (Massy) : refus nommé sur quatre axes, et trois causes distinctes au
-    même écran — hors du corpus, source injoignable, retenu pour licence.
-
-    **Deux des trois moyens du ticket n'existaient pas, et `docs/PLAN.md` §3.2 portait la même
-    erreur** — donc aucun des deux ne pouvait corriger l'autre. `compass_station_profile` ne rend
-    **aucun comptage** : sa colonne est `pct_validations`, la part d'une journée de station par
-    tranche horaire, 24 tranches sommant à 99,99 % à Oberkampf. `compass_scoring_context_within`
-    ne porte **aucun code d'activité** : six colonnes. Les deux fichiers sont corrigés, le piège
-    est dans `docs/REPRISE-PIEGES.md`. Les volumes, eux, tiennent : **258 arrêts, 29 489 lignes de
-    profil, 85 410 locaux rattachés sur 85 418**, remesurés, et un appelant anonyme les atteint —
-    le piège de `#97` est bien levé.
-
-    **Trois axes changent de NOM, et le nom EST l'honnêteté.** `transit` → `rail` (une distance à
-    l'arrêt **ferré**, pas un comptage de nœuds), `walkability` → `services` (un relevé de
-    commerces, pas des « aménités » qui contiennent écoles et bureaux de poste), `groceries` →
-    `alimentaire`. Les anciens restent dans `AreaScores` sur Overpass et **`/carte` les affiche
-    encore**. `Methodology.tsx` publie les deux formules neuves, règle de `CLAUDE.md`.
-
-    **Les constantes sont remesurées, jamais recopiées.** Celles d'OSM sizent un marquage
-    bénévole — 18 pour l'alimentaire — quand BDCom trouve **87 commerces alimentaires dans 400 m
-    rue de Bretagne** : les réutiliser aurait rendu **100 partout**, le défaut de `DIAGNOSTIC.md`
-    §52. Chacune est la médiane mesurée de sa famille divisée par ln 2, sur douze points
-    parisiens. L'axe **sépare Auteuil (32) de Montorgueil (64)** là où `density` lit 97 contre
-    100. Douze points, pas quatre-vingts quartiers : l'ordre de grandeur est juste, la
-    re-dérivation sur la population entière est un meilleur nombre et le bloqueur de personne.
-
-    **Un défaut trouvé à l'ÉCRAN, pas en relecture** — `DIAGNOSTIC.md` §53. À Massy, les deux
-    couches neuves affichaient **0/100** : leurs fonctions réussissent hors de Paris et rendent
-    zéro ligne, donc elles comptaient « chargées et vides ». Corrigé sur les deux surfaces —
-    `compass_scoring_context_within` reste seule autorité sur la frontière. **Ce que ça ne
-    rattrape pas** : les appelants sont protégés, pas les fonctions ; un agent appelant
-    `compass_premises_within` en direct reçoit toujours zéro ligne à Massy. C'est le §36, ouvert,
-    et sa sortie est une migration.
-
-    **Ce qui attend une décision d'Ivan.** `rail` est **ferré seulement** — 258 arrêts, les bus
-    n'y sont pas — là où le comptage OSM qu'il remplace les incluait : plus fiable où il regarde,
-    aveugle où il ne regarde pas. Le libellé a été changé pour le dire sans attendre, mais
-    personne n'a tranché que « desserte » pouvait devenir « desserte ferrée ». Et `services`
-    reste aveugle au non marchand jusqu'à `w2-bpe-marches-velo` (#17).
+20. — **les quatre axes porteurs lisent le corpus**, `w6-amenites-corpus` (#169), fermée le
+    15 septembre 2026. Sortie d'ici le soir même par `w6-dossier` (#33) pour tenir le plafond
+    de `documents.test.ts` : l'état, les mesures miroirs coupés et **ce qui attend une décision
+    d'Ivan — `rail` est ferré seulement, les bus n'y sont pas** — sont dans
+    `docs/REPRISE-ARCHIVE.md`, le détail dans `docs/tickets/w6-amenites-corpus.md`.
 
 19. — **la fiche lit le corpus**, sorti d'ici le 15 septembre 2026 (`docs/REPRISE-ARCHIVE.md`).
     Ce qui y restait vivant — « `page` reste rouge contre la production » — a été **mesuré faux

@@ -432,6 +432,19 @@ une garantie.
   l'adresse en plus de l'identifiant et marque la divergence au lieu de la lisser : un historique
   ainsi marqué est une preuve plus faible, et l'interface doit pouvoir le dire.
 
+**2.6 — Le dossier d'une adresse — FAIT le 15 septembre 2026.**
+
+> **Livré par `w6-dossier` (#33)**, qui redisait cette section : un même chantier écrit à deux
+> endroits. `src/core/dossier.ts` porte le contenu, `src/lib/downloadDossier.ts` le fichier,
+> `src/components/context/ContextDossier.tsx` le bouton — exactement le partage que le dernier
+> paragraphe ci-dessous demandait. Démontré dans Chrome sans tête rue de Bretagne : **6 figures,
+> zéro provenance incomplète, zéro écart de re-dérivation**, fichier écrit sur le disque 167 ms
+> après le clic. La ligne « une ligne par indicateur, et à côté sa source, sa licence, son
+> millésime, sa méthode et sa réserve » est tenue, **plus la formule, ses constantes, le rayon et
+> l'opérande** : les quatre premiers ne laissaient refaire aucun calcul. Le détail et ce qui n'est
+> pas fait — **le PDF, décision d'Ivan** — sont dans `docs/tickets/w6-dossier.md`, section
+> « Livré » ; l'état est au point 22 de `docs/REPRISE.md`.
+
 **2.6 — Le dossier d'une adresse.** Un fichier téléchargeable pour **une** adresse : une ligne par
 indicateur, et à côté sa source, sa licence, son millésime, sa méthode et sa réserve. Un fichier
 où la moitié de la largeur sert à dire d'où vient l'autre moitié.

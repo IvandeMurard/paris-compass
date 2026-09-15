@@ -1231,6 +1231,11 @@ manquant — la même forme d'erreur que le `\y` mangé plus haut : ça ressembl
 **Le réflexe** : avant de diagnostiquer un rouge dans un worktree neuf, vérifier que
 `node_modules` existe à SA racine, même si les portes ont l'air de tourner.
 
+**Reproduit à l'identique le 15 septembre 2026 au soir**, depuis `.claude/worktrees/w6-dossier` :
+mêmes **6 échecs sur les 2 mêmes fichiers**, 779 autres au vert, et `typecheck`, `build` et
+`vitest` verts avant comme après. `npm.cmd install` dans le worktree : **785 sur 55, sortie 0**.
+Le piège tient, et il tient deux jours de suite sur deux tickets sans rapport.
+
 ---
 
 ## Smart App Control bloque le binaire natif de `@swc/core`, et `vite` refuse de démarrer — 26 août 2026, levé depuis
@@ -1419,3 +1424,70 @@ passe par `npm.cmd run brief`. Un prompt de session écrit ou recopié à la mai
 c'est précisément par là que celui-ci est arrivé. **Avant de commencer un ticket, lire l'état de
 son issue**, une commande : `gh issue view <NUM> --json state`. Si elle est fermée, le
 « Fait quand » est un critère périmé et le redémontrer ne change rien dans le dépôt.
+
+
+---
+
+## Un chiffre ROND dans un gabarit de test rend une famille entière de sabotages invisible — 15 septembre 2026
+
+`w6-dossier` (#33) publie, à côté de chaque figure exportée, l'**opérande** sur lequel la formule
+a tourné — le nombre de locaux comptés, la distance à l'arrêt. Le test du ticket re-dérive chaque
+chiffre depuis ce que le fichier porte, et il est passé **du premier coup**. Un test qui n'a jamais
+été vu rouge ne prouve rien, donc trois sabotages ont été joués contre lui, chacun restauré après :
+
+| Sabotage de `src/core/dossier.ts` | Le test |
+| --- | --- |
+| constante de `density` recopiée à 91 au lieu d'importer `PREMISE_SATURATION` | **rouge**, sortie 1 |
+| distance ferrée publiée arrondie à la dizaine | **VERT — il ne voyait rien** |
+| absence de bruit re-dérivée en zéro plutôt qu'en `null` | **rouge**, sortie 1 |
+
+**Le contrôle était sain, le gabarit était aveugle.** Il posait `nearestStationM: 190`, et 190
+arrondi à la dizaine fait 190 : le sabotage était un no-op sur cette donnée-là, pas sur le code.
+Passé à **187**, le même sabotage rend la troisième colonne rouge comme les deux autres.
+
+**Le réflexe** : dans un gabarit, préférer un nombre que la moitié des transformations plausibles
+déplacerait — 187 plutôt que 190, 1 003 plutôt que 1 000, 48,8631 plutôt que 48,86. C'est la même
+famille que « ne pas épingler la page d'un portail à la place de son endpoint » : ce qu'on
+recoupe doit pouvoir être en désaccord.
+
+Et le corollaire, plus cher : **un sabotage vert n'accuse pas forcément le contrôle.** Le premier
+mouvement a été de croire le test mal écrit. Regarder la DONNÉE avant le code a coûté deux
+minutes ; réécrire le test en aurait coûté trente, pour un test moins bon.
+
+---
+
+## Télécharger un dossier depuis un navigateur sans tête, et le re-dériver — le geste — 15 septembre 2026
+
+La démonstration du « Fait quand » de `w6-dossier` (#33) — *« depuis une fiche, télécharger un
+fichier dont chaque figure est re-dérivable »* — ne peut pas se jouer hors ligne : un test unitaire
+prouve que la fonction rend un objet re-dérivable, jamais qu'un visiteur obtient un **fichier**.
+La sonde qui l'a démontré est **jetable et n'est pas au dépôt** — c'est le précédent de
+`scripts/eval/sonde-w1-81.ts`, qui a servi une fois et n'a pas été gardé. Voici de quoi la
+réécrire en dix minutes.
+
+```powershell
+npm.cmd run build
+npx serve dist -l 4179       # -s : repli sur index.html, sinon /contexte/... rend 404
+```
+
+Puis, en CDP — la même mécanique que `scripts/porte/chrome.ts`, et **sans Playwright** :
+
+1. `Browser.setDownloadBehavior` avec `behavior: "allow"` et un `downloadPath` temporaire.
+   **Sans lui, `<a download>` ne produit RIEN en `--headless=new`**, sans erreur et sans trace :
+   le clic réussit, la page ne bronche pas, et le répertoire reste vide.
+2. attendre que `#verdict` porte une phrase — le critère de `scripts/porte/page.ts`, à reprendre
+   tel quel plutôt qu'à réinventer ;
+3. cliquer le vrai bouton de la section `#dossier` ;
+4. **attendre le fichier sur le DISQUE** en relisant le répertoire, pas attendre un événement CDP ;
+5. le relire et re-dériver chaque figure **sans rien importer du dépôt** : réécrire
+   `100 × (1 − exp(−n / S))` et `100 × exp(−d / D)` depuis la chaîne `formula` que le fichier
+   publie. C'est le geste du lecteur qui ne nous croit pas, et c'est le seul qui démontre quelque
+   chose : re-dériver avec les fonctions du noyau prouverait que le noyau s'accorde avec lui-même.
+
+**Ce qu'on ne voit qu'à ce prix** : les deux défauts de `DIAGNOSTIC.md` §55 étaient invisibles au
+test unitaire et le seraient restés. Ils se lisent dans l'en-tête du fichier téléchargé.
+
+**Et le MOMENT du clic est une variable.** Cliquer 0,9 s après le verdict et cliquer 13 s après
+produisent deux fichiers différents et tous deux corrects — provenance de l'URL contre provenance
+BAN, `noise` en route contre `noise` injoignable. Une sonde qui ne joue qu'un des deux instants
+laisse l'autre moitié du comportement sans témoin.
