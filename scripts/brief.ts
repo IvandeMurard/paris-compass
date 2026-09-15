@@ -9,11 +9,11 @@
 // Derived from docs/SESSIONS.md and docs/tickets/, so it cannot drift from them.
 
 import { readFileSync, readdirSync, existsSync } from "fs"
-import { execFileSync } from "child_process"
 import { resolve } from "path"
 
 import { etatCourant } from "./porte/etat"
 import { choixDe } from "./session-choix"
+import { Issue, RefusGitHub, issuesDuTicket, lireIssues } from "./session-issues"
 
 const SESSIONS = resolve("docs/SESSIONS.md")
 const TICKETS = resolve("docs/tickets")
@@ -99,20 +99,48 @@ export function coupeRapport(lignes: string[]): { utiles: number; rapport: numbe
     : { utiles: coupe, rapport: lignes.length - coupe }
 }
 
-export type EtatIssue = { num: string; clos: boolean | null }
+export type EtatIssue = {
+  num: string
+  clos: boolean | null
+  /** Set when several issues carry the ticket's official title. The caller refuses; see below. */
+  ambigu?: number[]
+}
 
-/** `clos: null` means GitHub was not reachable — offline, no token, or no issue carrying the id.
- *  That is not "open": the caller must say it does not know rather than imply the ticket is live. */
-function issueDuTicket(id: string): EtatIssue {
+/** The ticket↔issue link, read from a population already in hand.
+ *
+ *  It goes through `issuesDuTicket` — the SAME call scripts/sessions.ts makes for the order
+ *  table — and that is the whole point of this function existing. Until 15 September 2026 this
+ *  file matched `\b<id>\b` anywhere in a title, and both ways of getting that wrong were
+ *  measured: an issue that merely NAMES the ticket stole its row (`w6-contexte` → #142 instead
+ *  of #119), and `-` not being a word character meant `\b` could not close an id prefix
+ *  (`w1-observabilite` → #81, the issue of `w1-observabilite-echappement`, instead of #72).
+ *  The repository had already paid for exactly that in #131 and anchored the table's matching;
+ *  this file had stayed on the old way. One owner, three readers.
+ *
+ *  `clos: null` means "not known" — GitHub unreachable, or no issue carrying the anchored id.
+ *  That is not "open": the caller must say it does not know rather than imply the ticket is live.
+ *
+ *  Exported for the cross-check in brief.test.ts. */
+export function etatDeLIssue(issues: Issue[], id: string): EtatIssue {
+  const officielles = issuesDuTicket(issues, id)
+  if (officielles.length === 0) return { num: "?", clos: null }
+  if (officielles.length > 1) return { num: "?", clos: null, ambigu: officielles.map((i) => i.number) }
+  const hit = officielles[0]
+  return { num: String(hit.number), clos: hit.state.toUpperCase() === "CLOSED" }
+}
+
+/** The population, or null when GitHub could not be asked. A brief still assembles offline —
+ *  it just says it cannot tell whether the ticket is already delivered. The refusal is printed
+ *  rather than swallowed: a truncated listing and an absent `gh` both land here, and they are
+ *  not the same thing to fix. */
+function issuesOuRien(): Issue[] | null {
   try {
-    const out = execFileSync("gh", ["issue", "list", "--state", "all", "--limit", "200",
-      "--json", "number,title,state"], { encoding: "utf8" })
-    const hit = (JSON.parse(out) as { number: number; title: string; state: string }[])
-      .find((i) => new RegExp(`\\b${id}\\b`).test(i.title))
-    if (!hit) return { num: "?", clos: null }
-    return { num: String(hit.number), clos: hit.state.toUpperCase() === "CLOSED" }
-  } catch {
-    return { num: "?", clos: null }
+    return lireIssues()
+  } catch (e) {
+    process.stderr.write(
+      `\n[note] ${e instanceof RefusGitHub ? e.message : (e as Error).message}\n`,
+    )
+    return null
   }
 }
 
@@ -123,7 +151,25 @@ function main() {
     process.exit(1)
   }
   const id = ticketId(arg)
-  const { num, clos } = issueDuTicket(id)
+  const issues = issuesOuRien()
+  const { num, clos, ambigu } = issues
+    ? etatDeLIssue(issues, id)
+    : ({ num: "?", clos: null } as EtatIssue)
+
+  // Deux issues qui portent le titre officiel d'un ticket, c'est une ambiguïté, et une
+  // ambiguïté tranchée en silence est la façon dont le mauvais numéro se publie —
+  // scripts/sessions.ts s'arrête là-dessus depuis #176. Ici l'enjeu a grandi le 15 septembre
+  // 2026 : le numéro porte un ordre « ARRÊTE-TOI », donc deviner reviendrait à arrêter une
+  // session sur l'état d'une autre issue.
+  if (ambigu) {
+    console.error(
+      `${id} : ${ambigu.length} issues portent le titre officiel du ticket — ` +
+        ambigu.map((n) => `#${n}`).join(", ") +
+        `.\nUne seule issue par ticket. Renommer les autres : le titre « [Pn] ${id} — » est ` +
+        `ce qui lie le brief au ticket, pas une mention du nom.`,
+    )
+    process.exit(1)
+  }
   const doc = lire(SESSIONS)
 
   const ticket = lire(resolve(TICKETS, `${id}.md`)).split(/\n/)
