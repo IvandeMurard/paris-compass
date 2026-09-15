@@ -225,6 +225,25 @@ les deux états, pour qu'il n'y ait pas de `diff` à lire. Éprouvée le 26 aoû
 `w1-terrasses` à « ouvert » dans la table alors que `#15` était fermée : rouge, avec la ligne
 fautive.
 
+**Depuis le 15 septembre 2026, la même commande recoupe aussi les listes des huit épics.**
+Chaque `[épic] Vague N` portait une liste de tickets cochée à la main : trois des huit étaient
+fausses ce matin-là — `#42` listait 7 de ses 17 tickets étiquetés, et toute la famille
+porte/instruments (`#70` à `#82`) ne figurait dans aucune liste. La population se dérive
+maintenant des étiquettes `epic` et `vague-N`, jamais d'une liste de numéros. Trois écarts
+rougissent : un ticket étiqueté absent de la liste, une ligne dont l'issue ne porte plus
+l'étiquette ou n'existe pas, et une case qui contredit l'état de l'issue.
+
+```powershell
+npm.cmd run sessions -- --epiques   # réécrit le bloc `## Tickets` de chaque épic sur GitHub
+```
+
+Seul ce bloc est régénéré : le préambule et le « Fait quand » sont de la prose humaine, et
+**l'ordre des lignes aussi** — `#43` à `#46` et `#48` sont rangés par ce qu'il faut faire
+d'abord. Une ligne déjà là garde sa place, une nouvelle tombe à la fin, une ligne dont l'issue
+a perdu l'étiquette s'en va. Ce que ça ne rattrape pas : ça recoupe des étiquettes à des cases,
+jamais qu'une étiquette est la bonne, et un ticket sans étiquette de vague reste invisible aux
+deux côtés.
+
 ---
 
 ## L'ordre
