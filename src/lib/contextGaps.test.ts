@@ -177,3 +177,31 @@ describe('collectGaps', () => {
     );
   });
 });
+
+describe('collectGaps — une couche qui voyage encore n’est pas un trou (w6-fiche-delai #180)', () => {
+  const enVol = unavailable<number>(OSM, 'The road layer did not load for this area.');
+
+  it('n’inscrit rien pour un axe encore en cours de mesure', () => {
+    const gaps = collectGaps(
+      scores({ noise: enVol }),
+      ['premises'],
+      OSM.source,
+      'fr',
+      {},
+      null,
+      new Set(['noise' as const]),
+    );
+    // Le bloc liste ce que Compass ne sait pas ici. « Personne n'a encore répondu » n'est pas
+    // une chose qu'il ne sait pas : c'est une chose qu'il n'a pas fini de demander. L'inscrire
+    // puis la retirer deux secondes plus tard est comment une liste de trous cesse d'être lue.
+    expect(gaps.find((g) => g.key === 'missing:noise')).toBeUndefined();
+  });
+
+  it('l’inscrit dès que la couche s’est déclarée injoignable', () => {
+    const gaps = collectGaps(scores({ noise: enVol }), ['premises'], OSM.source, 'fr', {
+      roads: 'source_injoignable' as Withholding,
+    });
+    const gap = gaps.find((g) => g.key === 'missing:noise');
+    expect(gap?.text).toContain('source injoignable');
+  });
+});

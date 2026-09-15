@@ -44,12 +44,33 @@ vi.mock('@/services/compass/addressCorpus', async () => {
   };
 });
 
-const { fetchAddressContext } = await import('./useAddressContext');
+const { fetchCorpusContext, composeContext, boxAround } = await import('./useAddressContext');
 const { CorpusUnavailable } = await import('@/services/compass/addressCorpus');
 const { composeVerdict, findingsFromScores } = await import('@/core');
+const { pendingAxes } = await import('@/lib/contextLayers');
 const { BDCOM_ORIGIN, IDFM_ORIGIN } = await import('@/core');
 
 const POINT = { lat: 48.8631, lng: 2.3621 };
+
+/**
+ * La fiche une fois les DEUX moitiés arrivées — l'état que ces contrôles jugent.
+ *
+ * Depuis `w6-fiche-delai` (#180) la page ne les attend plus ensemble : le corpus rend l'écran,
+ * l'instantané Overpass le complète. Ce qu'elle finit par afficher n'a pas changé, et c'est
+ * précisément ce que cet assembleur vérifie — tous les contrôles écrits pour `#157` et `#169`
+ * jugent la même chose qu'avant, sans une assertion réécrite. Ce qui a changé est QUAND, et
+ * c'est le dernier bloc de ce fichier qui le juge.
+ */
+async function ficheComplete(point: { lat: number; lng: number }) {
+  const corpus = await fetchCorpusContext(point);
+  const part = await Promise.resolve(
+    fetchOverpassSnapshot(boxAround(point), { budgetMs: 10000 }),
+  ).then(
+    (snapshot) => ({ etat: 'arrive' as const, snapshot }),
+    () => ({ etat: 'injoignable' as const }),
+  );
+  return composeContext(point, corpus, part);
+}
 
 /** La provenance que `compass_vintages` rend pour 2023 — relevée le 14 septembre 2026. */
 const BDCOM_2023 = BDCOM_ORIGIN(2023, 'ODbL-1.0', '2023-06');
@@ -136,9 +157,9 @@ beforeEach(() => {
   });
 });
 
-describe('fetchAddressContext — le corpus d’abord', () => {
+describe('la fiche complète — le corpus d’abord', () => {
   it('attribue les locaux à l’APUR et le reste à OpenStreetMap : les origines ne sont plus uniformes', async () => {
-    const context = await fetchAddressContext(POINT);
+    const context = await ficheComplete(POINT);
 
     expect(context.origins.premises.source).toBe('APUR BDCom 2023');
     expect(context.origins.premises.licence).toBe('ODbL-1.0');
@@ -153,13 +174,13 @@ describe('fetchAddressContext — le corpus d’abord', () => {
     // Le bouchon rend un local OSM marqué `vacant`. Si la fiche le comptait encore, il
     // arriverait ici — et le marquage bénévole reprendrait la place du relevé de terrain sans
     // que la provenance affichée change d'un mot.
-    const { points } = await fetchAddressContext(POINT);
+    const { points } = await ficheComplete(POINT);
     expect(points.premises).toHaveLength(120);
     expect(points.premises.some((p) => p.status === 'vacant')).toBe(false);
   });
 
   it('rend un constat porté par APUR BDCom 2023, avec sa licence et son millésime', async () => {
-    const { scores } = await fetchAddressContext(POINT);
+    const { scores } = await ficheComplete(POINT);
 
     expect(scores.density.value).not.toBeNull();
     expect(scores.density.source).toBe('APUR BDCom 2023');
@@ -179,7 +200,7 @@ describe('fetchAddressContext — le corpus d’abord', () => {
     // Critère 3 du ticket, écrit une origine à la fois. Un libellé recopié d'un axe sur
     // l'autre serait invisible à l'œil et faux pour un redistributeur : les deux licences
     // diffèrent, ODbL-1.0 d'un côté, Licence Ouverte 2.0 de l'autre.
-    const { scores } = await fetchAddressContext(POINT);
+    const { scores } = await ficheComplete(POINT);
 
     expect(scores.rail.source).toBe('IDFM — référentiel des arrêts');
     expect(scores.rail.licence).toBe('Licence Ouverte 2.0 (Etalab)');
@@ -195,7 +216,7 @@ describe('fetchAddressContext — le corpus d’abord', () => {
   it('CONTRE-PREUVE : miroirs injoignables, le constat du corpus tient et garde sa provenance', async () => {
     fetchOverpassSnapshot.mockRejectedValue(new Error('les trois miroirs ont refusé'));
 
-    const { scores, loaded, withheldBy } = await fetchAddressContext(POINT);
+    const { scores, loaded, withheldBy } = await ficheComplete(POINT);
 
     // Ce qui tombe, tombe.
     expect(loaded).toEqual(['premises', 'services', 'stations']);
@@ -215,7 +236,7 @@ describe('fetchAddressContext — le corpus d’abord', () => {
     // sur `/contexte/rue-de-bretagne-paris` : un constat sur six.
     fetchOverpassSnapshot.mockRejectedValue(new Error('les trois miroirs ont refusé'));
 
-    const { scores } = await fetchAddressContext(POINT);
+    const { scores } = await ficheComplete(POINT);
     const verdict = composeVerdict(findingsFromScores(scores));
 
     expect(verdict.kind).toBe('compose');
@@ -234,7 +255,7 @@ describe('fetchAddressContext — le corpus d’abord', () => {
     // « inconnu » détruirait la seule réponse que la couche donne avec certitude.
     fetchCorpusStation.mockResolvedValue({ distanceM: null, name: null });
 
-    const { scores, loaded, withheldBy } = await fetchAddressContext(POINT);
+    const { scores, loaded, withheldBy } = await ficheComplete(POINT);
 
     expect(loaded).toContain('stations');
     expect(withheldBy.stations).toBeUndefined();
@@ -245,7 +266,7 @@ describe('fetchAddressContext — le corpus d’abord', () => {
   it('une couche ferrée injoignable retire l’axe plutôt que de le compter à zéro', async () => {
     fetchCorpusStation.mockRejectedValue(new CorpusUnavailable('PostgREST muet', 'source_injoignable'));
 
-    const { scores, loaded, withheldBy } = await fetchAddressContext(POINT);
+    const { scores, loaded, withheldBy } = await ficheComplete(POINT);
 
     expect(loaded).not.toContain('stations');
     expect(withheldBy.stations).toBe('source_injoignable');
@@ -260,13 +281,13 @@ describe('fetchAddressContext — le corpus d’abord', () => {
     // Le budget de dix secondes est passé à Overpass et à personne d'autre. Si le corpus
     // partageait ce minuteur, le miroir aurait le pouvoir d'annuler la base — l'inversion que
     // ce ticket a défaite.
-    await fetchAddressContext(POINT);
+    await ficheComplete(POINT);
     expect(fetchOverpassSnapshot).toHaveBeenCalledWith(expect.anything(), { budgetMs: 10000 });
     expect(fetchCorpusPremises).toHaveBeenCalledWith(POINT.lat, POINT.lng, 400);
   });
 });
 
-describe('fetchAddressContext — les trois absences ne se confondent pas', () => {
+describe('la fiche complète — les trois absences ne se confondent pas', () => {
   it('HORS CORPUS : les trois couches du corpus tombent ensemble, aucune ne vaut zéro', async () => {
     // Trouvé à l'écran, à Massy, le 15 septembre 2026, avant livraison de w6-amenites-corpus.
     // Les deux fonctions neuves RÉUSSISSENT hors de Paris et rendent zéro ligne :
@@ -282,7 +303,7 @@ describe('fetchAddressContext — les trois absences ne se confondent pas', () =
     fetchCorpusServices.mockResolvedValue({ points: [], rendered: 0, totalMatched: 0, truncated: false });
     fetchCorpusStation.mockResolvedValue({ distanceM: null, name: null });
 
-    const { scores, loaded, withheldBy } = await fetchAddressContext(POINT);
+    const { scores, loaded, withheldBy } = await ficheComplete(POINT);
 
     for (const layer of ['premises', 'services', 'stations'] as const) {
       expect(loaded).not.toContain(layer);
@@ -304,7 +325,7 @@ describe('fetchAddressContext — les trois absences ne se confondent pas', () =
       new CorpusUnavailable('licence APUR non lue', 'retenue_licence'),
     );
 
-    const { scores, loaded, withheldBy } = await fetchAddressContext(POINT);
+    const { scores, loaded, withheldBy } = await ficheComplete(POINT);
 
     expect(withheldBy.premises).toBe('retenue_licence');
     expect(loaded).not.toContain('premises');
@@ -319,7 +340,7 @@ describe('fetchAddressContext — les trois absences ne se confondent pas', () =
       new CorpusUnavailable('point hors de Paris intra-muros', 'hors_corpus'),
     );
 
-    const { withheldBy, scores } = await fetchAddressContext(POINT);
+    const { withheldBy, scores } = await ficheComplete(POINT);
 
     expect(withheldBy.premises).toBe('hors_corpus');
     expect(scores.density.value).toBeNull();
@@ -331,7 +352,7 @@ describe('fetchAddressContext — les trois absences ne se confondent pas', () =
     // comme « inconnu » la détruirait.
     fetchCorpusPremises.mockResolvedValue(corpusPremises(0));
 
-    const { scores, loaded, withheldBy } = await fetchAddressContext(POINT);
+    const { scores, loaded, withheldBy } = await ficheComplete(POINT);
 
     expect(loaded).toContain('premises');
     expect(withheldBy.premises).toBeUndefined();
@@ -343,7 +364,7 @@ describe('fetchAddressContext — les trois absences ne se confondent pas', () =
   it('des lignes sans leur licence sont des lignes qu’on ne score pas', async () => {
     fetchPremisesOrigin.mockRejectedValue(new Error('compass_vintages: indisponible'));
 
-    const { scores, loaded, withheldBy, origins } = await fetchAddressContext(POINT);
+    const { scores, loaded, withheldBy, origins } = await ficheComplete(POINT);
 
     expect(loaded).not.toContain('premises');
     // Ni « retenue de licence » ni « hors corpus » : on ne sait pas, et on le dit.
@@ -354,7 +375,7 @@ describe('fetchAddressContext — les trois absences ne se confondent pas', () =
   });
 });
 
-describe('fetchAddressContext — un compte plafonné est un plancher, et il le dit', () => {
+describe('la fiche complète — un compte plafonné est un plancher, et il le dit', () => {
   it('remonte la troncature en réserve sur les deux chiffres qui lisent la couche', async () => {
     // Mesuré rue de Bretagne le 14 septembre 2026 : 1 000 lignes rendues sur 3 528 à 800 m.
     fetchCorpusPremises.mockResolvedValue({
@@ -363,7 +384,7 @@ describe('fetchAddressContext — un compte plafonné est un plancher, et il le 
       truncated: true,
     });
 
-    const { scores } = await fetchAddressContext(POINT);
+    const { scores } = await ficheComplete(POINT);
 
     expect(scores.density.note).toContain('1000');
     expect(scores.density.note).toContain('3528');
@@ -374,23 +395,99 @@ describe('fetchAddressContext — un compte plafonné est un plancher, et il le 
   });
 
   it('aucune réserve quand rien n’a été coupé', async () => {
-    const { scores } = await fetchAddressContext(POINT);
+    const { scores } = await ficheComplete(POINT);
     expect(scores.density.note).toBeUndefined();
   });
 });
 
-describe('fetchAddressContext — ce que le corpus détient et ne peut pas servir', () => {
+describe('la fiche complète — ce que le corpus détient et ne peut pas servir', () => {
   it('remonte la retenue des transitions d’activité, avec la phrase écrite par la fonction', async () => {
-    const { transitions } = await fetchAddressContext(POINT);
+    const { transitions } = await ficheComplete(POINT);
     expect(transitions?.withheld).toBe(true);
     expect(transitions?.evidence).toContain('2020');
   });
 
   it('une panne de cet appel ne devient pas une retenue de licence', async () => {
     fetchActivityTransitions.mockRejectedValue(new Error('réseau'));
-    const { transitions } = await fetchAddressContext(POINT);
+    const { transitions } = await ficheComplete(POINT);
     // `null`, jamais `{ withheld: true }` : un incident et un refus de licence appellent deux
     // actions différentes, et les confondre ferait écrire à l'APUR pour une panne de réseau.
     expect(transitions).toBeNull();
+  });
+});
+
+describe('QUAND la fiche répond — w6-fiche-delai (#180)', () => {
+  /**
+   * Un miroir qui ne répond JAMAIS.
+   *
+   * C'est la forme qui manquait aux controles ci-dessus : ils bouchonnaient un miroir qui
+   * refuse, donc vite, et un refus rapide ne distingue pas une page qui n'attend plus d'une
+   * page qui attend peu. Mesure du 15 septembre 2026 dans `docs/REPRISE-PIEGES.md` : miroirs
+   * coupés au résolveur, la fiche répondait déjà en 1 316 à 2 411 ms ; miroirs qui PENDENT,
+   * elle mettait ~10 200 ms. Les deux sont vraies et ne se remplacent pas.
+   */
+  const miroirQuiPend = () => new Promise<never>(() => {});
+
+  it('le corpus répond seul, sans qu’aucun miroir ait répondu — la promesse du ticket', async () => {
+    fetchOverpassSnapshot.mockReturnValue(miroirQuiPend());
+
+    // Aucun `await` sur Overpass : si cet appel en faisait un, ce test ne finirait jamais.
+    const corpus = await fetchCorpusContext(POINT);
+    const { scores, loaded, pending } = composeContext(POINT, corpus, { etat: 'en_cours' });
+    const verdict = composeVerdict(findingsFromScores(scores));
+
+    expect(verdict.kind).toBe('compose');
+    // Les quatre porteurs, plus `alimentaire` : les cinq constats du corpus, à l'écran avant
+    // que le miroir ait dit quoi que ce soit.
+    expect(loaded).toEqual(['premises', 'services', 'stations']);
+    expect(pending).toEqual(['amenities', 'roads']);
+  });
+
+  it('CRITÈRE 2 — bruit routier reste NOMMÉ pendant l’attente, et ce n’est pas une absence', async () => {
+    fetchOverpassSnapshot.mockReturnValue(miroirQuiPend());
+
+    const corpus = await fetchCorpusContext(POINT);
+    const { scores, withheldBy, pending } = composeContext(POINT, corpus, { etat: 'en_cours' });
+
+    // Pas de chiffre, et surtout pas de cause : déclarer « source injoignable » une couche qui
+    // voyage encore serait mentir dans l'autre sens — c'est la distinction que `pending` porte.
+    expect(scores.noise.value).toBeNull();
+    expect(withheldBy.roads).toBeUndefined();
+    expect(pendingAxes(pending).has('noise')).toBe(true);
+    // Et la provenance tient même sans valeur : un lecteur apprend QUELLE source il attend.
+    expect(scores.noise.source).toBe('OpenStreetMap via Overpass');
+  });
+
+  it('CRITÈRE 3 — le miroir arrive après coup : bruit routier prend sa valeur et sa source', async () => {
+    fetchOverpassSnapshot.mockReturnValue(miroirQuiPend());
+    const corpus = await fetchCorpusContext(POINT);
+
+    const avant = composeContext(POINT, corpus, { etat: 'en_cours' });
+    const apres = composeContext(POINT, corpus, {
+      etat: 'arrive',
+      snapshot: overpassSnapshot() as never,
+    });
+
+    expect(avant.scores.noise.value).toBeNull();
+    expect(apres.scores.noise.value).not.toBeNull();
+    expect(apres.scores.noise.source).toBe('OpenStreetMap via Overpass');
+    expect(apres.pending).toEqual([]);
+    expect(apres.loaded).toContain('roads');
+    // Le verdict, lui, ne bouge pas d'un mot : les axes porteurs ne lisent pas cette couche.
+    expect(composeVerdict(findingsFromScores(apres.scores)).sentence).toBe(
+      composeVerdict(findingsFromScores(avant.scores)).sentence,
+    );
+  });
+
+  it('à l’expiration, bruit routier se DÉCLARE absent — il n’est jamais retiré', async () => {
+    const corpus = await fetchCorpusContext(POINT);
+    const { scores, withheldBy, pending } = composeContext(POINT, corpus, { etat: 'injoignable' });
+
+    expect(pending).toEqual([]);
+    expect(withheldBy.roads).toBe('source_injoignable');
+    expect(scores.noise.value).toBeNull();
+    // Le constat existe toujours, avec sa source : c'est ce que `w6-fiche-robuste` a construit
+    // et ce que ce ticket n'a pas le droit de défaire.
+    expect(scores.noise.source).toBe('OpenStreetMap via Overpass');
   });
 });

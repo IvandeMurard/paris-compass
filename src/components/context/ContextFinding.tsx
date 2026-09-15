@@ -24,9 +24,18 @@ interface Props {
   measured: Measured<number>;
   /** The clause the verdict would use for this axis, when it has a value. */
   phrase?: string;
+  /**
+   * True while every layer this axis reads is still in flight — w6-fiche-delai (#180).
+   *
+   * The card is rendered either way: a finding whose source has not answered yet keeps its
+   * name, its place in the reading order and its provenance block. What it must not do is
+   * borrow the words of an absence — `missingReason` says the layer « did not load », which is
+   * a statement about a walk that has not finished.
+   */
+  pending?: boolean;
 }
 
-const ContextFinding = ({ axis, measured, phrase }: Props) => {
+const ContextFinding = ({ axis, measured, phrase, pending = false }: Props) => {
   const { locale } = useLocale();
   const c = CONTEXT_COPY[locale];
   const name = AXIS_NAMES[locale][axis];
@@ -48,13 +57,21 @@ const ContextFinding = ({ axis, measured, phrase }: Props) => {
           {name}
         </h3>
         <p className="text-2xl font-semibold tabular-nums">
-          <MeasuredScore measured={measured} display={display} />
+          {pending && measured.value === null ? (
+            <span className="text-muted-foreground" title={c.findingPending} aria-live="polite">
+              …
+            </span>
+          ) : (
+            <MeasuredScore measured={measured} display={display} />
+          )}
         </p>
       </div>
 
       <p className="mt-1 text-base">
         {measured.value === null
-          ? (measured.missingReason ?? c.whyMissing)
+          ? pending
+            ? c.findingPending
+            : (measured.missingReason ?? c.whyMissing)
           : (phrase ?? bandOf(axis, measured.value))}
       </p>
 

@@ -56,6 +56,7 @@ import {
   withComparison,
 } from '@/lib/addressSlug';
 import { collectGaps } from '@/lib/contextGaps';
+import { pendingAxes } from '@/lib/contextLayers';
 import { geocode } from '@/services/opendata/geocoding';
 
 // Leaflet is loaded only once a sheet has figures to illustrate. Criterion 3 asks that the
@@ -172,6 +173,14 @@ const Context = () => {
     [context.data, locale],
   );
 
+  // Which findings are still travelling rather than missing — w6-fiche-delai (#180). Derived
+  // once here and given to both readers of it, so the card and the gaps block cannot disagree
+  // about whether an absence is a hole.
+  const enCours = useMemo(
+    () => pendingAxes(context.data?.pending ?? []),
+    [context.data?.pending],
+  );
+
   const gaps = useMemo(
     () =>
       context.data
@@ -186,9 +195,10 @@ const Context = () => {
             context.data.withheldBy,
             // What the corpus holds and may not serve — w6-fiche-corpus (#157).
             context.data.transitions,
+            enCours,
           )
         : [],
-    [context.data, locale],
+    [context.data, locale, enCours],
   );
 
   const phrases = useMemo(() => {
@@ -287,6 +297,7 @@ const Context = () => {
                       axis={axis}
                       measured={context.data.scores[axis]}
                       phrase={phrases.get(axis)}
+                      pending={enCours.has(axis)}
                     />
                   ))}
                 </ul>

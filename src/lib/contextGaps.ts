@@ -80,6 +80,16 @@ export function collectGaps(
    * borrowing the words of a licence refusal.
    */
   transitions: { withheld: boolean; evidence: string | null } | null = null,
+  /**
+   * Axes whose every layer is still in flight — w6-fiche-delai (#180), from `pendingAxes`.
+   *
+   * They contribute nothing here, and the omission is the point: this block lists what Compass
+   * does not know at this address, and « nobody has answered yet » is not a thing it does not
+   * know — it is a thing it has not finished asking. Listing it would put a hole in front of a
+   * reader and take it away two seconds later, which is how a list of holes stops being read.
+   * The entry appears as soon as the layer settles unreachable, which is when it becomes true.
+   */
+  pending: ReadonlySet<VerdictAxis> = new Set(),
 ): Gap[] {
   const copy = GAP_COPY[locale];
   const names = AXIS_NAMES[locale];
@@ -87,6 +97,7 @@ export function collectGaps(
 
   for (const finding of findingsFromScores(scores, withheldBy)) {
     const { axis, measured } = finding;
+    if (measured.value === null && pending.has(axis)) continue;
     if (measured.value === null) {
       gaps.push({
         key: `missing:${axis}`,

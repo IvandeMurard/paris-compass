@@ -9,7 +9,7 @@ import {
   type Measured,
   type Origin,
 } from '@/core';
-import { drawableLayers, resolvedAxes } from './contextLayers';
+import { drawableLayers, pendingAxes, resolvedAxes } from './contextLayers';
 
 const OSM: Origin = { source: 'OpenStreetMap via Overpass', licence: 'ODbL-1.0', asOf: '2026-09-11' };
 const plain = (n: number): Measured<number> => withValue(n, OSM, 'derived');
@@ -81,5 +81,26 @@ describe('drawableLayers', () => {
       Object.keys(scores()).map((k) => [k, nothing]),
     ) as unknown as AreaScores;
     expect(drawableLayers(blank, ALL).size).toBe(0);
+  });
+});
+
+describe('pendingAxes — w6-fiche-delai (#180)', () => {
+  it('rend l’axe dont TOUTES les couches voyagent encore, et la vérité comparée est VERDICT_AXES', () => {
+    const attendu = VERDICT_AXIS_ORDER.filter((a) =>
+      VERDICT_AXES[a].layers.every((l) => l === 'amenities' || l === 'roads'),
+    );
+    expect([...pendingAxes(['amenities', 'roads'])]).toEqual(attendu);
+    // Et depuis w6-amenites-corpus cet ensemble vaut exactement `noise` : c'est la propriété
+    // qui autorise la fiche à rendre son verdict sans Overpass. Le jour où un axe porteur
+    // reviendrait sur cette couche, cette ligne rougirait avant l'écran.
+    expect(attendu).toEqual(['noise']);
+    expect(attendu.every((a) => !VERDICT_AXES[a].bearing)).toBe(true);
+  });
+
+  it('ne rend rien quand rien ne voyage, ni un axe dont une seule couche voyage', () => {
+    expect(pendingAxes([]).size).toBe(0);
+    // `footfall` lit `premises` ET `stations` : une moitié en vol ne rend pas l'axe « en cours »,
+    // c'est `scoreLocation` qui décide ce que vaut un axe à moitié servi.
+    expect(pendingAxes(['premises']).has('footfall')).toBe(false);
   });
 });

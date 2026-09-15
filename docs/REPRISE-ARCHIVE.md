@@ -914,3 +914,47 @@ relevés de 396 à 273, et pour la même raison : monter le plafond est interdit
 close ne l'est pas. Chaque relevé garde sa date et ce que son ticket avait ajouté.
 
 Antérieurement **640 sur 48 fichiers, le même jour** — dont les 15 de `w6-fiche-robuste` (`#156`), et **le premier fichier de ce dépôt qui MONTE un composant** : `src/components/context/ContextMap.test.tsx` tourne sous `@vitest-environment jsdom` avec le vrai Leaflet, parce que le défaut n'existe qu'une fois la carte montée. Quatre de ses cinq cas échouent sur `3cb9b5d`, dont deux sur le message exact de production. `node` reste l'environnement par défaut, et c'est une règle : une décision sur des mots ou une géométrie se teste sans DOM. Antérieurement **625 sur 46 fichiers, mesurés le 13 septembre 2026** — dont les 6 de `#152` sur la seconde population du bras `servi` : l'un rejoue l'incident en miniature, un autre surveille que la part de libellés prouvables ne s'effondre pas, ce qui ferait du bras un témoin sans pouvoir de décision, en silence. Antérieurement **619 sur 46 fichiers, mesurés le 13 septembre 2026** — dont les 8 de `src/services/opendata/environment.test.ts` (`#145`), qui tiennent la distinction entre une source qui n'a rien et une source qui n'a pas répondu. L'un d'eux échoue si quelqu'un refusionne les deux cas pour simplifier un appelant. Antérieurement **611 sur 45 fichiers, mesurés le 13 septembre 2026** sur `ticket/servi-contre-suivi` — dont les 16 de `scripts/porte/servi.test.ts` (`#142`), qui rejouent l'incident fondateur **sur la vraie table de routes** : un bundle portant les anciennes routes et pas les quatre neuves rougit en nommant les quatre, et un bundle où rien n'est trouvé rend « mesure cassée » et non un rouge. L'écart avec les 440 du 9 septembre n'est pas de mon fait seul : d'autres sessions ont écrit entre-temps. **440, mesurés le 9 septembre 2026** sur `ticket/avis-atteignabilite` — dont les 18 de `scripts/porte/avis.test.ts` ajoutés par le treizième bras (`#115`), qui jouent la règle d'atteignabilité hors ligne : un avis non jugé rougit, un verdict à demi écrit rougit, un verdict qui dit ATTEIGNABLE rougit quand même, une entrée qu'aucun avis ne porte plus rougit, et une raison que le dépôt contredit rougit toute seule. **422** plus tôt le même jour, après la montée de `vitest` en 4.1.11 — le chiffre est inchangé de part et d'autre de la montée, et c'est ce qui la valide. Antérieurement **418**, remesurés le 6 septembre 2026 au soir sur `ticket/w6-analyse`, qui n'ajoute aucun test — le chiffre de 416 daté du même jour avait été pris avant `#85` et `#86`. Antérieurement **416**, mesurés le 6 septembre 2026 — dont les 20 de `scripts/porte/ledger.test.ts` ajoutés par `w1-ledger` (#82), qui jouent la comparaison des deux listes sans base et vérifient que chaque divergence consignée nomme encore un fichier suivi, **avec l'empreinte contre laquelle elle a été écrite** : une seconde réécriture de `20260825000002` fait échouer `test` seul, sans secret ni connexion.
+
+## Le point 12 — le contrôle de la page publiée après republication — déplacé depuis `docs/REPRISE.md` le 15 septembre 2026
+
+Sorti par `w6-fiche-delai` (#180) pour tenir le plafond de `scripts/porte/documents.test.ts` : monter le plafond est interdit, sortir une entrée close ne l'est pas. **La question du dernier paragraphe est toujours ouverte** et ne se répond pas d'ici.
+
+12. ~~**Contrôler la page publiée après republication.**~~ **Fait le 2 septembre 2026, la
+    production est réparée.** Ivan a republié depuis Lovable ; mesuré sur l'artefact servi
+    juste après :
+
+    | | Avant republication | Après |
+    | --- | --- | --- |
+    | Chunk d'entrée servi | `index-DZV_6s4n.js`, 771 180 octets | `index-BDzDPi5T.js`, **163 738 octets** |
+    | Référence de projet dans le bundle | **0** occurrence | **1** |
+    | Couple `void 0` à la place du client | présent | **aucun** |
+    | Garde de configuration de `src/main.tsx` | absente | **présente** |
+
+    L'entrée est passée de 771 ko à 164 ko parce que le découpage d'`App` a survécu au build
+    de Lovable : c'est la preuve que le bundle publié vient bien de ce dépôt, et pas d'un
+    artefact plus ancien.
+
+    **Ce que ça ne dit pas, et qui reste ouvert.** Que les valeurs soient arrivées ne prouve
+    pas que la garde `prebuild` ait tourné : elles peuvent venir de `.env` sans que
+    `scripts/build/envGuard.ts` ait été appelé, si Lovable invoque `vite build` plutôt que
+    `npm run build`. La réponse tient en une ligne à chercher dans leur journal de build :
+
+    ```
+    Configuration du front présente en mode « production » : VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY.
+    ```
+
+    Absente, la garde 2 ne protège pas le chemin de publication et seule celle de `main.tsx`
+    tient. À consigner ici dans les deux cas — c'est ce qui décide si la règle est au bon
+    endroit.
+
+## Le point 19 — le stub laissé le 15 septembre 2026, et ce qu'il annonçait de faux
+
+Sorti de `docs/REPRISE.md` le soir du 15 septembre 2026 par `w6-fiche-delai` (#180). Le texte complet du point 19 est plus haut dans ce fichier ; ceci est le renvoi qui restait sur la page vive. **Sa dernière affirmation était périmée** : le bras `page` a rendu PASS contre la production ce soir-là, en 10 901 ms — Lovable avait republié sans que personne le mesure.
+
+19. **La fiche lit le corpus. `#156`, `#158` puis `#157`, fermées les 13 et 14 septembre 2026.**
+    Rayé le 15 septembre 2026 : le point 20 ci-dessus le remplace sur tout ce qui est encore
+    vrai, et `w6-amenites-corpus` a levé ce qui restait ouvert côté code. **Le texte entier, avec
+    ses mesures datées — 920 locaux en 144 à 735 ms, le plafond PostgREST à 2 000 m, le plantage
+    `layerPointToLatLng` et les trois temps de la fiche — est dans `docs/REPRISE-ARCHIVE.md`.**
+    Ce qui n'est PAS rayé : le quinzième bras `page` reste **rouge contre la production** jusqu'à
+    ce que Lovable republie, et il ne faut pas le désarmer.

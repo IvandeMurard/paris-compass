@@ -33,6 +33,27 @@ export function resolvedAxes(scores: AreaScores): VerdictAxis[] {
  * two layers (footfall reads premises *and* amenities), and a layer can load while every axis
  * reading it was withheld for another reason.
  */
+/**
+ * The axes whose absence is only an answer still travelling — w6-fiche-delai (#180).
+ *
+ * Same derivation as everything else here: `VERDICT_AXES` says which layers an axis reads, so
+ * an axis is « still being measured » exactly when every layer it reads is still in flight. One
+ * layer arrived and another pending would make the figure partial rather than pending, and
+ * `scoreLocation` already decides that case — it is not re-decided here.
+ *
+ * It exists because « no figure yet » and « no figure, source unreachable » read alike on
+ * screen and must not: the first is a sentence about this second, the second is a hole in the
+ * data that coming back tomorrow might fix.
+ */
+export function pendingAxes(pending: readonly Layer[]): Set<VerdictAxis> {
+  const axes = new Set<VerdictAxis>();
+  if (pending.length === 0) return axes;
+  for (const axis of VERDICT_AXIS_ORDER) {
+    if (VERDICT_AXES[axis].layers.every((layer) => pending.includes(layer))) axes.add(axis);
+  }
+  return axes;
+}
+
 export function drawableLayers(scores: AreaScores, loaded: readonly Layer[]): Set<Layer> {
   const layers = new Set<Layer>();
   for (const axis of resolvedAxes(scores)) {
