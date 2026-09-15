@@ -117,20 +117,40 @@ n'a pas, ou tait celle qu'il a. Trois sources y ont manque pendant deux jours.
 Inutile d'y rappeler `npm.cmd`, la pureté de `src/core/`, `Measured<T>` ou l'encadrement des
 loyers : `CLAUDE.md` est chargé à chaque session.
 
-### La revue — pour les tickets qui la méritent, pas pour tous
+### La revue — pour toutes les propositions, depuis le 15 septembre 2026
 
 Depuis le 6 septembre, chaque session passe par une proposition. La proposition est la trace ;
-la **revue** est autre chose, et elle ne se justifie pas partout — une revue systématique
-devient une case à cocher, et une case à cocher ne lit rien.
+la **revue** est autre chose, et **elle est désormais due partout** — décidé par Ivan le
+15 septembre 2026.
 
-**Quand elle est due.** Un seul de ces signes suffit, et les quatre se constatent sur le diff :
+> **Ce que cette décision renverse, et ce qui l'a renversé.** Cette page disait jusqu'ici
+> l'inverse : *« elle ne se justifie pas partout — une revue systématique devient une case à
+> cocher, et une case à cocher ne lit rien. »* L'argument reste vrai et le risque reste réel.
+> Ce qui l'a emporté est une mesure, le même jour : la première revue jamais faite ici a lu
+> trois propositions déjà fusionnées et a trouvé, dans `#165`, une lecture qui **échoue
+> ouvert** — `(\d+)` rendant 10 sur `10_000`, un délai tombant de 14 000 à 4 010 ms, et le bras
+> rougissant chaque matin sur une page saine. Trois sessions n'avaient rien vu sur leur propre
+> ouvrage, et les quatre tests du délai non plus. Le même jour, la session de `#187` a rapporté
+> qu'une de ses expressions régulières avait **passé sa propre relecture** en ne matchant rien.
+>
+> **Le signe à guetter, puisque le risque est nommé** : le jour où les revues cessent de
+> trouver quoi que ce soit, la case à cocher est arrivée — ce n'est pas la règle qu'il faudra
+> alors desserrer, c'est la façon de lire qu'il faudra reprendre.
 
-| Signe | Pourquoi |
+**Quand elle est due.** Toujours. Les quatre signes ci-dessous ne décident plus *si* une revue a
+lieu ; ils disent ce qu'elle doit regarder **en premier**, et une proposition qui en coche un
+mérite un lecteur qui connaît le domaine :
+
+| Signe | Ce qu'il oriente |
 | --- | --- |
 | Touche `supabase/migrations/` | Posé sur une base vivante, et une migration ne se défait pas |
 | Touche `src/core/` | Partagé par le front et le MCP — `w0-provenance` a déplacé les deux et les formules publiées |
 | Ajoute ou change un invariant, un bras, ou une règle d'énumération | C'est l'instrument qui mesure tout le reste |
 | Porte l'étiquette `P0` | |
+
+**Une proposition qui n'en coche aucun se relit quand même**, et plus court : les cinq questions
+valent pour un fichier de documentation comme pour une migration, et la première — un chiffre
+recopié plutôt que remesuré — s'y trompe autant.
 
 **Qui la fait.** Une session distincte de celle qui a fait le travail. Pas pour la défiance : une
 session qui vient d'écrire une règle en connaît l'intention, et c'est précisément ce qui l'empêche
