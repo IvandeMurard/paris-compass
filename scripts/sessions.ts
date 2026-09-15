@@ -91,9 +91,16 @@ const ORDER = [
   // deux. Placé ici parce qu'il garde une promesse déjà livrée — le produit marche, ce ticket
   // empêche qu'il cesse de marcher sans que personne ne le voie.
   "w1-parite-refus",
-  // Les deux trouvailles de la revue du 15 septembre, qui n'a pas été faite par les sessions
-  // qui ont écrit le code. Elles gardent des instruments, donc elles ne se voient pas à
-  // l'écran — et elles passent après les deux tickets qui s'y voient.
+  // Les trouvailles de la revue du 15 septembre, qui n'a pas été faite par les sessions qui
+  // ont écrit le code. Elles gardent des instruments, donc elles ne se voient pas à l'écran —
+  // et elles passent après les deux tickets qui s'y voient.
+  //
+  // Celui-ci passe devant les deux autres : il ne garde pas un bras, il garde l'outil qui
+  // DISPATCHE les sessions. Depuis #187 le mauvais numéro d'issue porte un ordre
+  // « ARRÊTE-TOI », donc tant qu'il est là, n'importe quelle session suivante peut être
+  // arrêtée sur l'état d'une autre issue — y compris celles qui traitent les deux tickets
+  // ci-dessous.
+  "w1-brief-appariement",
   "w1-page-delai-derive",
   "w1-parite-axes-enumere",
   "w0-deploy",
