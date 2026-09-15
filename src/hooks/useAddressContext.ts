@@ -38,7 +38,9 @@ import { useQuery } from '@tanstack/react-query';
 import {
   AMENITY_RADIUS_M,
   BDCOM_ORIGIN,
+  IDFM_ORIGIN,
   M_PER_DEG_LAT,
+  SERVICE_RADIUS_M,
   buildIndex,
   mPerDegLng,
   scoreLocation,
@@ -50,14 +52,19 @@ import {
   type NeighbourhoodContext,
   type Origin,
   type PremisePoint,
+  type ServicePoint,
   type Withholding,
 } from '@/core';
 import {
   SHEET_RADIUS_M,
   SHEET_VINTAGE,
+  STATION_RADIUS_M,
   fetchActivityTransitions,
   fetchCorpusPremises,
+  fetchCorpusServices,
+  fetchCorpusStation,
   fetchPremisesOrigin,
+  fetchStationOrigin,
   withholdingOf,
   type TransitionsVerdict,
 } from '@/services/compass/addressCorpus';
@@ -82,6 +89,9 @@ const UNKNOWN_BDCOM: Origin = BDCOM_ORIGIN(
   'inconnue — compass_vintages n’a pas pu être lu',
   'inconnu',
 );
+
+/** The same stand-in for the rail layer, reached only when `ingestion_run` itself is silent. */
+const UNKNOWN_IDFM: Origin = IDFM_ORIGIN('inconnu — ingestion_run n’a pas pu être lu');
 
 /**
  * What the sheet says about a premises count PostgREST capped.
@@ -199,12 +209,16 @@ export async function fetchAddressContext(point: {
 }): Promise<AddressContext> {
   const bbox = boxAround(point);
 
-  const [overpass, premises, premisesOrigin, transitions] = await Promise.allSettled([
-    fetchOverpassSnapshot(bbox, { budgetMs: CONTEXT_BUDGET_MS }),
-    fetchCorpusPremises(point.lat, point.lng, SHEET_RADIUS_M),
-    fetchPremisesOrigin(),
-    fetchActivityTransitions(point.lat, point.lng, SHEET_RADIUS_M),
-  ]);
+  const [overpass, premises, premisesOrigin, transitions, services, station, stationOrigin] =
+    await Promise.allSettled([
+      fetchOverpassSnapshot(bbox, { budgetMs: CONTEXT_BUDGET_MS }),
+      fetchCorpusPremises(point.lat, point.lng, SHEET_RADIUS_M),
+      fetchPremisesOrigin(),
+      fetchActivityTransitions(point.lat, point.lng, SHEET_RADIUS_M),
+      fetchCorpusServices(point.lat, point.lng, SERVICE_RADIUS_M),
+      fetchCorpusStation(point.lat, point.lng, STATION_RADIUS_M),
+      fetchStationOrigin(),
+    ]);
 
   const loaded: Layer[] = [];
   const withheldBy: Partial<Record<Layer, Withholding>> = {};
@@ -246,10 +260,68 @@ export async function fetchAddressContext(point: {
     withheldBy.premises = 'indetermine';
   }
 
+  // ── Hors du corpus, les DEUX autres couches du corpus tombent avec les locaux ───────────
+  //
+  // **Mesuré à l'écran le 15 septembre 2026, à Massy, et corrigé avant livraison.** Les deux
+  // fonctions que ces couches appellent RÉUSSISSENT hors de Paris : `compass_premises_within`
+  // rend zéro ligne sans marqueur — il n'en a jamais porté, `DIAGNOSTIC.md` §36 — et
+  // `compass_station_profile` rend zéro ligne parce que `idfm_station` est restreinte à Paris
+  // à l'ingestion. Traités isolément, les deux comptent donc comme « chargés et vides », et la
+  // fiche affichait « services marchands à pied 0/100 » et « desserte ferrée 0/100 » sur une
+  // commune qui a des commerces et un RER. C'est exactement le défaut de `DIAGNOSTIC.md` §16,
+  // un cran plus loin : un chiffre calculé sur rien, estampillé d'une source.
+  //
+  // Seule `compass_scoring_context_within` porte `out_of_corpus`, donc elle est la SEULE
+  // autorité sur la frontière, et les deux autres la suivent. Un second test ici serait une
+  // deuxième autorité sur la même question, libre de contredire la première.
+  const horsCorpus =
+    premises.status === 'rejected' && withholdingOf(premises.reason) === 'hors_corpus';
+
+  // ── The corpus: merchant services, from the same survey read by activity code ───────────
+  // Same rule as premises, one level along: rows without their licence are rows that must not
+  // be scored, so the premises metadata failing withdraws this layer too — the two read the
+  // same vintage and `compass_vintages` is the only place that knows its licence.
+  const servicePoints: ServicePoint[] = horsCorpus
+    ? []
+    : services.status === 'fulfilled'
+      ? services.value.points
+      : [];
+  if (horsCorpus) {
+    withheldBy.services = 'hors_corpus';
+  } else if (services.status === 'fulfilled' && premisesOrigin.status === 'fulfilled') {
+    loaded.push('services');
+    if (services.value.truncated) {
+      layerNotes.services = truncatedNote(services.value.rendered, services.value.totalMatched);
+    }
+  } else if (services.status === 'rejected') {
+    withheldBy.services = withholdingOf(services.reason);
+  } else {
+    withheldBy.services = 'indetermine';
+  }
+
+  // ── The corpus: rail stops, from Île-de-France Mobilités ────────────────────────────────
+  // A stop found or not found are both readings of a layer that ANSWERED **inside the
+  // corpus**; only a thrown call, or a point the corpus does not cover, withdraws it.
+  // `nearestStationM` carries the found/not-found distinction into the core, which is why it
+  // is `number | null` and not an array whose emptiness would be ambiguous.
+  const stationLoaded =
+    !horsCorpus && station.status === 'fulfilled' && stationOrigin.status === 'fulfilled';
+  if (horsCorpus) {
+    withheldBy.stations = 'hors_corpus';
+  } else if (stationLoaded) {
+    loaded.push('stations');
+  } else if (station.status === 'rejected') {
+    withheldBy.stations = withholdingOf(station.reason);
+  } else {
+    withheldBy.stations = 'indetermine';
+  }
+
   const points: NeighbourhoodContext = {
     amenities: osmPoints?.amenities ?? [],
     roads: osmPoints?.roads ?? [],
     premises: premisePoints,
+    services: servicePoints,
+    nearestStationM: !horsCorpus && station.status === 'fulfilled' ? station.value.distanceM : null,
     bounds: bbox,
     loaded,
   };
@@ -258,10 +330,16 @@ export async function fetchAddressContext(point: {
   // BDCom's is not today's date and must never be given it: `as_of` comes from the survey,
   // read off `compass_vintages` rather than written here.
   const osm = OSM_ORIGIN(today());
+  const bdcom = premisesOrigin.status === 'fulfilled' ? premisesOrigin.value : UNKNOWN_BDCOM;
   const origins: LayerOrigins = {
     amenities: osm,
     roads: osm,
-    premises: premisesOrigin.status === 'fulfilled' ? premisesOrigin.value : UNKNOWN_BDCOM,
+    premises: bdcom,
+    // The services layer reads the same survey and the same vintage as the premises layer, so
+    // it carries the same origin by construction rather than by a second lookup that could
+    // answer differently.
+    services: bdcom,
+    stations: stationOrigin.status === 'fulfilled' ? stationOrigin.value : UNKNOWN_IDFM,
   };
 
   return {

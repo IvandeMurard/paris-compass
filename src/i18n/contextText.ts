@@ -10,24 +10,30 @@
  * without a DOM, and the Leaflet popups of a later step cannot render a component.
  */
 
-import { AMENITY_RADIUS_M, FOOTFALL_RADIUS_M, NOISE_RADIUS_M, type VerdictAxis } from '@/core';
+import {
+  AMENITY_RADIUS_M as STATION_LOOKUP_M,
+  FOOTFALL_RADIUS_M,
+  NOISE_RADIUS_M,
+  SERVICE_RADIUS_M,
+  type VerdictAxis,
+} from '@/core';
 import type { Locale } from '@/i18n/locale';
 
 export const AXIS_NAMES: Record<Locale, Record<VerdictAxis, string>> = {
   fr: {
     density: 'Tissu commercial',
     footfall: 'Passage',
-    transit: 'Desserte',
-    walkability: 'Services à pied',
-    groceries: 'Commerces alimentaires',
+    rail: 'Desserte ferrée',
+    services: 'Services marchands à pied',
+    alimentaire: 'Commerces alimentaires',
     noise: 'Bruit routier',
   },
   en: {
     density: 'Commercial fabric',
     footfall: 'Footfall',
-    transit: 'Transit access',
-    walkability: 'Services on foot',
-    groceries: 'Food shops',
+    rail: 'Rail access',
+    services: 'Shops and services on foot',
+    alimentaire: 'Food shops',
     noise: 'Road noise',
   },
 };
@@ -44,18 +50,18 @@ export const AXIS_NAMES: Record<Locale, Record<VerdictAxis, string>> = {
 export const AXIS_WHAT: Record<Locale, Record<VerdictAxis, string>> = {
   fr: {
     density: `Locaux commerciaux relevés dans ${FOOTFALL_RADIUS_M} m, avec rendement décroissant. Un relevé de terrain, pas un marquage bénévole — et le seul constat de cette page qui ne dépende d’aucun miroir public.`,
-    footfall: `Approximation dans ${FOOTFALL_RADIUS_M} m, à partir de la densité de commerces actifs et de l’accès aux transports. Aucun comptage piéton n’est publié en Île-de-France.`,
-    transit: `Arrêts et stations comptés dans ${AMENITY_RADIUS_M} m, avec rendement décroissant.`,
-    walkability: `Composite pondéré des cinq familles d’aménités dans ${AMENITY_RADIUS_M} m. Les poids sont publiés.`,
-    groceries: `Commerces alimentaires comptés dans ${AMENITY_RADIUS_M} m, avec rendement décroissant.`,
+    footfall: `Approximation dans ${FOOTFALL_RADIUS_M} m, à partir de la densité de commerces actifs et de la desserte ferrée. Aucun comptage piéton n’est publié en Île-de-France.`,
+    rail: `Distance à l’arrêt ferré le plus proche — métro, RER, tramway — cherché dans ${STATION_LOOKUP_M} m, avec décroissance exponentielle. Les bus n’y sont pas.`,
+    services: `Composite pondéré de cinq familles de commerces RELEVÉS dans ${SERVICE_RADIUS_M} m, avec rendement décroissant. Un relevé porte-à-porte ne connaît que le marchand : ni écoles, ni équipements publics. Les poids sont publiés.`,
+    alimentaire: `Commerces alimentaires relevés dans ${SERVICE_RADIUS_M} m, avec rendement décroissant.`,
     noise: `Exposition modélisée depuis la proximité et la classe des voies, jusqu’à ${NOISE_RADIUS_M} m. Ni le bâti, ni le trafic, ni l’heure n’entrent dedans.`,
   },
   en: {
     density: `Commercial premises surveyed within ${FOOTFALL_RADIUS_M} m, with diminishing returns. A field survey, not volunteer tagging — and the only finding on this page that depends on no public mirror.`,
-    footfall: `A proxy within ${FOOTFALL_RADIUS_M} m, built from active-business density and transport access. No pedestrian count is published for Île-de-France.`,
-    transit: `Stops and stations counted within ${AMENITY_RADIUS_M} m, with diminishing returns.`,
-    walkability: `Weighted composite of the five amenity families within ${AMENITY_RADIUS_M} m. The weights are published.`,
-    groceries: `Food shops counted within ${AMENITY_RADIUS_M} m, with diminishing returns.`,
+    footfall: `A proxy within ${FOOTFALL_RADIUS_M} m, built from active-business density and rail access. No pedestrian count is published for Île-de-France.`,
+    rail: `Distance to the nearest rail stop — metro, RER, tram — looked for within ${STATION_LOOKUP_M} m, with exponential decay. Buses are not in it.`,
+    services: `Weighted composite of five families of SURVEYED shops within ${SERVICE_RADIUS_M} m, with diminishing returns. A door-to-door survey knows only the merchant: no schools, no public facilities. The weights are published.`,
+    alimentaire: `Food shops surveyed within ${SERVICE_RADIUS_M} m, with diminishing returns.`,
     noise: `Exposure modelled from the proximity and class of major roads, up to ${NOISE_RADIUS_M} m. Buildings, traffic volume and time of day are not taken into account.`,
   },
 };

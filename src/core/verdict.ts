@@ -45,12 +45,28 @@ import { noiseLabel, scoreLabel, type AreaScores, type Layer } from './scoring';
  *  that module is the browser's, and `src/core` must stay callable from the MCP server. */
 export type VerdictLocale = 'fr' | 'en';
 
+/**
+ * The six axes of the sheet.
+ *
+ * **Three of them changed name on 15 September 2026 — w6-amenites-corpus — and the renaming
+ * IS the honesty.** `transit` became `rail`, `walkability` became `services`, `groceries`
+ * became `alimentaire`. Each now reads the corpus rather than a free public mirror, and each
+ * therefore counts a different population: rail stops instead of every transport node a
+ * volunteer tagged, surveyed merchant premises instead of OpenStreetMap « amenities » which
+ * include schools and post offices.
+ *
+ * Keeping the old names over the new measures was the available shortcut and it was refused,
+ * by Ivan on 14 September 2026: a figure that carries a label promising something it does not
+ * count is exactly the defect `Measured<T>` exists to prevent, moved up one level into the
+ * word above the number. The old axes are still computed from Overpass and still shown by
+ * `/carte` — see `AreaScores` — they simply no longer bear a verdict.
+ */
 export type VerdictAxis =
   | 'density'
   | 'footfall'
-  | 'transit'
-  | 'walkability'
-  | 'groceries'
+  | 'rail'
+  | 'services'
+  | 'alimentaire'
   | 'noise';
 
 /**
@@ -107,25 +123,32 @@ export interface VerdictAxisRule {
  * limits, and a better one than a verdict composed from OpenStreetMap alone in Massy. It
  * costs nothing inside Paris, where the layer answers and the three Overpass axes were
  * already bearing.
+ *
+ * **And since w6-amenites-corpus, EVERY bearing axis reads the corpus.** The table below was
+ * the ticket's whole argument: `footfall`, `transit` and `walkability` all listed `amenities`,
+ * a layer with one source, so one saturated Overpass mirror refused the verdict whatever else
+ * had arrived. Measured in production on 14 September 2026 at rue de Bretagne: one finding of
+ * six. `noise` is the only axis still reading Overpass, and it is deliberately NOT bearing —
+ * its absence colours an answer, it cannot refuse one.
  */
 export const VERDICT_AXES: Readonly<Record<VerdictAxis, VerdictAxisRule>> = {
   density: { bearing: true, layers: ['premises'] },
-  footfall: { bearing: true, layers: ['premises', 'amenities'] },
-  transit: { bearing: true, layers: ['amenities'] },
-  walkability: { bearing: true, layers: ['amenities'] },
-  groceries: { bearing: false, layers: ['amenities'] },
+  footfall: { bearing: true, layers: ['premises', 'stations'] },
+  rail: { bearing: true, layers: ['stations'] },
+  services: { bearing: true, layers: ['services'] },
+  alimentaire: { bearing: false, layers: ['services'] },
   noise: { bearing: false, layers: ['roads'] },
 };
 
 /** Reading order of the findings, on screen and in the sentence. The corpus leads, and the
  *  order is the doctrine of #157 made visible: what the database holds first, what a free
- *  public mirror adds second. */
+ *  public mirror adds second — which since w6-amenites-corpus means everything but `noise`. */
 export const VERDICT_AXIS_ORDER: readonly VerdictAxis[] = [
   'density',
   'footfall',
-  'transit',
-  'walkability',
-  'groceries',
+  'rail',
+  'services',
+  'alimentaire',
   'noise',
 ];
 
@@ -206,13 +229,24 @@ const CLAUSES: Record<VerdictLocale, Record<VerdictAxis, Record<Band, string>>> 
       faible: 'tissu commercial clairsemé',
     },
     footfall: { fort: 'passage soutenu', moyen: 'passage moyen', faible: 'passage faible' },
-    transit: { fort: 'desserte forte', moyen: 'desserte moyenne', faible: 'desserte faible' },
-    walkability: {
-      fort: 'services à pied nombreux',
-      moyen: 'services à pied moyennement présents',
-      faible: 'services à pied rares',
+    // « Desserte ferrée » and not « desserte » alone: the figure is the distance to the
+    // nearest metro, RER or tram stop and knows nothing of buses. A clause that said
+    // « desserte faible » about a street served by four bus lines would be a sentence the
+    // data cannot support — w6-amenites-corpus.
+    rail: {
+      fort: 'desserte ferrée forte',
+      moyen: 'desserte ferrée moyenne',
+      faible: 'desserte ferrée faible',
     },
-    groceries: {
+    // « Services MARCHANDS à pied », tranché par Ivan le 14 septembre 2026. The old clause
+    // said « services à pied » over a count that included schools and post offices; this one
+    // says it over a survey of shops, and the adjective is what keeps the two apart.
+    services: {
+      fort: 'services marchands à pied nombreux',
+      moyen: 'services marchands à pied moyennement présents',
+      faible: 'services marchands à pied rares',
+    },
+    alimentaire: {
       fort: 'commerces alimentaires nombreux',
       moyen: 'commerces alimentaires présents',
       faible: 'commerces alimentaires rares',
@@ -230,17 +264,17 @@ const CLAUSES: Record<VerdictLocale, Record<VerdictAxis, Record<Band, string>>> 
       faible: 'a sparse commercial fabric',
     },
     footfall: { fort: 'steady footfall', moyen: 'moderate footfall', faible: 'low footfall' },
-    transit: {
-      fort: 'strong transit access',
-      moyen: 'moderate transit access',
-      faible: 'weak transit access',
+    rail: {
+      fort: 'strong rail access',
+      moyen: 'moderate rail access',
+      faible: 'weak rail access',
     },
-    walkability: {
-      fort: 'many services within walking distance',
-      moyen: 'some services within walking distance',
-      faible: 'few services within walking distance',
+    services: {
+      fort: 'many shops and services within walking distance',
+      moyen: 'some shops and services within walking distance',
+      faible: 'few shops and services within walking distance',
     },
-    groceries: { fort: 'many food shops', moyen: 'some food shops', faible: 'few food shops' },
+    alimentaire: { fort: 'many food shops', moyen: 'some food shops', faible: 'few food shops' },
     noise: {
       fort: 'high road-noise exposure',
       moyen: 'moderate road-noise exposure',
@@ -256,17 +290,17 @@ const SUBJECTS: Record<VerdictLocale, Record<VerdictAxis, string>> = {
   fr: {
     density: 'le tissu commercial',
     footfall: 'le passage',
-    transit: 'la desserte',
-    walkability: 'les services à pied',
-    groceries: 'les commerces alimentaires',
+    rail: 'la desserte ferrée',
+    services: 'les services marchands à pied',
+    alimentaire: 'les commerces alimentaires',
     noise: 'le bruit routier',
   },
   en: {
     density: 'the commercial fabric',
     footfall: 'footfall',
-    transit: 'transit access',
-    walkability: 'services within walking distance',
-    groceries: 'food shops',
+    rail: 'rail access',
+    services: 'shops and services within walking distance',
+    alimentaire: 'food shops',
     noise: 'road noise',
   },
 };

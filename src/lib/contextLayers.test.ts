@@ -17,6 +17,9 @@ const absent = (why: string): Measured<number> => unavailable<number>(OSM, why);
 
 const scores = (partial: Partial<AreaScores> = {}): AreaScores => ({
   density: plain(65),
+  services: plain(65),
+  rail: plain(65),
+  alimentaire: plain(65),
   walkability: plain(70),
   schools: plain(70),
   healthcare: plain(70),
@@ -28,7 +31,7 @@ const scores = (partial: Partial<AreaScores> = {}): AreaScores => ({
   ...partial,
 });
 
-const ALL: readonly Layer[] = ['amenities', 'roads', 'premises'];
+const ALL: readonly Layer[] = ['amenities', 'roads', 'premises', 'services', 'stations'];
 
 describe('resolvedAxes', () => {
   it('ne retient que les axes qui portent un chiffre', () => {
@@ -54,9 +57,9 @@ describe('drawableLayers', () => {
       scores({
         density: withheld,
         footfall: withheld,
-        walkability: withheld,
-        groceries: withheld,
-        transit: withheld,
+        services: withheld,
+        alimentaire: withheld,
+        rail: withheld,
       }),
       ALL,
     );
@@ -67,6 +70,9 @@ describe('drawableLayers', () => {
   it('ne dessine pas une couche qui n’a pas chargé, même si un axe a abouti', () => {
     expect(drawableLayers(scores(), ['amenities']).has('premises')).toBe(false);
     expect(drawableLayers(scores(), ['amenities']).has('roads')).toBe(false);
+    // Et depuis w6-amenites-corpus les deux couches du corpus suivent la même règle : `amenities`
+    // seul chargé ne dessine plus RIEN, parce que plus aucun axe du verdict ne lit cette couche.
+    expect(drawableLayers(scores(), ['amenities']).size).toBe(0);
   });
 
   it('ne dessine rien quand rien n’a abouti', () => {

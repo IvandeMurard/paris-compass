@@ -1253,3 +1253,79 @@ d'origine à l'identique : le bundle produit divergeait de celui de SWC. Depuis 
 31 août les deux chemins rendent le même bundle — mais si Smart App Control se remet à bloquer
 SWC, cette divergence peut revenir sans préavis, et aucune mesure ne la verrait avant qu'on
 compare les deux builds.
+
+---
+
+## Un jeu IDFM qui promet des « validations » ne porte aucun volume — 15 septembre 2026
+
+**`compass_station_profile` rend une FORME, jamais un compte.** Sa colonne utile s'appelle
+`pct_validations` et c'est la part d'une journée de station tombant dans une tranche horaire :
+les 24 tranches `JOHV` d'Oberkampf — Filles du Calvaire somment à **99,99 %**, mesuré ce jour-là.
+Le jeu IDFM ne publie **aucun compte absolu**, donc deux stations n'y sont pas comparables sur
+leur fréquentation — seulement sur le profil de leur journée.
+
+**Ce que ça coûte quand on ne le vérifie pas.** `docs/PLAN.md` §3.2 annonçait « Remplace le
+passage estimé par un nombre compté » ; `docs/tickets/w6-amenites-corpus.md` a recopié la phrase
+en « IDFM — comptages de validation réels par station » et a bâti son axe `transit` dessus. Les
+deux documents portaient la même erreur, donc **aucun des deux ne pouvait corriger l'autre** : il
+a fallu lire la migration et interroger la base. `20260907000002` le dit pourtant en toutes
+lettres dans son en-tête, et c'est la lecture qui a tranché.
+
+**Ce que la fonction donne réellement d'utilisable** : `station_name` et `distance_m`, l'arrêt
+ferré le plus proche dans le rayon. C'est ce que l'axe `rail` lit.
+
+**La règle, et elle est plus large que ce cas** : le nom d'un jeu de données décrit ce qu'il
+mesure, jamais la forme sous laquelle il le publie. Un jeu « validations » peut ne contenir que
+des pourcentages ; un jeu « trafic annuel » peut n'avoir aucun profil horaire (c'est pourquoi
+`w2-idfm` a écarté data.gouv.fr). **Interroger la table avant d'écrire un ticket qui compte
+dessus.** Le coût ici : une conception d'axe entièrement refaite en cours de session.
+
+---
+
+## Une fonction `compass_*` ne porte pas les colonnes de sa voisine — 15 septembre 2026
+
+**`compass_scoring_context_within` rend six colonnes et aucun code d'activité :**
+`lat, lng, is_vacant, total_matched, withheld, out_of_corpus`. Mesuré.
+
+Le ticket `w6-amenites-corpus` annonçait « BDCom — locaux commerciaux et **codes d'activité** —
+déjà lus par `compass_scoring_context_within` ». Faux : les codes vivent sur
+`compass_premises_within`, une autre fonction, avec sa propre forme de ligne et son propre
+plafond. Les deux lisent les mêmes tables, ce qui rend la confusion facile et la vérification
+rapide — un `POST /rest/v1/rpc/<nom>` et un `Object.keys` sur la première ligne.
+
+**Pourquoi ça compte plus qu'une ligne de ticket** : élargir la fonction aurait demandé une
+**migration**, et `supabase db push` est lancé par Ivan, pas par une session (voir le piège du
+classifieur). Un ticket qui suppose une colonne inexistante est donc un ticket dont le critère
+d'acceptation n'est pas atteignable dans la session qui le prend. La conception a été refaite
+autour des fonctions existantes.
+
+---
+
+## Couper les miroirs Overpass pour de bon, sans toucher au dépôt — 15 septembre 2026
+
+Plusieurs tickets demandent une démonstration « Overpass injoignable, **coupé** pour de bon, pas
+attendu ». Attendre un vrai 429 ne le démontre pas : un miroir qui met 70 s à mourir prouve le
+budget, pas l'indépendance. Deux voies, mesurées, aucune n'écrit dans le dépôt.
+
+**Dans le navigateur** — la coupure au résolveur, qui échoue immédiatement :
+
+```
+--host-resolver-rules=MAP overpass-api.de ~NOTFOUND,MAP overpass.kumi.systems ~NOTFOUND,MAP overpass.private.coffee ~NOTFOUND
+```
+
+127.0.0.1 reste joignable, donc un build local servi en statique marche, et Supabase et la BAN
+passent normalement : c'est une coupure de **source**, pas de réseau.
+
+**Dans Node** — un préchargement qui refuse les seules URL `overpass` :
+
+```
+NODE_OPTIONS=--import file:///<chemin>/coupe-miroirs.mjs   # remplace globalThis.fetch
+```
+
+`NODE_OPTIONS` se propage aux processus enfants, donc `npm.cmd run verify:mcp` le transmet au
+serveur MCP qu'il lance. C'est ainsi que le critère 2 de `w6-amenites-corpus` a été démontré.
+
+**Ce que ça ne démontre pas** : le comportement sous un miroir **lent**. Une résolution qui
+échoue en 1 ms et un miroir qui expire en 70 s prennent le même chemin de code mais pas le même
+temps — la fiche répond en 1 316 à 2 411 ms miroirs coupés, contre ~10 200 ms quand ils pendent
+et que `CONTEXT_BUDGET_MS` va au bout. Les deux mesures sont vraies et ne se remplacent pas.

@@ -33,6 +33,9 @@ function coreResult(overrides: Partial<CoreScores> = {}): CoreScores {
   const present = (n: number) => withValue(n, ORIGIN, 'derived');
   return {
     density: present(65),
+    services: present(65),
+    rail: present(65),
+    alimentaire: present(65),
     walkability: present(70),
     schools: present(60),
     healthcare: present(50),

@@ -50,6 +50,9 @@ const plain = (n: number): Measured<number> => withValue(n, OSM, 'derived');
 
 const scores = (partial: Partial<AreaScores> = {}): AreaScores => ({
   density: plain(65),
+  services: plain(65),
+  rail: plain(65),
+  alimentaire: plain(65),
   walkability: plain(70),
   schools: plain(70),
   healthcare: plain(70),
@@ -68,6 +71,8 @@ const snapshot = (loaded: readonly Layer[]): NeighbourhoodContext => ({
   amenities: [{ lat: 48.8633, lng: 2.3625, category: 'transit' }],
   roads: [{ lat: 48.8628, lng: 2.3618, weight: 3 }],
   premises: [{ lat: 48.8632, lng: 2.3623, status: 'occupied' }],
+  services: [{ lat: 48.8632, lng: 2.3623, family: 'alimentaire' }],
+  nearestStationM: 317,
   loaded,
 });
 
@@ -142,7 +147,14 @@ describe('ContextMap', () => {
   it('rend le refus de verdict sans carte plutôt qu’un écran d’erreur', () => {
     // The Overpass outage, as `useAddressContext` hands it over: nothing loaded, every axis
     // withheld. This is the case the whole ticket exists for.
-    const empty: NeighbourhoodContext = { amenities: [], roads: [], premises: [], loaded: [] };
+    const empty: NeighbourhoodContext = {
+      amenities: [],
+      roads: [],
+      premises: [],
+      services: [],
+      nearestStationM: null,
+      loaded: [],
+    };
     const host = render(
       <ContextMap
         point={BRETAGNE}

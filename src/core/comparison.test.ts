@@ -46,13 +46,13 @@ describe('compareAddresses', () => {
     const withheld = {
       density: absent('x'),
       footfall: absent('x'),
-      transit: absent('x'),
-      walkability: absent('x'),
+      rail: absent('x'),
+      services: absent('x'),
     };
     const c = compareAddresses(findings(), findings(withheld));
     expect(c.bearingComparable).toBe(false);
     // Les axes d’appui, eux, restent comparables : refuser le verdict n’est pas refuser d’informer.
-    expect(c.comparableAxes).toContain('groceries');
+    expect(c.comparableAxes).toContain('alimentaire');
   });
 
   it('ne rend ni note, ni classement, ni écart — aucun champ ne pourrait en porter un', () => {

@@ -21,6 +21,9 @@ const fetchOverpassSnapshot = vi.fn();
 const fetchCorpusPremises = vi.fn();
 const fetchPremisesOrigin = vi.fn();
 const fetchActivityTransitions = vi.fn();
+const fetchCorpusServices = vi.fn();
+const fetchCorpusStation = vi.fn();
+const fetchStationOrigin = vi.fn();
 
 vi.mock('@/services/opendata/overpass', () => ({
   fetchOverpassSnapshot: (...args: unknown[]) => fetchOverpassSnapshot(...args),
@@ -35,17 +38,24 @@ vi.mock('@/services/compass/addressCorpus', async () => {
     fetchCorpusPremises: (...args: unknown[]) => fetchCorpusPremises(...args),
     fetchPremisesOrigin: (...args: unknown[]) => fetchPremisesOrigin(...args),
     fetchActivityTransitions: (...args: unknown[]) => fetchActivityTransitions(...args),
+    fetchCorpusServices: (...args: unknown[]) => fetchCorpusServices(...args),
+    fetchCorpusStation: (...args: unknown[]) => fetchCorpusStation(...args),
+    fetchStationOrigin: (...args: unknown[]) => fetchStationOrigin(...args),
   };
 });
 
 const { fetchAddressContext } = await import('./useAddressContext');
 const { CorpusUnavailable } = await import('@/services/compass/addressCorpus');
-const { BDCOM_ORIGIN } = await import('@/core');
+const { composeVerdict, findingsFromScores } = await import('@/core');
+const { BDCOM_ORIGIN, IDFM_ORIGIN } = await import('@/core');
 
 const POINT = { lat: 48.8631, lng: 2.3621 };
 
 /** La provenance que `compass_vintages` rend pour 2023 — relevée le 14 septembre 2026. */
 const BDCOM_2023 = BDCOM_ORIGIN(2023, 'ODbL-1.0', '2023-06');
+
+/** La provenance que `ingestion_run` rend pour `idfm` — relevée le 15 septembre 2026. */
+const IDFM_2026 = IDFM_ORIGIN('2026-03-10');
 
 /** Un instantané Overpass qui répond, avec de quoi faire aboutir les trois axes OSM. */
 function overpassSnapshot() {
@@ -84,11 +94,40 @@ function corpusPremises(n: number): { points: PremisePoint[]; totalMatched: numb
   return { points, totalMatched: n, truncated: false };
 }
 
+/**
+ * Des services marchands relevés autour du point — w6-amenites-corpus.
+ *
+ * Les effectifs sont ceux mesurés rue de Bretagne le 15 septembre 2026 à 400 m, divisés par
+ * dix pour que le bouchon reste lisible : la forme du mélange est ce qui compte ici, pas son
+ * volume, et un test qui recopierait 588 points testerait la patience de personne.
+ */
+function corpusServices() {
+  const families = [
+    ['alimentaire', 9],
+    ['soins', 4],
+    ['restauration', 18],
+    ['demarches', 16],
+    ['culture', 13],
+  ] as const;
+  const points = families.flatMap(([family, n]) =>
+    Array.from({ length: n }, (_, i) => ({
+      lat: POINT.lat + i * 0.00001,
+      lng: POINT.lng,
+      family,
+    })),
+  );
+  return { points, rendered: 92, totalMatched: 92, truncated: false };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   fetchOverpassSnapshot.mockResolvedValue(overpassSnapshot());
   fetchCorpusPremises.mockResolvedValue(corpusPremises(120));
   fetchPremisesOrigin.mockResolvedValue(BDCOM_2023);
+  fetchCorpusServices.mockResolvedValue(corpusServices());
+  // Oberkampf — Filles du Calvaire, à 317 m, mesuré le 15 septembre 2026.
+  fetchCorpusStation.mockResolvedValue({ distanceM: 317, name: 'Oberkampf - Filles du Calvaire' });
+  fetchStationOrigin.mockResolvedValue(IDFM_2026);
   fetchActivityTransitions.mockResolvedValue({
     withheld: true,
     evidence: 'Une transition dérive de deux millésimes, et 2020 n’est pas redistribuable.',
@@ -127,10 +166,30 @@ describe('fetchAddressContext — le corpus d’abord', () => {
     expect(scores.density.licence).toBe('ODbL-1.0');
     expect(scores.density.asOf).toBe('2023-06');
     // Le passage lit les deux couches, donc il les nomme les deux — jamais « la principale ».
+    // Depuis w6-amenites-corpus la seconde est IDFM et non plus Overpass : c'est ce qui fait
+    // que l'axe survit à un miroir mort, et c'est ce que cette ligne tient en place.
     expect(scores.footfall.source).toContain('APUR BDCom 2023');
-    expect(scores.footfall.source).toContain('OpenStreetMap via Overpass');
+    expect(scores.footfall.source).toContain('IDFM');
+    expect(scores.footfall.source).not.toContain('OpenStreetMap');
     // Et le millésime d'un composite est celui du plus ancien de ses ingrédients.
     expect(scores.footfall.asOf).toBe('2023-06');
+  });
+
+  it('chaque constat neuf porte SA source : IDFM pour le ferré, l’APUR pour le reste', async () => {
+    // Critère 3 du ticket, écrit une origine à la fois. Un libellé recopié d'un axe sur
+    // l'autre serait invisible à l'œil et faux pour un redistributeur : les deux licences
+    // diffèrent, ODbL-1.0 d'un côté, Licence Ouverte 2.0 de l'autre.
+    const { scores } = await fetchAddressContext(POINT);
+
+    expect(scores.rail.source).toBe('IDFM — référentiel des arrêts');
+    expect(scores.rail.licence).toBe('Licence Ouverte 2.0 (Etalab)');
+    expect(scores.rail.asOf).toBe('2026-03-10');
+
+    for (const axis of ['services', 'alimentaire'] as const) {
+      expect(scores[axis].source).toBe('APUR BDCom 2023');
+      expect(scores[axis].licence).toBe('ODbL-1.0');
+      expect(scores[axis].asOf).toBe('2023-06');
+    }
   });
 
   it('CONTRE-PREUVE : miroirs injoignables, le constat du corpus tient et garde sa provenance', async () => {
@@ -139,15 +198,62 @@ describe('fetchAddressContext — le corpus d’abord', () => {
     const { scores, loaded, withheldBy } = await fetchAddressContext(POINT);
 
     // Ce qui tombe, tombe.
-    expect(loaded).toEqual(['premises']);
+    expect(loaded).toEqual(['premises', 'services', 'stations']);
     expect(withheldBy.amenities).toBe('source_injoignable');
     expect(withheldBy.roads).toBe('source_injoignable');
-    expect(scores.transit.value).toBeNull();
     expect(scores.noise.value).toBeNull();
     // Ce qui tient, tient — et c'est tout le ticket. Avant le 14 septembre 2026 cette ligne
     // rendait `null` : un miroir public gratuit vidait la fiche d'un corpus qu'il ne portait pas.
     expect(scores.density.value).not.toBeNull();
     expect(scores.density.source).toBe('APUR BDCom 2023');
+  });
+
+  it('CRITÈRE 1 — miroirs coupés, le verdict SE COMPOSE au lieu de refuser', async () => {
+    // Le contrôle qui porte w6-amenites-corpus, et il est écrit en contre-preuve du ticket
+    // précédent : le 14 septembre 2026, ce même appel rendait « Pas de verdict ici » avec
+    // trois axes porteurs sur `amenities`, une couche à source unique. Mesuré en production
+    // sur `/contexte/rue-de-bretagne-paris` : un constat sur six.
+    fetchOverpassSnapshot.mockRejectedValue(new Error('les trois miroirs ont refusé'));
+
+    const { scores } = await fetchAddressContext(POINT);
+    const verdict = composeVerdict(findingsFromScores(scores));
+
+    expect(verdict.kind).toBe('compose');
+    if (verdict.kind !== 'compose') return;
+    // Les quatre porteurs, tous lus dans le corpus.
+    expect(verdict.used).toEqual(['density', 'footfall', 'rail', 'services']);
+    // Et le seul axe qui reste sur Overpass est non porteur : son absence colore, elle ne
+    // refuse pas. C'est la raison pour laquelle `noise` n'est pas passé au corpus.
+    expect(scores.noise.value).toBeNull();
+    expect(verdict.supporting.map((c) => c.axis)).toEqual(['alimentaire']);
+  });
+
+  it('un arrêt trouvé et un arrêt absent sont deux LECTURES, pas une absence', async () => {
+    // Le bois de Vincennes, mesuré le 15 septembre 2026 : aucun arrêt ferré dans 800 m. La
+    // couche a répondu, donc l'axe vaut zéro et le dit dans sa note — le transformer en
+    // « inconnu » détruirait la seule réponse que la couche donne avec certitude.
+    fetchCorpusStation.mockResolvedValue({ distanceM: null, name: null });
+
+    const { scores, loaded, withheldBy } = await fetchAddressContext(POINT);
+
+    expect(loaded).toContain('stations');
+    expect(withheldBy.stations).toBeUndefined();
+    expect(scores.rail.value).toBe(0);
+    expect(scores.rail.note).toContain('not because the layer is silent');
+  });
+
+  it('une couche ferrée injoignable retire l’axe plutôt que de le compter à zéro', async () => {
+    fetchCorpusStation.mockRejectedValue(new CorpusUnavailable('PostgREST muet', 'source_injoignable'));
+
+    const { scores, loaded, withheldBy } = await fetchAddressContext(POINT);
+
+    expect(loaded).not.toContain('stations');
+    expect(withheldBy.stations).toBe('source_injoignable');
+    expect(scores.rail.value).toBeNull();
+    // Et la provenance survit à l'absence : un lecteur doit apprendre QUELLE source s'est tue.
+    expect(scores.rail.source).toBe('IDFM — référentiel des arrêts');
+    // Le passage lit les deux couches du corpus, donc il tombe avec celle-ci.
+    expect(scores.footfall.value).toBeNull();
   });
 
   it('un miroir mort ne suspend pas l’appel au corpus dans son budget', async () => {
@@ -161,6 +267,38 @@ describe('fetchAddressContext — le corpus d’abord', () => {
 });
 
 describe('fetchAddressContext — les trois absences ne se confondent pas', () => {
+  it('HORS CORPUS : les trois couches du corpus tombent ensemble, aucune ne vaut zéro', async () => {
+    // Trouvé à l'écran, à Massy, le 15 septembre 2026, avant livraison de w6-amenites-corpus.
+    // Les deux fonctions neuves RÉUSSISSENT hors de Paris et rendent zéro ligne :
+    // `compass_premises_within` n'a jamais porté `out_of_corpus` (DIAGNOSTIC.md §36) et
+    // `idfm_station` est restreinte à Paris à l'ingestion. Traitées isolément, elles donnaient
+    // « services 0/100 » et « desserte ferrée 0/100 » sur une commune qui a des commerces et un
+    // RER — un chiffre calculé sur rien, estampillé d'une source. C'est DIAGNOSTIC.md §16 un
+    // cran plus loin, et ce contrôle est ce qui empêche qu'il revienne.
+    fetchCorpusPremises.mockRejectedValue(
+      new CorpusUnavailable('hors des 80 quartiers', 'hors_corpus'),
+    );
+    // Les deux autres répondent, et vide — exactement ce que le distant fait à Massy.
+    fetchCorpusServices.mockResolvedValue({ points: [], rendered: 0, totalMatched: 0, truncated: false });
+    fetchCorpusStation.mockResolvedValue({ distanceM: null, name: null });
+
+    const { scores, loaded, withheldBy } = await fetchAddressContext(POINT);
+
+    for (const layer of ['premises', 'services', 'stations'] as const) {
+      expect(loaded).not.toContain(layer);
+      expect(withheldBy[layer]).toBe('hors_corpus');
+    }
+    for (const axis of ['density', 'footfall', 'rail', 'services', 'alimentaire'] as const) {
+      expect(scores[axis].value).toBeNull();
+    }
+
+    // Et le verdict refuse en nommant la frontière, jamais en composant sur des zéros.
+    const verdict = composeVerdict(findingsFromScores(scores, withheldBy));
+    expect(verdict.kind).toBe('refus');
+    if (verdict.kind !== 'refus') return;
+    expect(verdict.missing.every((g) => g.because === 'hors_corpus')).toBe(true);
+  });
+
   it('millésime retenu : « retenue de licence », et la couche est retirée plutôt que comptée à zéro', async () => {
     fetchCorpusPremises.mockRejectedValue(
       new CorpusUnavailable('licence APUR non lue', 'retenue_licence'),

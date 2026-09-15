@@ -64,6 +64,14 @@ const LAYER_STYLE: Record<Layer, { color: string; radius: number }> = {
   amenities: { color: '#2563eb', radius: 3 },
   premises: { color: '#16a34a', radius: 3 },
   roads: { color: '#a16207', radius: 2 },
+  // Merchant services are a SUBSET of the premises already drawn in green, so they are drawn
+  // slightly larger and in a warmer tone rather than as a fourth cloud of dots: a reader must
+  // be able to see that the services axis reads the same survey, not a second one.
+  services: { color: '#c2410c', radius: 4 },
+  // The rail layer is a distance and not a cloud. It has a style because `Record<Layer, …>`
+  // is exhaustive on purpose — a layer added to the core cannot be forgotten here — and it
+  // draws nothing, because `families.stations` below is empty by construction.
+  stations: { color: '#7c3aed', radius: 5 },
 };
 
 /** Every gesture off. See the header: this is the specification, not a default. */
@@ -142,6 +150,11 @@ const ContextMap = ({ point, points, scores, loaded }: ContextMapProps) => {
         amenities: points.amenities,
         premises: points.premises,
         roads: points.roads,
+        services: points.services,
+        // The rail layer holds a DISTANCE, not points — `nearestStationM`. There is nothing
+        // to draw, and inventing a marker at a position the layer never gave would put a dot
+        // on the map that no figure was computed from.
+        stations: [],
       };
       for (const layer of layers) {
         const style = LAYER_STYLE[layer];

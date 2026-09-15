@@ -9,6 +9,27 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      /**
+       * One row per ingested source, publicly readable — the only place that knows WHEN a
+       * source's own publisher last produced what we hold.
+       *
+       * The sheet reads exactly one column of it, `source_as_of` for source `idfm`, to date
+       * the rail layer. Same discipline as `compass_vintages` for BDCom: a date typed into a
+       * front-end file would be an unmeasured claim about data that file never reads.
+       */
+      ingestion_run: {
+        Row: {
+          source: string;
+          label: string;
+          cadence: string;
+          cadence_note: string | null;
+          source_as_of: string | null;
+          last_success_at: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       user_preferences: {
         Row: {
           id: string;
@@ -357,6 +378,35 @@ export type Database = {
           withheld: boolean;
           licence: string | null;
           evidence: string | null;
+        }[];
+      };
+      /**
+       * The nearest IDFM rail stop's full hourly validation profile — `w2-idfm` (#19), read by
+       * the sheet since `w6-amenites-corpus`.
+       *
+       * **What the sheet reads, and what it deliberately does not.** `distance_m` and
+       * `station_name` are the whole of the `stations` layer: metres to the nearest stop.
+       * `pct_validations` is the share of that one station's own day falling in an hour
+       * bucket — a SHAPE, never a volume, because the dataset publishes no absolute count
+       * (`20260907000002`, and measured 15 September 2026: 24 JOHV buckets summing to 99.99 %
+       * at Oberkampf). No axis can be counted from it.
+       *
+       * Zero rows means no Paris stop with a profile sits inside the radius — a reading, not
+       * a failure. It carries no `withheld` column: both source datasets are fully open.
+       */
+      compass_station_profile: {
+        Args: {
+          p_lat: number;
+          p_lng: number;
+          p_radius_m?: number;
+        };
+        Returns: {
+          station_id: number;
+          station_name: string;
+          distance_m: number;
+          cat_jour: string;
+          hour_bucket: string;
+          pct_validations: number;
         }[];
       };
     };

@@ -87,6 +87,28 @@ export const DATA_SOURCES: DataSource[] = [
     licenceEn: 'ODbL',
     url: 'https://opendata.paris.fr/explore/dataset/terrasses-autorisations/',
   },
+  // Entered this list on 15 September 2026, the day `/contexte/:slug` started measuring an
+  // axis from it — w6-amenites-corpus. Loaded since 7 September (`w2-idfm`, #19), and rightly
+  // absent from here for eight days: a dataset is listed once a SCREEN reads it.
+  {
+    name: 'Île-de-France Mobilités — référentiel des arrêts',
+    nameEn: 'Île-de-France Mobilités — stop reference',
+    provider: 'Île-de-France Mobilités',
+    providerEn: 'Île-de-France Mobilités',
+    // What the screen actually measures, and what it deliberately does not. The hourly
+    // validation profiles are loaded beside this layer and no figure is drawn from them:
+    // they are percentages of one station's own day, never a volume.
+    usage:
+      'Distance à l’arrêt ferré le plus proche — métro, RER, tramway — sur la fiche de contexte d’une adresse. 258 arrêts dans Paris. Les bus n’y sont pas, et les profils horaires de validation chargés à côté ne servent aucun chiffre : ils donnent la forme d’une journée en pourcentages, jamais une fréquentation.',
+    usageEn:
+      'Distance to the nearest rail stop — metro, RER, tram — on the context sheet of an address. 258 stops inside Paris. Buses are not in it, and the hourly validation profiles loaded beside it serve no figure: they give the shape of a day as percentages, never a level of use.',
+    // The stop reference and the validation profiles carry DIFFERENT licences, and only the
+    // first is read by a figure. Naming ODbL here would bind a redistributor to an obligation
+    // the measured layer does not carry.
+    licence: 'Licence Ouverte 2.0 (Etalab) — référentiel des arrêts',
+    licenceEn: 'Open Licence 2.0 (Etalab) — stop reference',
+    url: 'https://data.iledefrance-mobilites.fr/explore/dataset/zones-d-arrets/',
+  },
   // Deliberately absent, and the rule is the same for all four: a dataset is listed here once
   // a **screen reads it**, not once it is loaded. Claiming a provenance the interface does not
   // have is the one thing this product cannot afford.

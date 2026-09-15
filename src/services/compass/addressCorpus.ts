@@ -21,7 +21,16 @@
  * cause is known.
  */
 
-import { BDCOM_ORIGIN, asWithholding, type Origin, type PremisePoint, type Withholding } from '@/core';
+import {
+  BDCOM_ORIGIN,
+  IDFM_ORIGIN,
+  asWithholding,
+  serviceFamilyOf,
+  type Origin,
+  type PremisePoint,
+  type ServicePoint,
+  type Withholding,
+} from '@/core';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -49,6 +58,17 @@ export const SHEET_VINTAGE = 2023;
  * below is reported rather than assumed away.
  */
 export { FOOTFALL_RADIUS_M as SHEET_RADIUS_M } from '@/core';
+
+/**
+ * The radius the nearest rail stop is looked for in — w6-amenites-corpus.
+ *
+ * `AMENITY_RADIUS_M` (800 m) and not the 400 m the premises use, because this call has no row
+ * cap to respect: it returns one station's profile whatever the radius. Narrowing it would buy
+ * nothing and would turn a measurable distance into « no stop found » at points where a stop
+ * is 500 m away — measured 15 September 2026, two of twelve sampled points have their nearest
+ * stop beyond 300 m, and rue de Bretagne's is at 317 m.
+ */
+export { AMENITY_RADIUS_M as STATION_RADIUS_M } from '@/core';
 
 /**
  * A corpus layer that did not arrive, with the motive the caller is allowed to say about it.
@@ -177,6 +197,138 @@ export async function fetchPremisesOrigin(): Promise<Origin> {
       ? `Licence APUR spécifique (non lue) — ${row.licence_note ?? ''}`.trim()
       : row.licence;
   return BDCOM_ORIGIN(row.vintage_year, licence, row.as_of);
+}
+
+/**
+ * The merchant services around a point, typed by family — w6-amenites-corpus.
+ *
+ * **Why a second call and not a wider `compass_scoring_context_within`.** That function returns
+ * six columns — lat, lng, is_vacant, total_matched, withheld, out_of_corpus — and no activity
+ * code at all; measured 15 September 2026, and it is the one thing the ticket got wrong about
+ * its own plan. The activity code lives on `compass_premises_within`, which is a different
+ * function with a different shape and its own row cap. Widening the first would have meant a
+ * migration, and a migration cannot be applied from here.
+ *
+ * **`out_of_corpus` is deliberately NOT read here.** This function has never carried the
+ * marker (see `20260907000002`, and `DIAGNOSTIC.md` §36): a point outside the 80 quartiers
+ * comes back as zero rows, indistinguishable from an empty radius. The corpus boundary is
+ * decided once, by `fetchCorpusPremises` above, and this layer follows it — which is why the
+ * hook withdraws both layers together on `hors_corpus`. Duplicating the test here would be a
+ * second authority on the same question, free to disagree with the first.
+ */
+export interface CorpusServices {
+  points: ServicePoint[];
+  /** Premises rows actually received — NOT `points.length`, which counts only the families
+   *  that map to a merchant service. The truncation ratio is a property of the rows. */
+  rendered: number;
+  /** How many premises the radius holds, before PostgREST's cap. */
+  totalMatched: number;
+  /** True when the rows are a floor — three of twelve sampled Paris points at 400 m. */
+  truncated: boolean;
+}
+
+export async function fetchCorpusServices(
+  lat: number,
+  lng: number,
+  radiusM: number,
+): Promise<CorpusServices> {
+  const { data, error } = await supabase.rpc('compass_premises_within', {
+    p_lat: lat,
+    p_lng: lng,
+    p_radius_m: radiusM,
+    p_vintage_year: SHEET_VINTAGE,
+    // The cap PostgREST enforces anyway. Asking for the default 500 would truncate at
+    // half the points this layer can actually serve — measured, not assumed: nine of the
+    // twelve sampled points hold between 91 and 920 premises inside 400 m.
+    p_limit: 1000,
+  });
+  if (error) throw new Error(`compass_premises_within: ${error.message}`);
+  const rows = data ?? [];
+
+  if (rows.some((row) => row.withheld)) {
+    throw new CorpusUnavailable(
+      `Le millésime BDCom ${SHEET_VINTAGE} n’est pas redistribuable : sa licence APUR n’a pas ` +
+        `été lue, donc ni les activités relevées ni leurs comptes ne sont servis ici.`,
+      'retenue_licence',
+    );
+  }
+
+  const points = rows
+    .filter((row) => row.lat !== null && row.lng !== null)
+    .flatMap((row) => {
+      const family = serviceFamilyOf(row.activity_niv18);
+      // A premise whose activity group is not a merchant service on foot is dropped rather
+      // than bucketed into a catch-all: a clothes shop and a car dealer are real premises and
+      // they already count under `density`. Counting them twice, once as « services », is the
+      // double-attribution `LayerOrigins` was built to make visible.
+      if (family === null) return [];
+      return [{ lat: row.lat as number, lng: row.lng as number, family }];
+    });
+
+  const totalMatched = Number(rows[0]?.total_matched ?? rows.length);
+  return { points, rendered: rows.length, totalMatched, truncated: totalMatched > rows.length };
+}
+
+/**
+ * Distance to the nearest IDFM rail stop, and the provenance of that distance.
+ *
+ * **`null` distance means the layer answered and found none.** `compass_station_profile`
+ * returns zero rows when no Paris station with a profile sits inside the radius — measured
+ * 15 September 2026 at the Bois de Vincennes, which is a true statement about that place and
+ * not a failure. An unreachable database throws instead, and the two must not meet.
+ *
+ * **What this call does NOT use, and the ticket assumed it would.** The function's rows carry
+ * `pct_validations`: the share of one station's own day falling in each hour bucket. That is a
+ * SHAPE and never a volume — the dataset publishes no absolute count, as `20260907000002`
+ * states and as a measurement confirms (24 JOHV buckets summing to 99.99 % at Oberkampf). So
+ * « comptages de validation réels par station » is not something this source can supply, and
+ * the axis reads the one thing it can: `distance_m`, the metres to the nearest stop.
+ */
+export interface CorpusStation {
+  /** Metres to the nearest stop, or `null` when the radius holds none. */
+  distanceM: number | null;
+  /** The stop's own name, for the gaps block. `null` when there is none. */
+  name: string | null;
+}
+
+export async function fetchCorpusStation(
+  lat: number,
+  lng: number,
+  radiusM: number,
+): Promise<CorpusStation> {
+  const { data, error } = await supabase.rpc('compass_station_profile', {
+    p_lat: lat,
+    p_lng: lng,
+    p_radius_m: radiusM,
+  });
+  if (error) throw new CorpusUnavailable(`compass_station_profile: ${error.message}`, 'source_injoignable');
+  const rows = data ?? [];
+  const first = rows[0];
+  if (!first) return { distanceM: null, name: null };
+  return { distanceM: Number(first.distance_m), name: first.station_name ?? null };
+}
+
+/**
+ * Provenance of the rail layer, read rather than written.
+ *
+ * `ingestion_run.source_as_of` for source `idfm` is the portal's own `modified` date, carried
+ * since `20260907000002`. Same discipline as `fetchPremisesOrigin`: a date typed into this
+ * file would be a claim about data this file does not hold.
+ */
+export async function fetchStationOrigin(): Promise<Origin> {
+  const { data, error } = await supabase
+    .from('ingestion_run')
+    .select('source_as_of')
+    .eq('source', 'idfm')
+    .maybeSingle();
+  if (error) throw new Error(`ingestion_run(idfm): ${error.message}`);
+  if (!data?.source_as_of) {
+    throw new Error(
+      `ingestion_run ne déclare aucune date pour la source « idfm » : le millésime de la ` +
+        `desserte ferrée est inconnu. Un chiffre qui ne peut pas dire sa provenance n’est pas montré.`,
+    );
+  }
+  return IDFM_ORIGIN(data.source_as_of);
 }
 
 /**
