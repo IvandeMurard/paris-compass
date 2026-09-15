@@ -17,12 +17,38 @@
 // `--check` compares the **claims**, not the bytes: the "régénérée le …" line is expected to
 // differ every day and a check that failed on it would be noise, and noise is how a check
 // gets disabled. It reports which ticket moved, so the diff is readable without a diff.
+//
+// ── The epics, added 15 September 2026 ────────────────────────────────────────────────────
+//
+// The same pair, one level up: the eight `[épic] Vague N` issues carry a checklist that was
+// ticked by hand and compared to nothing. Three of the eight were wrong the morning this was
+// written — #42 listed 7 of its 17 labelled tickets. The rule and its limits are in
+// scripts/session-epiques.ts; this file only holds the two ends:
+//
+//   npm.cmd run sessions -- --epiques   rewrites the `## Tickets` block of each epic on GitHub
+//   npm.cmd run sessions:check          ALSO cross-checks those lists, and exits 1 on drift
+//
+// `--epiques` is a flag rather than a second npm script on purpose. It is the same data, read
+// by the same call, under the same promise — and a new script would owe `scripts/porte/
+// cadence.json` an entry for an arm that adds nothing the check does not already say. The
+// write stays behind the flag because it touches GitHub and `sessions` alone touches only a
+// file in the repository.
 
-import { readFileSync, writeFileSync, readdirSync } from "fs"
+import { readFileSync, writeFileSync, readdirSync, mkdtempSync } from "fs"
 import { execFileSync } from "child_process"
-import { resolve } from "path"
+import { tmpdir } from "os"
+import { join, resolve } from "path"
 
 import { modeleDe } from "./session-choix"
+import {
+  Ecart,
+  corpsRegenere,
+  epiquesDe,
+  recouperLesEpiques,
+  ticketsDeLaVague,
+  vagueDe,
+} from "./session-epiques"
+import { Issue, RefusGitHub, issuesDuTicket, lireIssues } from "./session-issues"
 
 const DOC = resolve("docs/SESSIONS.md")
 const TICKETS = resolve("docs/tickets")
@@ -229,13 +255,6 @@ const BLOQUE: Record<string, string> = {
 // fichier appelle main() à l'import, donc brief.ts ne pouvait pas le lui emprunter. Un seul
 // propriétaire, deux lecteurs — plutôt qu'une seconde table tenue à la main à côté.
 
-interface Issue {
-  number: number
-  title: string
-  state: string
-  labels: { name: string }[]
-}
-
 interface Row {
   id: string
   title: string
@@ -256,17 +275,6 @@ function readTickets(): Row[] {
       const id = f.slice(0, -3)
       return { id, priority: m?.[1] ?? "?", title: m?.[3]?.trim() ?? id }
     })
-}
-
-function readIssues(): Issue[] {
-  // gh is the only way to know whether an issue is still open. If it is missing or
-  // unauthenticated, we refuse to rewrite rather than publish a table built on guesses.
-  const out = execFileSync(
-    "gh",
-    ["issue", "list", "--state", "all", "--limit", "200", "--json", "number,title,state,labels"],
-    { encoding: "utf8" },
-  )
-  return JSON.parse(out) as Issue[]
 }
 
 function build(rows: Row[]): string {
@@ -368,32 +376,75 @@ function rowsById(block: string): Map<string, string> {
   return out
 }
 
+/**
+ * Prints every drift of every epic, and says whether there was one.
+ *
+ * Grouped by epic rather than listed flat: an epic is what a reader opens next, and a list
+ * sorted by kind would make them reconstruct which issue to go and edit.
+ */
+function direLesEcarts(ecarts: Ecart[]): void {
+  const parEpique = new Map<number, Ecart[]>()
+  for (const e of ecarts) parEpique.set(e.epique, [...(parEpique.get(e.epique) ?? []), e])
+  console.error("Les listes des épics ne disent plus ce que portent les étiquettes.")
+  for (const [numero, siennes] of [...parEpique].sort((a, b) => a[0] - b[0])) {
+    console.error(`  #${numero} — ${siennes.length} écart(s)`)
+    for (const e of siennes) console.error(`      ${e.genre.padEnd(10)} ${e.dit}`)
+  }
+  console.error("Corriger avec : npm.cmd run sessions -- --epiques")
+}
+
+/** The write direction: each epic's `## Tickets` block, rebuilt from the labels. */
+function ecrireLesEpiques(issues: Issue[]): void {
+  const epiques = epiquesDe(issues).sort((a, b) => a.number - b.number)
+  if (epiques.length === 0) {
+    console.error("Aucune issue ne porte l'étiquette `epic` : il n'y a pas de population.")
+    process.exit(1)
+  }
+
+  // A file, never a pipe, and never an inline argument: the Windows console of this machine
+  // mangles em dashes and accents on the way through, and an issue body is the one place where
+  // that damage is published. `gh issue edit --body-file` reads the bytes Node wrote, and
+  // writeFileSync in utf8 writes no BOM.
+  const dossier = mkdtempSync(join(tmpdir(), "compass-epique-"))
+  let touchees = 0
+  for (const epique of epiques) {
+    const suivant = corpsRegenere(epique, issues)
+    if (suivant === null) {
+      console.log(`#${epique.number} — déjà à jour.`)
+      continue
+    }
+    const chemin = join(dossier, `${epique.number}.md`)
+    writeFileSync(chemin, suivant, "utf8")
+    execFileSync("gh", ["issue", "edit", String(epique.number), "--body-file", chemin], {
+      encoding: "utf8",
+    })
+    touchees += 1
+    console.log(`#${epique.number} — liste régénérée.`)
+  }
+  console.log(`${epiques.length} épics lus, ${touchees} réécrit(s).`)
+}
+
 function main() {
   const rows = readTickets()
   let issues: Issue[]
   try {
-    issues = readIssues()
+    issues = lireIssues()
   } catch (e) {
-    console.error("Impossible d'interroger GitHub (gh absent, non authentifié, ou hors ligne).")
-    console.error("La table n'est PAS réécrite : mieux vaut une table datée qu'une table devinée.")
+    console.error(
+      e instanceof RefusGitHub
+        ? e.message
+        : "Impossible d'interroger GitHub (gh absent, non authentifié, ou hors ligne).",
+    )
+    console.error("Rien n'est réécrit et rien n'est jugé : mieux vaut une table datée qu'une table devinée.")
     process.exit(1)
     return
   }
 
   for (const r of rows) {
-    // The link between a ticket and its issue is the title convention, ANCHORED:
-    // "[P1] w6-contexte — ...". Matching the id anywhere in the title was robust to a
-    // reworded title and fragile to something far more common: another issue that merely
-    // NAMES the ticket. On 11 September 2026 an issue titled "... et trois petites dettes de
-    // w6-contexte" took the row from #119, and the table published the wrong issue number
-    // for the ticket a session was working on. `find` cannot report a choice it never knew
-    // it had — it returns the first match and says nothing.
-    //
-    // Measured the same day: 52 issues follow the convention, for 52 rows in the table.
-    // Anchoring loses no link.
-    const officielles = issues.filter((i) =>
-      new RegExp(`^\\[P\\d\\]\\s+${r.id}\\s`).test(i.title),
-    )
+    // The anchored ticket↔issue link lives in scripts/session-issues.ts since 15 September
+    // 2026, because the epics need the very same rule and a second copy of it is how #131
+    // happened in the first place. What it guards is written there.
+    const officielles = issuesDuTicket(issues, r.id)
 
     // Two issues claiming one ticket is an ambiguity, and an ambiguity resolved in silence
     // is how the wrong number gets published. Say it, and stop.
@@ -410,6 +461,11 @@ function main() {
     r.issue = officielles[0]
   }
 
+  if (process.argv.includes("--epiques")) {
+    ecrireLesEpiques(issues)
+    return
+  }
+
   const doc = readFileSync(DOC, "utf8")
   const i = doc.indexOf(BEGIN)
   const j = doc.indexOf(END)
@@ -423,28 +479,47 @@ function main() {
   const closed = rows.filter((r) => r.issue?.state === "CLOSED").length
 
   if (process.argv.includes("--check")) {
+    // Two populations, one call, one verdict — and BOTH are always reported. Stopping at the
+    // first drift would hide the second behind it, and a session that fixed the table would
+    // believe it had finished.
     const drifted = claims(committed).join("\n") !== claims(expected).join("\n")
-    if (!drifted) {
+    if (drifted) {
+      const before = rowsById(committed)
+      const after = rowsById(expected)
+      console.error("docs/SESSIONS.md — la table committée ne dit plus l'état GitHub.")
+      for (const id of new Set([...before.keys(), ...after.keys()])) {
+        const b = before.get(id)
+        const a = after.get(id)
+        if (b === a) continue
+        if (b === undefined) console.error(`  + ${id} — absent de la table`)
+        else if (a === undefined) console.error(`  − ${id} — présent dans la table, plus dans la file`)
+        else console.error(`  ~ ${id}\n      committé : ${b}\n      réel     : ${a}`)
+      }
+      console.error("Corriger avec : npm.cmd run sessions")
+    } else {
       console.log(
         `docs/SESSIONS.md — la table dit vrai : ${rows.length} tickets, ${closed} fermé(s), ` +
           `recoupé à l'état GitHub.`,
       )
-      return
     }
 
-    const before = rowsById(committed)
-    const after = rowsById(expected)
-    console.error("docs/SESSIONS.md — la table committée ne dit plus l'état GitHub.")
-    for (const id of new Set([...before.keys(), ...after.keys()])) {
-      const b = before.get(id)
-      const a = after.get(id)
-      if (b === a) continue
-      if (b === undefined) console.error(`  + ${id} — absent de la table`)
-      else if (a === undefined) console.error(`  − ${id} — présent dans la table, plus dans la file`)
-      else console.error(`  ~ ${id}\n      committé : ${b}\n      réel     : ${a}`)
+    const epiques = epiquesDe(issues)
+    const ecarts = recouperLesEpiques(issues)
+    if (ecarts.length > 0) {
+      direLesEcarts(ecarts)
+    } else {
+      const lignes = epiques.reduce((n, e) => {
+        const vague = vagueDe(e)
+        return n + (vague ? ticketsDeLaVague(issues, vague).length : 0)
+      }, 0)
+      console.log(
+        `Les ${epiques.length} épics disent vrai : ${lignes} tickets étiquetés, ` +
+          `recoupés ligne à ligne et case à case.`,
+      )
     }
-    console.error("Corriger avec : npm.cmd run sessions")
-    process.exit(1)
+
+    if (drifted || ecarts.length > 0) process.exit(1)
+    return
   }
 
   const next = doc.slice(0, i) + expected + doc.slice(j + END.length)

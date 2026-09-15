@@ -70,7 +70,8 @@ npm.cmd run mcp:paquet -- --registre  # la même chose, sur ce que npm sert vrai
 npm.cmd run porte:etat      # les rouges ouverts et leur age, sans ouvrir GitHub — 0 aucun, 3 ouvert du jour, 1 en retard
 npm.cmd run brief <ticket>  # assemble le prompt d'une session et ce qu'elle doit lire ; joue porte:etat tout seul
 npm.cmd run sessions        # regenere le tableau d'ordre de docs/SESSIONS.md depuis GitHub
-npm.cmd run sessions:check  # recoupe la table committee a l'etat GitHub, sort en 1 si elle a derive
+npm.cmd run sessions -- --epiques  # regenere le bloc `## Tickets` des huit epics depuis leurs etiquettes
+npm.cmd run sessions:check  # recoupe table ET listes d'epics a l'etat GitHub, sort en 1 si l'une a derive
 ```
 
 **Si `vite` refuse de démarrer sur « Failed to load native binding »**, c'est Smart App Control
