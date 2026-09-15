@@ -60,7 +60,14 @@ const ORDER = [
   "w0-provenance",
   "w0-fiche",
   "w0-mcp-verif",
+  // Trouvé le 24 août en écrivant w0-mcp-verif, donc placé derrière lui : c'est le contrôle de
+  // conformité du MCP qui a rendu le défaut visible. Identifiant et fichier posés le
+  // 15 septembre 2026 — il n'en avait pas, et restait donc hors de toute table.
+  "w0-hors-corpus",
   "w0-cron",
+  // Trouvé le 25 août en rejouant les chargeurs pour w0-cron, donc placé derrière lui. Même
+  // rattrapage d'identifiant, le même jour.
+  "w0-sirene-url",
   "w0-retenue",
   "w0-plu",
   "w1-chantiers",
