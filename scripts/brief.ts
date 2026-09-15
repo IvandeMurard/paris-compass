@@ -73,15 +73,46 @@ function consignes(doc: string, id: string): string | null {
   return null
 }
 
-function issueNumber(id: string): string {
+/** The heading that opens the report of a session already closed.
+ *
+ *  Lexical, and it has to be: a heading that merely carries a date is NOT a closure report —
+ *  measured on 15 September 2026, `## Avancement — ...`, `## Etat — ...`, `## Releve des
+ *  appelants ...` and three others carry one inside tickets that are still open. Recognising by
+ *  date alone would cut six open tickets short. So the verb is the signal, and this is the list
+ *  of verbs actually used on disk.
+ *
+ *  `Livre` was added on 15 September: the cut was written for `Fait le ...` and four of the
+ *  twenty closure reports on disk did not match it — `w0-provenance`, `w6-fiche-corpus`,
+ *  `w6-amenites-corpus` and `w6-fiche-delai`, the three most recent among them. A brief for a
+ *  closed ticket therefore said "en entier" and handed the session its own closure report as
+ *  work to do. */
+// `\b` ne peut PAS fermer `Livré` : `é` n'est pas un caractere de mot pour une regex JS, donc la
+// frontiere n'existe pas entre lui et l'espace qui suit, et l'alternative ne matchait jamais.
+// Mesure du 15 septembre 2026 : les trois rapports « Livré » du disque passaient au travers.
+const RAPPORT_CLOS = /^#{1,3} (Fait (le|les)\b|Fait\s+[\u2014-]|Livr\u00e9e?s?(?=\s|$))/
+
+/** Where the ticket stops being the brief and starts being the last session's report. */
+export function coupeRapport(lignes: string[]): { utiles: number; rapport: number } {
+  const coupe = lignes.findIndex((l) => RAPPORT_CLOS.test(l))
+  return coupe === -1
+    ? { utiles: lignes.length, rapport: 0 }
+    : { utiles: coupe, rapport: lignes.length - coupe }
+}
+
+export type EtatIssue = { num: string; clos: boolean | null }
+
+/** `clos: null` means GitHub was not reachable — offline, no token, or no issue carrying the id.
+ *  That is not "open": the caller must say it does not know rather than imply the ticket is live. */
+function issueDuTicket(id: string): EtatIssue {
   try {
     const out = execFileSync("gh", ["issue", "list", "--state", "all", "--limit", "200",
-      "--json", "number,title"], { encoding: "utf8" })
-    const hit = (JSON.parse(out) as { number: number; title: string }[])
+      "--json", "number,title,state"], { encoding: "utf8" })
+    const hit = (JSON.parse(out) as { number: number; title: string; state: string }[])
       .find((i) => new RegExp(`\\b${id}\\b`).test(i.title))
-    return hit ? String(hit.number) : "?"
+    if (!hit) return { num: "?", clos: null }
+    return { num: String(hit.number), clos: hit.state.toUpperCase() === "CLOSED" }
   } catch {
-    return "?"
+    return { num: "?", clos: null }
   }
 }
 
@@ -92,16 +123,41 @@ function main() {
     process.exit(1)
   }
   const id = ticketId(arg)
-  const num = issueNumber(id)
+  const { num, clos } = issueDuTicket(id)
   const doc = lire(SESSIONS)
 
   const ticket = lire(resolve(TICKETS, `${id}.md`)).split(/\n/)
-  // Everything from the first "Fait le …" heading is the report of a session already done.
-  const coupe = ticket.findIndex((l) => /^#{1,3} Fait (le|les) /.test(l))
-  const utiles = coupe === -1 ? ticket.length : coupe
-  const rapport = coupe === -1 ? 0 : ticket.length - coupe
+  // Everything from the first closure heading is the report of a session already done.
+  const { utiles, rapport } = coupeRapport(ticket)
 
-  const parts = [promptCommun(doc).replace(/<ID>/g, id).replace(/<NUM>/g, num)]
+  const parts: string[] = []
+
+  // A closed issue is not a ticket: it is a delivery already made, and a session dispatched on
+  // one spends itself re-deriving a criterion that no longer decides anything. This goes FIRST,
+  // above the common prompt, for the same reason the overdue red does — a session must inherit
+  // the decision, not discover it at the end. Measured on 15 September 2026: `#180` was closed
+  // and merged at 11:09, and `brief w6-fiche-delai` still assembled a full session prompt for it
+  // with no mention of the closure, because the lookup asked for `--state all` and then read only
+  // `number` and `title`.
+  if (clos === true) {
+    parts.push(
+      [
+        `ARRETE-TOI ET LIS CECI D'ABORD — l'issue #${num} est FERMEE.`,
+        "",
+        `Le ticket \`${id}\` a deja ete livre. Ce qui suit est le prompt ordinaire, assemble`,
+        "pour un ticket qui ne l'est plus : son « Fait quand » est un critere perime, et le",
+        "redemontrer ne change rien dans le depot.",
+        "",
+        "Ce qu'il faut faire a la place, dans cet ordre :",
+        `  1. \`gh issue view ${num} --comments\` — la demonstration de cloture y est.`,
+        `  2. \`docs/tickets/${id}.md\`, section de cloture — la methode et les chiffres.`,
+        "  3. Si le travail est bien fait, DIS-LE et arrete-toi. Ne relivre pas.",
+        "  4. S'il ne l'est pas, c'est une issue NEUVE, pas celle-ci.",
+      ].join("\n"),
+    )
+  }
+
+  parts.push(promptCommun(doc).replace(/<ID>/g, id).replace(/<NUM>/g, num))
 
   const extra = consignes(doc, id)
   if (extra) parts.push(extra)
@@ -132,8 +188,9 @@ function main() {
       "",
       `  docs/tickets/${id}.md` +
         (rapport > 0
-          ? `   — les ${utiles} premières lignes seulement. Tout ce qui suit "Fait le…"\n` +
-            `      (${rapport} lignes) est le rapport d'une session déjà close : pas ton sujet.`
+          ? `   — les ${utiles} premières lignes seulement. Tout ce qui suit le titre de\n` +
+            `      clôture, ligne ${utiles + 1} (${rapport} lignes), est le rapport d'une session\n` +
+            `      déjà close : pas ton sujet.`
           : "   — en entier."),
       "",
       "  docs/REPRISE.md, ces sections :",
@@ -164,7 +221,22 @@ function main() {
       `            Le modèle est une décision, l'effort en est dérivé — scripts/session-choix.ts.\n`,
   )
 
-  console.log(`\n=== ${id} · issue #${num} — à coller tel quel ===\n`)
+  // The banner is inside the collable block because the session must read it, and repeated here
+  // on stderr because the person at the terminal decides whether to paste at all.
+  if (clos === true) {
+    process.stderr.write(
+      `\n[STOP] issue #${num} est FERMEE — \`${id}\` est deja livre.\n` +
+        `       Ce prompt est assemble pour un ticket clos. Ne le colle pas sans avoir lu\n` +
+        `       \`gh issue view ${num} --comments\`.\n`,
+    )
+  } else if (clos === null) {
+    process.stderr.write(
+      `\n[note] Etat de l'issue inconnu (GitHub injoignable, ou aucune issue ne nomme \`${id}\`).\n` +
+        `       Ce brief ne peut donc PAS dire si le ticket est deja livre.\n`,
+    )
+  }
+
+  console.log(`\n=== ${id} · issue #${num}${clos === true ? " — FERMEE" : ""} — à coller tel quel ===\n`)
   console.log(parts.join("\n\n"))
   console.log()
 
@@ -185,4 +257,8 @@ function main() {
   process.stderr.write(rouges.lignes.join("\n") + "\n")
 }
 
-main()
+// Le meme garde-fou que scripts/generate-sitemap.ts : sans lui, importer ce module pour tester
+// `coupeRapport` lance la session entiere et sort en 1 sur l'argument manquant.
+if (process.argv[1] && resolve(process.argv[1]).endsWith("brief.ts")) {
+  main()
+}

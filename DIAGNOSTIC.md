@@ -1,7 +1,7 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte 53 au 15 septembre 2026**, et la
+« quatre défauts, par ordre de gravité » : il en porte 54 au 15 septembre 2026**, et la
 phrase est restée fausse trois semaines. Le nombre est désormais dérivé du tableau
 ci-dessous par `scripts/porte/documents.test.ts` : le recopier faux fait rougir `test`.
 
@@ -77,6 +77,7 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 51 | Un compte de locaux plafonné à mille par PostgREST, rendu comme un total — `compass_scoring_context_within` | clos le 14 septembre 2026 par `w6-fiche-corpus`, `#157` | ici |
 | 52 | L'axe `tissu commercial` lit 100 sur la moitié de Paris : honnête, et presque sans pouvoir discriminant | **ouvert** — mesuré le 14 septembre 2026 par `w6-fiche-corpus`, P2, **décision Ivan** | ici |
 | 53 | Hors corpus, deux couches neuves rendaient un ZÉRO mesuré au lieu d'une absence — `services` et `stations` | clos le 15 septembre 2026 par `w6-amenites-corpus`, trouvé à l'écran | ici |
+| 54 | `brief` assemblait un prompt de session complet pour une issue FERMÉE, sans le dire | clos le 15 septembre 2026 — trouvé en étant la victime | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -1145,3 +1146,72 @@ la même question, libre de contredire la première.
 - Il est tenu par un test unitaire (`src/hooks/useAddressContext.test.ts`) et non par un
   invariant : rien dans la base n'empêche une **troisième** couche d'arriver demain sans hériter
   de la frontière. La règle est écrite ici et dans les deux fichiers ; elle n'est pas mécanique.
+## 54. `brief` assemblait un prompt de session complet pour une issue fermée, sans le dire
+
+**Mesuré le 15 septembre 2026, en en étant la victime.** Une session a été lancée sur
+`w6-fiche-delai` (`#180`) alors que l'issue était **fermée depuis 11:09** — livrée par `#185`,
+complétée par `#186`, démonstration en commentaire, table d'ordre déjà régénérée et
+`sessions:check` vert. Rien dans le prompt assemblé ne le disait. La session a payé la lecture du
+ticket, de `REPRISE.md`, des pièges et du code avant de découvrir elle-même que son « Fait quand »
+était un critère périmé.
+
+**Deux défauts indépendants, tous deux dans `scripts/brief.ts`.**
+
+**a. L'état de l'issue était demandé puis jeté.** `issueNumber()` appelait
+`gh issue list --state all` — donc les fermées comprises, volontairement — mais ne lisait que
+`--json number,title`. Le champ `state` n'était jamais demandé, donc jamais lu. Une issue fermée
+et une issue ouverte produisaient exactement le même prompt. C'est le défaut porteur : à lui seul
+il aurait arrêté la session en trois lignes.
+
+**b. La coupe du rapport de clôture ne reconnaissait pas le vocabulaire courant.** Le brief dit à
+la session quelle part du ticket est le sujet et quelle part est le rapport d'une session déjà
+close. La coupe cherchait `^#{1,3} Fait (le|les) `. Population mesurée le 15 septembre :
+**20 fichiers de `docs/tickets/` portent un rapport de clôture, 4 ne correspondaient à rien** —
+`w0-provenance` (`## Fait — mesuré le …`), `w6-fiche-corpus`, `w6-amenites-corpus` et
+`w6-fiche-delai` (`## Livré …`). **Les trois plus récents sont des ratés** : la convention
+`Livré` est la plus neuve, donc le défaut s'aggravait. Pour `w6-fiche-delai`, le brief disait
+`docs/tickets/w6-fiche-delai.md — en entier`, servant à la session son propre rapport de clôture
+comme travail à faire.
+
+### Ce qui est corrigé, et démontré
+
+`issueDuTicket()` lit `state` et rend `clos: boolean | null`. Sur `clos === true`, un bloc
+`ARRÊTE-TOI ET LIS CECI D'ABORD` ouvre la sortie collable **avant** le prompt commun — même place
+que le rouge en retard, et pour la même raison — et un `[STOP]` part sur `stderr` pour la personne
+devant le terminal. `clos === null` (GitHub injoignable, ou aucune issue ne nomme le ticket) dit
+qu'il ne sait pas, et **ne se fait jamais passer pour « ouvert »**.
+
+La coupe devient `coupeRapport()`, exportée et testée : `Fait le`, `Fait les`, `Fait —`, `Livré`.
+
+Démonstration, le 15 septembre 2026 :
+
+| `npm.cmd run brief <ticket>` | avant | après |
+| --- | --- | --- |
+| `w6-fiche-delai` (#180, **fermée**) | aucune mention ; `— en entier` | bandeau `#180 est FERMEE` + `[STOP]` ; `les 71 premières lignes seulement`, 68 lignes de rapport écartées |
+| `w6-langue-absences` (#181, **ouverte**) | prompt ordinaire | **inchangé** — aucun bandeau, aucun `[STOP]` |
+
+**Une regex qui ne pouvait pas marcher, et qui est le vrai enseignement.** La première correction
+écrivait `/Livré\b/`. Elle ne matchait **jamais** : `é` n'est pas un caractère de mot pour une
+regex JavaScript, donc il n'existe aucune frontière `\b` entre lui et l'espace qui suit. Les trois
+rapports `Livré` continuaient de passer au travers, et le test l'a montré avant que le code ne
+parte. Remplacé par `(?=\s|$)`.
+
+**Pourquoi la coupe reste lexicale.** Reconnaître un rapport de clôture à sa *date* plutôt qu'à son
+*verbe* a été essayé et mesuré : six titres datés vivent dans des tickets **ouverts** —
+`## Avancement — …`, `## État — …`, `## Relevé des appelants … — mesuré le …`, `## Ce que la pose
+a mesuré — …`, et deux décisions d'Ivan. Couper dessus amputerait six briefs de leur sujet. Le
+verbe est donc le signal, et la liste des verbes est une liste, avec ce que ça implique ci-dessous.
+
+### Ce que ça ne rattrape pas
+
+- **La liste des verbes reste une liste.** Un septième mot de clôture inventé demain ne sera pas
+  reconnu. `scripts/brief.test.ts` rougit dès qu'un titre commençant par `Fait`, `Livr`, `Clos`,
+  `Fermé` ou `Terminé` échappe à la coupe — mais ce filet est lui-même une liste de mots, et il ne
+  voit pas un verbe hors de ces cinq.
+- **Rien n'apparie l'état GitHub au fichier du ticket.** Une issue fermée dont le ticket ne porte
+  aucun titre de clôture n'est signalée par personne. L'appariement demanderait un jeton, donc un
+  bras à la manière de `sessions:check`, et il n'existe pas. C'est le défaut `a` qui protège ce
+  cas, pas le défaut `b` : le bandeau se déclenche sur l'état de l'issue, jamais sur la prose.
+- **Le garde-fou protège `brief`, pas une session lancée à la main.** Une session dont le prompt
+  est écrit sans passer par `npm.cmd run brief` ne voit aucun bandeau. C'est exactement ce qui
+  s'est produit ici.

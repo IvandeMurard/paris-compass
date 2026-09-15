@@ -1206,6 +1206,31 @@ et `verify:mcp` qui redit « absent » après qu'on croit l'avoir réparé.
 Les trois fichiers copiés sont ignorés par `.gitignore`, donc ils ne peuvent pas partir dans la
 proposition. Rien à nettoyer à la fin : `git worktree remove` emporte tout.
 
+### La première ligne du tableau ne dit pas ce qui arrive sous `.claude/worktrees/` — remesuré le 15 septembre 2026
+
+Elle annonce « `tsc`/`vitest` introuvable », c'est-à-dire un arrêt franc. **Ce n'est pas ce qui
+s'est produit** depuis un worktree créé à l'emplacement que la règle prescrit,
+`.claude/worktrees/<ID>` — donc **à l'intérieur du dépôt principal**. La résolution de Node
+remonte les répertoires parents, trouve le `node_modules` de la racine, et **`typecheck`, `build`
+et `vitest` lui-même passent au vert**.
+
+Ce qui tombe, c'est uniquement ce qui **lance un processus fils par chemin absolu** :
+
+```
+Error: Cannot find module
+  'C:\...\paris-compass\.claude\worktrees\<ID>\node_modules\tsx\dist\cli.mjs'
+```
+
+**Mesuré : 6 tests en échec sur 2 fichiers** — `scripts/porte/publie.test.ts` (5) et
+`scripts/eval/anon-http.test.ts` (1) — les 750 autres au vert. Après `npm.cmd install` dans le
+worktree : **756 sur 54, sortie 0**, sans qu'une ligne du code ait bougé.
+
+**Pourquoi c'est plus cher qu'un arrêt franc.** Un rouge qui nomme deux bras sans rapport avec le
+ticket en cours ressemble à une régression qu'on vient d'introduire, pas à un `node_modules`
+manquant — la même forme d'erreur que le `\y` mangé plus haut : ça ressemble à une découverte.
+**Le réflexe** : avant de diagnostiquer un rouge dans un worktree neuf, vérifier que
+`node_modules` existe à SA racine, même si les portes ont l'air de tourner.
+
 ---
 
 ## Smart App Control bloque le binaire natif de `@swc/core`, et `vite` refuse de démarrer — 26 août 2026, levé depuis
@@ -1363,3 +1388,34 @@ HTTPS local à certificat auto-signé qui rend une réponse Overpass valide, plu
 « Injoignable », « lent » et « refuse » sont trois chemins de code identiques et trois mesures
 différentes ; écrire l'un et mesurer l'autre est comment un ticket se ferme sur un vert qui ne
 dit rien.
+## `\b` ne ferme jamais un mot accentué, en regex JavaScript — 15 septembre 2026
+
+`/Livré\b/` ne matche **jamais** `## Livré — 15 septembre 2026`. `é` n'est pas un caractère de
+mot pour une regex JavaScript : `\w` vaut `[A-Za-z0-9_]`, donc il n'existe aucune frontière entre
+`é` et l'espace qui suit, et `\b` échoue là où l'œil voit évidemment une fin de mot.
+
+Ce qui rend le piège cher, c'est qu'il **ne ressemble pas à un défaut d'échappement** : la regex
+est lisible, elle se compile, elle passe en revue, et elle rend simplement « aucun résultat » —
+c'est-à-dire exactement ce que rend une population réellement vide. Même forme d'erreur que le
+`\y` mangé du 26 août, consigné plus haut : un défaut de regex ressemble à une découverte.
+
+**Le geste** : après `é è à ç ô ù` — ou n'importe quel caractère hors `[A-Za-z0-9_]` — remplacer
+`\b` par une anticipation explicite, `(?=\s|$)` ou `(?=[\s—:,.])`. Et **jouer la regex contre la
+population du disque avant de la croire**, pas contre deux exemples écrits à la main : c'est le
+contrôle sur `docs/tickets/` de `scripts/brief.test.ts` qui a montré que les trois rapports
+`Livré` passaient encore au travers, après la correction censée les attraper.
+
+Trouvé en corrigeant `DIAGNOSTIC.md` §54 — la coupe du rapport de clôture de `scripts/brief.ts`.
+
+## Une issue fermée n'empêchait rien : `brief` assemblait son prompt quand même — 15 septembre 2026
+
+Une session a été lancée sur `w6-fiche-delai` (`#180`) **après** sa fermeture, sa fusion et la
+régénération de la table d'ordre. `npm.cmd run brief` ne lisait pas l'état de l'issue : il
+demandait `--state all` puis ne gardait que `number` et `title`. Corrigé le jour même, et le
+détail est dans `DIAGNOSTIC.md` §54.
+
+**Ce qui reste vrai après la correction, et c'est le piège** : le bandeau ne protège que ce qui
+passe par `npm.cmd run brief`. Un prompt de session écrit ou recopié à la main ne voit rien —
+c'est précisément par là que celui-ci est arrivé. **Avant de commencer un ticket, lire l'état de
+son issue**, une commande : `gh issue view <NUM> --json state`. Si elle est fermée, le
+« Fait quand » est un critère périmé et le redémontrer ne change rien dans le dépôt.
