@@ -622,7 +622,12 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 - **Doctrine.** Pas un score par métier. Une checklist par métier.
 - **Fait quand.** Le basculement de mode réordonne les axes et les alertes, sans inventer de chiffre.
 
-#### w6-dossier — Dossier exportable d'une adresse
+#### w6-dossier — Dossier exportable d'une adresse — **fait le 15 septembre 2026**
+
+> **Livré.** Le fichier part d'une fiche et de nulle part ailleurs, et chaque chiffre y descend
+> avec sa source, sa licence, son millésime, sa méthode — plus la formule, ses constantes, le
+> rayon et l'opérande, sans quoi rien ne se refait. Ce ticket redisait `docs/PLAN.md` §2.6, qui
+> porte la même clôture. Détail : `docs/tickets/w6-dossier.md`. Pas de PDF — décision d'Ivan.
 
 - Priorité **P1** · vague 6 · Q4 2026
 - Dépend de : `w0-fiche`, `w0-provenance`

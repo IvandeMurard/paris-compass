@@ -327,7 +327,7 @@ deux côtés.
 | 51 | `w5-parse` | [#32](https://github.com/IvandeMurard/paris-compass/issues/32) | ouvert | P2 | Opus 5 |
 | ~~52~~ | ~~`w6-contexte`~~ | [#119](https://github.com/IvandeMurard/paris-compass/issues/119) | **fait** | P1 | Opus 5 |
 | 53 | `w6-liberations` | [#34](https://github.com/IvandeMurard/paris-compass/issues/34) | ouvert | P1 | Opus 5 |
-| 54 | `w6-dossier` | [#33](https://github.com/IvandeMurard/paris-compass/issues/33) | ouvert | P1 | Opus 5 |
+| ~~54~~ | ~~`w6-dossier`~~ | [#33](https://github.com/IvandeMurard/paris-compass/issues/33) | **fait** | P1 | Opus 5 |
 | 55 | `w6-modes` | [#36](https://github.com/IvandeMurard/paris-compass/issues/36) | ouvert | P1 | Opus 5 |
 | 56 | `w6-accueil` | [#148](https://github.com/IvandeMurard/paris-compass/issues/148) | ouvert | P1 | Opus 5 |
 | 57 | `w5-explain-metier` | [#31](https://github.com/IvandeMurard/paris-compass/issues/31) | ouvert | P2 | Opus 5 |

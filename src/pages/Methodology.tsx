@@ -141,6 +141,13 @@ const COPY = {
       'Le verdict est composé par une fonction du noyau, hors de toute page. Le serveur MCP de Compass compile ce même noyau et sert donc la même règle de composition : une fiche affiche l’appel qui rend la réponse correspondante. La parité ne se déclare pas — le contrôle recompose le verdict du serveur à partir des chiffres que le serveur publie, et rougit si les deux diffèrent.',
     parityLimit:
       'Ce que cette parité ne dit pas : les deux surfaces ne lisent pas le même corpus. Le navigateur compte les locaux dans OpenStreetMap, l’agent dans la BDCom de l’APUR — un relevé porte-à-porte, meilleure source. Les chiffres peuvent donc différer, et c’est assumé. Ce qui est partagé, c’est la règle de composition, pas le corpus.',
+    dossierTitle: 'Le dossier d’une adresse, et ce qu’il contient',
+    dossierBody:
+      'Une fiche de contexte se télécharge. Le fichier porte une ligne par constat, et à côté de chaque chiffre : sa source, sa licence, son millésime, sa méthode, la formule appliquée, ses constantes, le rayon, et l’opérande — le nombre de locaux compté, la distance à l’arrêt. Les formules et les constantes sont celles publiées ci-dessus, lues dans le code plutôt que recopiées : le fichier contient donc de quoi refaire chaque calcul sans nous croire sur parole.',
+    dossierNoBulk:
+      'Un dossier, une adresse. Il n’existe pas de bouton « tout exporter », et le départ se fait depuis une fiche et jamais depuis une liste de résultats : constituer un portefeuille de cinquante adresses est le geste que Compass refuse, pour la même raison que la comparaison s’arrête à deux. La limite tient dans la structure — la fonction qui produit un dossier prend une adresse et n’a pas de forme plurielle.',
+    dossierGaps:
+      'Un constat absent descend lui aussi, avec la cause de son absence — source injoignable, hors du corpus, retenu pour licence, indéterminé — et il n’est jamais rendu en zéro. Un constat dont la source n’avait pas encore répondu au moment du téléchargement est marqué comme tel : une réponse en route et un trou ne se lisent pas de la même manière.',
     missingTitle: 'Quand une source manque',
     missingBody:
       'Un score n’est calculé que si la couche de données dont il dépend a réellement été chargée. Si elle manque, Compass n’affiche pas 0 : il affiche « n/d » et indique pourquoi. La distinction compte surtout pour le bruit, où un 0 se lirait « très faible » — soit une rue calme affirmée à partir d’une donnée absente. Un quartier réellement dépourvu d’équipements, lui, reçoit bien un 0 : c’est un comptage, pas une lacune.',
@@ -260,6 +267,13 @@ const COPY = {
       'The verdict is composed by a function of the core, outside any page. The Compass MCP server compiles that same core and therefore serves the same composition rule: a sheet displays the call that returns the corresponding answer. Parity is not declared — the check recomposes the server’s verdict from the figures the server publishes, and goes red if the two differ.',
     parityLimit:
       'What this parity does not say: the two surfaces do not read the same corpus. The browser counts premises from OpenStreetMap, the agent from APUR’s BDCom — a door-to-door survey, the better source. The figures may therefore differ, and that is deliberate. What is shared is the composition rule, not the corpus.',
+    dossierTitle: 'The dossier of an address, and what it holds',
+    dossierBody:
+      'A context sheet can be downloaded. The file carries one row per finding, and beside every figure: its source, its licence, its vintage, its method, the formula applied, its constants, the radius, and the operand — the premises counted, the distance to the stop. The formulas and the constants are the ones published above, read from the code rather than copied: the file therefore holds enough to redo each computation without taking our word for it.',
+    dossierNoBulk:
+      'One dossier, one address. There is no "export everything" button, and the export leaves from a sheet and never from a list of results: assembling a portfolio of fifty addresses is the gesture Compass refuses, for the same reason comparison stops at two. The bound is structural — the function that produces a dossier takes one address and has no plural form.',
+    dossierGaps:
+      'A missing finding goes down too, with the cause of its absence — source unreachable, outside the corpus, withheld for licence, undetermined — and it is never rendered as a zero. A finding whose source had not answered yet at the moment of download is marked as such: an answer on its way and a hole do not read alike.',
     missingTitle: 'When a source is missing',
     missingBody:
       'A score is only computed if the data layer it depends on actually loaded. When that layer is missing, Compass does not show 0: it shows "n/a" and says why. The distinction matters most for noise, where a 0 would read as "very low" — a quiet street asserted from absent data. A neighbourhood genuinely without amenities does get a 0: that is a count, not a gap.',
@@ -482,6 +496,16 @@ const Methodology = () => {
           <h2 className="text-xl font-semibold">{c.parityTitle}</h2>
           <p className="mt-3 text-muted-foreground">{c.parityBody}</p>
           <p className="mt-3 text-muted-foreground">{c.parityLimit}</p>
+        </section>
+
+        {/* Same obligation again: a dossier is a document that LEAVES, so the rule it carries —
+            one address, no bulk export, and an absence that stays an absence — is published here
+            rather than only enforced in `src/core/dossier.ts`. w6-dossier (#33). */}
+        <section>
+          <h2 className="text-xl font-semibold">{c.dossierTitle}</h2>
+          <p className="mt-3 text-muted-foreground">{c.dossierBody}</p>
+          <p className="mt-3 text-muted-foreground">{c.dossierNoBulk}</p>
+          <p className="mt-3 text-muted-foreground">{c.dossierGaps}</p>
         </section>
 
         <section>

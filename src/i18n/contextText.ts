@@ -15,6 +15,7 @@ import {
   FOOTFALL_RADIUS_M,
   NOISE_RADIUS_M,
   SERVICE_RADIUS_M,
+  type DossierLabels,
   type VerdictAxis,
 } from '@/core';
 import type { Locale } from '@/i18n/locale';
@@ -65,6 +66,26 @@ export const AXIS_WHAT: Record<Locale, Record<VerdictAxis, string>> = {
     noise: `Exposure modelled from the proximity and class of major roads, up to ${NOISE_RADIUS_M} m. Buildings, traffic volume and time of day are not taken into account.`,
   },
 };
+
+/**
+ * The axis names and descriptions a dossier carries, in the reader's language — w6-dossier (#33).
+ *
+ * Assembled from the two tables above rather than written a third time. The exported file names
+ * the axes exactly as the sheet does, so a reader holding both never has to work out whether
+ * « Desserte ferrée » in the file is the same thing as « Desserte ferrée » on screen — and a
+ * reworded axis travels into the file the day it is reworded, without anyone remembering to.
+ *
+ * `src/core/dossier.ts` takes this as a parameter instead of importing it: the core is reachable
+ * from the MCP server, which has no `src/i18n`, and inverting the dependency would have made the
+ * dossier unavailable to the one consumer §2.6 says it must also serve.
+ */
+export const dossierLabels = (locale: Locale): DossierLabels =>
+  Object.fromEntries(
+    (Object.keys(AXIS_NAMES[locale]) as VerdictAxis[]).map((axis) => [
+      axis,
+      { label: AXIS_NAMES[locale][axis], counts: AXIS_WHAT[locale][axis] },
+    ]),
+  ) as DossierLabels;
 
 export const CONTEXT_COPY = {
   fr: {
@@ -141,6 +162,19 @@ export const CONTEXT_COPY = {
     agentArguments: 'Arguments',
     agentNote:
       'La parité est vérifiée par npm run verify:mcp, qui recompose le verdict du serveur à partir des chiffres que le serveur publie, et non par cette phrase.',
+    dossierHeading: 'Le dossier de cette adresse',
+    dossierIntro:
+      'Un fichier, une adresse. Chaque chiffre y descend avec sa source, sa licence, son millésime, sa méthode, la formule appliquée, ses constantes et ce à quoi elle a été appliquée : de quoi refaire le calcul sans nous croire sur parole.',
+    dossierButton: 'Télécharger le dossier (JSON)',
+    dossierDone: (nom: string) => `Dossier écrit : ${nom}`,
+    // La doctrine voyage DANS le fichier et pas seulement à côté du bouton : c'est le fichier
+    // qui circule, et c'est lui qu'on pourrait prendre pour le premier d'une série de cinquante.
+    dossierDoctrine:
+      'Un dossier, une adresse. Compass ne fournit pas d’export de masse : constituer un portefeuille est le geste du courtier, que ce produit refuse, et la limite tient dans sa structure plutôt que dans une intention.',
+    dossierMethodology:
+      'Les formules, leurs constantes et la règle de composition du verdict sont publiées sur la page de méthodologie de Compass.',
+    dossierNote:
+      'Un constat manquant descend lui aussi, avec la cause de son absence : un dossier qui tairait ses trous ne se vérifierait pas.',
     methods: {
       measured: 'compté ou relevé',
       modelled: 'sorti d’un modèle publié',
@@ -210,6 +244,17 @@ export const CONTEXT_COPY = {
     agentArguments: 'Arguments',
     agentNote:
       'Parity is checked by npm run verify:mcp, which recomposes the server’s verdict from the figures the server publishes — not by this sentence.',
+    dossierHeading: 'The dossier of this address',
+    dossierIntro:
+      'One file, one address. Every figure goes down with its source, its licence, its vintage, its method, the formula applied, its constants and what it was applied to: enough to redo the arithmetic without taking our word for it.',
+    dossierButton: 'Download the dossier (JSON)',
+    dossierDone: (nom: string) => `Dossier written: ${nom}`,
+    dossierDoctrine:
+      'One dossier, one address. Compass provides no bulk export: assembling a portfolio is the broker’s gesture, which this product refuses, and the bound holds in its structure rather than in an intention.',
+    dossierMethodology:
+      'The formulas, their constants and the rule that composes the verdict are published on the Compass methodology page.',
+    dossierNote:
+      'A missing finding goes down too, with the cause of its absence: a dossier that hid its holes could not be checked.',
     methods: {
       measured: 'counted or surveyed',
       modelled: 'output of a published model',
