@@ -211,6 +211,14 @@ const ORDER = [
   "w6-liberations",
   "w6-dossier",
   "w6-modes",
+  // Le design passe APRÈS les trois tickets produit ci-dessus, décidé par Ivan le 15 septembre
+  // 2026 : ils vont encore déplacer ce que la fiche montre, et peindre avant eux serait peindre
+  // deux fois. L'argument inverse — le produit compose un verdict et a l'air plus brut qu'il
+  // n'est — a été pesé et écarté ; s'il redevient prioritaire, la réponse est de scinder le
+  // ticket (typographie et palette d'un côté, accueil et /travaux de l'autre) plutôt que de le
+  // remonter entier. Il n'avait jusqu'ici ni fichier ni place : c'est l'orphelin de la scission
+  // de #119.
+  "w6-accueil",
   "w5-explain-metier",
   // --- P2 : de l'appoint, à prendre quand une session est courte -------------------------
   "w3-osm-notes",
