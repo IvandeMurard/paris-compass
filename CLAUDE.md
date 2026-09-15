@@ -172,9 +172,10 @@ où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lova
   --squash --delete-branch` — **aucune approbation n'est requise**, la session fusionne
   elle-même : c'est la trace qui est exigée. `.github/workflows/pr.yml` rejoue `typecheck` et
   `test`, et pas le reste : `porte.yml` détient la chaîne privilégiée et le dépôt est public.
-  **La revue est distincte de la proposition** et ne vaut que pour les tickets qui la méritent —
-  ses signes et son prompt sont dans `docs/SESSIONS.md`. Pourquoi ce renversement :
-  `docs/REGLES-INCIDENTS.md`.
+  **La revue est distincte de la proposition, et elle est due sur TOUTES** — décidé par Ivan le
+  15 septembre 2026, contre ce que `docs/SESSIONS.md` disait jusque-là. Ce qui l'a renversé, et
+  le signe qui dirait que la case à cocher est arrivée : `docs/SESSIONS.md`, « La revue ». Son
+  prompt y est aussi. Pourquoi la proposition elle-même : `docs/REGLES-INCIDENTS.md`.
 
 - **Les workflows s'accordent sur leur version de Node, ou `test` rougit** — `#171`. `pr.yml`
   épinglait 20 quand `porte.yml` et `ingestion.yml` épinglaient 22 : depuis `#157`, un test
