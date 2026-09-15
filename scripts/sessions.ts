@@ -81,6 +81,11 @@ const ORDER = [
   // courant et « un verdict se compose », pour le navigateur et pour l'agent à la fois.
   "w6-amenites-corpus",
   "w1-overpass-ordre",
+  // Trouvé le 15 septembre en vérifiant que l'agent recevait bien le verdict que l'écran
+  // compose : deux passages de verify:mcp, un refus puis un verdict, et le bras vert sur les
+  // deux. Placé ici parce qu'il garde une promesse déjà livrée — le produit marche, ce ticket
+  // empêche qu'il cesse de marcher sans que personne ne le voie.
+  "w1-parite-refus",
   "w0-deploy",
   "w0-history",
   "w0-provenance",
