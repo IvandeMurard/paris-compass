@@ -1329,3 +1329,37 @@ serveur MCP qu'il lance. C'est ainsi que le critère 2 de `w6-amenites-corpus` a
 échoue en 1 ms et un miroir qui expire en 70 s prennent le même chemin de code mais pas le même
 temps — la fiche répond en 1 316 à 2 411 ms miroirs coupés, contre ~10 200 ms quand ils pendent
 et que `CONTEXT_BUDGET_MS` va au bout. Les deux mesures sont vraies et ne se remplacent pas.
+
+### Et un critère d'acceptation écrit sur « injoignable » ne teste alors RIEN — mesuré le 15 septembre 2026
+
+Le paragraphe ci-dessus n'est pas une précision d'écrivain : c'est ce qui décide si un ticket est
+démontrable. `w6-fiche-delai` (#180) demandait « miroirs Overpass **injoignables**, le verdict en
+moins de trois secondes ». Coupés au résolveur, **`main` rendait déjà son verdict en 480, 584 et
+915 ms** — trois passages, avant la première ligne du ticket. Le critère était donc **vert sur le
+dépôt qu'il existait pour corriger**.
+
+La raison est entière dans la phrase du dessus : un `~NOTFOUND` échoue en une milliseconde, donc
+le `Promise.allSettled` qui tenait la page ne tenait rien. Le défaut de production — 10 976 ms
+mesurés rue de Bretagne — est un miroir qui **pend**, pas un miroir qui refuse.
+
+**Le puits, qui reproduit le cas de production sans dépendre d'un miroir saturé** : pointer les
+trois hôtes sur un socket local qui accepte la connexion et ne renvoie jamais rien, donc une
+poignée de main TLS qui n'aboutit pas.
+
+```
+--host-resolver-rules=MAP overpass-api.de 127.0.0.1:<port>,MAP overpass.kumi.systems 127.0.0.1:<port>,MAP overpass.private.coffee 127.0.0.1:<port>
+```
+
+Sous cette condition, `main` mettait **10 178, 10 188 et 10 201 ms** — le budget consommé en
+entier, et le chiffre du ticket retrouvé. C'est la condition sous laquelle `#180` a été démontré.
+
+**Et pour la contre-preuve — « miroirs debout » — il faut un miroir à soi.** Aucun miroir public
+ne répond dans le budget de la fiche : `overpass-api.de` refuse en 0,2 s, et le seul qui ait
+jamais répondu à la vraie requête met 10 587 ms. Même recette, mais l'hôte pointe sur un serveur
+HTTPS local à certificat auto-signé qui rend une réponse Overpass valide, plus
+`--ignore-certificate-errors`. **Ce que ça ne démontre pas** : que le miroir public répondra.
+
+**La règle qui en sort** : un critère d'acceptation qui nomme une panne doit nommer LAQUELLE.
+« Injoignable », « lent » et « refuse » sont trois chemins de code identiques et trois mesures
+différentes ; écrire l'un et mesurer l'autre est comment un ticket se ferme sur un vert qui ne
+dit rien.

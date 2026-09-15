@@ -90,6 +90,11 @@ export const CONTEXT_COPY = {
     method: 'Méthode',
     caveat: 'Réserve',
     whyMissing: 'Pourquoi ce chiffre manque',
+    /** Un constat dont la couche voyage encore — w6-fiche-delai (#180). Il reste nommé et
+     *  jamais retiré : une page plus rapide parce qu'elle en dit moins n'est pas une page plus
+     *  rapide. Et ce n'est pas « source injoignable » — un trou sur lequel revenir demain ne
+     *  change rien, une réponse en route, si. */
+    findingPending: 'Mesure en cours — la source n’a pas encore répondu.',
     gapsHeading: 'Ce que Compass ne sait pas ici',
     gapsIntro:
       'Cette liste est calculée pour cette adresse, pas recopiée. Elle est aussi un argument : une réponse qui ne dit pas ses trous ne se vérifie pas.',
@@ -165,6 +170,7 @@ export const CONTEXT_COPY = {
     method: 'Method',
     caveat: 'Caveat',
     whyMissing: 'Why this figure is missing',
+    findingPending: 'Still being measured — the source has not answered yet.',
     gapsHeading: 'What Compass does not know here',
     gapsIntro:
       'This list is computed for this address, not copied. It is also an argument: an answer that does not state its holes cannot be checked.',

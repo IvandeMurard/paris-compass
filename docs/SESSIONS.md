@@ -258,7 +258,7 @@ deux côtés.
 | ~~2~~ | ~~`w6-fiche-corpus`~~ | [#157](https://github.com/IvandeMurard/paris-compass/issues/157) | **fait** | P0 | Opus 5 |
 | ~~3~~ | ~~`w1-porte-page`~~ | [#158](https://github.com/IvandeMurard/paris-compass/issues/158) | **fait** | P0 | Opus 5 |
 | ~~4~~ | ~~`w6-amenites-corpus`~~ | [#169](https://github.com/IvandeMurard/paris-compass/issues/169) | **fait** | P0 | Opus 5 |
-| 5 | `w6-fiche-delai` | [#180](https://github.com/IvandeMurard/paris-compass/issues/180) | ouvert | P1 | Opus 5 |
+| ~~5~~ | ~~`w6-fiche-delai`~~ | [#180](https://github.com/IvandeMurard/paris-compass/issues/180) | **fait** | P1 | Opus 5 |
 | 6 | `w6-langue-absences` | [#181](https://github.com/IvandeMurard/paris-compass/issues/181) | ouvert | P1 | Opus 5 |
 | 7 | `w1-overpass-ordre` | [#163](https://github.com/IvandeMurard/paris-compass/issues/163) | ouvert | P1 | Opus 5 |
 | 8 | `w1-parite-refus` | [#177](https://github.com/IvandeMurard/paris-compass/issues/177) | ouvert | P1 | Opus 5 |
