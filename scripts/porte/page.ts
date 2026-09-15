@@ -145,9 +145,17 @@ export const ADRESSE = "/contexte/rue-de-bretagne-paris?lat=48.863100&lng=2.3621
  * charge du runner est un bras qu'on coupe en deux semaines.
  *
  * **Elle ne peut rien cacher**, et c'est ce qui autorise sa générosité : passé le budget, la
- * fiche a déjà composé l'un ou l'autre — `fetchAddressContext` ne lève jamais et `useQuery` ne
+ * fiche a déjà composé l'un ou l'autre — `fetchCorpusContext` ne lève jamais et `useQuery` ne
  * réessaie pas. Ce qui reste après le budget est du transport, et une page qui met quatorze
  * secondes à ne rien dire n'a rien dit.
+ *
+ * **Et depuis `w6-fiche-delai` (#180) elle est très large plutôt que généreuse**, parce que la
+ * fiche ne s'accorde plus le budget entier : elle rend son verdict dès que le corpus a répondu,
+ * mesuré 573 à 1 115 ms miroirs pendus. Ce bras reste borné par `DELAI_MS` parce que son
+ * affirmation est la VIVACITÉ et pas la vitesse — mais il ne verrait donc pas un retour à
+ * l'attente de dix secondes. Ce qui garde cette propriété-là est `npm.cmd run test`, hors
+ * réseau : `src/hooks/useAddressContext.test.ts` fait répondre le corpus seul contre un miroir
+ * qui ne répond JAMAIS.
  */
 export const MARGE_MS = 4000
 
@@ -155,7 +163,9 @@ export const MARGE_MS = 4000
  * Le délai borné, et il est DÉRIVÉ du budget que la page s'impose à elle-même.
  *
  * `CONTEXT_BUDGET_MS` vit dans `src/hooks/useAddressContext.ts` et vaut 10 000 ms depuis #156 :
- * c'est le temps maximal que la fiche accorde à Overpass avant de composer son refus. Le
+ * c'est le temps maximal que la fiche accorde à Overpass. Depuis `w6-fiche-delai` (#180) ce
+ * n'est plus « avant de composer son refus » — la fiche compose son verdict sans attendre ce
+ * miroir, et ce budget ne borne plus qu'une couche NON PORTEUSE, celle de `noise`. Le
  * recopier ici en ferait un second chiffre, qui deviendrait faux en silence le jour où le
  * premier bouge — exactement ce que ce dépôt refuse ailleurs. Il est donc IMPORTÉ : si quelqu'un
  * le double, ce bras suit le même jour ; si quelqu'un le supprime, `typecheck` rougit.
@@ -275,8 +285,9 @@ export function verdictPage(
       rendu: null,
       dire:
         `La page n'a rendu ni verdict ni refus nommé en ${delaiMs} ms — ` +
-        `${aLaPlace} à la place. Le budget de la fiche est de ${CONTEXT_BUDGET_MS} ms : ` +
-        "passé ce délai elle doit composer l'un ou l'autre, et elle n'a composé aucun des deux.",
+        `${aLaPlace} à la place. La fiche compose son verdict sur le corpus seul, sans ` +
+        `attendre Overpass (#180) ; le budget de ${CONTEXT_BUDGET_MS} ms ne borne qu'une couche ` +
+        "non porteuse. Elle n'a donc composé ni verdict ni refus bien après avoir eu de quoi.",
       sortie: EXIT.fail,
     }
   }
