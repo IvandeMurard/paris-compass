@@ -89,6 +89,27 @@ export const BDCOM_ORIGIN = (vintageYear: number, licence: string, asOf: string)
 });
 
 /**
+ * Île-de-France Mobilités' rail-stop reference — w6-amenites-corpus.
+ *
+ * `asOf` is a parameter for the same reason it is on `BDCOM_ORIGIN`: only the database knows
+ * it (`ingestion_run.source_as_of` for source `idfm`), and writing a date here would be an
+ * unmeasured claim about data this module never reads.
+ *
+ * **The licence is the STOP reference's, not the validation profile's, and the two differ.**
+ * `idfm_station` — the 258 Paris zones d'arrêt this axis measures a distance to — is Licence
+ * Ouverte 2.0 (Etalab). `idfm_validation_profile`, loaded beside it, is ODbL and is NOT read
+ * by any figure here: it holds the SHAPE of a station's day as percentages and carries no
+ * volume at all, so nothing on this page can be counted from it. Naming ODbL on a figure
+ * derived from the Etalab layer would bind a redistributor to an obligation the data does not
+ * carry — the mirror image of the mislabelling `LayerOrigins` was created to stop.
+ */
+export const IDFM_ORIGIN = (asOf: string): Origin => ({
+  source: 'IDFM — référentiel des arrêts',
+  licence: 'Licence Ouverte 2.0 (Etalab)',
+  asOf,
+});
+
+/**
  * Provenance of a figure computed from more than one source.
  *
  * The footfall proxy is the case that forces this: it mixes premise density with transport

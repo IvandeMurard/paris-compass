@@ -562,8 +562,35 @@ donnée distingue un quartier de bureaux qui triple à midi d'un quartier résid
 inverse, deux emplacements que la population résidentielle INSEE décrit à l'identique. Réserves à
 afficher : jour de semaine moyen, enquêtes de 2009 à 2019 selon les villes, maille secteur.
 
-**3.2 — Validations IDFM.** Par station, par jour, par titre, historique depuis 2015 avec profils
-horaires. Remplace le passage estimé par un nombre compté.
+**3.2 — Validations IDFM.** ~~Par station, par jour, par titre, historique depuis 2015 avec
+profils horaires. Remplace le passage estimé par un nombre compté.~~
+
+> **Cette phrase était fausse, et elle a fait écrire un ticket faux — corrigée le 15 septembre
+> 2026.** Elle décrivait ce que le jeu IDFM *semblait* promettre, jamais ce qui a été ingéré, et
+> `docs/tickets/w6-amenites-corpus.md` l'a recopiée mot pour mot dans son plan : « IDFM —
+> comptages de validation réels par station ». Les deux documents portaient la même erreur, donc
+> aucun des deux ne pouvait corriger l'autre.
+>
+> **Ce qui est réellement en base, chargé le 7 septembre 2026 par `w2-idfm` (#19) :**
+>
+> - `idfm_station` — **258** zones d'arrêt du réseau **ferré** dans Paris, avec leur géométrie.
+>   Licence Ouverte 2.0 (Etalab). **Pas de bus.**
+> - `idfm_validation_profile` — **29 489** lignes, une par (station, type de jour, tranche
+>   horaire), portant `pct_validations` : la part d'une journée de station tombant dans cette
+>   tranche. ODbL. **C'est une FORME, jamais un volume** — le jeu ne publie aucun compte absolu,
+>   l'en-tête de `20260907000002` le dit, et la mesure le confirme (24 tranches JOHV sommant à
+>   99,99 % à Oberkampf). Deux stations n'y sont pas comparables sur leur fréquentation.
+> - **85 410** `premise_location` rattachés à leur station la plus proche, sur 85 418.
+>
+> **Donc le passage estimé n'est pas remplacé par un nombre compté, et il ne peut pas l'être avec
+> cette source.** Ce que `w6-amenites-corpus` en a tiré, le 15 septembre 2026, est la seule chose
+> qu'elle donne : la **distance à l'arrêt le plus proche**, qui remplace un comptage d'aménités
+> OpenStreetMap par une mesure du référentiel officiel. `footfall` reste un proxy et le dit.
+>
+> **Ce qui rendrait la promesse d'origine vraie** : l'historique 2015-2024
+> (`histo-validations-reseau-ferre`), une archive d'un zip par année sans schéma stable entre
+> années — un chantier à part entière, toujours non fait, et à ne pas réécrire ici comme s'il
+> l'était.
 
 **3.3 — BODACC (DILA).** API ouverte et gratuite, sans clé. Deux usages distincts : les **ventes
 et cessions de fonds de commerce avec leur prix**, qui est la donnée de prix la plus proche de ce

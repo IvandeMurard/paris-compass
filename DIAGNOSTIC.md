@@ -1,7 +1,7 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte 52 au 14 septembre 2026**, et la
+« quatre défauts, par ordre de gravité » : il en porte 53 au 15 septembre 2026**, et la
 phrase est restée fausse trois semaines. Le nombre est désormais dérivé du tableau
 ci-dessous par `scripts/porte/documents.test.ts` : le recopier faux fait rougir `test`.
 
@@ -76,6 +76,7 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 50 | La fiche de contexte plante quand Overpass tombe, et n'appelle aucune fonction `compass_*` | clos les 13 et 14 septembre 2026 — le plantage par `#156`, l'absence de corpus par `#157` | ici |
 | 51 | Un compte de locaux plafonné à mille par PostgREST, rendu comme un total — `compass_scoring_context_within` | clos le 14 septembre 2026 par `w6-fiche-corpus`, `#157` | ici |
 | 52 | L'axe `tissu commercial` lit 100 sur la moitié de Paris : honnête, et presque sans pouvoir discriminant | **ouvert** — mesuré le 14 septembre 2026 par `w6-fiche-corpus`, P2, **décision Ivan** | ici |
+| 53 | Hors corpus, deux couches neuves rendaient un ZÉRO mesuré au lieu d'une absence — `services` et `stations` | clos le 15 septembre 2026 par `w6-amenites-corpus`, trouvé à l'écran | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -1086,3 +1087,61 @@ l'intérieur de Paris commerçant, et rien de ce qu'il affiche n'est faux.
 **Décision attendue d'Ivan**, et elle est étroite : garder 90 partagée, ou publier une constante
 propre au tissu commercial avec la mesure qui la justifie. `#157` n'a pas tranché seul parce que la
 première branche touche une formule publiée que son périmètre écarte.
+
+---
+
+## 53. Hors corpus, deux couches neuves rendaient un zéro mesuré au lieu d'une absence
+
+**Trouvé à l'écran le 15 septembre 2026, pendant la démonstration du critère 5 de
+`w6-amenites-corpus`, et corrigé avant la livraison.** Pas en relecture : la contre-preuve du
+ticket — « un point hors de Paris intra-muros rend toujours un refus nommé » — a été jouée dans
+Chrome sans tête contre le build local, et l'écran a montré autre chose que ce que le code était
+censé faire.
+
+**Ce que Massy affichait**, miroirs Overpass coupés, avant correction :
+
+> **Pas de verdict ici** — le tissu commercial : hors du corpus ; le passage : hors du corpus.
+>
+> DESSERTE FERRÉE **0/100** · SERVICES MARCHANDS À PIED **0/100**
+
+Le refus était juste — `density` et `footfall` lisent `premises`, qui porte bien
+`out_of_corpus` — mais **deux axes affichaient un chiffre**, et ce chiffre était fabriqué. Massy
+a des commerces et une gare du RER B.
+
+**La cause, et elle est structurelle plutôt qu'accidentelle.** Les deux fonctions que les couches
+neuves appellent **réussissent** hors de Paris et rendent zéro ligne :
+
+| Fonction | Pourquoi zéro ligne hors de Paris | Marqueur ? |
+| --- | --- | :---: |
+| `compass_premises_within` | aucun local dans les 80 quartiers | **aucun** — c'est le §36, encore ouvert |
+| `compass_station_profile` | `idfm_station` est restreinte à Paris **à l'ingestion** (`zdapostalregion like '751%'`) | aucun |
+| `compass_scoring_context_within` | idem | **`out_of_corpus`**, posé par `20260825000003` |
+
+Une couche qui répond et ne rend rien compte comme « chargée et vide », et `src/core` lit alors un
+vrai zéro — ce qui est le comportement CORRECT et voulu à l'intérieur de Paris : le bois de
+Vincennes n'a réellement aucun local dans 400 m ni aucun arrêt ferré dans 800 m, et effacer cette
+réponse détruirait la seule chose que la couche dit avec certitude. La distinction ne peut donc pas
+se faire sur la vacuité ; elle ne peut se faire que sur la frontière, et **une seule fonction la
+connaît**.
+
+**C'est `DIAGNOSTIC.md` §16 un cran plus loin.** §16 était « un point hors corpus rendu comme un
+quartier sans commerces », clos le 25 août par le marqueur `out_of_corpus`. Le marqueur a tenu ; ce
+qui n'a pas tenu est qu'il n'existe que sur **une** des trois fonctions, et que deux couches neuves
+sont arrivées à côté sans hériter de sa réponse.
+
+**Corrigé** dans `src/hooks/useAddressContext.ts` et `mcp-server/src/context.ts`, des deux côtés
+et par la même règle : `compass_scoring_context_within` reste la **seule autorité** sur la
+frontière, et les couches `services` et `stations` sont retirées avec `premises` quand elle répond
+`hors_corpus`. Un second test de frontière dans chaque couche aurait été une deuxième autorité sur
+la même question, libre de contredire la première.
+
+**Ce que le correctif ne rattrape pas**, et il faut le nommer :
+
+- Il protège les **appelants** de ces fonctions, pas les fonctions elles-mêmes. Un agent qui
+  appelle `compass_premises_within` en direct par PostgREST reçoit toujours zéro ligne à Massy,
+  indistinguable d'un rayon vide : **c'est exactement le §36, qui reste ouvert**
+  ([#80](https://github.com/IvandeMurard/paris-compass/issues/80)). La sortie durable est un
+  marqueur `out_of_corpus` sur cette fonction-là, donc une migration.
+- Il est tenu par un test unitaire (`src/hooks/useAddressContext.test.ts`) et non par un
+  invariant : rien dans la base n'empêche une **troisième** couche d'arriver demain sans hériter
+  de la frontière. La règle est écrite ici et dans les deux fichiers ; elle n'est pas mécanique.

@@ -17,6 +17,9 @@ const withNote = (n: number, note: string): Measured<number> => withValue(n, OSM
 
 const scores = (partial: Partial<AreaScores> = {}): AreaScores => ({
   density: plain(65),
+  services: plain(65),
+  rail: plain(65),
+  alimentaire: plain(65),
   walkability: plain(70),
   schools: plain(70),
   healthcare: plain(70),
@@ -142,30 +145,32 @@ describe('collectGaps', () => {
       amenities: 'source_injoignable',
       roads: 'source_injoignable',
       premises: 'source_injoignable',
+      services: 'source_injoignable',
+      stations: 'source_injoignable',
     };
     const gaps = collectGaps(
-      scores({ transit: unavailable(OSM, 'The amenity layer did not load for this area.') }),
+      scores({ rail: unavailable(OSM, 'The rail-stop layer did not load for this area.') }),
       [],
       OSM.source,
       'fr',
       withheld,
     );
 
-    const transit = gaps.find((g) => g.key === 'missing:transit')?.text ?? '';
-    expect(transit).toContain('source injoignable');
-    expect(transit).toContain('The amenity layer did not load for this area.');
+    const rail = gaps.find((g) => g.key === 'missing:rail')?.text ?? '';
+    expect(rail).toContain('source injoignable');
+    expect(rail).toContain('The rail-stop layer did not load for this area.');
   });
 
   it('ne devine jamais une retenue de licence quand personne n’a déclaré de motif', () => {
     // The honest default, and the same one `findingsFromScores` takes: « we do not know why »
     // is a fact. Guessing a cause here would put a licence refusal on screen on an outage.
-    const gaps = collectGaps(scores({ transit: unavailable(OSM, 'x') }), [], OSM.source, 'fr');
-    expect(gaps.find((g) => g.key === 'missing:transit')?.text).toContain('indéterminé');
+    const gaps = collectGaps(scores({ rail: unavailable(OSM, 'x') }), [], OSM.source, 'fr');
+    expect(gaps.find((g) => g.key === 'missing:rail')?.text).toContain('indéterminé');
   });
 
   it('rend la même structure en anglais', () => {
-    const fr = collectGaps(scores({ transit: unavailable(OSM, 'x') }), ALL, OSM.source, 'fr');
-    const en = collectGaps(scores({ transit: unavailable(OSM, 'x') }), ALL, OSM.source, 'en');
+    const fr = collectGaps(scores({ rail: unavailable(OSM, 'x') }), ALL, OSM.source, 'fr');
+    const en = collectGaps(scores({ rail: unavailable(OSM, 'x') }), ALL, OSM.source, 'en');
     expect(en.map((g) => g.key)).toEqual(fr.map((g) => g.key));
     expect(en.find((g) => g.key === 'commercial-rent')?.text).not.toBe(
       fr.find((g) => g.key === 'commercial-rent')?.text,

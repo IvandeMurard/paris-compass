@@ -49,7 +49,7 @@ describe('composeVerdict — la règle qui porte le ticket', () => {
       expect(verdict.sentence.toLowerCase()).toContain(clause.text.toLowerCase());
     }
     expect(verdict.sentence).toBe(
-      'Tissu commercial dense, passage soutenu, desserte forte, services à pied nombreux.',
+      'Tissu commercial dense, passage soutenu, desserte ferrée forte, services marchands à pied nombreux.',
     );
   });
 
@@ -57,9 +57,9 @@ describe('composeVerdict — la règle qui porte le ticket', () => {
     const compose = composeVerdict(fullFindings());
     const refus = composeVerdict(
       fullFindings({
-        transit: unavailable<number>(ORIGIN, 'The amenity layer did not load for this area.'),
+        rail: unavailable<number>(ORIGIN, 'The amenity layer did not load for this area.'),
       }).map((f) =>
-        f.axis === 'transit' ? { ...f, withheldBecause: 'retenue_licence' as const } : f,
+        f.axis === 'rail' ? { ...f, withheldBecause: 'retenue_licence' as const } : f,
       ),
     );
 
@@ -68,20 +68,20 @@ describe('composeVerdict — la règle qui porte le ticket', () => {
     if (refus.kind !== 'refus') return;
     // Not a softened sentence: nothing that composed before survives into the refusal.
     if (compose.kind === 'compose') {
-      expect(refus.sentence).not.toContain('desserte forte');
+      expect(refus.sentence).not.toContain('desserte ferrée forte');
       expect(refus.sentence).not.toBe(compose.sentence);
     }
-    expect(refus.sentence).toContain('la desserte : retenu pour licence');
+    expect(refus.sentence).toContain('la desserte ferrée : retenu pour licence');
     expect(refus.missing).toEqual([
       {
-        axis: 'transit',
+        axis: 'rail',
         because: 'retenue_licence',
         reason: 'The amenity layer did not load for this area.',
       },
     ]);
     // The findings that DID resolve are not destroyed by the refusal — they are still named,
     // separately. Refusing to conclude is not refusing to inform.
-    expect(refus.available).toEqual(['density', 'footfall', 'walkability']);
+    expect(refus.available).toEqual(['density', 'footfall', 'services']);
   });
 
   it('refuse aussi sur un constat porteur indéterminé, sans motif déclaré', () => {
@@ -97,22 +97,22 @@ describe('composeVerdict — la règle qui porte le ticket', () => {
   it('refuse quand un constat porteur n’a même pas été fourni', () => {
     // Composing over a finding nobody attempted is the same defect one step earlier: the
     // absence is then invisible, which is worse than a null value.
-    const verdict = composeVerdict(fullFindings().filter((f) => f.axis !== 'walkability'));
+    const verdict = composeVerdict(fullFindings().filter((f) => f.axis !== 'services'));
     expect(verdict.kind).toBe('refus');
     if (verdict.kind !== 'refus') return;
-    expect(verdict.missing.map((g) => g.axis)).toEqual(['walkability']);
+    expect(verdict.missing.map((g) => g.axis)).toEqual(['services']);
   });
 
   it('nomme TOUS les constats porteurs manquants, pas seulement le premier', () => {
     const verdict = composeVerdict(
       fullFindings({
         footfall: unavailable<number>(ORIGIN, 'a'),
-        transit: unavailable<number>(ORIGIN, 'b'),
+        rail: unavailable<number>(ORIGIN, 'b'),
       }),
     );
     expect(verdict.kind).toBe('refus');
     if (verdict.kind !== 'refus') return;
-    expect(verdict.missing.map((g) => g.axis)).toEqual(['footfall', 'transit']);
+    expect(verdict.missing.map((g) => g.axis)).toEqual(['footfall', 'rail']);
   });
 
   it('un constat d’appui absent ne bloque pas le verdict, et n’est pas inventé', () => {
@@ -121,14 +121,14 @@ describe('composeVerdict — la règle qui porte le ticket', () => {
     );
     expect(verdict.kind).toBe('compose');
     if (verdict.kind !== 'compose') return;
-    expect(verdict.supporting.map((c) => c.axis)).toEqual(['groceries']);
+    expect(verdict.supporting.map((c) => c.axis)).toEqual(['alimentaire']);
     expect(verdict.sentence).not.toContain('bruit');
   });
 
   it('garde les constats d’appui hors de la phrase, même présents', () => {
     const verdict = composeVerdict(fullFindings());
     if (verdict.kind !== 'compose') return;
-    expect(verdict.supporting.map((c) => c.axis)).toEqual(['groceries', 'noise']);
+    expect(verdict.supporting.map((c) => c.axis)).toEqual(['alimentaire', 'noise']);
     for (const clause of verdict.supporting) {
       expect(verdict.sentence).not.toContain(clause.text);
     }
@@ -148,15 +148,15 @@ describe('composeVerdict — la règle qui porte le ticket', () => {
     expect(compose.kind).toBe('compose');
     if (compose.kind === 'compose') {
       expect(compose.sentence).toBe(
-        'A dense commercial fabric, steady footfall, strong transit access, many services within walking distance.',
+        'A dense commercial fabric, steady footfall, strong rail access, many shops and services within walking distance.',
       );
     }
     const refus = composeVerdict(
-      fullFindings({ transit: unavailable<number>(ORIGIN, 'x') }),
+      fullFindings({ rail: unavailable<number>(ORIGIN, 'x') }),
       'en',
     );
     if (refus.kind !== 'refus') throw new Error('expected a refusal');
-    expect(refus.sentence).toContain('transit access: undetermined');
+    expect(refus.sentence).toContain('rail access: undetermined');
   });
 
   it('les deux phrases restent des observations, jamais des prévisions', () => {
@@ -165,8 +165,8 @@ describe('composeVerdict — la règle qui porte le ticket', () => {
     const sentences = [
       composeVerdict(fullFindings()).sentence,
       composeVerdict(fullFindings(), 'en').sentence,
-      composeVerdict(fullFindings({ transit: unavailable<number>(ORIGIN, 'x') })).sentence,
-      composeVerdict(fullFindings({ transit: unavailable<number>(ORIGIN, 'x') }), 'en').sentence,
+      composeVerdict(fullFindings({ rail: unavailable<number>(ORIGIN, 'x') })).sentence,
+      composeVerdict(fullFindings({ rail: unavailable<number>(ORIGIN, 'x') }), 'en').sentence,
     ];
     for (const s of sentences) {
       expect(findForbiddenForm(s), s).toBeNull();
@@ -178,26 +178,33 @@ describe('bandOf', () => {
   it('lit le bruit sur son échelle, pas sur celle des scores', () => {
     // 70/100 d'exposition routière et 70/100 de marchabilité ne sont pas la même affirmation.
     expect(bandOf('noise', 70)).toBe('fort');
-    expect(bandOf('walkability', 70)).toBe('fort');
+    expect(bandOf('services', 70)).toBe('fort');
     expect(bandOf('noise', 45)).toBe('moyen');
-    expect(bandOf('walkability', 45)).toBe('moyen');
+    expect(bandOf('services', 45)).toBe('moyen');
     expect(bandOf('noise', 20)).toBe('faible');
     // Sur l'échelle des scores, 20 est faible aussi — mais par une autre borne.
-    expect(bandOf('walkability', 20)).toBe('faible');
+    expect(bandOf('services', 20)).toBe('faible');
   });
 });
 
 describe('findingsFromScores', () => {
   const scores = (partial: Partial<AreaScores> = {}): AreaScores => ({
+    // The six verdict axes …
     density: score(65),
+    services: score(65),
+    rail: score(65),
+    alimentaire: score(65),
+    footfall: score(70),
+    noise: score(20),
+    // … and the Overpass family they no longer bear, still computed and still shown by
+    // `/carte`. Both sets live in `AreaScores`, which is what makes the rename of
+    // w6-amenites-corpus a rename and not a re-sourcing.
     walkability: score(70),
     schools: score(70),
     healthcare: score(70),
     groceries: score(70),
     parks: score(70),
     transit: score(70),
-    footfall: score(70),
-    noise: score(20),
     ...partial,
   });
 
@@ -209,19 +216,19 @@ describe('findingsFromScores', () => {
     const withheld = findingsFromScores(
       scores({
         footfall: unavailable<number>(ORIGIN, 'premises withheld'),
-        transit: unavailable<number>(ORIGIN, 'amenities down'),
+        rail: unavailable<number>(ORIGIN, 'stations down'),
       }),
-      { premises: 'retenue_licence', amenities: 'source_injoignable' },
+      { premises: 'retenue_licence', stations: 'source_injoignable' },
     );
     const byAxis = new Map(withheld.map((f) => [f.axis, f]));
     // Footfall reads premises first, so the licence withholding is the one that stopped it.
     expect(byAxis.get('footfall')?.withheldBecause).toBe('retenue_licence');
-    expect(byAxis.get('transit')?.withheldBecause).toBe('source_injoignable');
+    expect(byAxis.get('rail')?.withheldBecause).toBe('source_injoignable');
   });
 
   it('n’invente pas de motif : sans déclaration, c’est indéterminé', () => {
-    const findings = findingsFromScores(scores({ transit: unavailable<number>(ORIGIN, 'x') }));
-    expect(findings.find((f) => f.axis === 'transit')?.withheldBecause).toBe('indetermine');
+    const findings = findingsFromScores(scores({ rail: unavailable<number>(ORIGIN, 'x') }));
+    expect(findings.find((f) => f.axis === 'rail')?.withheldBecause).toBe('indetermine');
   });
 
   it('ne pose aucun motif sur un constat qui a une valeur', () => {
@@ -233,7 +240,7 @@ describe('findingsFromScores', () => {
 
 describe('la table des axes', () => {
   it('déclare exactement quatre porteurs, et l’ordre de lecture les contient tous', () => {
-    expect([...BEARING_AXES]).toEqual(['density', 'footfall', 'transit', 'walkability']);
+    expect([...BEARING_AXES]).toEqual(['density', 'footfall', 'rail', 'services']);
     for (const axis of VERDICT_AXIS_ORDER) {
       expect(VERDICT_AXES[axis], axis).toBeDefined();
     }

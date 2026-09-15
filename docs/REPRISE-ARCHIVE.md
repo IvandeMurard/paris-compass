@@ -844,3 +844,73 @@ fausse pour deux d'entre eux, qui étaient restés en place sous elle. Ils sont 
    JSX, parce que le harnais tourne en `environment: 'node'`.
 
 ---
+
+---
+
+## Point 19 de « La suite, par ordre » — la fiche lit le corpus
+
+**Sorti de `docs/REPRISE.md` le 15 septembre 2026** par `w6-amenites-corpus` (#169), qui le
+remplace par un point 20 sur tout ce qui est encore vrai. Gardé ici pour ses mesures datées :
+elles sont les seules du dépôt sur les trois états de la fiche entre le 13 et le 14 septembre.
+Numérotation d'origine conservée.
+
+19. **La fiche lit le corpus. Ce qui reste ouvert est le déploiement, pas le dépôt.**
+    `#156`, `#158` puis `#157` fermées les 13 et 14 septembre 2026, dans l'ordre décidé par
+    Ivan. Ce qui suit garde les mesures de chacune, parce qu'elles se répondent.
+
+    **`#157`, le 14 septembre 2026 : la fiche appelle `compass_*`, et ses origines ne sont
+    plus uniformes.** Les locaux viennent de `compass_scoring_context_within` — APUR BDCom
+    2023, ODbL-1.0, millésime `2023-06` lu sur `compass_vintages` et jamais écrit dans le code
+    — et seuls les équipements et la voirie restent sur Overpass. Un axe neuf, **`tissu
+    commercial`**, ne lit que cette couche-là : c'est le constat qui survit à trois miroirs
+    morts, et il est **porteur**, ce qui est « le corpus d'abord » écrit en code plutôt qu'en
+    prose. Mesuré rue de Bretagne, chemin anonyme : **920 locaux dans 400 m en 144 à 735 ms**,
+    contre 8 981 à 43 315 ms pour un miroir Overpass quand il répond.
+
+    **Ce que la mesure a trouvé en chemin, et qui vivait sur le chemin de l'agent depuis le
+    15 août** : PostgREST plafonne une réponse à mille lignes, `compass_scoring_context_within`
+    rend `total_matched` pour le dire, et **personne ne le lisait**. À 2 000 m — le rayon que
+    `score_location` annonce dans son schéma d'entrée — l'agent recevait **1 000 locaux sur
+    17 190**, comptés comme un total et estampillés « APUR BDCom 2023 » sans réserve.
+    `DIAGNOSTIC.md` §51, corrigé sur les deux surfaces le même jour.
+
+    **Ce que `#157` ne rattrape pas, et c'est écrit dans son propre énoncé** : servir le corpus
+    ne le rend pas *lisible*. La fiche porte maintenant six constats là où `w6-contexte` en
+    veut quatre à six scannables — elle est à la borne haute, et le choix de ce qu'on montre
+    reste un travail produit distinct. Et **la vacance n'est toujours pas servie** : BDCom 2023
+    est `retail_only` et porte **0 local vacant** sur 60 845 relevés, contre 7 853 en 2017 et
+    8 764 en 2020. C'est la réponse de l'APUR qui l'ouvre, pas du code — point 2 ci-dessous.
+
+    **Ce qui est corrigé, et ce que la correction a appris.** `ContextMap` créait sa carte
+    sans vue, donc Leaflet n'attachait aucune couche — `Map.addLayer` diffère par `whenReady`
+    — et `circle.getBounds()` jetait `Cannot read properties of undefined (reading
+    'layerPointToLatLng')` dans un effet, que React remet à la frontière d'erreur. **Le
+    plantage ne dépendait pas d'Overpass** : démontré dans Chrome sans tête contre le build de
+    `3cb9b5d`, miroirs **rétablis** avec un instantané Overpass réel rejoué, la page meurt
+    quand même, sur le même message. La chaîne de cause du ticket avait un maillon de trop.
+    `DIAGNOSTIC.md` §50 porte le détail et les miroirs remesurés.
+
+    **Ce que la fiche rend maintenant**, mesuré le même jour, même navigateur, même URL :
+    miroirs pendus, elle se pose en **10 224 ms** sur le refus et le bloc des trous, chacun
+    nommant « source injoignable », **aucun écran d'erreur** ; miroirs refusant d'emblée,
+    **272 ms** ; miroirs rétablis, **260 ms** et un verdict composé. Avant, dans les trois
+    états : l'écran d'erreur.
+
+    **Ce qui reste ouvert après les trois, et ce n'est plus du code.** Le quinzième bras,
+    `page` ([`#158`](https://github.com/IvandeMurard/paris-compass/issues/158)), reste **ROUGE
+    contre la production** et le restera chaque matin jusqu'à ce que Lovable republie : le
+    bundle servi est antérieur à `#156`, donc à plus forte raison à `#157`. Le dépôt est vert,
+    le visiteur ne l'est pas, et c'est exactement la distinction que ce bras existe pour tenir
+    — ne pas le désarmer. **La porte était entièrement au vert pendant la panne de septembre**,
+    et c'est ce qui l'a fait naître.
+
+---
+
+## Tests unitaires — les relevés de 640 à 416, du 6 au 13 septembre 2026
+
+**Sortis de `docs/REPRISE.md` le 15 septembre 2026** par `w6-amenites-corpus` (#169), pour tenir
+le plafond de `scripts/porte/documents.test.ts` — le même geste que le 13 septembre pour les
+relevés de 396 à 273, et pour la même raison : monter le plafond est interdit, sortir une entrée
+close ne l'est pas. Chaque relevé garde sa date et ce que son ticket avait ajouté.
+
+Antérieurement **640 sur 48 fichiers, le même jour** — dont les 15 de `w6-fiche-robuste` (`#156`), et **le premier fichier de ce dépôt qui MONTE un composant** : `src/components/context/ContextMap.test.tsx` tourne sous `@vitest-environment jsdom` avec le vrai Leaflet, parce que le défaut n'existe qu'une fois la carte montée. Quatre de ses cinq cas échouent sur `3cb9b5d`, dont deux sur le message exact de production. `node` reste l'environnement par défaut, et c'est une règle : une décision sur des mots ou une géométrie se teste sans DOM. Antérieurement **625 sur 46 fichiers, mesurés le 13 septembre 2026** — dont les 6 de `#152` sur la seconde population du bras `servi` : l'un rejoue l'incident en miniature, un autre surveille que la part de libellés prouvables ne s'effondre pas, ce qui ferait du bras un témoin sans pouvoir de décision, en silence. Antérieurement **619 sur 46 fichiers, mesurés le 13 septembre 2026** — dont les 8 de `src/services/opendata/environment.test.ts` (`#145`), qui tiennent la distinction entre une source qui n'a rien et une source qui n'a pas répondu. L'un d'eux échoue si quelqu'un refusionne les deux cas pour simplifier un appelant. Antérieurement **611 sur 45 fichiers, mesurés le 13 septembre 2026** sur `ticket/servi-contre-suivi` — dont les 16 de `scripts/porte/servi.test.ts` (`#142`), qui rejouent l'incident fondateur **sur la vraie table de routes** : un bundle portant les anciennes routes et pas les quatre neuves rougit en nommant les quatre, et un bundle où rien n'est trouvé rend « mesure cassée » et non un rouge. L'écart avec les 440 du 9 septembre n'est pas de mon fait seul : d'autres sessions ont écrit entre-temps. **440, mesurés le 9 septembre 2026** sur `ticket/avis-atteignabilite` — dont les 18 de `scripts/porte/avis.test.ts` ajoutés par le treizième bras (`#115`), qui jouent la règle d'atteignabilité hors ligne : un avis non jugé rougit, un verdict à demi écrit rougit, un verdict qui dit ATTEIGNABLE rougit quand même, une entrée qu'aucun avis ne porte plus rougit, et une raison que le dépôt contredit rougit toute seule. **422** plus tôt le même jour, après la montée de `vitest` en 4.1.11 — le chiffre est inchangé de part et d'autre de la montée, et c'est ce qui la valide. Antérieurement **418**, remesurés le 6 septembre 2026 au soir sur `ticket/w6-analyse`, qui n'ajoute aucun test — le chiffre de 416 daté du même jour avait été pris avant `#85` et `#86`. Antérieurement **416**, mesurés le 6 septembre 2026 — dont les 20 de `scripts/porte/ledger.test.ts` ajoutés par `w1-ledger` (#82), qui jouent la comparaison des deux listes sans base et vérifient que chaque divergence consignée nomme encore un fichier suivi, **avec l'empreinte contre laquelle elle a été écrite** : une seconde réécriture de `20260825000002` fait échouer `test` seul, sans secret ni connexion.

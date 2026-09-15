@@ -92,6 +92,23 @@ const OSM_ONLY = [
   "noise",
 ] as const
 
+/**
+ * Les axes que la fiche lit dans le CORPUS, et la source que chacun doit nommer —
+ * w6-amenites-corpus.
+ *
+ * Écrit comme une table plutôt que comme une liste parce que les trois ne partagent pas une
+ * source : `rail` mesure une distance sur le référentiel IDFM, sous Licence Ouverte 2.0, et
+ * les deux autres comptent un relevé APUR sous ODbL-1.0. Un libellé recopié d'un axe sur
+ * l'autre est invisible à l'œil et faux pour un redistributeur — c'est le défaut que
+ * `LayerOrigins` existe pour rendre visible, et celui que le critère 3 du ticket demande.
+ */
+const CORPUS_SOURCE: Readonly<Record<string, string>> = {
+  density: "APUR BDCom",
+  services: "APUR BDCom",
+  alimentaire: "APUR BDCom",
+  rail: "IDFM",
+}
+
 type Status = "ok" | "fail" | "outage" | "defaut"
 
 interface Check {
@@ -331,13 +348,44 @@ async function checkProvenance(client: Client): Promise<ScoreResponse | null> {
 
   // The regression w0-provenance fixed, pinned: one Origin for the whole result made footfall
   // claim OpenStreetMap for a figure two thirds read from APUR's door-to-door survey.
+  //
+  // **The second layer changed on 15 September 2026 — w6-amenites-corpus — and this control
+  // caught it.** The transport third was an Overpass amenity count and is now the distance to
+  // the nearest IDFM stop, so the composite reads « APUR BDCom 2023 + IDFM ». The assertion is
+  // updated HERE, in the arm, and it keeps its teeth: the rule under test is « a composite
+  // names every layer it reads », not « a composite names OpenStreetMap ». Naming only the
+  // premises source would still fail, which is the regression that mattered.
+  //
+  // It is also what makes the axis survive a dead mirror, so the negative half is asserted
+  // too: a footfall that still cited Overpass would mean the layer had not actually moved.
   const footfall = response.scores.footfall
   expect(
     "PROVENANCE",
     "P4",
-    "footfall cite ses deux couches — APUR BDCom et OpenStreetMap",
-    Boolean(footfall && footfall.source.includes("BDCom") && footfall.source.includes("OpenStreetMap")),
+    "footfall cite ses deux couches — APUR BDCom et IDFM, jamais OpenStreetMap",
+    Boolean(
+      footfall &&
+        footfall.source.includes("BDCom") &&
+        footfall.source.includes("IDFM") &&
+        !footfall.source.includes("OpenStreetMap"),
+    ),
     `source : ${footfall?.source}`,
+  )
+
+  // Chaque constat neuf porte SA source — critère 3 de w6-amenites-corpus, sur la surface de
+  // l'agent. La vérité comparée est la table ci-dessus, jamais une chaîne écrite ici deux fois.
+  const misnamed = Object.entries(CORPUS_SOURCE).filter(([axis, source]) => {
+    const measured = response.scores[axis as keyof typeof response.scores]
+    return !measured || !measured.source.includes(source)
+  })
+  expect(
+    "PROVENANCE",
+    "P4b",
+    "chaque axe du corpus nomme sa propre source : IDFM pour le ferré, l'APUR pour le reste",
+    misnamed.length === 0,
+    misnamed.length === 0
+      ? Object.keys(CORPUS_SOURCE).join(", ")
+      : `mal nommés : ${misnamed.map(([a]) => a).join(", ")}`,
   )
 
   // BDCom's date is the survey's, never today's. Giving a triennial census the date it was

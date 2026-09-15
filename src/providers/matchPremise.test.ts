@@ -19,6 +19,9 @@ function scores(overrides: Partial<AreaScores> = {}): AreaScores {
   const at = (n: number) => withValue(n, ORIGIN, 'derived');
   return {
     density: at(65),
+    services: at(65),
+    rail: at(65),
+    alimentaire: at(65),
     walkability: at(70),
     schools: at(60),
     healthcare: at(60),

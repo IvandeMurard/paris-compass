@@ -38,8 +38,44 @@ export interface PremisePoint extends Point {
   status: 'vacant' | 'occupied';
 }
 
-/** The three families of data a context carries, each loaded independently by the caller. */
-export type Layer = 'amenities' | 'roads' | 'premises';
+/**
+ * The families of MERCHANT service a ground-floor survey can tell apart — w6-amenites-corpus.
+ *
+ * They are BDCom's own `niv18` groups, regrouped and not invented: `alimentaire` is group 102,
+ * `soins` is 104 (Santé-Beauté), `restauration` is 111 (Café et Restaurant), `demarches` is
+ * 108 and 109 (Service aux particuliers, Agence), `culture` is 106 (Culture et loisirs). The
+ * mapping itself is `serviceFamilyOf` below, so a code that changes group changes family in
+ * one place.
+ *
+ * **What is deliberately NOT a family, and it is the whole doctrine of this axis.** BDCom
+ * knows commerce and nothing else: no school, no post office, no public facility. The groups
+ * left out — 101 Grand magasin, 103 Equipement de la personne, 105 Equipement de la maison,
+ * 107 Bricolage-Jardinage, 110 Auto-Moto, 112 Hôtel — are merchant but they are not what
+ * somebody walks to on an ordinary day; a clothes shop is a destination, a baker is a service.
+ * Both exclusions are judgements and both are written down rather than buried in a filter.
+ */
+export type ServiceFamily = 'alimentaire' | 'soins' | 'restauration' | 'demarches' | 'culture';
+
+/** A surveyed merchant premise, carrying the family it belongs to. */
+export interface ServicePoint extends Point {
+  family: ServiceFamily;
+}
+
+/**
+ * The families of data a context carries, each loaded independently by the caller.
+ *
+ * **Five since w6-amenites-corpus, and the two new ones are the point of that ticket.** Until
+ * 15 September 2026 three bearing axes of six — footfall, transit, walkability — read
+ * `amenities`, a layer with exactly one source: Overpass. A mirror that would not answer
+ * therefore took the verdict down whatever else had arrived, which is what
+ * `/contexte/rue-de-bretagne-paris` did in production: one finding of six, and a refusal.
+ *
+ * `services` (APUR's BDCom survey, by activity code) and `stations` (Île-de-France Mobilités'
+ * rail stops) give those axes an origin inside the corpus. Overpass stays, and stays useful:
+ * it is the only layer that knows the NON-merchant — schools, healthcare, parks — which a
+ * commercial survey cannot see and which `w2-bpe-marches-velo` (#17) exists to supply properly.
+ */
+export type Layer = 'amenities' | 'roads' | 'premises' | 'services' | 'stations';
 
 /**
  * Where each layer came from — one `Origin` per layer, not one for the whole result.
@@ -67,7 +103,13 @@ export type LayerOrigins = Readonly<Record<Layer, Origin>>;
  * what made the difference visible rather than assumed.
  */
 export function uniformOrigins(source: Origin): LayerOrigins {
-  return { amenities: source, roads: source, premises: source };
+  return {
+    amenities: source,
+    roads: source,
+    premises: source,
+    services: source,
+    stations: source,
+  };
 }
 
 /**
@@ -93,6 +135,18 @@ export interface NeighbourhoodContext {
   amenities: readonly Amenity[];
   roads: readonly Road[];
   premises: readonly PremisePoint[];
+  /** Surveyed merchant premises, typed by family — the `services` layer. */
+  services: readonly ServicePoint[];
+  /**
+   * Metres to the nearest IDFM rail stop — the whole of the `stations` layer.
+   *
+   * `null` means the layer LOADED and found none inside the radius it was asked for, which is
+   * a real reading and not an absence: measured 15 September 2026, the Bois de Vincennes has
+   * no rail stop within 800 m and that is a true statement about the place. A layer that did
+   * not load says so through `loaded`, never through this field — the same rule that forbids
+   * an empty array from meaning « nothing here ».
+   */
+  nearestStationM: number | null;
   /**
    * Geographic extent the context actually covers. When present, the core checks whether a
    * search radius fits inside it and degrades the figure when it does not.
@@ -161,9 +215,125 @@ export const WALKABILITY_WEIGHTS: Record<AmenityCategory, number> = {
   transit: 0.2,
 };
 
+/**
+ * Radius the merchant-service families are counted in — w6-amenites-corpus.
+ *
+ * `FOOTFALL_RADIUS_M` and not `AMENITY_RADIUS_M`, for a measured reason and not a tidy one:
+ * the survey is fetched through PostgREST, which caps a response at a thousand rows, and at
+ * 400 m three of twelve sampled Paris points already exceed it (Les Halles 1 000 of 1 136,
+ * Montorgueil 1 000 of 1 171, Saint-Germain 1 000 of 1 310 — measured 15 September 2026). At
+ * 800 m every central point would be a floor. Four hundred metres is also the five-minute walk
+ * the axis claims to describe, so the constraint and the meaning agree here — which is luck,
+ * and is written down so the next person does not read it as design.
+ */
+export const SERVICE_RADIUS_M = FOOTFALL_RADIUS_M;
+
+/**
+ * Saturation constant per merchant family, and how each number was obtained.
+ *
+ * **Not copied from `SATURATION`, and that is the ticket's first lesson.** Those constants size
+ * an OpenStreetMap count, where a volunteer has tagged what a volunteer bothered to tag: 18 for
+ * groceries. BDCom is a door-to-door survey of every ground-floor commercial unit in Paris, and
+ * it finds 87 food shops inside 400 m on rue de Bretagne alone. Reusing 18 would read 100 in
+ * every one of the twelve points sampled — an axis that answers the same thing everywhere,
+ * which is exactly the defect `DIAGNOSTIC.md` §52 already records against `PREMISE_SATURATION`.
+ *
+ * **Each constant is the family's own measured median divided by ln 2**, which is the value
+ * that puts a median Paris address at 50 and therefore leaves half the scale on each side of
+ * it. Medians over twelve points on 15 September 2026, radius 400 m, vintage 2023: alimentaire
+ * 70, soins 37, restauration 149, demarches 130, culture 42 → 100, 55, 215, 190, 60 after
+ * rounding.
+ *
+ * **What twelve points cannot settle**, said here rather than discovered later: the sample is
+ * deliberately spread (Les Halles and Montorgueil at one end, Bercy and the Bois de Vincennes
+ * at the other) but it is twelve, not eighty quartiers. The constants are the right ORDER of
+ * magnitude and the resulting axis separates Auteuil (32) from Montorgueil (64) where `density`
+ * reads 97 against 100 — that is the property this axis was built for. A re-derivation over the
+ * whole corpus is a better number and nobody's blocker.
+ */
+export const SERVICE_SATURATION: Record<ServiceFamily, number> = {
+  alimentaire: 100,
+  soins: 55,
+  restauration: 215,
+  demarches: 190,
+  culture: 60,
+};
+
+/**
+ * Weights of each family inside the merchant-services composite. Must sum to 1.
+ *
+ * Derived from `WALKABILITY_WEIGHTS` rather than re-invented, so the change is readable as a
+ * change: `groceries` 0.30 becomes `alimentaire` 0.30 and `healthcare` 0.20 becomes `soins`
+ * 0.20, both unchanged. The 0.50 that `schools`, `parks` and `transit` held is redistributed
+ * onto the two families a survey reveals and a volunteer map does not — `restauration` and
+ * `demarches` at 0.20 each — with 0.10 to `culture`, which is the family whose membership is
+ * the most elastic (group 106 runs from a bookshop to a tanning salon) and therefore the one
+ * that should move a composite the least.
+ *
+ * Schools and parks are not re-weighted away because they stopped mattering. They are gone
+ * because BDCom cannot see them at all, and the honest place for them is the INSEE BPE —
+ * `w2-bpe-marches-velo` (#17). Until it lands, this axis is blind to the non-merchant and the
+ * interface says so.
+ */
+export const SERVICE_WEIGHTS: Record<ServiceFamily, number> = {
+  alimentaire: 0.3,
+  soins: 0.2,
+  restauration: 0.2,
+  demarches: 0.2,
+  culture: 0.1,
+};
+
+/**
+ * Characteristic distance of the rail-access decay, in metres.
+ *
+ * `FOOTFALL_RADIUS_M`, so the number is a radius this product already publishes rather than a
+ * knob tuned until the table looked right: at exactly one walking radius from a stop the score
+ * is 100·e⁻¹ = 37. Measured over the same twelve points on 15 September 2026, nearest-stop
+ * distances ran 14 m (Belleville) to 375 m (Batignolles) with a median of 127 m, and the
+ * resulting axis spans 39 to 97 — a real spread on a city where rail is dense everywhere.
+ */
+export const TRANSIT_DECAY_M = FOOTFALL_RADIUS_M;
+
 /** Saturating score: n items mapped onto 0-100, with diminishing returns. */
 export function saturating(count: number, saturation: number): number {
   return clamp(Math.round(100 * (1 - Math.exp(-count / saturation))));
+}
+
+/**
+ * Decaying score: a DISTANCE mapped onto 0-100, nearer being better.
+ *
+ * The mirror image of `saturating`, and deliberately the same shape: both are exponentials
+ * with one characteristic constant, so a reader who has understood one has understood the
+ * other. A linear « 100 minus distance over radius » would have been a second formula family
+ * on the methodology page for no gain.
+ */
+export function decaying(distanceM: number, characteristicM: number): number {
+  return clamp(Math.round(100 * Math.exp(-distanceM / characteristicM)));
+}
+
+/**
+ * The merchant family a BDCom `niv18` activity group belongs to, or `null` when it is not one.
+ *
+ * Pure and in `src/core` on purpose: the decision of what counts as a service reachable on
+ * foot is doctrine, not plumbing, and putting it in the fetch layer would hide it from every
+ * test that does not go through the network.
+ */
+export function serviceFamilyOf(niv18: number | null | undefined): ServiceFamily | null {
+  switch (niv18) {
+    case 102:
+      return 'alimentaire';
+    case 104:
+      return 'soins';
+    case 111:
+      return 'restauration';
+    case 108:
+    case 109:
+      return 'demarches';
+    case 106:
+      return 'culture';
+    default:
+      return null;
+  }
 }
 
 export interface AreaScores {
@@ -182,6 +352,33 @@ export interface AreaScores {
    * is. On the 2023 vintage it is retail and commercial services only.
    */
   density: Measured<number>;
+  /**
+   * **Merchant services reachable on foot** — the axis that replaces `walkability` on the
+   * context sheet, w6-amenites-corpus, decided by Ivan on 14 September 2026.
+   *
+   * It is a different NAME because it counts a different population, and that is the whole
+   * reason it exists rather than being a re-sourcing of `walkability`. OpenStreetMap's
+   * « amenities » hold the non-merchant — schools, post offices, public facilities — and BDCom
+   * holds none of it. Serving a survey of shops under a label that promised shops *and*
+   * schools would be a figure lying about what it counts, which is the one failure
+   * `Measured<T>` exists to prevent.
+   *
+   * `walkability` below is not deprecated by it: that axis is still the honest reading of an
+   * Overpass snapshot, and `/carte` — whose three layers all come from one — still shows it.
+   */
+  services: Measured<number>;
+  /**
+   * **Rail access**: distance to the nearest Île-de-France Mobilités stop, decayed.
+   *
+   * It replaces the amenity-counted `transit` on the context sheet. Two changes of claim come
+   * with it and both are stated on the methodology page: it is a DISTANCE and no longer a
+   * count, and it is RAIL ONLY — metro, RER and tram, the 258 Paris zones d'arrêt of the IDFM
+   * référentiel. Buses are not in it. The count it replaces did include them, so this axis is
+   * more authoritative on rail and blind where the old one was vague.
+   */
+  rail: Measured<number>;
+  /** Food shops from the SURVEY — the non-bearing axis that replaces `groceries` on the sheet. */
+  alimentaire: Measured<number>;
   walkability: Measured<number>;
   schools: Measured<number>;
   healthcare: Measured<number>;
@@ -196,7 +393,9 @@ export interface AreaScores {
 export interface ScoringIndex {
   amenities: GridIndex<Amenity>;
   premises: GridIndex<PremisePoint>;
+  services: GridIndex<ServicePoint>;
   roads: readonly Road[];
+  nearestStationM: number | null;
   bounds?: BBox;
   loaded: ReadonlySet<Layer>;
 }
@@ -205,7 +404,9 @@ export function buildIndex(context: NeighbourhoodContext): ScoringIndex {
   return {
     amenities: new GridIndex(context.amenities),
     premises: new GridIndex(context.premises),
+    services: new GridIndex(context.services),
     roads: context.roads,
+    nearestStationM: context.nearestStationM,
     bounds: context.bounds,
     loaded: new Set(context.loaded),
   };
@@ -227,7 +428,21 @@ const MISSING = {
     'The premises layer did not load for this area, so surrounding activity is unknown rather than absent.',
   roads:
     'The road layer did not load for this area, so exposure could not be modelled. This is not a quiet location, it is an unmeasured one.',
+  services:
+    'The surveyed-services layer did not load for this area, so merchant services on foot are unknown rather than absent. Nothing counted is not the same as nothing there.',
+  stations:
+    'The rail-stop layer did not load for this area, so distance to the nearest stop is unknown. This is not a location far from transit, it is an unmeasured one.',
 } as const;
+
+/**
+ * What the rail axis says when the layer answered and found no stop inside the radius.
+ *
+ * A `note`, never an absence: a point with no rail stop within the search radius has been
+ * MEASURED to have none, and turning that into « unknown » would throw away the one reading
+ * the layer gives with certainty. Same discipline as an empty premises radius inside Paris.
+ */
+const NO_STATION_IN_RADIUS =
+  'No Île-de-France Mobilités rail stop was found inside the search radius, so this reads zero because none is near — not because the layer is silent.';
 
 function coverageNote(point: Point, radiusM: number, bounds?: BBox): string | undefined {
   if (!bounds) return undefined;
@@ -275,6 +490,8 @@ export function scoreLocation(
   const hasAmenities = index.loaded.has('amenities');
   const hasPremises = index.loaded.has('premises');
   const hasRoads = index.loaded.has('roads');
+  const hasServices = index.loaded.has('services');
+  const hasStations = index.loaded.has('stations');
 
   // Two caveats about one figure are two caveats, not a choice between them. Joined rather
   // than overwritten: a truncated premises layer at the edge of a truncated fetch area is a
@@ -336,27 +553,93 @@ export function scoreLocation(
       )
     : unavailable<number>(origins.premises, MISSING.premises);
 
+  // ── The corpus services layer: one walk of the index, read by two axes ──────────────────
+  // Counted once and reused, the same discipline as `occupiedNearby`: `services` and
+  // `alimentaire` count the same points in the same radius, and two walks would be two
+  // numbers to keep in step.
+  const serviceCounts = {} as Record<ServiceFamily, number>;
+  const serviceScores = {} as Record<ServiceFamily, number>;
+  if (hasServices) {
+    const nearby = index.services.within(point, SERVICE_RADIUS_M);
+    for (const family of Object.keys(SERVICE_SATURATION) as ServiceFamily[]) {
+      const count = nearby.filter((s) => s.family === family).length;
+      serviceCounts[family] = count;
+      serviceScores[family] = saturating(count, SERVICE_SATURATION[family]);
+    }
+  }
+
+  const serviceNote = noteOf(
+    coverageNote(point, SERVICE_RADIUS_M, index.bounds),
+    layerNotes.services,
+  );
+
+  const services = hasServices
+    ? withValue(
+        clamp(
+          Math.round(
+            (Object.keys(SERVICE_WEIGHTS) as ServiceFamily[]).reduce(
+              (sum, family) => sum + serviceScores[family] * SERVICE_WEIGHTS[family],
+              0,
+            ),
+          ),
+        ),
+        origins.services,
+        'derived',
+        serviceNote,
+      )
+    : unavailable<number>(origins.services, MISSING.services);
+
+  const alimentaire = hasServices
+    ? withValue(
+        saturating(serviceCounts.alimentaire, SERVICE_SATURATION.alimentaire),
+        origins.services,
+        'derived',
+        serviceNote,
+      )
+    : unavailable<number>(origins.services, MISSING.services);
+
+  // ── The rail layer: a distance, not a count ─────────────────────────────────────────────
+  // A loaded layer that found no stop is a measured zero and says so in its note; a layer
+  // that did not load is an absence. Collapsing the two would turn « we did not look » into
+  // « there is nothing », which is the assertion-from-absence this module refuses everywhere
+  // else.
+  const rail = hasStations
+    ? index.nearestStationM === null
+      ? withValue(0, origins.stations, 'derived', noteOf(NO_STATION_IN_RADIUS, layerNotes.stations))
+      : withValue(
+          decaying(index.nearestStationM, TRANSIT_DECAY_M),
+          origins.stations,
+          'derived',
+          layerNotes.stations,
+        )
+    : unavailable<number>(origins.stations, MISSING.stations);
+
   // Footfall mixes two layers, so it survives only if both are there — and when it does,
   // it is attributed to both. Naming only the premises source would hide that 35 % of the
-  // figure is transport access counted from OpenStreetMap.
+  // figure is rail access measured by Île-de-France Mobilités.
+  //
+  // **The transport half moved from `amenities` to `stations` — w6-amenites-corpus.** It was
+  // `rawByCategory.transit`, an Overpass count, which is why a dead mirror blanked footfall
+  // even though the premises had arrived from the database in 200 ms. Both halves now come
+  // from the corpus, and the axis survives an outage entirely.
   let footfall: Measured<number>;
   if (!hasPremises) {
     footfall = unavailable<number>(origins.premises, MISSING.premises);
-  } else if (!hasAmenities) {
-    footfall = unavailable<number>(origins.amenities, MISSING.amenities);
+  } else if (!hasStations) {
+    footfall = unavailable<number>(origins.stations, MISSING.stations);
   } else {
     footfall = withValue(
       clamp(
         Math.round(
-          saturating(occupiedNearby, PREMISE_SATURATION) * 0.65 + rawByCategory.transit * 0.35,
+          saturating(occupiedNearby, PREMISE_SATURATION) * 0.65 + (rail.value ?? 0) * 0.35,
         ),
       ),
-      combineOrigins(origins.premises, origins.amenities),
+      combineOrigins(origins.premises, origins.stations),
       'estimated',
       noteOf(
-        'No open pedestrian count exists for Île-de-France. This is a proxy from active-business density and transport access: it compares two locations against each other, it does not predict footfall.',
+        'No open pedestrian count exists for Île-de-France. This is a proxy from active-business density and rail access: it compares two locations against each other, it does not predict footfall.',
         layerNotes.premises,
-        amenityNote,
+        layerNotes.stations,
       ),
     );
   }
@@ -364,6 +647,9 @@ export function scoreLocation(
   return {
     ...byCategory,
     density,
+    services,
+    alimentaire,
+    rail,
     walkability,
     footfall,
     noise: hasRoads
