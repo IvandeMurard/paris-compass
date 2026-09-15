@@ -80,12 +80,22 @@ const ORDER = [
   // couche explique les trois axes porteurs manquants. C'est le dernier ticket entre l'état
   // courant et « un verdict se compose », pour le navigateur et pour l'agent à la fois.
   "w6-amenites-corpus",
+  // --- Ce que l'utilisateur ressent, avant ce qui le protège — ordre validé par Ivan le
+  // 15 septembre 2026. Le produit répond depuis ce jour-là ; ces deux tickets sont les seuls
+  // défauts encore visibles à l'écran, et ils passent donc devant les instruments.
+  "w6-fiche-delai",
+  "w6-langue-absences",
   "w1-overpass-ordre",
   // Trouvé le 15 septembre en vérifiant que l'agent recevait bien le verdict que l'écran
   // compose : deux passages de verify:mcp, un refus puis un verdict, et le bras vert sur les
   // deux. Placé ici parce qu'il garde une promesse déjà livrée — le produit marche, ce ticket
   // empêche qu'il cesse de marcher sans que personne ne le voie.
   "w1-parite-refus",
+  // Les deux trouvailles de la revue du 15 septembre, qui n'a pas été faite par les sessions
+  // qui ont écrit le code. Elles gardent des instruments, donc elles ne se voient pas à
+  // l'écran — et elles passent après les deux tickets qui s'y voient.
+  "w1-page-delai-derive",
+  "w1-parite-axes-enumere",
   "w0-deploy",
   "w0-history",
   "w0-provenance",
