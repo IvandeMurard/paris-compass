@@ -329,7 +329,7 @@ deux côtés.
 | 53 | `w5-confiance-agent` | [#28](https://github.com/IvandeMurard/paris-compass/issues/28) | ouvert | P1 | Opus 5 |
 | 54 | `w5-parse` | [#32](https://github.com/IvandeMurard/paris-compass/issues/32) | ouvert | P2 | Opus 5 |
 | ~~55~~ | ~~`w6-contexte`~~ | [#119](https://github.com/IvandeMurard/paris-compass/issues/119) | **fait** | P1 | Opus 5 |
-| 56 | `w6-mode-raison` | [#197](https://github.com/IvandeMurard/paris-compass/issues/197) | ouvert | P1 | Opus 5 |
+| ~~56~~ | ~~`w6-mode-raison`~~ | [#197](https://github.com/IvandeMurard/paris-compass/issues/197) | **fait** | P1 | Opus 5 |
 | 57 | `w6-declaration-preneur` | [#201](https://github.com/IvandeMurard/paris-compass/issues/201) | **bloqué** | P1 | Opus 5 |
 | 58 | `w6-liberations` | [#34](https://github.com/IvandeMurard/paris-compass/issues/34) | ouvert | P1 | Opus 5 |
 | ~~59~~ | ~~`w6-dossier`~~ | [#33](https://github.com/IvandeMurard/paris-compass/issues/33) | **fait** | P1 | Opus 5 |
