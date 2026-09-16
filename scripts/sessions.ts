@@ -103,6 +103,11 @@ const ORDER = [
   "w1-brief-appariement",
   "w1-page-delai-derive",
   "w1-parite-axes-enumere",
+  // Demandé par Ivan le 15 septembre 2026, après que la page est passée de 10 976 à 3 611 ms :
+  // « il faudra itérer en continu pour accélérer le chargement ». Sans chiffre gardé, cette
+  // intention n'a rien contre quoi itérer — le bras mesure la durée et la jette, donc une
+  // dégradation de 3,6 s à 9 s ne rougirait nulle part.
+  "w1-page-tendance",
   "w0-deploy",
   "w0-history",
   "w0-provenance",
