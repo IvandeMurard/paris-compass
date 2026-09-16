@@ -1061,3 +1061,59 @@ Sorti de `docs/REPRISE.md` le soir du 15 septembre 2026 par `w6-fiche-delai` (#1
 Sorti de `docs/REPRISE.md` le 16 septembre 2026 par `w6-modes` (#36) pour tenir le plafond de `documents.test.ts`. Il portait le relevé de `w6-langue-absences` (#181) et l'histoire des trois sabotages joués contre `src/core/dossier.test.ts`, dont le deuxième restait VERT tant que le gabarit posait une distance ronde de 190 m.
 
 | Tests unitaires | **798 sur 56 fichiers, remesurés le 16 septembre 2026** par `w6-langue-absences` (#181), qui ajoute **un fichier et 11 tests** — `src/core/motif.test.ts` : le recensement des six genres de motif, les deux paramétrés déclinés sur les cinq couches, deux phrases exigées **différentes** pour chacun, et la contre-preuve de `#61` — une phrase anglaise falsifiée qui ne change pas ce que lit l'écran. Deux autres entrent dans des fichiers existants. **`main` en portait 785 sur 55.** Antérieurement **785 sur 55 fichiers, remesurés le 15 septembre 2026 au soir** par `w6-dossier` (#33), qui ajoute **un fichier et 22 tests** — `src/core/dossier.test.ts` : chaque figure du dossier exporté re-dérivée depuis un objet sorti de `JSON.parse`, la population énumérée depuis `VERDICT_AXIS_ORDER`, les constantes comparées à celles du noyau, un refus de verdict, une couche encore en vol, un axe non fourni. **`main` en portait 763 sur 54** — 785 mesurés ici moins les 22 du fichier neuf, aucun autre fichier de test touché ; le relevé de 746 ci-dessous datait d'avant la fusion de `#190`. **Trois sabotages ont été joués contre ce fichier**, chacun restauré, et le deuxième — un opérande arrondi — était **VERT** tant que le gabarit posait une distance ronde de 190 m : passé à 187 m, les trois rougissent. Le contrôle était sain, le gabarit était aveugle (`docs/REPRISE-PIEGES.md`). **Le relevé de 746, du 15 septembre 2026, est dans `docs/REPRISE-ARCHIVE.md`**, sorti d'ici le 16 septembre 2026 par `w6-langue-absences` (#181) pour tenir le budget de `documents.test.ts`. **Les relevés antérieurs — 718 à 660, du 14 au 15 septembre 2026 — sont dans `docs/REPRISE-ARCHIVE.md`**, sortis d'ici le 15 septembre 2026 au soir par `w6-dossier` (#33) pour tenir le budget de `documents.test.ts`, qui ne laissait plus que 47 octets. **Les relevés antérieurs — 640 à 416, du 6 au 13 septembre 2026 — sont dans `docs/REPRISE-ARCHIVE.md`**, sortis d'ici le 15 septembre 2026 pour tenir le budget de `documents.test.ts`, comme les 396 à 273 l'avaient été le 13. **Les relevés antérieurs — 396 à 273 — sont dans `docs/REPRISE-ARCHIVE.md`**, sortis d'ici le 13 septembre 2026 pour tenir le budget de `documents.test.ts`. |
+
+
+## Les points 22 et 23 de « La suite, par ordre » — déplacés depuis `docs/REPRISE.md` le 16 septembre 2026
+
+**Sortis par `w6-mode-raison` (#197)** pour tenir le plafond de `documents.test.ts`, qui refusait
+`docs/REPRISE.md` à 105 203 octets pour 103 000 — monter le plafond est le geste que `CLAUDE.md`
+interdit. Les deux tickets sont clos et leur détail vit dans `docs/tickets/` ; ce qui est gardé
+ici est ce que ces deux points portaient de mesuré et de daté. Numérotation d'origine conservée.
+
+23. **Le noyau ne produit plus de prose : il produit un motif, et la page l'écrit dans sa
+    langue.** `w6-langue-absences` (#181) fermée le 16 septembre 2026, `DIAGNOSTIC.md` §49 clos.
+    Le détail et les quatre démonstrations sont dans `docs/tickets/w6-langue-absences.md`,
+    section « Livré ».
+
+    **Ce qui dépasse la livraison** : le défaut n'était pas « le noyau écrit en anglais » mais
+    « chaque producteur choisit une langue pour un lecteur qu'il ne connaît pas ». Le symétrique
+    était là, non consigné — `truncatedNote` du navigateur était en français et partait sur
+    `/en/context/`. `unavailable()` refuse désormais une `string` : c'est le type qui tient la
+    règle, pas la vigilance.
+
+    **Ce qui n'est PAS fait** : aucun bras n'ouvre `/en/context/` — `page` s'arrête à
+    `/contexte/` — donc une régression propre à la page anglaise passerait au vert chaque matin.
+    Et les contrôles jugent qu'il y a deux langues, jamais que chacune dit vrai.
+
+22. **Une fiche se télécharge, et chaque chiffre du fichier se refait sans nous croire.**
+    `w6-dossier` (#33) fermée le 15 septembre 2026. Le détail, les deux instants de clic comparés
+    et ce qui n'est pas fait sont dans `docs/tickets/w6-dossier.md`, section « Livré » ; ce qui
+    suit est l'état.
+
+    **Mesuré Chrome sans tête, build local, téléchargement écrit sur le disque et relu** : le
+    fichier part **167 ms** après le clic et porte **6 figures — 5 chiffrées, 1 retenue — zéro
+    provenance incomplète et zéro écart de re-dérivation**. Chaque ligne descend avec sa source,
+    sa licence, son millésime, sa méthode, la formule, ses constantes, le rayon et **l'opérande** :
+    `density` 100 sur **920 locaux** dans 400 m, `rail` 45 sur **317,07 m**, `services` 59 sur cinq
+    comptes par famille. C'est l'opérande qui manquait — `Measured<T>` portait déjà les quatre
+    premiers mots du ticket, et un lecteur ne pouvait toujours refaire aucun calcul.
+
+    **La doctrine tient dans la structure, pas dans la discipline** : `buildDossier` prend une
+    adresse et n'a pas de forme plurielle, le bouton n'existe que sur la fiche, et
+    `downloadDossier` non plus. Il n'y a rien à retirer pour refuser l'export de masse ; il
+    faudrait écrire une boucle.
+
+    **Deux défauts trouvés à l'ÉCRAN et pas en relecture** — `DIAGNOSTIC.md` §55, corrigés avant
+    la livraison : le fichier créditait la **BAN** d'un libellé qu'elle n'avait pas rendu (la fiche
+    affiche le slug de l'URL tant que le géocodeur répond), et il perdait la distinction « mesure
+    en cours » / « source injoignable » que `#180` avait construite. Le test unitaire était vert
+    sur les deux et le serait resté.
+
+    **Ce qui attend une décision d'Ivan** : **le PDF n'est pas fait.** Le ticket écrit
+    « (PDF/JSON) », JSON est livré, et le PDF coûterait une dépendance, un avis de sécurité à
+    juger, et le format où « re-dérivable » se vérifie par machine est déjà celui qui est là.
+
+    **Ce qui n'est PAS fait** : le dossier porte les figures de la FICHE — pas
+    `compass_address_timeline`, pas les avis BODACC, pas la suite d'activités. Et **aucun bras de
+    porte n'ouvre le navigateur pour ce chemin** : `page` s'arrête au verdict et ne clique rien,
+    donc une régression du bouton passerait au vert chaque matin.

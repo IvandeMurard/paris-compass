@@ -10,6 +10,10 @@
  * its caveat all come off `Measured<T>`; the band phrase comes off `src/core/verdict.ts`. A
  * literal typed into this file would be a figure with no source, which is the one thing the
  * product refuses.
+ *
+ * **And nothing here holds a reason either.** Why an axis leads a trade is settled in
+ * `src/core/modes.ts` and worded in `src/i18n/modeText.ts`; this file receives it already
+ * assembled and decides only where it sits — w6-mode-raison (#197).
  */
 
 import { ChevronRight } from 'lucide-react';
@@ -18,6 +22,7 @@ import { bandOf, missingText, noiseLabel, noteText, type Measured, type VerdictA
 import { AXIS_NAMES, AXIS_WHAT, CONTEXT_COPY } from '@/i18n/contextText';
 import { translateLabel } from '@/i18n/labels';
 import { useLocale } from '@/i18n/locale';
+import type { LeadReasonText } from '@/i18n/modeText';
 
 interface Props {
   axis: VerdictAxis;
@@ -33,9 +38,18 @@ interface Props {
    * a statement about a walk that has not finished.
    */
   pending?: boolean;
+  /**
+   * Why this axis leads the chosen trade — w6-mode-raison (#197). Absent when it does not lead,
+   * and absent for every axis when no trade is chosen.
+   *
+   * **Already written, in the reader's language, by `src/i18n/modeText.ts`.** The ticket names
+   * the fault it is avoiding: a reason composed here would be a reason the MCP server cannot
+   * serve, and the server serves the same order.
+   */
+  lead?: LeadReasonText;
 }
 
-const ContextFinding = ({ axis, measured, phrase, pending = false }: Props) => {
+const ContextFinding = ({ axis, measured, phrase, pending = false, lead }: Props) => {
   const { locale } = useLocale();
   const c = CONTEXT_COPY[locale];
   const name = AXIS_NAMES[locale][axis];
@@ -81,6 +95,25 @@ const ContextFinding = ({ axis, measured, phrase, pending = false }: Props) => {
             : (why ?? c.whyMissing)
           : (phrase ?? bandOf(axis, measured.value))}
       </p>
+
+      {/* Beside the axis, never behind a chevron and never on hover — w6-mode-raison (#197).
+          Same rule as the reserve markers: a justification that only exists on hover does not
+          exist on a touch screen and does not survive being read aloud. The status rides in the
+          heading rather than at the end of the sentence, so « a judgement » is read BEFORE the
+          judgement it qualifies. */}
+      {lead && (
+        <div className="mt-3 rounded-md border border-dashed bg-muted/40 p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {lead.label} — {lead.status}
+          </p>
+          <p className="mt-1 text-sm">{lead.reason}</p>
+          {lead.settles && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {lead.settlesLabel} — {lead.settles}
+            </p>
+          )}
+        </div>
+      )}
 
       <details className="group mt-3">
         <summary className="flex cursor-pointer list-none items-center gap-1 text-xs text-muted-foreground hover:text-foreground">

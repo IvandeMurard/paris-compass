@@ -1557,3 +1557,32 @@ Copy-Item ..\..\..\mcp-server\.env mcp-server\.env
 Sans `.env.local`, `npm.cmd run build` s'arrête sur sa garde `prebuild` ; sans
 `mcp-server/.env`, `verify:mcp` s'arrête en le nommant, ce qui est le bon comportement et pas
 une panne.
+
+
+## Le `noise` de la fiche ne lit PAS les 25 094 tronçons du corpus — 16 septembre 2026
+
+`w6-mode-raison` (#197) est parti d'une phrase écrite dans son propre énoncé : « `noise` vient
+des voies, `footfall` de la densité et du rail, **sur 25 094 tronçons du même corpus** ». La
+première moitié est vraie, la seconde est fausse, et l'écart change ce qu'une mesure coûterait.
+
+| axe | ce qu'il lit vraiment | d'où |
+| --- | --- | --- |
+| `footfall` | 65 % densité de locaux + 35 % desserte ferrée (`FOOTFALL_WEIGHTS`) | le corpus : APUR BDCom et l'arrêt IDFM le plus proche |
+| `noise` | l'exposition aux voies, pondérée et décroissante (`noiseExposure`) | **OpenStreetMap, à la demande** |
+
+Lu le 16 septembre 2026 dans `src/core/scoring.ts`, `src/services/opendata/scoring.ts`
+(`snapshot.roads`) et `src/hooks/useAddressContext.ts` — où `OVERPASS_LAYERS` vaut
+`['amenities', 'roads']`, donc les voies sont la **seule couche encore lue sur Overpass** par la
+fiche. Les 25 094 tronçons existent bien : c'est `street_segment`, chargé le 8 août. Mais
+`grep -rn street_segment --include=*.ts src mcp-server/src` ne rend **qu'une ligne**,
+`street_segment_id` dans `src/types/database.ts` : aucun écran et aucun outil MCP ne les lit.
+
+**Pourquoi c'est un piège et pas une coquille.** Recouper le bruit et le passage — la mesure que
+`#197` déclare « mesurable, non mesurée » — ne se fait pas par une requête sur le corpus. Elle
+passe par la couche qui tombe, celle dont `#156` et `#163` racontent les miroirs à 429 et à 504 :
+des milliers d'appels Overpass, ou reprendre le bruit sur `street_segment`, qui est un autre
+ticket. Une session qui croirait le chiffre de l'énoncé estimerait cette mesure à une requête.
+
+**Ce que ça ne rattrape pas** : rien ici ne dit que le bruit DEVRAIT se lire sur `street_segment`.
+Les deux sources ne décrivent pas la même chose — un tronçon du corpus porte un côté de rue,
+une voie OSM porte une classe de trafic — et cette comparaison-là n'a pas été faite.

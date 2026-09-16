@@ -20,7 +20,15 @@
  * footnote is read by nobody and a positive answer is exactly the moment the reserve matters.
  */
 
-import { TRADE_MODES, type TradeCheckId, type TradeCheckState, type TradeMode } from '@/core';
+import {
+  TRADE_MODES,
+  modeLeadAxes,
+  type LeadReasonStatus,
+  type TradeCheckId,
+  type TradeCheckState,
+  type TradeMode,
+  type VerdictAxis,
+} from '@/core';
 import type { Locale } from '@/i18n/locale';
 
 export const MODE_NAMES: Record<Locale, Record<TradeMode, string>> = {
@@ -50,7 +58,10 @@ export const MODE_COPY = {
     checklistHeading: 'À vérifier pour ce métier',
     checklistIntro:
       'Une checklist, pas un score. Ce que le corpus sait est compté avec sa population ; ce qu’il ne sait pas est nommé avec ce qui lui manque.',
-    reorderNote: 'Les constats et les alertes ci-dessous sont dans l’ordre de ce métier.',
+    reorderNote:
+      'Les constats et les alertes ci-dessous sont dans l’ordre de ce métier, et chaque axe de tête porte la raison qui l’y met.',
+    leadLabel: 'En tête pour ce métier',
+    settles: 'Ce qui la trancherait',
     issue: (n: number) => `suivi en #${n}`,
   },
   en: {
@@ -62,7 +73,10 @@ export const MODE_COPY = {
     checklistHeading: 'To check for this trade',
     checklistIntro:
       'A checklist, not a score. What the corpus knows is counted with its population; what it does not know is named along with what it is missing.',
-    reorderNote: 'The findings and the gaps below are in this trade’s order.',
+    reorderNote:
+      'The findings and the gaps below are in this trade’s order, and each leading axis carries the reason that puts it there.',
+    leadLabel: 'Leads for this trade',
+    settles: 'What it takes to settle it',
     issue: (n: number) => `tracked in #${n}`,
   },
 } as const;
@@ -304,4 +318,194 @@ export function checkStateText(
       return `${base}${colon}${MODE_COPY[locale].issue(state.gap.issue)}.`;
     }
   }
+}
+
+/**
+ * The label of each reason status, one per value of `LEAD_REASON_STATUSES` — w6-mode-raison.
+ *
+ * **The status comes from the enum and never from the reason's own words.** « Non mesuré à ce
+ * jour » written inside a sentence would be a phrase somebody has to re-read to know what kind
+ * of claim they are being handed; read off `LeadReasonStatus`, it is a property of the table.
+ * The same reason `MOTIF_KINDS` exists: a state that a reader must infer from prose is a state
+ * the product does not hold.
+ */
+export const LEAD_STATUS_LABELS: Record<Locale, Record<LeadReasonStatus, string>> = {
+  fr: {
+    mesure: 'Mesuré ici',
+    mesurable: 'Mesurable, non mesuré à ce jour',
+    arbitrage: 'Arbitrage, pas une mesure',
+  },
+  en: {
+    mesure: 'Measured here',
+    mesurable: 'Measurable, not measured to date',
+    arbitrage: 'A judgement, not a measurement',
+  },
+};
+
+interface LeadReasonCopy {
+  /** Why this axis leads, in one sentence. No figure, and no correlation nobody has measured. */
+  reason: string;
+  /**
+   * The measurement that would settle it. Present exactly when the status is `mesurable`.
+   *
+   * It names a cross-check, never a result — a sentence here that announced its own outcome
+   * would be the unmeasured claim this ticket was opened to retract.
+   */
+  settles?: string;
+}
+
+/**
+ * One reason per leading axis, per mode, in both languages — w6-mode-raison (#197).
+ *
+ * **The population is not written here: it is `LEAD_AXES`.** This table is `Partial` on purpose,
+ * because the type cannot know which axes lead which mode, and a `Record` typed to look
+ * exhaustive would be exhaustive of the wrong thing. `modeText.test.ts` enumerates the two
+ * against each other in both directions, so an axis promoted without a reason and a reason left
+ * behind by an axis demoted both redden `test`.
+ *
+ * **What each sentence may not do.** It may not carry a figure — the module contract at the top
+ * of this file — and it may not assert a relation nobody has measured. The retracted example is
+ * the one that opened the ticket: *« le bruit est corrélé au passage »*, recommended on
+ * 16 September 2026 and withdrawn the same day, having measured nothing. The relation is within
+ * reach here, so `noise` reads `mesurable` and `settles` names the cross-check — which is the
+ * honest form of the same sentence.
+ */
+export const LEAD_REASON_COPY: Record<
+  Locale,
+  Record<TradeMode, Partial<Record<VerdictAxis, LeadReasonCopy>>>
+> = {
+  fr: {
+    restauration: {
+      footfall: {
+        reason:
+          'Le passage d’abord : un restaurant vit du flux devant sa porte aux heures où il sert.',
+        settles:
+          'Recouper, sur les millésimes du corpus, les locaux disparus entre deux relevés avec le passage calculé à leur point.',
+      },
+      rail: {
+        reason:
+          'On vient dîner sans voiture : la desserte du soir décide d’une partie de la salle.',
+      },
+      noise: {
+        reason:
+          'Le bruit monte parce qu’une terrasse se paie sur la rue : l’exposition aux voies est un actif du métier avant d’être une gêne.',
+        settles:
+          'Recouper l’exposition aux voies et le passage aux mêmes points. Les deux axes ne lisent pas la même source : les voies viennent d’OpenStreetMap, à la demande, et non des tronçons du corpus.',
+      },
+    },
+    boutique: {
+      density: {
+        reason:
+          'Le tissu d’abord : une boutique isolée dans une rue morte ne rattrape pas son adresse.',
+        settles:
+          'Recouper, sur les millésimes du corpus, les locaux disparus entre deux relevés avec la densité commerciale calculée à leur point.',
+      },
+      footfall: {
+        reason:
+          'Puis le flux qui traverse ce tissu : une rue commerçante sans passage est une vitrine sans public.',
+      },
+      services: {
+        reason:
+          'Enfin les commerces qui amènent ce flux à pied, plutôt que ceux qui se disputent le même client.',
+      },
+    },
+    artisanat: {
+      services: {
+        reason:
+          'Un atelier vit de ce qui l’entoure : le commerce voisin est son carnet de commandes, pas son passant.',
+      },
+      density: {
+        reason:
+          'Puis la densité de ce tissu : elle dit si une clientèle de proximité existe à pied.',
+      },
+      rail: {
+        reason:
+          'Et l’accès : un atelier se livre et se reprend, ce qui pèse plus que sa vitrine.',
+      },
+    },
+  },
+  en: {
+    restauration: {
+      footfall: {
+        reason: 'Footfall first: a restaurant lives on the flow past its door at the hours it serves.',
+        settles:
+          'Cross the corpus’s own vintages (which premises were gone between two surveys) against the footfall computed at their point.',
+      },
+      rail: {
+        reason: 'People come to dinner without a car: evening rail access decides part of the room.',
+      },
+      noise: {
+        reason:
+          'Noise climbs because a terrace is paid for on the street: road exposure is an asset of the trade before it is a nuisance.',
+        settles:
+          'Cross road exposure against footfall at the same points. The two axes do not read the same source: the roads come from OpenStreetMap on demand, not from the street segments of the corpus.',
+      },
+    },
+    boutique: {
+      density: {
+        reason: 'The fabric first: a lone shop in a dead stretch does not make up for its address.',
+        settles:
+          'Cross the corpus’s own vintages (which premises were gone between two surveys) against the commercial density computed at their point.',
+      },
+      footfall: {
+        reason:
+          'Then the flow through that fabric: a shopping street with no footfall is a window with no audience.',
+      },
+      services: {
+        reason:
+          'Then the shops that bring that flow within walking distance, rather than those competing for the same customer.',
+      },
+    },
+    artisanat: {
+      services: {
+        reason:
+          'A workshop lives off what surrounds it: the neighbouring trade is its order book, not its passer-by.',
+      },
+      density: {
+        reason:
+          'Then the density of that fabric: it says whether a local clientele exists within walking distance.',
+      },
+      rail: {
+        reason:
+          'And access: a workshop is delivered to and collected from, which weighs more than its window.',
+      },
+    },
+  },
+};
+
+/** A reason ready to render: the four pieces the card shows, already in the reader's language. */
+export interface LeadReasonText {
+  /** « En tête pour ce métier » — what the block below the axis name is. */
+  label: string;
+  reason: string;
+  /** The status label, read off the enum. */
+  status: string;
+  settlesLabel?: string;
+  settles?: string;
+}
+
+/**
+ * The reason that puts `axis` at the head of `mode`, or null when it does not lead.
+ *
+ * Assembled here rather than in the component, for the reason the ticket names: the MCP server
+ * serves the same order and owes the same reason, and a sentence composed inside a React file
+ * is one an agent can never be handed (`w5-explain-metier`, #31).
+ *
+ * Null for an axis that does not lead, and — because the two populations are held equal by
+ * `modeText.test.ts` — never for one that does.
+ */
+export function leadReasonText(
+  mode: TradeMode,
+  axis: VerdictAxis,
+  locale: Locale,
+): LeadReasonText | null {
+  const lead = modeLeadAxes(mode).find((entry) => entry.axis === axis);
+  const copy = LEAD_REASON_COPY[locale][mode][axis];
+  if (!lead || !copy) return null;
+  return {
+    label: MODE_COPY[locale].leadLabel,
+    reason: copy.reason,
+    status: LEAD_STATUS_LABELS[locale][lead.status],
+    ...(copy.settles ? { settlesLabel: MODE_COPY[locale].settles, settles: copy.settles } : {}),
+  };
 }
