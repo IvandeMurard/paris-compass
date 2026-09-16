@@ -248,6 +248,10 @@ const ORDER = [
   // qu'un chiffre porte sa provenance ne peut pas laisser un classement n'en porter aucune.
   // Réparer ce qu'on vient de livrer avant d'ouvrir une surface neuve.
   "w6-mode-raison",
+  // Decision de perimetre, marquee BLOQUE : elle deplace ce que Compass EST — un lecteur de
+  // donnees publiques qui devient aussi un collecteur — et un fait declare ne se re-derive pas.
+  // Elle est dans la file pour rester visible, pas pour etre prise.
+  "w6-declaration-preneur",
   "w6-liberations",
   "w6-dossier",
   "w6-modes",
@@ -291,6 +295,10 @@ const BLOQUE: Record<string, string> = {
     "(la question est ouverte dans `catalogue.json`). Décision d'Ivan, pas travail de session.",
   "w2-air-bruit": "clé d'API Airparif à demander. Bruitparif n'a pas d'endpoint ouvert épinglé.",
   "w7-foncier": "convention Ville / APUR / Cerema — accès réservé aux acteurs publics.",
+  "w6-declaration-preneur":
+    "décision de périmètre d'Ivan, pas travail de session — six points à trancher, dont la " +
+    "licence des déclarations et ce que devient le dossier téléchargeable, qui ne se re-dérive " +
+    "plus. Écrire du schéma avant la décision reviendrait à la prendre en silence.",
 }
 
 /**

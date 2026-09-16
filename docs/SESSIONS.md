@@ -330,27 +330,29 @@ deux côtés.
 | 54 | `w5-parse` | [#32](https://github.com/IvandeMurard/paris-compass/issues/32) | ouvert | P2 | Opus 5 |
 | ~~55~~ | ~~`w6-contexte`~~ | [#119](https://github.com/IvandeMurard/paris-compass/issues/119) | **fait** | P1 | Opus 5 |
 | 56 | `w6-mode-raison` | [#197](https://github.com/IvandeMurard/paris-compass/issues/197) | ouvert | P1 | Opus 5 |
-| 57 | `w6-liberations` | [#34](https://github.com/IvandeMurard/paris-compass/issues/34) | ouvert | P1 | Opus 5 |
-| ~~58~~ | ~~`w6-dossier`~~ | [#33](https://github.com/IvandeMurard/paris-compass/issues/33) | **fait** | P1 | Opus 5 |
-| ~~59~~ | ~~`w6-modes`~~ | [#36](https://github.com/IvandeMurard/paris-compass/issues/36) | **fait** | P1 | Opus 5 |
-| 60 | `w6-accueil` | [#148](https://github.com/IvandeMurard/paris-compass/issues/148) | ouvert | P1 | Opus 5 |
-| 61 | `w3-osm-notes` | [#22](https://github.com/IvandeMurard/paris-compass/issues/22) | ouvert | P2 | Sonnet 5 |
-| 62 | `w2-bpe-marches-velo` | [#17](https://github.com/IvandeMurard/paris-compass/issues/17) | ouvert | P2 | Sonnet 5 |
-| 63 | `w4-ecoles` | [#24](https://github.com/IvandeMurard/paris-compass/issues/24) | ouvert | P2 | Sonnet 5 |
-| 64 | `w4-frequentation` | [#26](https://github.com/IvandeMurard/paris-compass/issues/26) | ouvert | P2 | Sonnet 5 |
-| 65 | `w4-erp-copro-ads` | [#25](https://github.com/IvandeMurard/paris-compass/issues/25) | ouvert | P2 | Opus 5 |
-| 66 | `w7-etude-chantiers` | [#37](https://github.com/IvandeMurard/paris-compass/issues/37) | ouvert | P1 | Opus 5 |
-| 67 | `w7-foncier` | [#38](https://github.com/IvandeMurard/paris-compass/issues/38) | **bloqué** | P1 | Opus 5 |
-| 68 | `w7-inpi` | [#39](https://github.com/IvandeMurard/paris-compass/issues/39) | ouvert | P2 | Opus 5 |
-| 69 | `w7-kit` | [#40](https://github.com/IvandeMurard/paris-compass/issues/40) | ouvert | P1 | Opus 5 |
+| 57 | `w6-declaration-preneur` | [#201](https://github.com/IvandeMurard/paris-compass/issues/201) | **bloqué** | P1 | Opus 5 |
+| 58 | `w6-liberations` | [#34](https://github.com/IvandeMurard/paris-compass/issues/34) | ouvert | P1 | Opus 5 |
+| ~~59~~ | ~~`w6-dossier`~~ | [#33](https://github.com/IvandeMurard/paris-compass/issues/33) | **fait** | P1 | Opus 5 |
+| ~~60~~ | ~~`w6-modes`~~ | [#36](https://github.com/IvandeMurard/paris-compass/issues/36) | **fait** | P1 | Opus 5 |
+| 61 | `w6-accueil` | [#148](https://github.com/IvandeMurard/paris-compass/issues/148) | ouvert | P1 | Opus 5 |
+| 62 | `w3-osm-notes` | [#22](https://github.com/IvandeMurard/paris-compass/issues/22) | ouvert | P2 | Sonnet 5 |
+| 63 | `w2-bpe-marches-velo` | [#17](https://github.com/IvandeMurard/paris-compass/issues/17) | ouvert | P2 | Sonnet 5 |
+| 64 | `w4-ecoles` | [#24](https://github.com/IvandeMurard/paris-compass/issues/24) | ouvert | P2 | Sonnet 5 |
+| 65 | `w4-frequentation` | [#26](https://github.com/IvandeMurard/paris-compass/issues/26) | ouvert | P2 | Sonnet 5 |
+| 66 | `w4-erp-copro-ads` | [#25](https://github.com/IvandeMurard/paris-compass/issues/25) | ouvert | P2 | Opus 5 |
+| 67 | `w7-etude-chantiers` | [#37](https://github.com/IvandeMurard/paris-compass/issues/37) | ouvert | P1 | Opus 5 |
+| 68 | `w7-foncier` | [#38](https://github.com/IvandeMurard/paris-compass/issues/38) | **bloqué** | P1 | Opus 5 |
+| 69 | `w7-inpi` | [#39](https://github.com/IvandeMurard/paris-compass/issues/39) | ouvert | P2 | Opus 5 |
+| 70 | `w7-kit` | [#40](https://github.com/IvandeMurard/paris-compass/issues/40) | ouvert | P1 | Opus 5 |
 
-**4 tickets attendent autre chose que du code.** Ils restent à leur
+**5 tickets attendent autre chose que du code.** Ils restent à leur
 place dans l'ordre — un blocage se lève, il ne se cache pas — mais ne pas les ouvrir
 en session tant que la ligne ci-dessous tient :
 
 - `w1-historique` — APUR — courrier le 10 août 2026, relance le 24, sans réponse au 6 septembre.
 - `w3-mapillary` — jeton d'API Mapillary à créer, et l'attribution CC-BY-SA à trancher avant d'ingérer (la question est ouverte dans `catalogue.json`). Décision d'Ivan, pas travail de session.
 - `w2-air-bruit` — clé d'API Airparif à demander. Bruitparif n'a pas d'endpoint ouvert épinglé.
+- `w6-declaration-preneur` — décision de périmètre d'Ivan, pas travail de session — six points à trancher, dont la licence des déclarations et ce que devient le dossier téléchargeable, qui ne se re-dérive plus. Écrire du schéma avant la décision reviendrait à la prendre en silence.
 - `w7-foncier` — convention Ville / APUR / Cerema — accès réservé aux acteurs publics.
 
 **Tous les tickets du dépôt sont dans cette file.** Un ticket neuf tombera ici,
