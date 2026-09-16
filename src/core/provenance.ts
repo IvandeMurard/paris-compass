@@ -169,6 +169,38 @@ export const IDFM_ORIGIN = (asOf: string): Origin => ({
 });
 
 /**
+ * The Ville de Paris terrace and display-stall register — w6-modes (#36).
+ *
+ * `asOf` is a parameter for the same reason it is on the three above: only the database knows
+ * it (`ingestion_run.source_as_of` for source `terrasses`), and a date written here would be a
+ * claim about data this module never reads. The licence is the one
+ * `src/services/opendata/sources.ts` has published since 26 August and the one
+ * `src/i18n/terrasseText.ts` prints beside the premise's own answer — a second spelling of it
+ * would put two obligations on screen where there is one.
+ */
+export const TERRASSES_ORIGIN = (asOf: string): Origin => ({
+  source: 'Ville de Paris — terrasses et étalages autorisés',
+  licence: 'ODbL',
+  asOf,
+});
+
+/**
+ * The PLU protection of commerce and craft, `plub_protcom` — w6-modes (#36).
+ *
+ * **Informational, with no regulatory value**, and that reserve belongs with the figure rather
+ * than beside it: the authority is the Portail des Règles d'Urbanisme, never this table
+ * (`docs/PLAN.md` §2.4, `20260825000004_plu_protection.sql`). The reserve is carried on screen
+ * by the checklist wording, which is tested; what this constructor owes is the licence and the
+ * date, and `asOf` is the Conseil de Paris vote the dataset itself states — read from
+ * `ingestion_run.source_as_of`, never typed.
+ */
+export const PLU_ORIGIN = (asOf: string): Origin => ({
+  source: 'Ville de Paris — PLU bioclimatique, protection du commerce et de l’artisanat',
+  licence: 'ODbL',
+  asOf,
+});
+
+/**
  * Provenance of a figure computed from more than one source.
  *
  * The footfall proxy is the case that forces this: it mixes premise density with transport

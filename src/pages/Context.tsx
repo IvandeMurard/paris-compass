@@ -36,6 +36,7 @@ import ContextCompare from '@/components/context/ContextCompare';
 import ContextDossier from '@/components/context/ContextDossier';
 import ContextFinding from '@/components/context/ContextFinding';
 import ContextGaps from '@/components/context/ContextGaps';
+import ContextModes from '@/components/context/ContextModes';
 import ContextVerdict from '@/components/context/ContextVerdict';
 import {
   compareAddresses,
@@ -43,9 +44,10 @@ import {
   composeVerdict,
   contextToolCall,
   findingsFromScores,
-  VERDICT_AXIS_ORDER,
+  modeAxisOrder,
+  resolveChecks,
 } from '@/core';
-import { useAddressContext, useAddressFromSlug } from '@/hooks/useAddressContext';
+import { useAddressContext, useAddressFromSlug, useTradeOrigins } from '@/hooks/useAddressContext';
 import { CONTEXT_COPY, dossierLabels } from '@/i18n/contextText';
 import { useLocale } from '@/i18n/locale';
 import {
@@ -56,8 +58,9 @@ import {
   secondAddressFromParams,
   withComparison,
 } from '@/lib/addressSlug';
-import { collectGaps } from '@/lib/contextGaps';
+import { collectGaps, orderGapsForMode } from '@/lib/contextGaps';
 import { pendingAxes } from '@/lib/contextLayers';
+import { tradeModeFromParams, withTradeMode } from '@/lib/tradeMode';
 import { banSource, geocode } from '@/services/opendata/geocoding';
 
 // Leaflet is loaded only once a sheet has figures to illustrate. Criterion 3 asks that the
@@ -176,9 +179,19 @@ const Context = () => {
     [context.data],
   );
 
+  // The trade mode, and the one reading order everything below derives from — w6-modes (#36).
+  // Read from the URL rather than held in state, so the sheet a visitor shares arrives in the
+  // mode they were reading it in.
+  const mode = tradeModeFromParams(params);
+  const axisOrder = useMemo(() => modeAxisOrder(mode), [mode]);
+
   const verdict = useMemo(
-    () => (findings ? composeVerdict(findings, locale) : null),
-    [findings, locale],
+    // The order reaches the sentence too. Without it the clauses would read in one sequence and
+    // the cards below them in another, about the same address — and the sentence is the thing a
+    // visitor reads first. `composeVerdict` reorders and cannot select: the axes it composes
+    // from stay `VERDICT_AXES`, so no mode can change what the verdict claims.
+    () => (findings ? composeVerdict(findings, locale, axisOrder) : null),
+    [findings, locale, axisOrder],
   );
 
   // Which findings are still travelling rather than missing — w6-fiche-delai (#180). Derived
@@ -207,6 +220,24 @@ const Context = () => {
           )
         : [],
     [context.data, locale, enCours],
+  );
+
+  // The same holes, led by the one this trade reads first — w6-modes (#36). A permutation and
+  // never a filter: a mode that could hide a gap would make the page look more complete than it
+  // is, which is the one thing this block exists to prevent.
+  const orderedGaps = useMemo(() => orderGapsForMode(gaps, mode), [gaps, mode]);
+
+  // The provenance of the two datasets the checklist cites, fetched only once a mode has been
+  // chosen — the sheet `#180` brought under a second and a half pays nothing for a block nobody
+  // asked for.
+  const tradeOrigins = useTradeOrigins(mode !== null);
+
+  const checks = useMemo(
+    () =>
+      mode === null
+        ? []
+        : resolveChecks(mode, context.data?.trade ?? null, tradeOrigins.data ?? {}),
+    [mode, context.data?.trade, tradeOrigins.data],
   );
 
   const phrases = useMemo(() => {
@@ -294,12 +325,21 @@ const Context = () => {
             <div className="mt-6 space-y-6">
               <ContextVerdict verdict={verdict} />
 
+              {/* Above the findings, because it changes the order they are read in: putting the
+                  control below the list it reorders would ask a visitor to scroll back up to
+                  see what their own click did. */}
+              <ContextModes
+                mode={mode}
+                hrefFor={(next) => withTradeMode(querySearch, next)}
+                checks={checks}
+              />
+
               <section aria-labelledby="findings">
                 <h2 id="findings" className="text-lg font-semibold">
                   {c.findingsHeading}
                 </h2>
                 <ul className="mt-3 space-y-3">
-                  {VERDICT_AXIS_ORDER.map((axis) => (
+                  {axisOrder.map((axis) => (
                     <ContextFinding
                       key={axis}
                       axis={axis}
@@ -311,7 +351,7 @@ const Context = () => {
                 </ul>
               </section>
 
-              <ContextGaps gaps={gaps} />
+              <ContextGaps gaps={orderedGaps} />
 
               {point && (
                 <Suspense fallback={null}>

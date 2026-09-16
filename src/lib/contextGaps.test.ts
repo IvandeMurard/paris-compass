@@ -11,7 +11,8 @@ import {
   type Origin,
   type Withholding,
 } from '@/core';
-import { collectGaps } from './contextGaps';
+import { TRADE_MODES, modeAxisOrder } from '@/core';
+import { collectGaps, orderGapsForMode } from './contextGaps';
 
 const OSM: Origin = { source: 'OpenStreetMap via Overpass', licence: 'ODbL-1.0', asOf: '2026-09-10' };
 
@@ -244,5 +245,63 @@ describe('collectGaps — une couche qui voyage encore n’est pas un trou (w6-f
     });
     const gap = gaps.find((g) => g.key === 'missing:noise');
     expect(gap?.text).toContain('source injoignable');
+  });
+});
+
+describe('orderGapsForMode — les alertes se réordonnent, elles ne se filtrent pas (w6-modes #36)', () => {
+  /** Un jeu de trous où CHAQUE axe en porte un, plus les entrées sans axe. */
+  const tous = () =>
+    collectGaps(
+      // Chaque axe absent, donc chaque axe porte un trou : la population est dérivée de
+      // `scores()` et jamais listée, pour que l'axe suivant y entre tout seul.
+      (Object.fromEntries(
+        Object.keys(scores()).map((axis) => [axis, unavailable<number>(OSM, absente('premises'))]),
+      ) as unknown) as AreaScores,
+      ['premises'],
+      OSM.source,
+      'fr',
+      {},
+      { withheld: true, evidence: 'millésime retenu' },
+    );
+
+  it('rend une permutation : même population, même longueur, rien de caché', () => {
+    const avant = tous();
+    for (const mode of TRADE_MODES) {
+      const apres = orderGapsForMode(avant, mode);
+      expect(apres.length, mode).toBe(avant.length);
+      expect(
+        apres.map((g) => g.key).sort(),
+        mode,
+      ).toEqual(avant.map((g) => g.key).sort());
+    }
+  });
+
+  it('fait remonter l’absence que ce métier lit en premier', () => {
+    const avant = tous();
+    for (const mode of TRADE_MODES) {
+      const premier = modeAxisOrder(mode)[0];
+      const apres = orderGapsForMode(avant, mode);
+      expect(apres[0]?.axis, mode).toBe(premier);
+    }
+  });
+
+  it('sans mode, ne touche à rien', () => {
+    const avant = tous();
+    expect(orderGapsForMode(avant, null)).toEqual(avant);
+  });
+
+  it('garde les entrées sans axe derrière, dans leur ordre d’origine', () => {
+    const avant = tous();
+    const sansAxe = (liste: readonly { key: string; axis?: unknown }[]) =>
+      liste.filter((g) => g.axis === undefined).map((g) => g.key);
+    for (const mode of TRADE_MODES) {
+      const apres = orderGapsForMode(avant, mode);
+      expect(sansAxe(apres), mode).toEqual(sansAxe(avant));
+      // Et elles sont bien EN QUEUE : le dernier trou portant un axe précède la première
+      // entrée qui n'en porte pas.
+      const premierSansAxe = apres.findIndex((g) => g.axis === undefined);
+      const dernierAvecAxe = apres.map((g) => g.axis !== undefined).lastIndexOf(true);
+      expect(dernierAvecAxe, mode).toBeLessThan(premierSansAxe);
+    }
   });
 });

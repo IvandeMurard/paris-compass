@@ -87,6 +87,25 @@ export const DATA_SOURCES: DataSource[] = [
     licenceEn: 'ODbL',
     url: 'https://opendata.paris.fr/explore/dataset/terrasses-autorisations/',
   },
+  // Entered this list on 16 September 2026, the day the trade checklists started counting it —
+  // w6-modes (#36). Loaded since 25 August (`w0-plu`, #9), and rightly absent from here for
+  // three weeks: a dataset is listed once a SCREEN reads it, never once it is loaded.
+  {
+    name: 'PLU bioclimatique — protection du commerce et de l’artisanat',
+    nameEn: 'Bioclimatic PLU — protection of commerce and craft',
+    provider: 'Ville de Paris',
+    providerEn: 'City of Paris',
+    // What the screen counts, and the reserve that has to travel with it. The three flags are
+    // kept apart rather than collapsed: the boutique checklist counts « at least one of the
+    // three », the craft checklist counts `ppa` alone, and those are two different questions.
+    usage:
+      'Protection du commerce et de l’artisanat sur le linéaire de rue, comptée sur les locaux relevés à moins de 25 m dans les checklists métier de la fiche de contexte. Trois protections distinctes — générale, commerce artisanal de proximité, commerce culturel. Informatif, sans valeur réglementaire : l’autorité est le Portail des Règles d’Urbanisme.',
+    usageEn:
+      'Protection of commerce and craft along the street frontage, counted over the premises surveyed within 25 m in the trade checklists of the context sheet. Three distinct protections — general, local craft trade, cultural trade. Informational, with no regulatory value: the authority is the Portail des Règles d’Urbanisme.',
+    licence: 'ODbL',
+    licenceEn: 'ODbL',
+    url: 'https://opendata.paris.fr/explore/dataset/plub_protcom/',
+  },
   // Entered this list on 15 September 2026, the day `/contexte/:slug` started measuring an
   // axis from it — w6-amenites-corpus. Loaded since 7 September (`w2-idfm`, #19), and rightly
   // absent from here for eight days: a dataset is listed once a SCREEN reads it.

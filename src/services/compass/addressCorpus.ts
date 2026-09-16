@@ -24,14 +24,19 @@
 import {
   BDCOM_ORIGIN,
   IDFM_ORIGIN,
+  PLU_ORIGIN,
+  TERRASSES_ORIGIN,
   asWithholding,
   serviceFamilyOf,
   type Origin,
   type PremisePoint,
   type ServicePoint,
+  type TradeFacts,
+  type TradeOrigins,
   type Withholding,
 } from '@/core';
 import { supabase } from '@/lib/supabase';
+import { RESOLUTION_RADIUS_M } from '@/services/compass/premiseHistory';
 
 /**
  * The vintage the sheet reads, and the only one an anonymous caller may receive.
@@ -225,7 +230,35 @@ export interface CorpusServices {
   totalMatched: number;
   /** True when the rows are a floor — three of twelve sampled Paris points at 400 m. */
   truncated: boolean;
+  /**
+   * The near-field facts the trade checklists read — w6-modes (#36).
+   *
+   * Counted here rather than fetched: the rows below already carry `terrasse_status` and the
+   * three `plu_*` flags, and have since `20260825000005` and `20260825000010`. The sheet threw
+   * them away. Reading them costs no second call, no second radius and no millisecond on the
+   * critical path — which is the only reason a mode can be switched without the page going back
+   * to the network.
+   *
+   * **Immune to the row cap, and that is a property of the SQL rather than a hope.**
+   * `compass_premises_within` ends on `order by h.distance_m, h.location_id limit v_limit`, so a
+   * response capped at 1 000 rows drops the FARTHEST premises. The near field is therefore whole
+   * whenever the radius holds anything at all, while `density` and `services` — which count over
+   * the full 400 m — carry `truncated` and say so.
+   */
+  trade: TradeFacts;
 }
+
+/**
+ * The radius the trade checks read, and why it is that one.
+ *
+ * `RESOLUTION_RADIUS_M`, the 25 m `premiseHistory.ts` measured for the question « which BDCom
+ * premise is this OpenStreetMap point », reused rather than re-chosen: it is the distance at
+ * which a set of premises describes one street number rather than a neighbourhood. A PLU
+ * protection belongs to a frontage and a terrace authorisation to a street number, so a count
+ * over 400 m would answer a question nobody asked — `docs/PLAN.md` §5.3, « la question n'est pas
+ * est-ce que ça varie mais est-ce que ça sépare ».
+ */
+export const TRADE_RADIUS_M = RESOLUTION_RADIUS_M;
 
 export async function fetchCorpusServices(
   lat: number,
@@ -265,8 +298,58 @@ export async function fetchCorpusServices(
       return [{ lat: row.lat as number, lng: row.lng as number, family }];
     });
 
+  // The near field — w6-modes (#36). The premises of THIS street number, never one premise:
+  // `docs/PLAN.md` §2.5's second founding error is attaching one premise's facts to another,
+  // and it is not committed by counting agreement over a named population.
+  const near = rows.filter((row) => (row.distance_m ?? Infinity) <= TRADE_RADIUS_M);
+  const trade: TradeFacts = {
+    radiusM: TRADE_RADIUS_M,
+    total: near.length,
+    // The register answers three states and only 'oui' is counted as one. 'inconnu' — a street
+    // number shared by several premises where the authorisation does not say which holds it —
+    // is carried beside it, never folded in: `src/i18n/terrasseText.ts` refused that once.
+    terrasseOui: near.filter((row) => row.terrasse_status === 'oui').length,
+    terrasseInconnu: near.filter((row) => row.terrasse_status === 'inconnu').length,
+    pluProtege: near.filter((row) => row.plu_protected === true).length,
+    pluProximite: near.filter((row) => row.plu_commerce_proximite === true).length,
+  };
+
   const totalMatched = Number(rows[0]?.total_matched ?? rows.length);
-  return { points, rendered: rows.length, totalMatched, truncated: totalMatched > rows.length };
+  return {
+    points,
+    rendered: rows.length,
+    totalMatched,
+    truncated: totalMatched > rows.length,
+    trade,
+  };
+}
+
+/**
+ * The producer's own date for the datasets the trade checks cite — w6-modes (#36).
+ *
+ * One call for both, and the reason is the shape of the function: `compass_source_freshness()`
+ * takes no argument and returns all eight sources, so `fetchSourceAsOf` — which
+ * `premiseHistory.ts` has called for the terrace block since 26 August — already fetches the
+ * whole table and discards seven rows. Calling it twice here would be two round trips for one
+ * answer.
+ *
+ * **A source that answers nothing leaves its origin undefined rather than dated today.**
+ * `resolveChecks` then renders that check as an absent layer, which is the truth: a count whose
+ * dataset cannot say how current it is would be a figure whose `asOf` was invented, and that is
+ * the failure `Measured<T>` exists to prevent.
+ */
+export async function fetchTradeOrigins(): Promise<TradeOrigins> {
+  const { data, error } = await supabase.rpc('compass_source_freshness');
+  if (error) throw new Error(`compass_source_freshness: ${error.message}`);
+  const asOf = (source: string) =>
+    (data ?? []).find((row) => row.source === source)?.source_as_of ?? null;
+
+  const terrasses = asOf('terrasses');
+  const plu = asOf('plu');
+  return {
+    ...(terrasses ? { terrasses: TERRASSES_ORIGIN(terrasses) } : {}),
+    ...(plu ? { plu: PLU_ORIGIN(plu) } : {}),
+  };
 }
 
 /**
