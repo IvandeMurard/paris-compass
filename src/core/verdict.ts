@@ -416,8 +416,23 @@ export function findingsFromScores(
 export function composeVerdict(
   findings: readonly VerdictFinding[],
   locale: VerdictLocale = 'fr',
+  /**
+   * The reading order of the axes — w6-modes (#36). Defaults to the core's own.
+   *
+   * **It reorders, it never selects.** Which axes bear the verdict stays `VERDICT_AXES`, and an
+   * axis left out of this array still composes, in `VERDICT_AXIS_ORDER`'s position — a mode
+   * that could drop an axis from the sentence would be a mode that changes what the sentence
+   * claims, which is the one thing `w6-modes` may not do. `modeAxisOrder` in `modes.ts` already
+   * returns a permutation; the guard here is for every other caller.
+   *
+   * The default is what keeps `verify:mcp`'s parity arm meaningful: an agent receives the
+   * sentence composed in the core's order, and so does a visitor who has chosen no mode.
+   */
+  order: readonly VerdictAxis[] = VERDICT_AXIS_ORDER,
 ): Verdict {
   const byAxis = new Map(findings.map((f) => [f.axis, f] as const));
+  const reading = [...order, ...VERDICT_AXIS_ORDER.filter((a) => !order.includes(a))];
+  const bearingOrder = reading.filter((a) => VERDICT_AXES[a].bearing);
 
   const clauseOf = (f: VerdictFinding): VerdictClause | null => {
     if (f.measured.value === null) return null;
@@ -428,7 +443,7 @@ export function composeVerdict(
   const missing: VerdictGap[] = [];
   const bearingClauses: VerdictClause[] = [];
 
-  for (const axis of BEARING_AXES) {
+  for (const axis of bearingOrder) {
     const finding = byAxis.get(axis);
     // A bearing axis nobody supplied is as blocking as one that came back null: composing
     // over a finding that was never even attempted is the same defect, one step earlier.
@@ -465,7 +480,8 @@ export function composeVerdict(
     };
   }
 
-  const supporting = VERDICT_AXIS_ORDER.filter((a) => !VERDICT_AXES[a].bearing)
+  const supporting = reading
+    .filter((a) => !VERDICT_AXES[a].bearing)
     .map((a) => byAxis.get(a))
     .filter((f): f is VerdictFinding => f !== undefined)
     .map(clauseOf)

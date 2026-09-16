@@ -70,6 +70,7 @@ import {
   type PremisePoint,
   type ScoringOperands,
   type ServicePoint,
+  type TradeFacts,
   type Withholding,
 } from '@/core';
 import {
@@ -82,6 +83,7 @@ import {
   fetchCorpusStation,
   fetchPremisesOrigin,
   fetchStationOrigin,
+  fetchTradeOrigins,
   withholdingOf,
   type TransitionsVerdict,
 } from '@/services/compass/addressCorpus';
@@ -234,6 +236,11 @@ export interface AddressContext {
    * itself failed — an outage and a licence refusal must not read alike.
    */
   transitions: TransitionsVerdict | null;
+  /**
+   * The near-field facts the trade checklists read — w6-modes (#36). See `CorpusContext.trade`
+   * for why `null` and `{ total: 0 }` are two different answers.
+   */
+  trade: TradeFacts | null;
 }
 
 /** The Overpass layers. `premises` is deliberately absent: it comes from the corpus now. */
@@ -257,6 +264,16 @@ export interface CorpusContext {
   services: ServicePoint[];
   nearestStationM: number | null;
   transitions: TransitionsVerdict | null;
+  /**
+   * The near-field facts the trade checklists read — w6-modes (#36).
+   *
+   * `null` when the services layer did not answer, and the distinction is the whole point: a
+   * checklist rendered over `total: 0` says « no premise is surveyed within 25 m of here »,
+   * which is a measurement, while one rendered over a failure must say « the layer did not
+   * answer ». Flattening the second into the first would put a measured absence of terraces on
+   * screen during an outage — `DIAGNOSTIC.md` §16, in a new block.
+   */
+  trade: TradeFacts | null;
   bbox: BBox;
 }
 
@@ -422,6 +439,14 @@ export async function fetchCorpusContext(point: {
     services: servicePoints,
     nearestStationM: !horsCorpus && station.status === 'fulfilled' ? station.value.distanceM : null,
     transitions: transitions.status === 'fulfilled' ? transitions.value : null,
+    // Gated on the SAME two conditions as the `services` layer above — the rows arrived and
+    // their vintage metadata arrived with them — rather than on `services.status` alone. Rows
+    // whose licence is unknown are rows that must not be counted, and a checklist is a place a
+    // count reaches a reader just as surely as an axis is.
+    trade:
+      !horsCorpus && services.status === 'fulfilled' && premisesOrigin.status === 'fulfilled'
+        ? services.value.trade
+        : null,
     bbox,
   };
 }
@@ -482,6 +507,7 @@ export function composeContext(
     points,
     bbox: corpus.bbox,
     transitions: corpus.transitions,
+    trade: corpus.trade,
   };
 }
 
@@ -547,6 +573,31 @@ export function useAddressContext(point: { lat: number; lng: number } | null): {
   }, [lat, lng, corpus.data, snapshot, injoignable]);
 
   return { data, isPending: corpus.isPending, isError: corpus.isError };
+}
+
+/**
+ * The provenance of the two datasets the trade checklists cite — w6-modes (#36).
+ *
+ * **Off the critical path, and that is enforced by `enabled` rather than promised.** It does
+ * not run until a visitor has chosen a mode, so the sheet that `#180` brought under one and a
+ * half seconds pays nothing for a block nobody has asked for. Once it has run, the answer is
+ * the same for every address in Paris — a dataset's own date does not depend on where you
+ * stand — so it is cached for an hour under a key that carries no coordinates, and the second,
+ * third and fourth mode a visitor tries cost no network at all.
+ *
+ * An error is not surfaced: `data` stays undefined, `resolveChecks` receives no origin, and the
+ * corpus-backed checks render as an absent layer. A count with an invented date would be worse
+ * than no count.
+ */
+export function useTradeOrigins(enabled: boolean) {
+  return useQuery({
+    queryKey: ['compass', 'trade-origins'],
+    queryFn: fetchTradeOrigins,
+    enabled,
+    staleTime: 60 * 60 * 1000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
 }
 
 /**

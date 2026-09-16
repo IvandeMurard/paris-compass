@@ -32,10 +32,12 @@
 import {
   findingsFromScores,
   missingText,
+  modeAxisOrder,
   noteText,
   withholdingText,
   type AreaScores,
   type Layer,
+  type TradeMode,
   type VerdictAxis,
   type Withholding,
 } from '@/core';
@@ -144,4 +146,32 @@ export function collectGaps(
   gaps.push({ key: 'commercial-rent', text: copy.noCommercialRent });
 
   return gaps;
+}
+
+/**
+ * The same holes, in the order this trade reads them — w6-modes (#36).
+ *
+ * **It reorders and never filters**, which is the half that matters. A mode that hid a gap
+ * would be a mode that makes the page look more complete than it is, and this block is the
+ * credibility argument of the whole sheet: the shortest path to destroying it is letting a
+ * setting decide which holes a visitor sees. So the output is a permutation of the input —
+ * `contextGaps.test.ts` holds that to be true — and the only thing a mode buys is that the
+ * absence bearing on its own reading arrives first.
+ *
+ * Gaps with no axis keep their relative order behind the ones that have one. They are the
+ * entries that are true of the product rather than of a figure — no open commercial rent in
+ * France, the withheld transition matrix, the name of the premises source — and no trade reads
+ * them sooner than another.
+ */
+export function orderGapsForMode(gaps: readonly Gap[], mode: TradeMode | null): readonly Gap[] {
+  if (mode === null) return gaps;
+  const rank = new Map(modeAxisOrder(mode).map((axis, i) => [axis, i] as const));
+  const position = (gap: Gap) => (gap.axis ? (rank.get(gap.axis) ?? rank.size) : rank.size + 1);
+  // `map`/`sort` over the indices rather than `sort` on a copy alone: `Array.prototype.sort` is
+  // required to be stable since ES2019, and relying on that for the non-axis tail is exactly
+  // the kind of implicit guarantee this repository writes down instead of assuming.
+  return gaps
+    .map((gap, index) => ({ gap, index }))
+    .sort((a, b) => position(a.gap) - position(b.gap) || a.index - b.index)
+    .map((entry) => entry.gap);
 }

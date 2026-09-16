@@ -1,7 +1,7 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte 55 au 15 septembre 2026**, et la
+« quatre défauts, par ordre de gravité » : il en porte 56 au 16 septembre 2026**, et la
 phrase est restée fausse trois semaines. Le nombre est désormais dérivé du tableau
 ci-dessous par `scripts/porte/documents.test.ts` : le recopier faux fait rougir `test`.
 
@@ -79,6 +79,7 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 53 | Hors corpus, deux couches neuves rendaient un ZÉRO mesuré au lieu d'une absence — `services` et `stations` | clos le 15 septembre 2026 par `w6-amenites-corpus`, trouvé à l'écran | ici |
 | 54 | `brief` assemblait un prompt de session complet pour une issue FERMÉE, sans le dire | clos le 15 septembre 2026 — trouvé en étant la victime | ici |
 | 55 | Le dossier exporté citait la BAN sur un libellé qu'elle n'avait pas rendu, et perdait « mesure en cours » | clos le 15 septembre 2026 par `w6-dossier`, trouvé à l'écran | ici |
+| 56 | La checklist métier rendait « ne est », et « aucune terrasse » là où 26 emplacements sur 28 sont `inconnu` | clos le 16 septembre 2026 par `w6-modes`, trouvé à l'écran — les deux étaient verts au test unitaire | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -1296,3 +1297,72 @@ décidée, celle-ci nomme une issue non décidée.
   répondu et où rien n'est en vol. Ce qui les a montrés est d'avoir lu un fichier réel, produit
   par un vrai navigateur contre le vrai distant — et le test qui les tient aujourd'hui a été écrit
   **après**, ce qui est l'ordre que `DIAGNOSTIC.md` §53 avait déjà établi.
+
+---
+
+## 56. Deux phrases fausses rendues à l'écran par la checklist métier, vertes au test unitaire
+
+**Trouvées à l'écran le 16 septembre 2026**, à la première exécution de la démonstration de
+`w6-modes` (#36) dans un Chrome sans tête — pas en relecture, et pas par un test. Les deux sont
+**corrigées avant livraison**, et ce qui compte ici n'est pas la ligne réparée mais le contrôle
+qui manquait : `CLAUDE.md`, « corriger une donnée n'est pas corriger un défaut ».
+
+### a. « ne est » — le gabarit ne peut pas savoir quelle lettre vient après
+
+La page rendait, mot pour mot :
+
+> *Aucun des 25 locaux relevés à moins de 25 m **ne est** sur un linéaire portant une protection.*
+
+`STATE_COPY.fr.none` écrivait la particule de négation et recevait un verbe nu. Le français élide
+devant une voyelle, et un gabarit qui compose « ne » + `${verbe}` ne sait pas si `verbe` commence
+par une. Le défaut ne pouvait apparaître que sur les deux contrôles du PLU, dont le verbe commence
+par *est*.
+
+**Le test unitaire était VERT dessus et le serait resté** : il demandait si la phrase de refus
+contenait `' ne '`, et elle en contenait un. C'est la forme exacte que `docs/SESSIONS.md`
+décrit en ouvrant « La revue » — un contrôle qui **échoue ouvert**, vert parce qu'il regarde la
+mauvaise propriété.
+
+**Corrigé** : `CheckCopy.negative` porte désormais la particule elle-même — `ne porte
+d'autorisation…`, `n'est sur un linéaire…` — donc l'élision appartient à celui qui écrit la
+phrase, qui connaît son premier mot. Et `modeText.test.ts` ne demande plus si « ne » est là : il
+balaie **toutes** les phrases françaises que le module peut produire, `TRADE_CHECK_IDS` ×
+états, et refuse `/\bne\s+[voyelle]/`. Sa contre-preuve est la phrase ci-dessus, inscrite telle
+quelle : une règle qu'on n'a jamais vue rougir est une règle dont on ne sait pas si elle regarde
+quelque chose.
+
+### b. « Aucune autorisation de terrasse » là où 26 emplacements sur 28 sont `inconnu`
+
+Rue de Bretagne, la page rendait *« Aucun des 25 locaux relevés à moins de 25 m ne porte
+d'autorisation de terrasse ou d'étalage »*. Mesuré en base le même jour, connexion directe, dans
+les 25 m de `48.8631, 2.3621` : **28 emplacements, 0 en `terrasse oui`, 26 en `inconnu`**.
+
+`inconnu` est le troisième état du registre et il a un sens précis, écrit dans
+`src/i18n/terrasseText.ts` depuis `w1-terrasses` : *un numéro de rue où une autorisation existe et
+où la source ne dit pas lequel des locaux la porte*. Compter seulement les `oui` et conclure
+« aucun » **invente une absence** — c'est la faute que ce fichier-là refuse depuis le 25 août,
+reproduite un cran plus haut, dans un agrégat plutôt que sur une ligne.
+
+`TradeFacts` portait déjà `terrasseInconnu`, et `resolveChecks` ne le lisait pas : le champ était
+là, la phrase l'ignorait. Le pire cas possible pour ce produit — la donnée est juste, la
+provenance est juste, et la phrase dit le contraire.
+
+**Corrigé** : `TradeCheckState.constate` porte `indetermine`, alimenté par `CHECK_UNKNOWN` — une
+table dérivée, vide pour les contrôles dont la source n'a que deux états, parce qu'un zéro qui
+veut dire « cette source tranche » et un zéro qui veut dire « personne n'a regardé » ne sont pas
+le même zéro. La phrase gagne sa queue : *« 4 relèvent d'une adresse où la source ne dit pas
+lequel est concerné : inconnu, pas absent »*.
+
+**Le recensement par `kind` seul était vert dessus**, et c'est le second enseignement : `constate`
+est le seul état porteur de trois nombres, donc énumérer les *genres* d'état ne l'énumère pas. Un
+contrôle séparé exige maintenant qu'un `constate` avec `indetermine > 0` soit visité.
+
+### Ce que ça ne rattrape pas
+
+- **Ces contrôles jugent qu'il y a deux langues et qu'aucune phrase n'est vide, jamais que chacune
+  dit vrai.** La même limite que `motif.test.ts` nomme pour lui-même.
+- **L'élision n'est vérifiée que pour « ne ».** « de » + voyelle, « le » + voyelle et « que » +
+  voyelle se composeraient de la même façon le jour où un gabarit les assemblerait, et rien ne les
+  regarde.
+- **Rien n'a ouvert la page dans un mode depuis un bras de porte** : les deux défauts ont été vus
+  parce qu'une session a lu la sortie d'une démonstration, pas parce qu'un instrument l'a lue.

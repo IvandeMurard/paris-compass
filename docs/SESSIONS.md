@@ -329,7 +329,7 @@ deux côtés.
 | ~~53~~ | ~~`w6-contexte`~~ | [#119](https://github.com/IvandeMurard/paris-compass/issues/119) | **fait** | P1 | Opus 5 |
 | 54 | `w6-liberations` | [#34](https://github.com/IvandeMurard/paris-compass/issues/34) | ouvert | P1 | Opus 5 |
 | ~~55~~ | ~~`w6-dossier`~~ | [#33](https://github.com/IvandeMurard/paris-compass/issues/33) | **fait** | P1 | Opus 5 |
-| 56 | `w6-modes` | [#36](https://github.com/IvandeMurard/paris-compass/issues/36) | ouvert | P1 | Opus 5 |
+| ~~56~~ | ~~`w6-modes`~~ | [#36](https://github.com/IvandeMurard/paris-compass/issues/36) | **fait** | P1 | Opus 5 |
 | 57 | `w6-accueil` | [#148](https://github.com/IvandeMurard/paris-compass/issues/148) | ouvert | P1 | Opus 5 |
 | 58 | `w5-explain-metier` | [#31](https://github.com/IvandeMurard/paris-compass/issues/31) | ouvert | P2 | Opus 5 |
 | 59 | `w3-osm-notes` | [#22](https://github.com/IvandeMurard/paris-compass/issues/22) | ouvert | P2 | Sonnet 5 |

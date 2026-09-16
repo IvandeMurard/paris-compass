@@ -613,7 +613,15 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 - **Doctrine.** Upstream. Absent sur cette couche ≠ rien à saisir — légender la couverture de chaque signal.
 - **Fait quand.** L'ouverture de l'app sans requête montre des signaux de libération, chacun avec source et date, et une légende de couverture.
 
-#### w6-modes — Trois modes métier
+#### w6-modes — Trois modes métier — **fait le 16 septembre 2026**
+
+> **Livré.** Un mode est un ordre de lecture et une checklist ; il réordonne les axes, les
+> clauses du verdict et les alertes sans toucher à une seule valeur, et il n'existe aucune note
+> par métier. Trois des neuf lignes de checklist sont répondues par le corpus — terrasses, et les
+> deux protections du PLU, c'est-à-dire deux des trois dépendances de ce ticket ; les six autres
+> nomment le ticket qui leur manque. Ce ticket redit le bloc « Produit → Trois modes métier »
+> ci-dessous, qui porte la même clôture. Détail : `docs/tickets/w6-modes.md`. **L'ordre de tête
+> des trois modes attend une décision d'Ivan.**
 
 - Priorité **P1** · vague 6 · Q4 2026
 - Dépend de : `w0-fiche`, `w1-terrasses`, `w0-plu`
@@ -712,7 +720,7 @@ jamais un rangement dans le voisin.
 | BDCom 2017 / 2020 / 2023 | APUR | ingérée | 2017–2020 personnalisée (non redistribuable) · 2023 ODbL | local à vitrine, identifiant stable | Fleuriste 2017 → fleuriste 2020 → disparu en 2023. Rotation rapportée au tronçon. | Vacance 2023 non calculable. 2017/2020 withheld à l'anonyme. Ne pas comparer les effectifs bruts (84k → 60k). |
 | BODACC | DILA | ingérée | Licence Ouverte | adresse, pas le local | Cession de fonds avec prix, procédure collective — signal que ça se libère, des mois avant l'annonce. | Nomme une adresse. 69 % des locaux partagent le numéro → probable, pas établi. |
 | Sirene géolocalisé | INSEE | ingérée | Licence Ouverte 2.0 | établissement, pas le local | Corroboration, dates de création/cessation en continu. | Un SIRET n'est pas une vitrine. Un local peut être vide avec SIRET ouvert. |
-| PLU linéaires protégés (plub_protcom) | Ville de Paris | planifiée | ODbL (déclarée par le portail, mesurée le 05/09/2026) | linéaire de façade | Sur ce linéaire, le RDC ne peut pas changer de destination. | Informatif, sans valeur réglementaire. Pas encore ingéré. |
+| PLU linéaires protégés (plub_protcom) | Ville de Paris | ingérée · affichée — **statut remesuré le 16/09/2026** : 5 107 linéaires chargés le 25/08 par `w0-plu` (#9), **29 338 des 85 418 locaux sur linéaire protégé** — 26 074 `pca`, 3 809 `ppa`, 828 `pcc` — et lus à l'écran depuis `w6-modes` (#36). La ligne disait « planifiée … pas encore ingéré » trois semaines après le chargement | ODbL (déclarée par le portail, mesurée le 05/09/2026) | linéaire de façade | Sur ce linéaire, le RDC ne peut pas changer de destination. | Informatif, sans valeur réglementaire. **La colonne `plu_commerce_artisanat` est `pca`, la protection GÉNÉRALE ; celle qui vise l'artisanat est `ppa`, `plu_commerce_proximite`** — le nom de colonne et le sens du drapeau ne coïncident pas. |
 | Chantiers de voirie | Ville de Paris | planifiée | ODbL (déclarée par le portail, mesurée le 05/09/2026) | polygone + dates | 40 m d'un chantier perturbant, sept. 2026 → mars 2027. | Fait d'exposition, jamais une prévision d'impact sur le CA. |
 | Terrasses et étalages | Ville de Paris | ingérée · affichée | ODbL (mesuré le 26/08) | autorisation géolocalisée, rattachée par numéro de rue | Une terrasse permanente est déjà autorisée sur cette façade — trois états, `inconnu` quand plusieurs locaux partagent le numéro. | Autorisation ≠ terrasse installée aujourd'hui : ni date de délivrance, ni expiration, ni statut dans la source. |
 | DIA / droit de préemption commercial | Ville de Paris | **écartée — non publiée, vérifié le 27/08** | aucune — seul le périmètre d'application est en open data | — | — | Les DIA elles-mêmes ne sont pas publiées ; seules les parcelles soumises au droit le sont (`plu-annexes-droit-de-preemption-urbain-renforce`). Piste close, `w1-dia`. |
@@ -768,7 +776,7 @@ L'IA ne doit pas entrer dans src/core/. Le cœur reste déterministe, testé, re
 
 Vue par défaut sans adresse. Cessations, procédures, DIA, rideaux. Légender la couverture de chaque signal pour ne pas recréer la fausse absence.
 
-**Trois modes métier**
+**Trois modes métier** — **fait le 16 septembre 2026**, `w6-modes` (#36), qui redit ce bloc.
 
 Restauration, boutique, artisanat. Même corpus, phrases et alertes différentes. Checklist, pas score.
 

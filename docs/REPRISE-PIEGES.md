@@ -1491,3 +1491,69 @@ test unitaire et le seraient restés. Ils se lisent dans l'en-tête du fichier t
 produisent deux fichiers différents et tous deux corrects — provenance de l'URL contre provenance
 BAN, `noise` en route contre `noise` injoignable. Une sonde qui ne joue qu'un des deux instants
 laisse l'autre moitié du comportement sans témoin.
+
+## Le drapeau PLU qui s'appelle `artisanat` est la protection GÉNÉRALE — 16 septembre 2026
+
+`plub_protcom` publie trois drapeaux par linéaire, et le nom de colonne choisi pour le premier
+induit exactement l'erreur qu'on vient chercher :
+
+| colonne de `premise_location` | drapeau source | ce que c'est | locaux sur 85 418 |
+| --- | --- | --- | ---: |
+| `plu_commerce_artisanat` | `pca` | protection **générale** du commerce et de l'artisanat | **26 074** |
+| `plu_commerce_proximite` | `ppa` | protection du **commerce artisanal de proximité** | **3 809** |
+| `plu_commerce_culturel` | `pcc` | protection du commerce culturel | **828** |
+| `plu_protected` | les trois | au moins l'une des trois, colonne générée | **29 338** |
+
+Mesuré le 16 septembre 2026 sur le distant, connexion directe. Une checklist artisanat qui lirait
+`plu_commerce_artisanat` parce que son nom contient « artisanat » compterait la protection
+générale — sept fois plus large — et dirait à un artisan que sa façade est protégée *au titre de
+son métier* dans 26 074 cas au lieu de 3 809. `w6-modes` lit donc `ppa` pour l'artisanat et
+`plu_protected` pour la boutique, et le nomme dans la phrase affichée.
+
+**Le nom vient de la source**, qui appelle bien `pca` « protection du commerce et de l'artisanat ».
+Il n'y a rien à corriger dans la migration — une migration posée ne se réécrit pas — et c'est
+donc ici que ça s'écrit.
+
+
+## `premise_location` et « les locaux relevés » ne comptent pas la même chose — 16 septembre 2026
+
+Deux mesures du même point, le même jour, qui ne s'accordent pas et ont toutes les deux raison :
+
+| point | `premise_location` dans 25 m | ce que la fiche affiche |
+| --- | ---: | ---: |
+| rue de Bretagne, `48.8631, 2.3621` | **28** | **25** |
+| 18ᵉ, `48.884943, 2.337073` | **11** | **10** |
+
+`premise_location` est la table des EMPLACEMENTS, tous millésimes confondus ;
+`compass_premises_within(…, p_vintage_year => 2023)` rend les locaux **relevés au millésime
+demandé**, en joignant `premise_observation`. Un emplacement relevé en 2017 et disparu en 2023
+existe dans la première et pas dans la seconde.
+
+**Conséquence pour une remesure** : recouper un compte d'écran par un `select count(*) from
+premise_location where ST_DWithin(...)` donnera toujours un nombre un peu plus grand, et conclure
+à un filtre cassé serait faux. Le recoupement juste passe par la même fonction, ou joint
+`premise_observation` sur le millésime que l'écran épingle (`SHEET_VINTAGE`).
+
+Corollaire utile : ce même `order by h.distance_m, h.location_id limit v_limit` fait qu'une
+réponse plafonnée par PostgREST perd les locaux les plus LOINTAINS. Un compte de champ proche —
+25 m — est donc entier même quand le compte à 400 m est un plancher.
+
+
+## Un worktree neuf n'a ni `node_modules`, ni `.env.local`, ni `mcp-server/.env` — 16 septembre 2026
+
+`git worktree add` copie ce que git suit, donc rien de tout ça. Six tests de `npm.cmd run test`
+échouent alors sur `Cannot find module …/node_modules/tsx/dist/cli.mjs` — **et `npx vitest`
+marche quand même**, parce que la résolution Node remonte jusqu'au `node_modules` du dépôt
+principal, tandis que les bras qui lancent `tsx` par un chemin ABSOLU dans le worktree ne le
+peuvent pas. Un échec qui ressemble à une régression du dépôt et n'en est pas.
+
+```powershell
+npm.cmd install                      # le worktree, pour les bras qui lancent tsx par son chemin
+cd mcp-server; npm.cmd install; cd ..  # sinon verify:mcp s'arrête avant de mesurer
+Copy-Item ..\..\..\.env.local .env.local
+Copy-Item ..\..\..\mcp-server\.env mcp-server\.env
+```
+
+Sans `.env.local`, `npm.cmd run build` s'arrête sur sa garde `prebuild` ; sans
+`mcp-server/.env`, `verify:mcp` s'arrête en le nommant, ce qui est le bon comportement et pas
+une panne.

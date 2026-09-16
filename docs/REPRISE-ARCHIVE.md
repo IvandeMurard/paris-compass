@@ -1033,3 +1033,31 @@ Sorti de `docs/REPRISE.md` le soir du 15 septembre 2026 par `w6-fiche-delai` (#1
     `layerPointToLatLng` et les trois temps de la fiche — est dans `docs/REPRISE-ARCHIVE.md`.**
     Ce qui n'est PAS rayé : le quinzième bras `page` reste **rouge contre la production** jusqu'à
     ce que Lovable republie, et il ne faut pas le désarmer.
+
+21. **La fiche rend son verdict en moins d'une seconde et demie, miroirs pendus.**
+    `w6-fiche-delai` (#180) fermée le 15 septembre 2026. Sortie de `docs/REPRISE.md` le
+    16 septembre 2026 par `w6-modes` (#36), pour tenir le plafond de `documents.test.ts`. Le
+    détail, les six passages comparés et la méthode sont dans `docs/tickets/w6-fiche-delai.md`,
+    section « Livré » ; ce qui suit est l'état tel qu'il a été mesuré.
+
+    **Mesuré Chrome sans tête, build local, les trois hôtes Overpass pointés sur un puits qui ne
+    répond jamais** : verdict composé et **les cinq constats du corpus chiffrés en 573 à
+    1 115 ms**, là où `2dabf49` mettait **10 178 à 10 201 ms** dans la même minute. `bruit
+    routier` reste à l'écran tout du long — « Mesure en cours » pendant l'attente, puis « source
+    injoignable » à l'expiration du budget, relevée à 10 153–10 190 ms. Contre un miroir local
+    debout, il prend sa valeur et sa source à **4 207 ms** sur une page dont le verdict était
+    rendu à 584 ms.
+
+    **Le critère du ticket était vert sur `main` avant que le ticket commence**, et c'est le seul
+    enseignement qui dépasse cette livraison : il disait « miroirs injoignables », or une coupure
+    au résolveur échoue en une milliseconde et `main` répondait déjà en 480 à 915 ms. Un critère
+    qui nomme une panne doit nommer LAQUELLE — `docs/REPRISE-PIEGES.md` porte la mesure et la
+    recette du puits. **Ce qui n'est PAS fait** : le corpus reste sur le chemin critique, et un
+    appel à froid a été mesuré à 2 974 ms.
+
+
+## Tests unitaires — le relevé du 16 septembre 2026 au matin, et sa chaîne
+
+Sorti de `docs/REPRISE.md` le 16 septembre 2026 par `w6-modes` (#36) pour tenir le plafond de `documents.test.ts`. Il portait le relevé de `w6-langue-absences` (#181) et l'histoire des trois sabotages joués contre `src/core/dossier.test.ts`, dont le deuxième restait VERT tant que le gabarit posait une distance ronde de 190 m.
+
+| Tests unitaires | **798 sur 56 fichiers, remesurés le 16 septembre 2026** par `w6-langue-absences` (#181), qui ajoute **un fichier et 11 tests** — `src/core/motif.test.ts` : le recensement des six genres de motif, les deux paramétrés déclinés sur les cinq couches, deux phrases exigées **différentes** pour chacun, et la contre-preuve de `#61` — une phrase anglaise falsifiée qui ne change pas ce que lit l'écran. Deux autres entrent dans des fichiers existants. **`main` en portait 785 sur 55.** Antérieurement **785 sur 55 fichiers, remesurés le 15 septembre 2026 au soir** par `w6-dossier` (#33), qui ajoute **un fichier et 22 tests** — `src/core/dossier.test.ts` : chaque figure du dossier exporté re-dérivée depuis un objet sorti de `JSON.parse`, la population énumérée depuis `VERDICT_AXIS_ORDER`, les constantes comparées à celles du noyau, un refus de verdict, une couche encore en vol, un axe non fourni. **`main` en portait 763 sur 54** — 785 mesurés ici moins les 22 du fichier neuf, aucun autre fichier de test touché ; le relevé de 746 ci-dessous datait d'avant la fusion de `#190`. **Trois sabotages ont été joués contre ce fichier**, chacun restauré, et le deuxième — un opérande arrondi — était **VERT** tant que le gabarit posait une distance ronde de 190 m : passé à 187 m, les trois rougissent. Le contrôle était sain, le gabarit était aveugle (`docs/REPRISE-PIEGES.md`). **Le relevé de 746, du 15 septembre 2026, est dans `docs/REPRISE-ARCHIVE.md`**, sorti d'ici le 16 septembre 2026 par `w6-langue-absences` (#181) pour tenir le budget de `documents.test.ts`. **Les relevés antérieurs — 718 à 660, du 14 au 15 septembre 2026 — sont dans `docs/REPRISE-ARCHIVE.md`**, sortis d'ici le 15 septembre 2026 au soir par `w6-dossier` (#33) pour tenir le budget de `documents.test.ts`, qui ne laissait plus que 47 octets. **Les relevés antérieurs — 640 à 416, du 6 au 13 septembre 2026 — sont dans `docs/REPRISE-ARCHIVE.md`**, sortis d'ici le 15 septembre 2026 pour tenir le budget de `documents.test.ts`, comme les 396 à 273 l'avaient été le 13. **Les relevés antérieurs — 396 à 273 — sont dans `docs/REPRISE-ARCHIVE.md`**, sortis d'ici le 13 septembre 2026 pour tenir le budget de `documents.test.ts`. |
