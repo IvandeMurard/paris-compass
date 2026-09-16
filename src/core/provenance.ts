@@ -11,6 +11,9 @@
  * chain of thought, so a caller can explain a figure without reconstructing it.
  */
 
+import { motifsText, motifText, type FigureMotif } from './motif';
+import type { VerdictLocale } from './verdict';
+
 export type Method =
   /** Counted or recorded by an instrument or a survey. The strongest claim. */
   | 'measured'
@@ -30,10 +33,28 @@ export interface Measured<T> {
   /** When the underlying data was produced, ISO-ish: "2023-06", "2026-08-07". */
   asOf: string;
   method: Method;
-  /** Why the figure should be read with caution — truncation, proxy, small sample. */
+  /**
+   * Why the figure should be read with caution — truncation, proxy, small sample.
+   *
+   * **English, and derived — w6-langue-absences (#181).** It is `caveats` written out for the
+   * agent path, which is English by the convention of this directory. A screen never renders
+   * it: it renders `caveats` in the reader's language. Kept beside the motifs rather than
+   * dropped because the MCP response has served this sentence since the first release, and an
+   * agent that was reading prose must not find the field gone.
+   */
   note?: string;
-  /** Why there is no value. Required reading whenever `value` is null. */
+  /** Why there is no value, in English and derived from `missing`. Same rule as `note`. */
   missingReason?: string;
+  /**
+   * Why there is no value, in a form that has no language — `src/core/motif.ts`.
+   *
+   * This is the field a screen reads and the field an agent branches on. `missingReason` is
+   * this motif rendered into English; the French page renders the same motif into French, and
+   * neither is obtained by reading the other (`#61`).
+   */
+  missing?: FigureMotif;
+  /** The caveats behind `note`, in the order they were joined. Structured, so translatable. */
+  caveats?: readonly FigureMotif[];
 }
 
 export interface Origin {
@@ -46,20 +67,58 @@ export function withValue<T>(
   value: T,
   origin: Origin,
   method: Method,
-  note?: string,
+  /** Structured caveats, never a sentence — w6-langue-absences (#181). */
+  caveats: readonly FigureMotif[] = [],
 ): Measured<T> {
-  return { value, ...origin, method, ...(note ? { note } : {}) };
+  const note = motifsText(caveats, 'en');
+  return {
+    value,
+    ...origin,
+    method,
+    ...(note ? { note, caveats } : {}),
+  };
 }
 
-/** A figure Compass cannot produce. Never fall back to zero: absent is not the same as none. */
-export function unavailable<T>(origin: Origin, missingReason: string): Measured<T> {
-  return { value: null, ...origin, method: 'derived', missingReason };
+/**
+ * A figure Compass cannot produce. Never fall back to zero: absent is not the same as none.
+ *
+ * **The second parameter is a motif and not a sentence, and the type is the enforcement** —
+ * w6-langue-absences (#181). An absence that can only say why in one language is an absence
+ * half the readers cannot read, and a `string` here is what let that happen for five weeks
+ * (`DIAGNOSTIC.md` §49). The English sentence is still produced, from the motif, for the agent
+ * path; it can no longer be produced without one.
+ */
+export function unavailable<T>(origin: Origin, missing: FigureMotif): Measured<T> {
+  return {
+    value: null,
+    ...origin,
+    method: 'derived',
+    missing,
+    missingReason: motifText(missing, 'en'),
+  };
 }
 
 /** True when the figure can be shown as-is, without a caveat. */
 export function isReliable(m: Measured<unknown>): boolean {
   return m.value !== null && m.method !== 'estimated' && !m.note;
 }
+
+/**
+ * Why a figure is absent, in the reader's language — or `undefined` when it has a value.
+ *
+ * Every screen and every document goes through these two functions rather than reading `note`
+ * and `missingReason`: those two are the English rendering, and a page that reads them is the
+ * defect this ticket closed. Reading the motif is also what makes the English page and the
+ * French page the same code path, run twice.
+ */
+export const missingText = (
+  m: Measured<unknown>,
+  locale: VerdictLocale = 'fr',
+): string | undefined => (m.missing ? motifText(m.missing, locale) : m.missingReason);
+
+/** The caveats of a figure, in the reader's language. Same rule as `missingText`. */
+export const noteText = (m: Measured<unknown>, locale: VerdictLocale = 'fr'): string | undefined =>
+  m.caveats ? motifsText(m.caveats, locale) : m.note;
 
 /**
  * `ODbL-1.0` rather than the loose "ODbL" this used to carry, and the spelling matters:

@@ -14,7 +14,7 @@
 
 import { ChevronRight } from 'lucide-react';
 import { MeasuredScore } from '@/components/MeasuredFigure';
-import { bandOf, noiseLabel, type Measured, type VerdictAxis } from '@/core';
+import { bandOf, missingText, noiseLabel, noteText, type Measured, type VerdictAxis } from '@/core';
 import { AXIS_NAMES, AXIS_WHAT, CONTEXT_COPY } from '@/i18n/contextText';
 import { translateLabel } from '@/i18n/labels';
 import { useLocale } from '@/i18n/locale';
@@ -50,6 +50,13 @@ const ContextFinding = ({ axis, measured, phrase, pending = false }: Props) => {
       ? translateLabel(noiseLabel(measured.value), locale)
       : undefined;
 
+  // The core's own words about this figure, in the reader's language — w6-langue-absences
+  // (#181). `measured.note` and `measured.missingReason` are the English rendering of the same
+  // motifs, kept for the agent path; rendering them here is what put « The road layer did not
+  // load » on a page written entirely in French (`DIAGNOSTIC.md` §49).
+  const why = missingText(measured, locale);
+  const caveat = noteText(measured, locale);
+
   return (
     <li className="rounded-lg border bg-white p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -71,7 +78,7 @@ const ContextFinding = ({ axis, measured, phrase, pending = false }: Props) => {
         {measured.value === null
           ? pending
             ? c.findingPending
-            : (measured.missingReason ?? c.whyMissing)
+            : (why ?? c.whyMissing)
           : (phrase ?? bandOf(axis, measured.value))}
       </p>
 
@@ -95,16 +102,16 @@ const ContextFinding = ({ axis, measured, phrase, pending = false }: Props) => {
           <dd>
             {measured.method} — {c.methods[measured.method]}
           </dd>
-          {measured.note && (
+          {caveat && (
             <>
               <dt className="font-medium">{c.caveat}</dt>
-              <dd>{measured.note}</dd>
+              <dd>{caveat}</dd>
             </>
           )}
-          {measured.missingReason && (
+          {why && (
             <>
               <dt className="font-medium">{c.whyMissing}</dt>
-              <dd>{measured.missingReason}</dd>
+              <dd>{why}</dd>
             </>
           )}
         </dl>

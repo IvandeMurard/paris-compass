@@ -44,7 +44,8 @@
  */
 
 import { contextToolCall, type AgentCall, type ContextToolArguments } from './agentCall';
-import type { Measured, Method } from './provenance';
+import type { FigureMotif } from './motif';
+import { missingText, noteText, type Measured, type Method } from './provenance';
 import {
   FOOTFALL_RADIUS_M,
   FOOTFALL_WEIGHTS,
@@ -123,8 +124,21 @@ export interface DossierFigure {
   licence: string;
   asOf: string;
   method: Method;
+  /**
+   * The caveat and the absence, in the language the file declares — w6-langue-absences (#181).
+   *
+   * They keep the names `Measured<T>` gives them, like the five provenance fields above, but
+   * they are NOT the same strings: `Measured.note` and `Measured.missingReason` are the core's
+   * English rendering, and a dossier whose `locale` says `fr` carrying English sentences would
+   * be the §49 defect inside the one artefact that gets forwarded. The motifs below are the
+   * same facts without a language, so a reader who does not read either one can still act.
+   */
   note?: string;
   missingReason?: string;
+  /** The structured cause of the absence, beside its sentence. `src/core/motif.ts`. */
+  missingMotif?: FigureMotif;
+  /** The structured caveats behind `note`, in the order they were joined. */
+  noteMotifs?: readonly FigureMotif[];
   /** Structured cause of an absence — the same four names `question_outcome` uses. */
   withheldBecause?: Withholding;
   /**
@@ -148,6 +162,8 @@ export interface DossierGap {
   axis: VerdictAxis;
   because: Withholding;
   reason: string;
+  /** The structured cause behind `reason` — the same motif the figure row carries. */
+  motif?: FigureMotif;
   /** The layer was still travelling when the file was issued, not missing. */
   pending?: boolean;
 }
@@ -378,6 +394,9 @@ export function buildDossier(input: DossierInput): Dossier {
     const m: Measured<number> | null = finding?.measured ?? null;
     const derivation = derivationOf(axis, input.operands, byAxis);
     const enCours = input.pending?.has(axis) ?? false;
+    // Composed in `input.locale`, never copied from the core's English — w6-langue-absences.
+    const note = m ? noteText(m, input.locale) : undefined;
+    const reason = m ? missingText(m, input.locale) : undefined;
     return {
       axis,
       label: input.labels[axis].label,
@@ -389,8 +408,8 @@ export function buildDossier(input: DossierInput): Dossier {
       licence: m?.licence ?? UNSUPPLIED,
       asOf: m?.asOf ?? UNSUPPLIED,
       method: m?.method ?? 'derived',
-      ...(m?.note ? { note: m.note } : {}),
-      ...(m?.missingReason ? { missingReason: m.missingReason } : {}),
+      ...(note ? { note, ...(m?.caveats ? { noteMotifs: m.caveats } : {}) } : {}),
+      ...(reason ? { missingReason: reason, ...(m?.missing ? { missingMotif: m.missing } : {}) } : {}),
       ...((m?.value ?? null) === null
         ? { withheldBecause: finding?.withheldBecause ?? 'indetermine', ...(enCours ? { pending: true } : {}) }
         : {}),
@@ -418,6 +437,7 @@ export function buildDossier(input: DossierInput): Dossier {
         axis: f.axis,
         because: f.withheldBecause ?? 'indetermine',
         reason: f.missingReason ?? UNSUPPLIED,
+        ...(f.missingMotif ? { motif: f.missingMotif } : {}),
         ...(f.pending ? { pending: true } : {}),
       })),
     reproduce: {

@@ -194,6 +194,10 @@ interface MeasuredField {
   method: string
   note?: string
   missingReason?: string
+  /** Le motif structuré derrière `missingReason` — w6-langue-absences (#181). */
+  missing?: { kind: string; layer?: string }
+  /** Les motifs derrière `note`, dans l'ordre où ils ont été joints. */
+  caveats?: { kind: string; layer?: string }[]
 }
 
 interface ScoreResponse {
@@ -672,6 +676,27 @@ async function checkDatabaseOutage(): Promise<void> {
       "base injoignable : footfall est retiré, jamais calculé sur une couche absente",
       footfall?.value === null && Boolean(footfall?.missingReason) && Boolean(failure),
       `value=${footfall?.value ?? "null"} · ${failure?.reason.slice(0, 80) ?? "aucune panne déclarée"}`,
+    )
+
+    /**
+     * Le motif structuré voyage À CÔTÉ de la phrase — w6-langue-absences (#181), critère 3.
+     *
+     * `E8` juge qu'il y a une raison ; celui-ci juge qu'elle est LISIBLE PAR UNE MACHINE. Un
+     * appelant qui devrait distinguer un miroir mort d'une retenue de licence en cherchant des
+     * mots dans une phrase anglaise en serait réduit à `includes()` — précisément ce que `#61`
+     * a refusé, et ce que ce ticket avait interdit d'avance côté écran. Les deux moitiés sont
+     * exigées ensemble : le motif seul retirerait la phrase à l'humain, la phrase seule
+     * retirerait la décision à l'agent.
+     */
+    const motif = footfall?.missing
+    expect(
+      "PANNE",
+      "E8b",
+      "l'absence porte son motif structuré, pas seulement sa phrase",
+      motif?.kind === "couche_absente" &&
+        motif.layer === "premises" &&
+        typeof footfall?.missingReason === "string",
+      `motif=${motif ? `${motif.kind}/${"layer" in motif ? motif.layer : "-"}` : "ABSENT"} · phrase=${footfall?.missingReason?.slice(0, 60) ?? "aucune"}`,
     )
 
     // And the other half: a database outage must not blank out figures that never needed it.

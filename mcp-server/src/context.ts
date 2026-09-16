@@ -21,6 +21,7 @@ import {
   SERVICE_RADIUS_M,
   buildIndex,
   serviceFamilyOf,
+  type FigureMotif,
   type Layer,
   type LayerNotes,
   type LayerOrigins,
@@ -143,8 +144,15 @@ interface ScoringContextRow {
  */
 interface PremisesLayer {
   points: PremisePoint[]
-  /** Renseignée quand PostgREST a rendu moins de lignes que le rayon n'en contient. */
-  note?: string
+  /**
+   * Renseignée quand PostgREST a rendu moins de lignes que le rayon n'en contient.
+   *
+   * **Un motif et non une phrase depuis w6-langue-absences (#181).** Ce module écrivait sa
+   * propre version anglaise de la mise en garde pendant que le navigateur écrivait la sienne en
+   * français : deux textes pour un fait, et chacun arrivait sous les yeux du lecteur de l'autre.
+   * Les nombres voyagent dans le motif, la phrase se compose au bout — une fois par langue.
+   */
+  note?: FigureMotif
 }
 
 async function fetchPremises(
@@ -206,11 +214,13 @@ async function fetchPremises(
   if (totalMatched > points.length) {
     return {
       points,
-      note:
-        `The premises layer is truncated: the service returned ${points.length} of the ` +
-        `${totalMatched} premises the ${Math.round(radiusM)} m radius holds, because PostgREST ` +
-        `caps a response at its own row limit. Every figure below that reads this layer is a ` +
-        `FLOOR, not a total. A narrower radius returns the whole set.`,
+      note: {
+        kind: "reponse_plafonnee",
+        layer: "premises",
+        rendered: points.length,
+        total: totalMatched,
+        radiusM: Math.round(radiusM),
+      },
     }
   }
   return { points }
@@ -251,7 +261,8 @@ interface PremisesWithinRow {
 
 interface ServicesLayer {
   points: ServicePoint[]
-  note?: string
+  /** Même motif que `PremisesLayer.note`, sur l'autre couche du corpus. */
+  note?: FigureMotif
 }
 
 async function fetchServices(
@@ -294,11 +305,13 @@ async function fetchServices(
   if (totalMatched > rows.length) {
     return {
       points,
-      note:
-        `The surveyed-services layer is truncated: the service returned ${rows.length} of the ` +
-        `${totalMatched} premises the ${Math.round(radiusM)} m radius holds, because PostgREST ` +
-        `caps a response at its own row limit. Every figure below that reads this layer is a ` +
-        `FLOOR, not a total.`,
+      note: {
+        kind: "reponse_plafonnee",
+        layer: "services",
+        rendered: rows.length,
+        total: totalMatched,
+        radiusM: Math.round(radiusM),
+      },
     }
   }
   return { points }

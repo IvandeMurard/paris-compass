@@ -15,7 +15,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AmenityCategory, PremisePoint } from '@/core';
+import { noteText, type AmenityCategory, type PremisePoint } from '@/core';
 
 const fetchOverpassSnapshot = vi.fn();
 const fetchCorpusPremises = vi.fn();
@@ -386,12 +386,21 @@ describe('la fiche complète — un compte plafonné est un plancher, et il le d
 
     const { scores } = await ficheComplete(POINT);
 
-    expect(scores.density.note).toContain('1000');
-    expect(scores.density.note).toContain('3528');
-    expect(scores.density.note).toContain('plancher');
+    // **Lu par `noteText`, jamais sur `note` — w6-langue-absences (#181).** `Measured.note` est
+    // le rendu ANGLAIS, celui que sert le serveur MCP ; « plancher » est ce que lit le visiteur
+    // de la fiche française, et c'est cette moitié-là qui manquait avant ce ticket.
+    const densite = noteText(scores.density, 'fr') ?? '';
+    expect(densite).toContain('1000');
+    expect(densite).toContain('3528');
+    expect(densite).toContain('plancher');
     // Le passage lit la même couche, donc il porte la même réserve — en plus de la sienne.
-    expect(scores.footfall.note).toContain('plancher');
-    expect(scores.footfall.note).toContain('proxy');
+    const passage = noteText(scores.footfall, 'fr') ?? '';
+    expect(passage).toContain('plancher');
+    expect(passage).toContain('approximation');
+    // Et la page anglaise reçoit la même réserve, en anglais. Le sens inverse du même défaut :
+    // cette phrase-là était écrite en français dans `useAddressContext` et partait telle quelle
+    // sur `/en/context/`.
+    expect(noteText(scores.density, 'en') ?? '').toContain('FLOOR');
   });
 
   it('aucune réserve quand rien n’a été coupé', async () => {

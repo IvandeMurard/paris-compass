@@ -31,6 +31,8 @@
 
 import {
   findingsFromScores,
+  missingText,
+  noteText,
   withholdingText,
   type AreaScores,
   type Layer,
@@ -107,15 +109,17 @@ export function collectGaps(
         text: copy.missingBecause(
           names[axis],
           withholdingText(finding.withheldBecause ?? 'indetermine', locale),
-          measured.missingReason ?? '',
+          missingText(measured, locale) ?? '',
         ),
       });
       continue;
     }
     // A caveat written by the core wins over any wording invented here: it is the specific
-    // thing that module had to say about this figure at this point.
-    if (measured.note) {
-      gaps.push({ key: `note:${axis}`, axis, text: copy.missing(names[axis], measured.note) });
+    // thing that module had to say about this figure at this point — rendered in `locale` from
+    // its motif since w6-langue-absences (#181), not read off the core's English field.
+    const note = noteText(measured, locale);
+    if (note) {
+      gaps.push({ key: `note:${axis}`, axis, text: copy.missing(names[axis], note) });
     }
   }
 

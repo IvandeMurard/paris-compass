@@ -13,7 +13,13 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { OSM_ORIGIN, unavailable, withValue, type AreaScores as CoreScores } from '@/core';
+import {
+  motifText,
+  OSM_ORIGIN,
+  unavailable,
+  withValue,
+  type AreaScores as CoreScores,
+} from '@/core';
 
 const scoreLocation = vi.hoisted(() => vi.fn());
 
@@ -42,8 +48,8 @@ function coreResult(overrides: Partial<CoreScores> = {}): CoreScores {
     groceries: present(40),
     parks: present(30),
     transit: present(20),
-    footfall: withValue(10, ORIGIN, 'estimated', 'proxy, not a count'),
-    noise: withValue(5, ORIGIN, 'estimated', 'roads only'),
+    footfall: withValue(10, ORIGIN, 'estimated', [{ kind: 'mandataire_passage' }]),
+    noise: withValue(5, ORIGIN, 'estimated', [{ kind: 'bruit_modelise' }]),
     ...overrides,
   };
 }
@@ -71,7 +77,7 @@ describe('computeScores', () => {
     scoreLocation.mockReturnValue(coreResult());
     const scores = computeScores(POINT, INDEX);
     expect(scores.footfall.method).toBe('estimated');
-    expect(scores.footfall.note).toBe('proxy, not a count');
+    expect(scores.footfall.note).toBe(motifText({ kind: 'mandataire_passage' }, 'en'));
   });
 
   // Noise used to be unwrapped into its own `{ score, label }` shape, which stripped the
@@ -82,15 +88,17 @@ describe('computeScores', () => {
     const noise = computeScores(POINT, INDEX).noise;
     expect(noise.value).toBe(5);
     expect(noise.method).toBe('estimated');
-    expect(noise.note).toBe('roads only');
+    expect(noise.note).toBe(motifText({ kind: 'bruit_modelise' }, 'en'));
   });
 
   it('lets an absent score through as absent', () => {
     scoreLocation.mockReturnValue(
-      coreResult({ noise: unavailable(ORIGIN, 'no road data loaded') }),
+      coreResult({ noise: unavailable(ORIGIN, { kind: 'couche_absente', layer: 'roads' }) }),
     );
     const noise = computeScores(POINT, INDEX).noise;
     expect(noise.value).toBeNull();
-    expect(noise.missingReason).toBe('no road data loaded');
+    expect(noise.missingReason).toBe(motifText({ kind: 'couche_absente', layer: 'roads' }, 'en'));
+    // Et le motif voyage à côté de la phrase : c'est lui que l'agent lit — #181.
+    expect(noise.missing).toEqual({ kind: 'couche_absente', layer: 'roads' });
   });
 });

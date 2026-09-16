@@ -906,6 +906,15 @@ Numérotation d'origine conservée.
 
 ---
 
+## Tests unitaires — le relevé de 746, le 15 septembre 2026
+
+**Sorti de `docs/REPRISE.md` le 16 septembre 2026** par `w6-langue-absences` (#181), pour tenir le
+plafond de `scripts/porte/documents.test.ts` : le fichier faisait 102 422 octets pour un plafond de
+103 000, et le relevé neuf n'y entrait pas. Quatrième application du même geste après les 13 et
+15 septembre. Monter le plafond reste interdit ; sortir une entrée close ne l'est pas.
+
+Antérieurement **746 sur 53 fichiers, remesurés le 15 septembre 2026 au soir** par `w6-fiche-delai` (#180), qui en ajoute **huit** : quatre sur un miroir qui ne répond JAMAIS — la forme qui manquait, un miroir qui refuse répondant vite —, deux sur `pendingAxes`, deux sur le trou qui n'en est pas un. **`main` en portait 738 sur 53**, mesuré la même minute sur `2dabf49` : la ligne qui suit annonçait 718 sur 52, fausse de vingt tests avant que ce ticket commence.
+
 ## Tests unitaires — les relevés de 718 à 660, du 14 au 15 septembre 2026
 
 **Sortis de `docs/REPRISE.md` le 15 septembre 2026 au soir** par `w6-dossier` (#33), pour tenir le

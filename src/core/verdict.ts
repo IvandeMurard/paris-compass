@@ -37,8 +37,9 @@
  * of `scoring.ts`: a sentence shown to every visitor needs its method no less than a number.
  */
 
+import type { FigureMotif } from './motif';
 import { assertObservational } from './observational';
-import type { Measured } from './provenance';
+import { missingText, type Measured } from './provenance';
 import { noiseLabel, scoreLabel, type AreaScores, type Layer } from './scoring';
 
 /** Locale of the composed sentence. Declared here rather than imported from `src/i18n`:
@@ -178,8 +179,17 @@ export interface VerdictClause {
 export interface VerdictGap {
   axis: VerdictAxis;
   because: Withholding;
-  /** The human-readable reason, straight from `Measured.missingReason`. Never rewritten. */
+  /**
+   * The human-readable reason, composed from `Measured.missing` in the verdict's own locale.
+   *
+   * **Never rewritten, and since w6-langue-absences (#181) never in the wrong language either.**
+   * It used to be `Measured.missingReason` copied through, which is the core's English; a
+   * refusal composed in French therefore ended on an English clause. The motif below is the
+   * same fact without a language, kept beside the sentence so a caller can act on it.
+   */
   reason: string;
+  /** The structured cause behind `reason`. Absent only when no finding was supplied at all. */
+  motif?: FigureMotif;
 }
 
 export type Verdict =
@@ -431,7 +441,8 @@ export function composeVerdict(
       missing.push({
         axis,
         because: finding.withheldBecause ?? 'indetermine',
-        reason: finding.measured.missingReason ?? COPY[locale].noFinding,
+        reason: missingText(finding.measured, locale) ?? COPY[locale].noFinding,
+        ...(finding.measured.missing ? { motif: finding.measured.missing } : {}),
       });
       continue;
     }

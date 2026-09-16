@@ -61,6 +61,7 @@ import {
   scoreLocationDetailed,
   OSM_ORIGIN,
   type AreaScores,
+  type FigureMotif,
   type Layer,
   type LayerNotes,
   type LayerOrigins,
@@ -110,16 +111,23 @@ const UNKNOWN_BDCOM: Origin = BDCOM_ORIGIN(
 const UNKNOWN_IDFM: Origin = IDFM_ORIGIN('inconnu — ingestion_run n’a pas pu être lu');
 
 /**
- * What the sheet says about a premises count PostgREST capped.
+ * What the sheet says about a count PostgREST capped.
  *
- * French, because it reaches a French reader through `Measured.note`, and the core's own notes
- * are the exception rather than the rule here — they are English and predate the sheet. The
- * numbers are interpolated from what was actually received, never typed: a literal here would
- * be the unmeasured figure this whole page refuses.
+ * **It was a French sentence until w6-langue-absences (#181), and that was the same defect
+ * mirrored.** The core's notes were English on a French page; this one was French, and it
+ * reached `/en/context/` in French. Neither caller was wrong about its own reader and both were
+ * wrong about the other's, which is what a motif removes: the numbers travel structured, and
+ * the sentence is composed once per language by `src/core/motif.ts`.
+ *
+ * The numbers are still what was actually received, never typed: a literal here would be the
+ * unmeasured figure this whole page refuses.
  */
-const truncatedNote = (rendered: number, total: number) =>
-  `Le service a renvoyé ${rendered} locaux sur les ${total} que le rayon contient : le compte ` +
-  `est un plancher, pas un total.`;
+const truncatedNote = (
+  layer: 'premises' | 'services',
+  rendered: number,
+  total: number,
+  radiusM: number,
+): FigureMotif => ({ kind: 'reponse_plafonnee', layer, rendered, total, radiusM });
 
 /**
  * The box fetched around the point.
@@ -312,7 +320,12 @@ export async function fetchCorpusContext(point: {
   if (premises.status === 'fulfilled' && premisesOrigin.status === 'fulfilled') {
     loaded.push('premises');
     if (premises.value.truncated) {
-      layerNotes.premises = truncatedNote(premises.value.points.length, premises.value.totalMatched);
+      layerNotes.premises = truncatedNote(
+        'premises',
+        premises.value.points.length,
+        premises.value.totalMatched,
+        SHEET_RADIUS_M,
+      );
     }
   } else if (premises.status === 'rejected') {
     withheldBy.premises = withholdingOf(premises.reason);
@@ -353,7 +366,12 @@ export async function fetchCorpusContext(point: {
   } else if (services.status === 'fulfilled' && premisesOrigin.status === 'fulfilled') {
     loaded.push('services');
     if (services.value.truncated) {
-      layerNotes.services = truncatedNote(services.value.rendered, services.value.totalMatched);
+      layerNotes.services = truncatedNote(
+        'services',
+        services.value.rendered,
+        services.value.totalMatched,
+        SERVICE_RADIUS_M,
+      );
     }
   } else if (services.status === 'rejected') {
     withheldBy.services = withholdingOf(services.reason);

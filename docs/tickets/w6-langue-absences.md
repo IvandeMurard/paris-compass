@@ -75,3 +75,72 @@ Pas de reprise des formules, pas de changement des axes. Le sujet est la langue 
 d'absence, pas leur contenu.
 
 Voir `DIAGNOSTIC.md` §49.
+
+---
+
+## Livré — 16 septembre 2026
+
+**Le noyau ne produit plus de phrase, il produit un motif.** `src/core/motif.ts` porte
+`FigureMotif`, une union discriminée de **six genres** — `couche_absente` (paramétrée par la
+couche), `reponse_plafonnee` (paramétrée par la couche, les deux comptes et le rayon),
+`couverture_tronquee`, `aucun_arret_dans_rayon`, `mandataire_passage`, `bruit_modelise` — et
+`motifText(motif, locale)` qui l'écrit en français ou en anglais. `Measured<T>` gagne `missing`
+et `caveats` **à côté de** `missingReason` et `note`, qui restent et sont désormais **dérivés**
+du motif dans sa colonne anglaise : une seule source pour une phrase, deux langues en sortie.
+
+**Et le type est l'application de la règle.** `unavailable(origin, motif)` ne prend plus de
+`string` : une absence sans motif ne compile pas. C'est ce qui répond à la deuxième question de
+« Corriger une donnée n'est pas corriger un défaut » — le livrable n'est pas la ligne traduite,
+c'est l'impossibilité d'en écrire une qui ne le soit pas, y compris pour un axe qui n'existe
+pas encore.
+
+**Les deux langues vivent dans `src/core/` et non dans `src/i18n/`, contre la lettre du
+ticket.** Raison écrite en tête de `motif.ts` : `src/i18n` est le module du navigateur, et le
+serveur MCP compile `src/core` et rien d'autre de `src/` — l'anglais dans le noyau et le
+français dans `i18n` aurait fait **deux foyers pour une phrase**, ce que `verdict.ts` a déjà
+tranché pour `CLAUSES`, `WHY` et `withholdingText`, en ces termes. L'intention du ticket est
+tenue entière : la traduction part du motif, jamais d'un `includes()`.
+
+**Le défaut avait un symétrique, non consigné, et il est corrigé aussi** : `truncatedNote` de
+`useAddressContext.ts` était écrite **en français** et arrivait telle quelle sur
+`/en/context/`, pendant que le serveur MCP écrivait sa propre version anglaise de la même
+mise en garde. Deux textes pour un fait ; il n'en reste qu'un, paramétré.
+
+### Ce qui est démontré, et par quoi
+
+1. **Aucune raison d'absence en anglais sur la fiche française — recensé, pas relu.** Population
+   dérivée de `LAYERS` et de `MOTIF_KINDS`, jamais listée. `src/core/motif.test.ts` visite les
+   **six genres** — les deux paramétrés déclinés sur les **cinq couches**, soit 14 motifs — et
+   exige pour chacun deux phrases non vides et **différentes** ; `contextGaps.test.ts` compose le
+   bloc des trous dans les deux langues pour chaque couche et exige que chaque moitié porte la
+   phrase de SA langue **et pas celle de l'autre**.
+2. **La contre-preuve est jouée dans les deux sens.** `figureText.test.ts` rend le même
+   `Measured<T>` en `fr` et en `en`, sur une absence et sur une réserve chiffrée, et vérifie que
+   les trois nombres survivent à la traduction. Le sens inverse compte autant : c'est celui que
+   `truncatedNote` cassait.
+3. **Le serveur MCP rend le motif à côté de la phrase, et c'est mesuré.** `score_location` et
+   `explain_score` sérialisent `missing` et `caveats` avec le reste de `Measured<T>` ;
+   `explain_score` nomme aussi le genre dans sa ligne de résumé. Contrôle neuf **`E8b`** dans
+   `verify:mcp` : **48 contrôles, 48 au vert, 0 en échec, 0 suspendu**, le 16 septembre 2026
+   contre le distant — `motif=couche_absente/premises` à côté de sa phrase anglaise.
+   **Démontré rouge** : motif retiré de `unavailable()`, phrase gardée, `E8b` sort en **ÉCHEC**
+   et le bras en **1**.
+4. **Aucun classement sur le texte.** `motif.test.ts` falsifie `missingReason` — on y écrit une
+   phrase qui nomme la MAUVAISE couche — et vérifie que l'écran rend quand même la bonne, dans
+   les deux langues. Un `includes()` quelque part sur le chemin ferait rougir ce contrôle.
+
+**Portes, le 16 septembre 2026** : `typecheck` ✓ · `test` **798 sur 56 fichiers** (`main` en
+portait 785 sur 55 ; +13, dont 11 dans `src/core/motif.test.ts`) · `build` ✓ ·
+`verify:mcp` **48/48**.
+
+### Ce que ça ne rattrape pas
+
+- **Rien ici ne dit rien des phrases écrites en SQL.** Les `evidence` de la base sont produites
+  hors de TypeScript et `I21` les garde séparément — c'était déjà écrit au ticket, c'est
+  toujours vrai, et `I21` ne juge pas leur langue.
+- **Ces contrôles jugent qu'il y a deux langues, jamais que chacune dit vrai.** Un motif dont la
+  colonne française serait une traduction fausse les passerait tous.
+- **Aucun bras n'ouvre la page anglaise.** `page` ouvre `/contexte/` et rien d'autre : une
+  régression propre à `/en/context/` passerait au vert chaque matin.
+- **Une chaîne écrite en dur dans un composant reste invisible d'ici.** La règle porte sur ce qui
+  traverse `Measured<T>`, pas sur tout ce qui s'affiche.

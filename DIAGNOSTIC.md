@@ -72,7 +72,7 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 46 | La table Filosofi carroyée ne porte pas `i_est_200`, l'indicateur d'imputation qu'INSEE dit obligatoire | **ouvert** — trouvé le 8 septembre 2026 par `w2-filosofi`, [#18](https://github.com/IvandeMurard/paris-compass/issues/18) | ici |
 | 47 | La `cadence_note` de `filosofi` annonce « NON CHARGÉ » à tout appelant, alors que la source est chargée depuis le 8 septembre 2026 | **ouvert** — trouvé le 8 septembre 2026 par `w2-filosofi`, P2 | ici |
 | 48 | Deux tables neuves sur trois ont oublié la contrainte de finitude, et la troisième dit pourquoi | **ouvert** — mesuré le 10 septembre 2026 par `w4-meubles`, P2 | ici |
-| 49 | Les raisons d'absence de `src/core` s'affichent en anglais sur les pages françaises | **ouvert** — mesuré le 10 septembre 2026 par `w6-contexte`, P2 | ici |
+| 49 | Les raisons d'absence de `src/core` s'affichent en anglais sur les pages françaises | clos le 16 septembre 2026, `w6-langue-absences` (#181) — le noyau produit un motif, plus une phrase | ici |
 | 50 | La fiche de contexte plante quand Overpass tombe, et n'appelle aucune fonction `compass_*` | clos les 13 et 14 septembre 2026 — le plantage par `#156`, l'absence de corpus par `#157` | ici |
 | 51 | Un compte de locaux plafonné à mille par PostgREST, rendu comme un total — `compass_scoring_context_within` | clos le 14 septembre 2026 par `w6-fiche-corpus`, `#157` | ici |
 | 52 | L'axe `tissu commercial` lit 100 sur la moitié de Paris : honnête, et presque sans pouvoir discriminant | **ouvert** — mesuré le 14 septembre 2026 par `w6-fiche-corpus`, P2, **décision Ivan** | ici |
@@ -840,6 +840,37 @@ que `#61` interdit.
 
 **Ce que ça ne rattrape pas.** Même corrigée, la règle ne dira rien des phrases écrites en SQL :
 les `evidence` de la base sont produites hors de TypeScript, et `I21` les garde séparément.
+
+> **CLOS le 16 septembre 2026 — `w6-langue-absences` (#181).** Le correctif est celui qui était
+> annoncé ci-dessus, et rien d'autre : `src/core/motif.ts` porte `FigureMotif`, une union
+> discriminée de six genres, et `motifText(motif, locale)` l'écrit dans la langue du lecteur.
+> `Measured<T>` gagne `missing` et `caveats` **à côté de** `missingReason` et `note`, qui
+> restent et sont maintenant **dérivés** du motif dans sa colonne anglaise — une source, deux
+> langues.
+>
+> **Ce qui rend le défaut irréversible et pas seulement réparé** : `unavailable(origin, motif)`
+> refuse une `string`. Une absence qui ne saurait dire pourquoi que dans une langue ne compile
+> plus, y compris sur un axe qui n'existe pas encore — c'est le livrable, pas les cinq phrases
+> traduites. Les deux langues vivent dans `src/core/` et non dans `src/i18n/` : ce module est
+> celui du navigateur, le serveur MCP ne compile que le noyau, et l'anglais ici avec le français
+> là aurait fait deux foyers pour une phrase. La raison est écrite en tête de `motif.ts`.
+>
+> **Un symétrique non consigné a été trouvé et corrigé avec** : `truncatedNote` de
+> `useAddressContext.ts` était écrite en français et partait telle quelle sur `/en/context/`,
+> pendant que `mcp-server/src/context.ts` écrivait sa propre version anglaise de la même mise en
+> garde. Le défaut n'était donc pas « le noyau est anglais » mais « chaque producteur choisit une
+> langue pour un lecteur qu'il ne connaît pas ».
+>
+> **Mesures, le 16 septembre 2026** : `test` **798 sur 56 fichiers** (785 sur 55 sur `main`),
+> `verify:mcp` **48 contrôles, 48 au vert**, dont le contrôle neuf `E8b` qui exige le motif à
+> côté de la phrase — **démontré rouge** motif retiré, phrase gardée. Le recensement du critère 1
+> est dans `src/core/motif.test.ts` et `src/lib/contextGaps.test.ts`, populations dérivées de
+> `MOTIF_KINDS` et de `LAYERS`. Le détail : `docs/tickets/w6-langue-absences.md`, « Livré ».
+>
+> **Ce que ça ne rattrape toujours pas** : les phrases SQL, comme annoncé — et deux limites que
+> le ticket n'avait pas vues. Ces contrôles jugent qu'il y a deux langues, jamais que chacune dit
+> vrai ; et aucun bras n'ouvre `/en/context/`, donc une régression propre à la page anglaise
+> passerait au vert chaque matin.
 
 ---
 

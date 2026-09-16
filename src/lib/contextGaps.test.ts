@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  LAYERS,
+  motifText,
   unavailable,
   withValue,
   type AreaScores,
+  type FigureMotif,
   type Layer,
   type Measured,
   type Origin,
@@ -13,7 +16,11 @@ import { collectGaps } from './contextGaps';
 const OSM: Origin = { source: 'OpenStreetMap via Overpass', licence: 'ODbL-1.0', asOf: '2026-09-10' };
 
 const plain = (n: number): Measured<number> => withValue(n, OSM, 'derived');
-const withNote = (n: number, note: string): Measured<number> => withValue(n, OSM, 'estimated', note);
+const withNote = (n: number, ...motifs: FigureMotif[]): Measured<number> =>
+  withValue(n, OSM, 'estimated', motifs);
+
+/** L'absence d'une couche, telle que le noyau la produit. Plus aucune prose de test. */
+const absente = (layer: Layer): FigureMotif => ({ kind: 'couche_absente', layer });
 
 const scores = (partial: Partial<AreaScores> = {}): AreaScores => ({
   density: plain(65),
@@ -34,23 +41,27 @@ const scores = (partial: Partial<AreaScores> = {}): AreaScores => ({
 const ALL: readonly Layer[] = ['amenities', 'roads', 'premises'];
 
 describe('collectGaps', () => {
-  it('nomme la raison écrite par le noyau, sans la réécrire', () => {
-    const reason = 'The road layer did not load for this area, so exposure could not be modelled.';
-    const gaps = collectGaps(scores({ noise: unavailable(OSM, reason) }), ['amenities', 'premises'], OSM.source, 'fr');
+  it('nomme la raison écrite par le noyau, sans la réécrire — et en français', () => {
+    // La phrase n'est plus tapée ici : elle est DÉRIVÉE du motif, par la même fonction que
+    // l'écran. Un test qui recopierait le texte attendu vérifierait sa propre copie.
+    const gaps = collectGaps(scores({ noise: unavailable(OSM, absente('roads')) }), ['amenities', 'premises'], OSM.source, 'fr');
     expect(gaps.find((g) => g.key === 'note:noise')).toBeUndefined();
-    expect(gaps.find((g) => g.key === 'missing:noise')?.text).toContain(reason);
+    expect(gaps.find((g) => g.key === 'missing:noise')?.text).toContain(
+      motifText(absente('roads'), 'fr'),
+    );
   });
 
   it('remonte la réserve d’un chiffre présent', () => {
-    const gaps = collectGaps(scores({ footfall: withNote(60, 'proxy, pas une mesure') }), ALL, OSM.source, 'fr');
-    expect(gaps.find((g) => g.key === 'note:footfall')?.text).toContain('proxy, pas une mesure');
+    const proxy: FigureMotif = { kind: 'mandataire_passage' };
+    const gaps = collectGaps(scores({ footfall: withNote(60, proxy) }), ALL, OSM.source, 'fr');
+    expect(gaps.find((g) => g.key === 'note:footfall')?.text).toContain(motifText(proxy, 'fr'));
   });
 
   it('ne compte pas deux fois une couche absente', () => {
     // Sa disparition est déjà nommée axe par axe ; répéter la source par-dessus compterait
     // le même trou deux fois.
     const absent = collectGaps(
-      scores({ footfall: unavailable(OSM, 'premises absent') }),
+      scores({ footfall: unavailable(OSM, absente('premises')) }),
       ['amenities', 'roads'],
       OSM.source,
       'fr',
@@ -126,7 +137,7 @@ describe('collectGaps', () => {
 
   it('porte toujours l’absence de loyer commercial, quel que soit le point', () => {
     // Vraie du pays, pas du point — et c'est la question que tout visiteur apporte.
-    for (const s of [scores(), scores({ transit: unavailable(OSM, 'x') })]) {
+    for (const s of [scores(), scores({ transit: unavailable(OSM, absente('stations')) })]) {
       expect(collectGaps(s, ALL, OSM.source, 'fr').some((g) => g.key === 'commercial-rent')).toBe(true);
     }
   });
@@ -149,7 +160,7 @@ describe('collectGaps', () => {
       stations: 'source_injoignable',
     };
     const gaps = collectGaps(
-      scores({ rail: unavailable(OSM, 'The rail-stop layer did not load for this area.') }),
+      scores({ rail: unavailable(OSM, absente('stations')) }),
       [],
       OSM.source,
       'fr',
@@ -158,28 +169,58 @@ describe('collectGaps', () => {
 
     const rail = gaps.find((g) => g.key === 'missing:rail')?.text ?? '';
     expect(rail).toContain('source injoignable');
-    expect(rail).toContain('The rail-stop layer did not load for this area.');
+    expect(rail).toContain(motifText(absente('stations'), 'fr'));
   });
 
   it('ne devine jamais une retenue de licence quand personne n’a déclaré de motif', () => {
     // The honest default, and the same one `findingsFromScores` takes: « we do not know why »
     // is a fact. Guessing a cause here would put a licence refusal on screen on an outage.
-    const gaps = collectGaps(scores({ rail: unavailable(OSM, 'x') }), [], OSM.source, 'fr');
+    const gaps = collectGaps(scores({ rail: unavailable(OSM, absente('stations')) }), [], OSM.source, 'fr');
     expect(gaps.find((g) => g.key === 'missing:rail')?.text).toContain('indéterminé');
   });
 
   it('rend la même structure en anglais', () => {
-    const fr = collectGaps(scores({ rail: unavailable(OSM, 'x') }), ALL, OSM.source, 'fr');
-    const en = collectGaps(scores({ rail: unavailable(OSM, 'x') }), ALL, OSM.source, 'en');
+    const fr = collectGaps(scores({ rail: unavailable(OSM, absente('stations')) }), ALL, OSM.source, 'fr');
+    const en = collectGaps(scores({ rail: unavailable(OSM, absente('stations')) }), ALL, OSM.source, 'en');
     expect(en.map((g) => g.key)).toEqual(fr.map((g) => g.key));
     expect(en.find((g) => g.key === 'commercial-rent')?.text).not.toBe(
       fr.find((g) => g.key === 'commercial-rent')?.text,
     );
   });
+
+  /**
+   * Le critère 1 du ticket, RECENSÉ et non relu — w6-langue-absences (#181).
+   *
+   * La population est dérivée de `LAYERS`, jamais listée : la sixième couche entre dans ce
+   * contrôle le jour où elle entre dans le noyau. Pour chacune, le bloc des trous est composé
+   * dans les deux langues et chaque moitié doit porter la phrase de SA langue et pas celle de
+   * l'autre — ce qui est exactement la mesure faite en production le 15 septembre 2026, où cinq
+   * lignes sur six étaient anglaises sous le titre « Ce que Compass ne sait pas ici ».
+   */
+  it('RECENSEMENT : aucune raison d’absence ne sort dans la langue de l’autre page', () => {
+    for (const layer of LAYERS) {
+      const motif = absente(layer);
+      const franche = motifText(motif, 'fr');
+      const anglaise = motifText(motif, 'en');
+      // Une couche dont les deux colonnes seraient identiques passerait le contrôle sans rien
+      // traduire. Le dire ici est ce qui empêche une entrée recopiée d'un bord à l'autre.
+      expect(franche).not.toBe(anglaise);
+
+      const fr = collectGaps(scores({ rail: unavailable(OSM, motif) }), [], OSM.source, 'fr');
+      const en = collectGaps(scores({ rail: unavailable(OSM, motif) }), [], OSM.source, 'en');
+      const texteFr = fr.find((g) => g.key === 'missing:rail')?.text ?? '';
+      const texteEn = en.find((g) => g.key === 'missing:rail')?.text ?? '';
+
+      expect(texteFr).toContain(franche);
+      expect(texteFr).not.toContain(anglaise);
+      expect(texteEn).toContain(anglaise);
+      expect(texteEn).not.toContain(franche);
+    }
+  });
 });
 
 describe('collectGaps — une couche qui voyage encore n’est pas un trou (w6-fiche-delai #180)', () => {
-  const enVol = unavailable<number>(OSM, 'The road layer did not load for this area.');
+  const enVol = unavailable<number>(OSM, absente('roads'));
 
   it('n’inscrit rien pour un axe encore en cours de mesure', () => {
     const gaps = collectGaps(
