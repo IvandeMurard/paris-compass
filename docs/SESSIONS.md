@@ -328,19 +328,20 @@ deux côtés.
 | 52 | `w5-confiance-agent` | [#28](https://github.com/IvandeMurard/paris-compass/issues/28) | ouvert | P1 | Opus 5 |
 | 53 | `w5-parse` | [#32](https://github.com/IvandeMurard/paris-compass/issues/32) | ouvert | P2 | Opus 5 |
 | ~~54~~ | ~~`w6-contexte`~~ | [#119](https://github.com/IvandeMurard/paris-compass/issues/119) | **fait** | P1 | Opus 5 |
-| 55 | `w6-liberations` | [#34](https://github.com/IvandeMurard/paris-compass/issues/34) | ouvert | P1 | Opus 5 |
-| ~~56~~ | ~~`w6-dossier`~~ | [#33](https://github.com/IvandeMurard/paris-compass/issues/33) | **fait** | P1 | Opus 5 |
-| ~~57~~ | ~~`w6-modes`~~ | [#36](https://github.com/IvandeMurard/paris-compass/issues/36) | **fait** | P1 | Opus 5 |
-| 58 | `w6-accueil` | [#148](https://github.com/IvandeMurard/paris-compass/issues/148) | ouvert | P1 | Opus 5 |
-| 59 | `w3-osm-notes` | [#22](https://github.com/IvandeMurard/paris-compass/issues/22) | ouvert | P2 | Sonnet 5 |
-| 60 | `w2-bpe-marches-velo` | [#17](https://github.com/IvandeMurard/paris-compass/issues/17) | ouvert | P2 | Sonnet 5 |
-| 61 | `w4-ecoles` | [#24](https://github.com/IvandeMurard/paris-compass/issues/24) | ouvert | P2 | Sonnet 5 |
-| 62 | `w4-frequentation` | [#26](https://github.com/IvandeMurard/paris-compass/issues/26) | ouvert | P2 | Sonnet 5 |
-| 63 | `w4-erp-copro-ads` | [#25](https://github.com/IvandeMurard/paris-compass/issues/25) | ouvert | P2 | Opus 5 |
-| 64 | `w7-etude-chantiers` | [#37](https://github.com/IvandeMurard/paris-compass/issues/37) | ouvert | P1 | Opus 5 |
-| 65 | `w7-foncier` | [#38](https://github.com/IvandeMurard/paris-compass/issues/38) | **bloqué** | P1 | Opus 5 |
-| 66 | `w7-inpi` | [#39](https://github.com/IvandeMurard/paris-compass/issues/39) | ouvert | P2 | Opus 5 |
-| 67 | `w7-kit` | [#40](https://github.com/IvandeMurard/paris-compass/issues/40) | ouvert | P1 | Opus 5 |
+| 55 | `w6-mode-raison` | [#197](https://github.com/IvandeMurard/paris-compass/issues/197) | ouvert | P1 | Opus 5 |
+| 56 | `w6-liberations` | [#34](https://github.com/IvandeMurard/paris-compass/issues/34) | ouvert | P1 | Opus 5 |
+| ~~57~~ | ~~`w6-dossier`~~ | [#33](https://github.com/IvandeMurard/paris-compass/issues/33) | **fait** | P1 | Opus 5 |
+| ~~58~~ | ~~`w6-modes`~~ | [#36](https://github.com/IvandeMurard/paris-compass/issues/36) | **fait** | P1 | Opus 5 |
+| 59 | `w6-accueil` | [#148](https://github.com/IvandeMurard/paris-compass/issues/148) | ouvert | P1 | Opus 5 |
+| 60 | `w3-osm-notes` | [#22](https://github.com/IvandeMurard/paris-compass/issues/22) | ouvert | P2 | Sonnet 5 |
+| 61 | `w2-bpe-marches-velo` | [#17](https://github.com/IvandeMurard/paris-compass/issues/17) | ouvert | P2 | Sonnet 5 |
+| 62 | `w4-ecoles` | [#24](https://github.com/IvandeMurard/paris-compass/issues/24) | ouvert | P2 | Sonnet 5 |
+| 63 | `w4-frequentation` | [#26](https://github.com/IvandeMurard/paris-compass/issues/26) | ouvert | P2 | Sonnet 5 |
+| 64 | `w4-erp-copro-ads` | [#25](https://github.com/IvandeMurard/paris-compass/issues/25) | ouvert | P2 | Opus 5 |
+| 65 | `w7-etude-chantiers` | [#37](https://github.com/IvandeMurard/paris-compass/issues/37) | ouvert | P1 | Opus 5 |
+| 66 | `w7-foncier` | [#38](https://github.com/IvandeMurard/paris-compass/issues/38) | **bloqué** | P1 | Opus 5 |
+| 67 | `w7-inpi` | [#39](https://github.com/IvandeMurard/paris-compass/issues/39) | ouvert | P2 | Opus 5 |
+| 68 | `w7-kit` | [#40](https://github.com/IvandeMurard/paris-compass/issues/40) | ouvert | P1 | Opus 5 |
 
 **4 tickets attendent autre chose que du code.** Ils restent à leur
 place dans l'ordre — un blocage se lève, il ne se cache pas — mais ne pas les ouvrir
