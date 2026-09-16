@@ -45,11 +45,13 @@ import {
   contextToolCall,
   findingsFromScores,
   modeAxisOrder,
+  modeLeadAxes,
   resolveChecks,
 } from '@/core';
 import { useAddressContext, useAddressFromSlug, useTradeOrigins } from '@/hooks/useAddressContext';
 import { CONTEXT_COPY, dossierLabels } from '@/i18n/contextText';
 import { useLocale } from '@/i18n/locale';
+import { leadReasonText } from '@/i18n/modeText';
 import {
   contextPath,
   fromSlug,
@@ -227,6 +229,21 @@ const Context = () => {
   // is, which is the one thing this block exists to prevent.
   const orderedGaps = useMemo(() => orderGapsForMode(gaps, mode), [gaps, mode]);
 
+  // Why each leading axis leads — w6-mode-raison (#197). The population is `LEAD_AXES`, read
+  // through `modeLeadAxes`: this page cannot name a lead axis, so it cannot forget one either,
+  // and an axis promoted in the core arrives here with its reason the same day.
+  const leadReasons = useMemo(
+    () =>
+      new Map(
+        mode === null
+          ? []
+          : modeLeadAxes(mode).map(
+              (entry) => [entry.axis, leadReasonText(mode, entry.axis, locale)] as const,
+            ),
+      ),
+    [mode, locale],
+  );
+
   // The provenance of the two datasets the checklist cites, fetched only once a mode has been
   // chosen — the sheet `#180` brought under a second and a half pays nothing for a block nobody
   // asked for.
@@ -346,6 +363,7 @@ const Context = () => {
                       measured={context.data.scores[axis]}
                       phrase={phrases.get(axis)}
                       pending={enCours.has(axis)}
+                      lead={leadReasons.get(axis) ?? undefined}
                     />
                   ))}
                 </ul>

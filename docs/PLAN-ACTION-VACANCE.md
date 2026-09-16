@@ -622,6 +622,12 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 > nomment le ticket qui leur manque. Ce ticket redit le bloc « Produit → Trois modes métier »
 > ci-dessous, qui porte la même clôture. Détail : `docs/tickets/w6-modes.md`. **L'ordre de tête
 > des trois modes attend une décision d'Ivan.**
+>
+> **Amendé le 16 septembre 2026 par `w6-mode-raison` (#197)** : cet ordre attend toujours la
+> décision, mais il ne l'attend plus en silence. Chacun des neuf axes de tête porte à l'écran sa
+> raison et le **statut** de cette raison — mesurée, mesurable et non mesurée, ou arbitrage —
+> dans les deux langues, le statut étant lu d'une énumération et jamais d'une phrase. Détail :
+> `docs/tickets/w6-mode-raison.md`.
 
 - Priorité **P1** · vague 6 · Q4 2026
 - Dépend de : `w0-fiche`, `w1-terrasses`, `w0-plu`

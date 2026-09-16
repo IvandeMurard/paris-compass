@@ -23,6 +23,11 @@
  * all three modes the day it is added, at the end, instead of silently vanishing from two of
  * them. `modes.test.ts` holds that to be true for every mode.
  *
+ * **And a declared order owes a reason** — w6-mode-raison (#197). Refusing to derive the order
+ * was right; leaving it on screen with nothing beside it was not. Each lead axis now carries the
+ * STATUS of its reason here and the reason itself in `src/i18n/modeText.ts`, so the arbitration
+ * can be refused by a reader instead of merely undergone.
+ *
  * **Why the checklist is half empty, and why that is the honest half.** The ticket's *Comment*
  * names nine things across three trades. Three of them are in the corpus today — the terrace
  * register (`w1-terrasses`, #15) and the two PLU protections (`w0-plu`, #9), which are two of
@@ -61,30 +66,82 @@ export const isTradeMode = (value: string): value is TradeMode =>
   (TRADE_MODES as readonly string[]).includes(value);
 
 /**
- * The axes that LEAD for each mode. Everything else follows in `VERDICT_AXIS_ORDER`.
+ * How a lead axis answers for its rank: a STATUS, never a sentence — w6-mode-raison (#197).
  *
- * Each list is a product judgement and is written down as one, with its reason, because an
- * undocumented order is indistinguishable from an accident:
+ * **The prose lives in `src/i18n/modeText.ts`**, in both languages, for the reason
+ * `w6-langue-absences` (#181) settled: a producer that writes prose picks a language for a
+ * reader it has never met. What the core owns is the half that must not be re-read to be
+ * trusted — *what kind of claim the reason is*. « We measured » and « we think » are the
+ * difference between steering and constraining, and a status written as a sentence would drift
+ * from its own reason the first time either was rewritten.
  *
- *  - **Restauration** — a restaurant lives on people walking past at the hours it serves, and
- *    on being reachable without a car in the evening. `footfall` and `rail` therefore lead, and
- *    `noise` climbs: road exposure is what a terrace is worth, which is why it sits above the
- *    food shops that are a neighbour rather than a customer.
- *  - **Boutique** — retail reads the fabric it joins first (`density`), then the flow through
- *    it (`footfall`), then the shops that bring that flow within walking distance (`services`).
- *    A lone shop in a dead stretch is the case this order is built to expose.
- *  - **Artisanat** — a workshop is not a passing trade. What decides it is whether the
- *    surrounding commerce can feed it (`services`, `density`) and whether it can be reached and
- *    supplied (`rail`); `footfall` drops, because a queue on the pavement is not its customer.
- *
- * **These three lists are the one thing here that awaits a decision from Ivan**, and they are
- * cheap to change: they move nothing but the sequence, and `modes.test.ts` proves it.
+ *  - `mesure` — measured here, and the reason cites its measurement. **No lead axis carries it
+ *    today**, and that is the state rather than an omission.
+ *  - `mesurable` — a measurement within reach would settle it, and nobody has made it. The
+ *    reason names the measurement that would; the screen says « not measured to date » from
+ *    this enum and never from the reason's own words.
+ *  - `arbitrage` — a product judgement. Saying so hides nothing; dressing it as a fact would.
  */
-const LEAD_AXES: Record<TradeMode, readonly VerdictAxis[]> = {
-  restauration: ['footfall', 'rail', 'noise'],
-  boutique: ['density', 'footfall', 'services'],
-  artisanat: ['services', 'density', 'rail'],
+export const LEAD_REASON_STATUSES = ['mesure', 'mesurable', 'arbitrage'] as const;
+
+export type LeadReasonStatus = (typeof LEAD_REASON_STATUSES)[number];
+
+/** An axis that leads a mode, carrying the status of the reason that puts it there. */
+export interface LeadAxis {
+  axis: VerdictAxis;
+  status: LeadReasonStatus;
+}
+
+/**
+ * The axes that LEAD for each mode, each with the status of its reason. Everything else follows
+ * in `VERDICT_AXIS_ORDER`.
+ *
+ * **A figure on screen carries its source; an order on screen carries its reason** —
+ * w6-mode-raison (#197), opened on Ivan's objection the day `#36` shipped. The ranking asserts
+ * a hierarchy, and an assertion with nothing behind it is one a reader can only submit to. Put
+ * the reason beside it and the arbitration becomes falsifiable, which is the whole difference
+ * between steering and constraining — made mechanical rather than promised.
+ *
+ * **The sentences are NOT in this comment, and that is the point.** They live once, in two
+ * languages, in `LEAD_REASON_COPY`. A second copy here would be a second statement of one
+ * thing, free to disagree with the screen the first time either moved — the same fault
+ * `FOOTFALL_WEIGHTS` was extracted to end. What this table owns is the population and the
+ * status, and `modeText.test.ts` holds table and copy in exact correspondence **in both
+ * directions**: a mode that gained a lead axis without a reason reddens `test` instead of
+ * reaching the screen bare, and a reason left behind by an axis that stopped leading reddens it
+ * too.
+ *
+ * **These three lists are still the one thing here that awaits a decision from Ivan**, and they
+ * are still cheap to change: they move nothing but the sequence. This ticket makes the
+ * arbitration visible and arguable; it does not make it true. What would settle it is three
+ * conversations with shopkeepers, and no session can hold them.
+ */
+const LEAD_AXES: Record<TradeMode, readonly LeadAxis[]> = {
+  restauration: [
+    { axis: 'footfall', status: 'mesurable' },
+    { axis: 'rail', status: 'arbitrage' },
+    { axis: 'noise', status: 'mesurable' },
+  ],
+  boutique: [
+    { axis: 'density', status: 'mesurable' },
+    { axis: 'footfall', status: 'arbitrage' },
+    { axis: 'services', status: 'arbitrage' },
+  ],
+  artisanat: [
+    { axis: 'services', status: 'arbitrage' },
+    { axis: 'density', status: 'arbitrage' },
+    { axis: 'rail', status: 'arbitrage' },
+  ],
 };
+
+/**
+ * The lead axes of a mode, in order, with the status of each reason.
+ *
+ * Exported so the screen, the tests and — the day `w5-explain-metier` (#31) lands — the MCP
+ * server read ONE population instead of three. `modeAxisOrder` below is the same table read for
+ * its sequence alone; nothing else may name a lead axis.
+ */
+export const modeLeadAxes = (mode: TradeMode): readonly LeadAxis[] => LEAD_AXES[mode];
 
 /**
  * The reading order of the axes for a mode, or the core's own order when no mode is chosen.
@@ -94,7 +151,7 @@ const LEAD_AXES: Record<TradeMode, readonly VerdictAxis[]> = {
  */
 export function modeAxisOrder(mode: TradeMode | null): readonly VerdictAxis[] {
   if (mode === null) return VERDICT_AXIS_ORDER;
-  const lead = LEAD_AXES[mode];
+  const lead = LEAD_AXES[mode].map((entry) => entry.axis);
   return [...lead, ...VERDICT_AXIS_ORDER.filter((axis) => !lead.includes(axis))];
 }
 

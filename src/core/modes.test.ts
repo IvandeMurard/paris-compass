@@ -18,19 +18,23 @@
  *     checklist n'existe sans la provenance qui le porte.
  *
  * **Ce que ça ne rattrape pas.** Rien ici ne juge que l'ordre déclaré soit le BON pour un
- * restaurateur — c'est un arbitrage produit, écrit dans `LEAD_AXES` avec sa raison et en
- * attente d'une décision d'Ivan. Et rien ici n'ouvre la page : que le composant rende bien la
+ * restaurateur — c'est un arbitrage produit, écrit dans `LEAD_AXES` avec le STATUT de sa raison
+ * (`w6-mode-raison`, #197) et en attente d'une décision d'Ivan. Une raison écrite n'est pas une
+ * raison mesurée : ces contrôles tiennent qu'elle existe et qu'elle dit de quelle espèce elle
+ * est, jamais qu'elle a raison. Et rien ici n'ouvre la page : que le composant rende bien la
  * séquence que ces fonctions renvoient est démontré ailleurs, par le bras `page`.
  */
 
 import { describe, expect, it } from 'vitest';
 
 import {
+  LEAD_REASON_STATUSES,
   TRADE_CHECKS,
   TRADE_CHECK_IDS,
   TRADE_MODES,
   isTradeMode,
   modeAxisOrder,
+  modeLeadAxes,
   resolveChecks,
   type TradeCheckId,
   type TradeFacts,
@@ -91,13 +95,54 @@ describe('modeAxisOrder — réordonner, jamais filtrer', () => {
     // La contre-preuve du filtrage : l'axe que le noyau lit en dernier n'est mené par aucun
     // mode aujourd'hui, et il doit rester présent partout. Dérivé, jamais nommé — le jour où
     // un mode le mène, ce contrôle porte sur le suivant.
-    const menes = new Set(TRADE_MODES.flatMap((mode) => modeAxisOrder(mode).slice(0, 3)));
+    // La tête d'un mode est `modeLeadAxes`, jamais « les trois premiers » : le jour où un mode
+    // mène deux axes ou quatre, ce contrôle suit sans qu'on y pense.
+    const menes = new Set(TRADE_MODES.flatMap((mode) => modeLeadAxes(mode).map((e) => e.axis)));
     const jamaisMene = VERDICT_AXIS_ORDER.filter((axis) => !menes.has(axis));
     for (const mode of TRADE_MODES) {
       for (const axis of jamaisMene) {
         expect(modeAxisOrder(mode), `${mode}/${axis}`).toContain(axis);
       }
     }
+  });
+});
+
+describe('modeLeadAxes — un ordre affiché porte sa raison', () => {
+  it('est la tête de l’ordre, et pas une seconde liste à tenir en phase', () => {
+    // Deux lectures d'une même table. Si elles divergeaient, l'écran poserait la raison d'un
+    // axe à côté d'un autre — une faute qu'aucun des deux ne rendrait visible tout seul.
+    for (const mode of TRADE_MODES) {
+      const menes = modeLeadAxes(mode);
+      expect(menes.length, mode).toBeGreaterThan(0);
+      expect(modeAxisOrder(mode).slice(0, menes.length), mode).toEqual(menes.map((e) => e.axis));
+      expect(new Set(menes.map((e) => e.axis)).size, mode).toBe(menes.length);
+    }
+  });
+
+  it('donne à chaque axe de tête un statut de l’énumération, jamais une phrase', () => {
+    // Le critère 2 du ticket : « le libellé de statut vient d'une énumération, jamais d'une
+    // phrase à relire ». Ce qui est tenu ici est la moitié noyau ; `modeText.test.ts` tient
+    // l'autre, où le libellé se lit depuis ce statut et non depuis la raison.
+    for (const mode of TRADE_MODES) {
+      for (const { axis, status } of modeLeadAxes(mode)) {
+        expect(LEAD_REASON_STATUSES, `${mode}/${axis}`).toContain(status);
+      }
+    }
+  });
+
+  it('n’annonce « mesuré » sur aucun axe, parce qu’aucune mesure n’a été faite', () => {
+    // Le ticket est né d'une recommandation retirée le jour même — « le bruit est corrélé au
+    // passage », affirmé sans rien avoir mesuré. `mesure` est le seul des trois statuts qui
+    // engage une mesure exécutée, et aucun axe ne le porte aujourd'hui.
+    //
+    // **Ce contrôle rougit le jour où quelqu'un l'écrit, et c'est ce qu'on lui demande** : il
+    // ne sait pas lire une mesure, donc il exige qu'on vienne ici dire où elle est.
+    const mesures = TRADE_MODES.flatMap((mode) =>
+      modeLeadAxes(mode)
+        .filter((e) => e.status === 'mesure')
+        .map((e) => `${mode}/${e.axis}`),
+    );
+    expect(mesures).toEqual([]);
   });
 });
 

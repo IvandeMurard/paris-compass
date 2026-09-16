@@ -17,17 +17,31 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  LEAD_REASON_STATUSES,
   TRADE_CHECKS,
   TRADE_CHECK_IDS,
   TRADE_MODES,
   findForbiddenForm,
+  modeAxisOrder,
+  modeLeadAxes,
   resolveChecks,
   type TradeCheckState,
   type TradeFacts,
 } from '@/core';
 import { PLU_ORIGIN, TERRASSES_ORIGIN } from '@/core';
-import { CHECK_COPY, MODE_COPY, MODE_NAMES, checkStateText } from './modeText';
+import {
+  CHECK_COPY,
+  LEAD_REASON_COPY,
+  LEAD_STATUS_LABELS,
+  MODE_COPY,
+  MODE_NAMES,
+  checkStateText,
+  leadReasonText,
+} from './modeText';
 import { LOCALES } from './locale';
+
+/** Les axes de tête, dérivés de `LEAD_AXES` et jamais listés ici. */
+const MENES = TRADE_MODES.flatMap((mode) => modeLeadAxes(mode).map((entry) => ({ mode, ...entry })));
 
 const ORIGINS = {
   terrasses: TERRASSES_ORIGIN('2026-09-01'),
@@ -240,6 +254,147 @@ describe('checkStateText', () => {
     for (const phrase of phrases) {
       const interdit = findForbiddenForm(phrase);
       expect(interdit, `${interdit?.term} — ${phrase}`).toBeNull();
+    }
+  });
+});
+
+describe('la raison d’un axe de tête — w6-mode-raison (#197)', () => {
+  it('couvre exactement les axes de tête, dans les deux langues et dans les DEUX SENS', () => {
+    // C'est le critère 1 et la contre-preuve du critère 3 dans un seul contrôle. Sens 1 : un
+    // mode qui gagnerait un axe de tête sans raison rougit au lieu de s'afficher nu. Sens 2 :
+    // une raison restée derrière un axe qui ne mène plus rougit aussi — sans quoi le fichier de
+    // mots deviendrait une seconde liste, juste le jour où on l'écrit.
+    const menes = new Set(MENES.map((l) => `${l.mode}/${l.axis}`));
+    expect(menes.size).toBeGreaterThan(0);
+    for (const locale of LOCALES) {
+      const ecrites = new Set(
+        TRADE_MODES.flatMap((mode) =>
+          Object.keys(LEAD_REASON_COPY[locale][mode]).map((axis) => `${mode}/${axis}`),
+        ),
+      );
+      for (const cle of menes) {
+        expect(ecrites.has(cle), `axe de tête sans raison : ${cle} [${locale}]`).toBe(true);
+      }
+      for (const cle of ecrites) {
+        expect(menes.has(cle), `raison orpheline : ${cle} [${locale}]`).toBe(true);
+      }
+    }
+  });
+
+  it('rend une raison lisible et SANS CHIFFRE pour chaque axe de tête', () => {
+    // Le contrat du module : aucun nombre dans la prose. Un « 25 m » écrit ici serait un
+    // littéral que rien ne tient en phase avec le noyau, et un chiffre sans provenance.
+    for (const locale of LOCALES) {
+      for (const { mode, axis } of MENES) {
+        const rendu = leadReasonText(mode, axis, locale);
+        expect(rendu, `${locale}/${mode}/${axis}`).not.toBeNull();
+        expect(rendu!.reason.length, `${locale}/${mode}/${axis}`).toBeGreaterThan(40);
+        expect(rendu!.reason, `${locale}/${mode}/${axis}`).not.toMatch(/\d/u);
+        expect(rendu!.label.length, `${locale}/${mode}/${axis}`).toBeGreaterThan(5);
+      }
+    }
+  });
+
+  it('rend null pour un axe qui ne mène pas, plutôt qu’une phrase par défaut', () => {
+    // La contre-preuve du premier contrôle : si `leadReasonText` inventait une raison pour un
+    // axe quelconque, la correspondance ci-dessus serait vraie sans rien dire.
+    const menes = new Set(MENES.map((l) => `${l.mode}/${l.axis}`));
+    const suiveurs = TRADE_MODES.flatMap((mode) =>
+      modeAxisOrder(mode)
+        .filter((axis) => !menes.has(`${mode}/${axis}`))
+        .map((axis) => ({ mode, axis })),
+    );
+    expect(suiveurs.length).toBeGreaterThan(0);
+    for (const locale of LOCALES) {
+      for (const { mode, axis } of suiveurs) {
+        expect(leadReasonText(mode, axis, locale), `${locale}/${mode}/${axis}`).toBeNull();
+      }
+    }
+  });
+
+  it('donne un libellé à chaque statut de l’énumération, dans les deux langues', () => {
+    // Critère 2 : la population des libellés est `LEAD_REASON_STATUSES`, donc un quatrième
+    // statut ajouté au noyau entre ici le jour où il y entre.
+    for (const locale of LOCALES) {
+      for (const status of LEAD_REASON_STATUSES) {
+        expect(LEAD_STATUS_LABELS[locale][status].length, `${locale}/${status}`).toBeGreaterThan(5);
+      }
+    }
+    expect(new Set(Object.values(LEAD_STATUS_LABELS.fr)).size).toBe(LEAD_REASON_STATUSES.length);
+    expect(new Set(Object.values(LEAD_STATUS_LABELS.en)).size).toBe(LEAD_REASON_STATUSES.length);
+  });
+
+  it('lit le statut depuis l’énumération et non depuis la phrase', () => {
+    // Le libellé rendu doit être exactement celui du statut porté par `LEAD_AXES` — pas une
+    // phrase qu'il faudrait relire pour savoir de quelle espèce de claim il s'agit.
+    for (const locale of LOCALES) {
+      for (const { mode, axis, status } of MENES) {
+        expect(leadReasonText(mode, axis, locale)!.status, `${locale}/${mode}/${axis}`).toBe(
+          LEAD_STATUS_LABELS[locale][status],
+        );
+      }
+    }
+  });
+
+  it('dit « non mesuré à ce jour » depuis le statut, dans les deux langues', () => {
+    // Critère 4, première moitié. La mention appartient au libellé du statut : écrite dans la
+    // raison, elle serait une phrase qu'une réécriture peut emporter sans que rien ne rougisse.
+    expect(LEAD_STATUS_LABELS.fr.mesurable).toMatch(/non mesur/iu);
+    expect(LEAD_STATUS_LABELS.en.mesurable).toMatch(/not measured/iu);
+  });
+
+  it('nomme ce qui trancherait exactement quand le statut est « mesurable »', () => {
+    // Critère 4, seconde moitié : le cas 2 « ouvre la porte à qui voudra le faire ». Un
+    // arbitrage n'en porte pas — promettre une mesure sur un jugement serait le même maquillage
+    // dans l'autre sens.
+    for (const locale of LOCALES) {
+      for (const { mode, axis, status } of MENES) {
+        const rendu = leadReasonText(mode, axis, locale)!;
+        if (status === 'mesurable') {
+          expect(rendu.settles?.length ?? 0, `${locale}/${mode}/${axis}`).toBeGreaterThan(40);
+          expect(rendu.settlesLabel?.length ?? 0, `${locale}/${mode}/${axis}`).toBeGreaterThan(5);
+        } else {
+          expect(rendu.settles, `${locale}/${mode}/${axis}`).toBeUndefined();
+          expect(rendu.settlesLabel, `${locale}/${mode}/${axis}`).toBeUndefined();
+        }
+      }
+    }
+    expect(MENES.filter((l) => l.status === 'mesurable').length).toBeGreaterThan(0);
+  });
+
+  it('n’affirme aucune corrélation que personne n’a mesurée', () => {
+    // La faute exacte qui a ouvert ce ticket, le 16 septembre 2026 : « le bruit est corrélé au
+    // passage », recommandé puis retiré le jour même, rien n'ayant été mesuré. Seul un axe au
+    // statut `mesure` — il n'en existe aucun — pourrait porter un tel mot, puisque lui seul
+    // cite une mesure.
+    const CORRELATION = /corr[eé]l|correlat|va de pair|goes hand in hand/iu;
+
+    // La contre-preuve : une règle qu'on n'a jamais vue rougir est une règle dont on ne sait pas
+    // si elle regarde quelque chose.
+    expect('Le bruit est corrélé au passage.').toMatch(CORRELATION);
+    expect('Noise correlates with footfall.').toMatch(CORRELATION);
+
+    for (const locale of LOCALES) {
+      for (const { mode, axis, status } of MENES) {
+        if (status === 'mesure') continue;
+        const rendu = leadReasonText(mode, axis, locale)!;
+        expect(rendu.reason, `${locale}/${mode}/${axis}`).not.toMatch(CORRELATION);
+        expect(rendu.settles ?? '', `${locale}/${mode}/${axis}`).not.toMatch(CORRELATION);
+      }
+    }
+  });
+
+  it('n’écrit aucune prévision, dans aucune langue', () => {
+    // Même interdit que les phrases de la checklist : une raison est l'endroit exact où « ce
+    // local marchera » se réécrit tout seul.
+    for (const locale of LOCALES) {
+      for (const { mode, axis } of MENES) {
+        const rendu = leadReasonText(mode, axis, locale)!;
+        for (const phrase of [rendu.label, rendu.status, rendu.reason, rendu.settlesLabel ?? '', rendu.settles ?? '']) {
+          const interdit = findForbiddenForm(phrase);
+          expect(interdit, `${interdit?.term} — ${phrase}`).toBeNull();
+        }
+      }
     }
   });
 });
