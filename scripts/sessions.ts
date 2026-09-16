@@ -238,6 +238,12 @@ const ORDER = [
   // cette question — un dossier exportable, une couche « ce qui se libère » et des modes
   // métier se posent sur une structure, et cette structure n'était pas décidée.
   "w6-contexte",
+  // Ouvert le 16 septembre sur objection d'Ivan, le jour même de la livraison de w6-modes.
+  // Il passe devant w6-liberations pour la même raison que w5-explain-metier passe devant :
+  // #36 a mis à l'écran un arbitrage qui ne dit pas son nom, et un produit dont la thèse est
+  // qu'un chiffre porte sa provenance ne peut pas laisser un classement n'en porter aucune.
+  // Réparer ce qu'on vient de livrer avant d'ouvrir une surface neuve.
+  "w6-mode-raison",
   "w6-liberations",
   "w6-dossier",
   "w6-modes",
