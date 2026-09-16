@@ -108,6 +108,14 @@ const ORDER = [
   // intention n'a rien contre quoi itérer — le bras mesure la durée et la jette, donc une
   // dégradation de 3,6 s à 9 s ne rougirait nulle part.
   "w1-page-tendance",
+  // Remonté de la 58ᵉ place et de P2 à P1 le 16 septembre 2026, décidé par Ivan. La raison
+  // n'est pas que le ticket a grandi : c'est que `w6-modes` (#36) vient de donner trois modes
+  // métier à l'écran et aucun à l'agent. « La même réponse pour un agent » est la promesse
+  // centrale du produit, et elle est fausse depuis hier — réparer une promesse qu'on vient de
+  // casser passe avant d'ouvrir une surface nouvelle. La moitié du travail est d'ailleurs déjà
+  // faite sans qu'on y ait touché : `modeAxisOrder` vit dans `src/core/`, donc le serveur MCP
+  // l'atteint déjà.
+  "w5-explain-metier",
   "w0-deploy",
   "w0-history",
   "w0-provenance",
@@ -241,7 +249,6 @@ const ORDER = [
   // remonter entier. Il n'avait jusqu'ici ni fichier ni place : c'est l'orphelin de la scission
   // de #119.
   "w6-accueil",
-  "w5-explain-metier",
   // --- P2 : de l'appoint, à prendre quand une session est courte -------------------------
   "w3-osm-notes",
   "w2-bpe-marches-velo",
