@@ -108,6 +108,10 @@ const ORDER = [
   // intention n'a rien contre quoi itérer — le bras mesure la durée et la jette, donc une
   // dégradation de 3,6 s à 9 s ne rougirait nulle part.
   "w1-page-tendance",
+  // Ouvert le 16 septembre 2026 : le journal des questions existe depuis #72, il ne voit que la
+  // surface agent et personne ne le relit. C'est le seul instrument du depot qui dirait ce que
+  // le produit ne sait PAS repondre — les quinze autres disent seulement s'il ment.
+  "w1-questions-lues",
   // Remonté de la 58ᵉ place et de P2 à P1 le 16 septembre 2026, décidé par Ivan. La raison
   // n'est pas que le ticket a grandi : c'est que `w6-modes` (#36) vient de donner trois modes
   // métier à l'écran et aucun à l'agent. « La même réponse pour un agent » est la promesse
