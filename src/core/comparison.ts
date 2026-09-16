@@ -24,7 +24,8 @@
  * against this directory, so `compare_locations` can be held to the same bound.
  */
 
-import type { Measured } from './provenance';
+import type { FigureMotif } from './motif';
+import { missingText, type Measured } from './provenance';
 import {
   BEARING_AXES,
   VERDICT_AXES,
@@ -44,7 +45,7 @@ import {
 /** One side's value on one axis: a clause, or the named absence of one. */
 export type ComparisonCell =
   | { kind: 'clause'; band: Band; text: string; measured: Measured<number> }
-  | { kind: 'absent'; because: Withholding; reason: string };
+  | { kind: 'absent'; because: Withholding; reason: string; motif?: FigureMotif };
 
 export interface ComparisonRow {
   axis: VerdictAxis;
@@ -85,8 +86,11 @@ function cellOf(finding: VerdictFinding | undefined, locale: VerdictLocale, axis
       kind: 'absent',
       because: finding?.withheldBecause ?? 'indetermine',
       // The reason is the core's own, never rewritten here — the same discipline `VerdictGap`
-      // follows. A reworded absence is an absence whose cause can no longer be acted on.
-      reason: finding?.measured.missingReason ?? noFindingText(locale),
+      // follows. A reworded absence is an absence whose cause can no longer be acted on. It is
+      // composed from the motif in the table's own locale since w6-langue-absences (#181): a
+      // French comparison whose right-hand cell was English was the same defect, one page over.
+      reason: (finding && missingText(finding.measured, locale)) ?? noFindingText(locale),
+      ...(finding?.measured.missing ? { motif: finding.measured.missing } : {}),
     };
   }
   const band = bandOf(axis, finding.measured.value);

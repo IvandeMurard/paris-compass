@@ -14,11 +14,14 @@ import {
   composeVerdict,
   findingsFromScores,
   findForbiddenForm,
+  motifText,
   unavailable,
   withValue,
   VERDICT_AXES,
   VERDICT_AXIS_ORDER,
   type AreaScores,
+  type FigureMotif,
+  type Layer,
   type Measured,
   type Origin,
   type VerdictAxis,
@@ -28,6 +31,9 @@ import {
 const ORIGIN: Origin = { source: 'test', licence: 'ODbL-1.0', asOf: '2026-09' };
 
 const score = (n: number): Measured<number> => withValue(n, ORIGIN, 'derived');
+
+/** L'absence d'une couche, telle que le noyau la produit — w6-langue-absences (#181). */
+const absente = (layer: Layer): FigureMotif => ({ kind: 'couche_absente', layer });
 
 /** Every axis resolved and high — the only shape that may produce a sentence. */
 function fullFindings(overrides: Partial<Record<VerdictAxis, Measured<number>>> = {}) {
@@ -57,7 +63,7 @@ describe('composeVerdict — la règle qui porte le ticket', () => {
     const compose = composeVerdict(fullFindings());
     const refus = composeVerdict(
       fullFindings({
-        rail: unavailable<number>(ORIGIN, 'The amenity layer did not load for this area.'),
+        rail: unavailable<number>(ORIGIN, absente('amenities')),
       }).map((f) =>
         f.axis === 'rail' ? { ...f, withheldBecause: 'retenue_licence' as const } : f,
       ),
@@ -76,7 +82,8 @@ describe('composeVerdict — la règle qui porte le ticket', () => {
       {
         axis: 'rail',
         because: 'retenue_licence',
-        reason: 'The amenity layer did not load for this area.',
+        reason: motifText(absente('amenities'), 'fr'),
+        motif: absente('amenities'),
       },
     ]);
     // The findings that DID resolve are not destroyed by the refusal — they are still named,
@@ -86,7 +93,7 @@ describe('composeVerdict — la règle qui porte le ticket', () => {
 
   it('refuse aussi sur un constat porteur indéterminé, sans motif déclaré', () => {
     const verdict = composeVerdict(
-      fullFindings({ footfall: unavailable<number>(ORIGIN, 'aucune donnée') }),
+      fullFindings({ footfall: unavailable<number>(ORIGIN, absente('premises')) }),
     );
     expect(verdict.kind).toBe('refus');
     if (verdict.kind !== 'refus') return;
@@ -106,8 +113,8 @@ describe('composeVerdict — la règle qui porte le ticket', () => {
   it('nomme TOUS les constats porteurs manquants, pas seulement le premier', () => {
     const verdict = composeVerdict(
       fullFindings({
-        footfall: unavailable<number>(ORIGIN, 'a'),
-        rail: unavailable<number>(ORIGIN, 'b'),
+        footfall: unavailable<number>(ORIGIN, absente('premises')),
+        rail: unavailable<number>(ORIGIN, absente('stations')),
       }),
     );
     expect(verdict.kind).toBe('refus');
@@ -117,7 +124,7 @@ describe('composeVerdict — la règle qui porte le ticket', () => {
 
   it('un constat d’appui absent ne bloque pas le verdict, et n’est pas inventé', () => {
     const verdict = composeVerdict(
-      fullFindings({ noise: unavailable<number>(ORIGIN, 'roads absent') }),
+      fullFindings({ noise: unavailable<number>(ORIGIN, absente('roads')) }),
     );
     expect(verdict.kind).toBe('compose');
     if (verdict.kind !== 'compose') return;
@@ -152,7 +159,7 @@ describe('composeVerdict — la règle qui porte le ticket', () => {
       );
     }
     const refus = composeVerdict(
-      fullFindings({ rail: unavailable<number>(ORIGIN, 'x') }),
+      fullFindings({ rail: unavailable<number>(ORIGIN, absente('stations')) }),
       'en',
     );
     if (refus.kind !== 'refus') throw new Error('expected a refusal');
@@ -165,8 +172,8 @@ describe('composeVerdict — la règle qui porte le ticket', () => {
     const sentences = [
       composeVerdict(fullFindings()).sentence,
       composeVerdict(fullFindings(), 'en').sentence,
-      composeVerdict(fullFindings({ rail: unavailable<number>(ORIGIN, 'x') })).sentence,
-      composeVerdict(fullFindings({ rail: unavailable<number>(ORIGIN, 'x') }), 'en').sentence,
+      composeVerdict(fullFindings({ rail: unavailable<number>(ORIGIN, absente('stations')) })).sentence,
+      composeVerdict(fullFindings({ rail: unavailable<number>(ORIGIN, absente('stations')) }), 'en').sentence,
     ];
     for (const s of sentences) {
       expect(findForbiddenForm(s), s).toBeNull();
@@ -215,8 +222,8 @@ describe('findingsFromScores', () => {
   it('attribue la retenue à la couche que l’axe lit vraiment', () => {
     const withheld = findingsFromScores(
       scores({
-        footfall: unavailable<number>(ORIGIN, 'premises withheld'),
-        rail: unavailable<number>(ORIGIN, 'stations down'),
+        footfall: unavailable<number>(ORIGIN, absente('premises')),
+        rail: unavailable<number>(ORIGIN, absente('stations')),
       }),
       { premises: 'retenue_licence', stations: 'source_injoignable' },
     );
@@ -227,7 +234,7 @@ describe('findingsFromScores', () => {
   });
 
   it('n’invente pas de motif : sans déclaration, c’est indéterminé', () => {
-    const findings = findingsFromScores(scores({ rail: unavailable<number>(ORIGIN, 'x') }));
+    const findings = findingsFromScores(scores({ rail: unavailable<number>(ORIGIN, absente('stations')) }));
     expect(findings.find((f) => f.axis === 'rail')?.withheldBecause).toBe('indetermine');
   });
 

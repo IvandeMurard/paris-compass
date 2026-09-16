@@ -160,9 +160,9 @@ describe('ContextMap', () => {
         point={BRETAGNE}
         points={empty}
         scores={scores({
-          footfall: unavailable(OSM, 'premises absent'),
-          transit: unavailable(OSM, 'amenities absent'),
-          walkability: unavailable(OSM, 'amenities absent'),
+          footfall: unavailable(OSM, { kind: 'couche_absente', layer: 'premises' }),
+          transit: unavailable(OSM, { kind: 'couche_absente', layer: 'amenities' }),
+          walkability: unavailable(OSM, { kind: 'couche_absente', layer: 'amenities' }),
         })}
         loaded={[]}
       />,

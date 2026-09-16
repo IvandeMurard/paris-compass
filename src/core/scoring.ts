@@ -10,6 +10,7 @@
  */
 
 import { GridIndex, boundsCoverRadius, clamp, distanceM, type BBox, type Point } from './geo';
+import type { FigureMotif } from './motif';
 import {
   combineOrigins,
   unavailable,
@@ -75,7 +76,16 @@ export interface ServicePoint extends Point {
  * it is the only layer that knows the NON-merchant — schools, healthcare, parks — which a
  * commercial survey cannot see and which `w2-bpe-marches-velo` (#17) exists to supply properly.
  */
-export type Layer = 'amenities' | 'roads' | 'premises' | 'services' | 'stations';
+export const LAYERS = ['amenities', 'roads', 'premises', 'services', 'stations'] as const;
+
+/**
+ * A `const` array with the type derived from it, rather than a bare union — w6-langue-absences.
+ *
+ * The same shape as `WITHHOLDINGS` and `MOTIF_KINDS`, for the same reason: the census of
+ * absence motifs has to visit every layer, and a population read off a hand-written second list
+ * is a population that silently stops covering the sixth layer the day one is added.
+ */
+export type Layer = (typeof LAYERS)[number];
 
 /**
  * Where each layer came from — one `Origin` per layer, not one for the whole result.
@@ -127,8 +137,13 @@ export function uniformOrigins(source: Origin): LayerOrigins {
  * note is passed in rather than inferred, and why it is a `note` rather than an absence: a
  * floor is a real reading, and dropping it would lose more than it protects. Same discipline as
  * `TRUNCATED` below, which says the same thing about geographic coverage.
+ *
+ * **A motif, not a sentence, since w6-langue-absences (#181).** The two callers had written the
+ * same caveat twice and in two languages — the browser's in French, the MCP server's in English
+ * — so the French sentence reached `/en/context/` and the English one reached `/contexte/`. The
+ * counts travel inside the motif and the sentence is composed at the screen, once per language.
  */
-export type LayerNotes = Partial<Record<Layer, string>>;
+export type LayerNotes = Partial<Record<Layer, FigureMotif>>;
 
 /** Everything the core needs to score a location. Assembled by the caller, never fetched here. */
 export interface NeighbourhoodContext {
@@ -433,39 +448,41 @@ export function buildIndex(context: NeighbourhoodContext): ScoringIndex {
   };
 }
 
-const TRUNCATED =
-  'The data covering this point stops before the full search radius, so the count is a floor, not a total.';
+const TRUNCATED: FigureMotif = { kind: 'couverture_tronquee' };
 
 /**
- * Why a figure is missing, per layer.
+ * Why a figure is missing, per layer — a motif, since w6-langue-absences (#181).
  *
- * These read as full sentences because they are shown, not logged: `missingReason` is what
- * the interface and the MCP layer put in front of a caller in place of the number.
+ * These used to be five English sentences, and they were rendered as-is on a French page
+ * (`DIAGNOSTIC.md` §49). The sentences have not been lost: they are the English column of
+ * `ABSENTE` in `src/core/motif.ts`, beside a French one, and the interface picks the column.
+ * What the core hands out is the motif — which is what an agent can branch on, and a sentence
+ * never was.
  */
-const MISSING = {
-  amenities:
-    'The amenity layer did not load for this area, so nothing was counted. Nothing counted is not the same as nothing there.',
-  premises:
-    'The premises layer did not load for this area, so surrounding activity is unknown rather than absent.',
-  roads:
-    'The road layer did not load for this area, so exposure could not be modelled. This is not a quiet location, it is an unmeasured one.',
-  services:
-    'The surveyed-services layer did not load for this area, so merchant services on foot are unknown rather than absent. Nothing counted is not the same as nothing there.',
-  stations:
-    'The rail-stop layer did not load for this area, so distance to the nearest stop is unknown. This is not a location far from transit, it is an unmeasured one.',
-} as const;
+const MISSING: Record<Layer, FigureMotif> = {
+  amenities: { kind: 'couche_absente', layer: 'amenities' },
+  premises: { kind: 'couche_absente', layer: 'premises' },
+  roads: { kind: 'couche_absente', layer: 'roads' },
+  services: { kind: 'couche_absente', layer: 'services' },
+  stations: { kind: 'couche_absente', layer: 'stations' },
+};
 
 /**
  * What the rail axis says when the layer answered and found no stop inside the radius.
  *
- * A `note`, never an absence: a point with no rail stop within the search radius has been
+ * A caveat, never an absence: a point with no rail stop within the search radius has been
  * MEASURED to have none, and turning that into « unknown » would throw away the one reading
  * the layer gives with certainty. Same discipline as an empty premises radius inside Paris.
  */
-const NO_STATION_IN_RADIUS =
-  'No Île-de-France Mobilités rail stop was found inside the search radius, so this reads zero because none is near — not because the layer is silent.';
+const NO_STATION_IN_RADIUS: FigureMotif = { kind: 'aucun_arret_dans_rayon' };
 
-function coverageNote(point: Point, radiusM: number, bounds?: BBox): string | undefined {
+/** Footfall is a proxy, and says so on every figure it produces. */
+const FOOTFALL_PROXY: FigureMotif = { kind: 'mandataire_passage' };
+
+/** Road noise is modelled from geometry alone, and says so too. */
+const NOISE_MODELLED: FigureMotif = { kind: 'bruit_modelise' };
+
+function coverageNote(point: Point, radiusM: number, bounds?: BBox): FigureMotif | undefined {
   if (!bounds) return undefined;
   return boundsCoverRadius(point, radiusM, bounds) ? undefined : TRUNCATED;
 }
@@ -599,10 +616,8 @@ export function scoreLocationDetailed(
   // than overwritten: a truncated premises layer at the edge of a truncated fetch area is a
   // real combination, and keeping only the last one written would drop whichever the reader
   // most needed.
-  const noteOf = (...parts: readonly (string | undefined)[]): string | undefined => {
-    const kept = parts.filter((p): p is string => Boolean(p));
-    return kept.length > 0 ? kept.join(' ') : undefined;
-  };
+  const noteOf = (...parts: readonly (FigureMotif | undefined)[]): FigureMotif[] =>
+    parts.filter((p): p is FigureMotif => Boolean(p));
 
   const byCategory = {} as Record<AmenityCategory, Measured<number>>;
   const rawByCategory = {} as Record<AmenityCategory, number>;
@@ -651,7 +666,7 @@ export function scoreLocationDetailed(
         saturating(occupiedNearby, PREMISE_SATURATION),
         origins.premises,
         'derived',
-        layerNotes.premises,
+        noteOf(layerNotes.premises),
       )
     : unavailable<number>(origins.premises, MISSING.premises);
 
@@ -712,7 +727,7 @@ export function scoreLocationDetailed(
           decaying(index.nearestStationM, TRANSIT_DECAY_M),
           origins.stations,
           'derived',
-          layerNotes.stations,
+          noteOf(layerNotes.stations),
         )
     : unavailable<number>(origins.stations, MISSING.stations);
 
@@ -739,11 +754,7 @@ export function scoreLocationDetailed(
       ),
       combineOrigins(origins.premises, origins.stations),
       'estimated',
-      noteOf(
-        'No open pedestrian count exists for Île-de-France. This is a proxy from active-business density and rail access: it compares two locations against each other, it does not predict footfall.',
-        layerNotes.premises,
-        layerNotes.stations,
-      ),
+      noteOf(FOOTFALL_PROXY, layerNotes.premises, layerNotes.stations),
     );
   }
 
@@ -763,10 +774,7 @@ export function scoreLocationDetailed(
           clamp(Math.round(roads.sum * NOISE_SCALE)),
           origins.roads,
           'estimated',
-          noteOf(
-            'Modelled from the proximity and class of major roads only. Buildings, traffic volume and time of day are not taken into account.',
-            layerNotes.roads,
-          ),
+          noteOf(NOISE_MODELLED, layerNotes.roads),
         )
       : unavailable<number>(origins.roads, MISSING.roads),
   };

@@ -1,13 +1,16 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import { compareAddresses, type Comparison } from './comparison';
+import { motifText, type FigureMotif } from './motif';
 import { unavailable, withValue, type Measured, type Origin } from './provenance';
+import type { Layer } from './scoring';
 import { VERDICT_AXIS_ORDER, type VerdictAxis, type VerdictFinding } from './verdict';
 
 const OSM: Origin = { source: 'OpenStreetMap via Overpass', licence: 'ODbL-1.0', asOf: '2026-09-11' };
 
 const value = (n: number): Measured<number> => withValue(n, OSM, 'derived');
-const absent = (why: string): Measured<number> => unavailable<number>(OSM, why);
+const absente = (layer: Layer): FigureMotif => ({ kind: 'couche_absente', layer });
+const absent = (layer: Layer): Measured<number> => unavailable<number>(OSM, absente(layer));
 
 /** A full set of findings, every axis resolved, with the ones named in `partial` overridden. */
 const findings = (partial: Partial<Record<VerdictAxis, Measured<number>>> = {}, base = 75): VerdictFinding[] =>
@@ -28,7 +31,7 @@ describe('compareAddresses', () => {
   });
 
   it('refuse de comparer un axe qu’un seul côté porte', () => {
-    const c = compareAddresses(findings(), findings({ footfall: absent('BDCom 2020 est retenu pour licence.') }));
+    const c = compareAddresses(findings(), findings({ footfall: absent('premises') }));
     const row = c.rows.find((r) => r.axis === 'footfall');
     expect(row?.comparable).toBe(false);
     expect(c.incomparableAxes).toContain('footfall');
@@ -36,18 +39,18 @@ describe('compareAddresses', () => {
   });
 
   it('reprend la raison du noyau sans la réécrire', () => {
-    const reason = 'This point lies outside the BDCom corpus.';
-    const c = compareAddresses(findings(), findings({ footfall: absent(reason) }));
+    const reason = motifText(absente('premises'), 'fr');
+    const c = compareAddresses(findings(), findings({ footfall: absent('premises') }));
     const row = c.rows.find((r) => r.axis === 'footfall');
     expect(row?.b.kind === 'absent' && row.b.reason).toBe(reason);
   });
 
   it('dit que la paire elle-même n’apprend rien quand aucun porteur ne se compare', () => {
     const withheld = {
-      density: absent('x'),
-      footfall: absent('x'),
-      rail: absent('x'),
-      services: absent('x'),
+      density: absent('premises'),
+      footfall: absent('premises'),
+      rail: absent('premises'),
+      services: absent('premises'),
     };
     const c = compareAddresses(findings(), findings(withheld));
     expect(c.bearingComparable).toBe(false);

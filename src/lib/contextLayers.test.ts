@@ -13,7 +13,8 @@ import { drawableLayers, pendingAxes, resolvedAxes } from './contextLayers';
 
 const OSM: Origin = { source: 'OpenStreetMap via Overpass', licence: 'ODbL-1.0', asOf: '2026-09-11' };
 const plain = (n: number): Measured<number> => withValue(n, OSM, 'derived');
-const absent = (why: string): Measured<number> => unavailable<number>(OSM, why);
+const absent = (layer: Layer): Measured<number> =>
+  unavailable<number>(OSM, { kind: 'couche_absente', layer });
 
 const scores = (partial: Partial<AreaScores> = {}): AreaScores => ({
   density: plain(65),
@@ -35,7 +36,7 @@ const ALL: readonly Layer[] = ['amenities', 'roads', 'premises', 'services', 'st
 
 describe('resolvedAxes', () => {
   it('ne retient que les axes qui portent un chiffre', () => {
-    const withheld = absent('BDCom 2020 est retenu pour licence.');
+    const withheld = absent('premises');
     expect(resolvedAxes(scores({ footfall: withheld }))).not.toContain('footfall');
     expect(resolvedAxes(scores())).toEqual([...VERDICT_AXIS_ORDER]);
   });
@@ -52,7 +53,7 @@ describe('drawableLayers', () => {
     // `density` et `footfall` tombent : il ne reste rien qui lise `premises`. Les deux, depuis
     // w6-fiche-corpus (#157) — un seul suffisait quand `footfall` était le seul à lire cette
     // couche, et c'est le genre de test qui passe au vert en cessant de prouver son énoncé.
-    const withheld = absent('retenu');
+    const withheld = absent('premises');
     const layers = drawableLayers(
       scores({
         density: withheld,
@@ -76,7 +77,7 @@ describe('drawableLayers', () => {
   });
 
   it('ne dessine rien quand rien n’a abouti', () => {
-    const nothing = absent('source injoignable');
+    const nothing = absent('amenities');
     const blank = Object.fromEntries(
       Object.keys(scores()).map((k) => [k, nothing]),
     ) as unknown as AreaScores;
