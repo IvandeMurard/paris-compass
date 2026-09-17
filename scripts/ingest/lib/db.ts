@@ -124,7 +124,6 @@ export type IngestionSource =
   | "sirene_stock"
   | "idfm"
   | "filosofi"
-  | "meubles"
 
 /**
  * Records a successful load.

@@ -432,19 +432,6 @@ une garantie.
   l'adresse en plus de l'identifiant et marque la divergence au lieu de la lisser : un historique
   ainsi marqué est une preuve plus faible, et l'interface doit pouvoir le dire.
 
-**2.6 — Le dossier d'une adresse — FAIT le 15 septembre 2026.**
-
-> **Livré par `w6-dossier` (#33)**, qui redisait cette section : un même chantier écrit à deux
-> endroits. `src/core/dossier.ts` porte le contenu, `src/lib/downloadDossier.ts` le fichier,
-> `src/components/context/ContextDossier.tsx` le bouton — exactement le partage que le dernier
-> paragraphe ci-dessous demandait. Démontré dans Chrome sans tête rue de Bretagne : **6 figures,
-> zéro provenance incomplète, zéro écart de re-dérivation**, fichier écrit sur le disque 167 ms
-> après le clic. La ligne « une ligne par indicateur, et à côté sa source, sa licence, son
-> millésime, sa méthode et sa réserve » est tenue, **plus la formule, ses constantes, le rayon et
-> l'opérande** : les quatre premiers ne laissaient refaire aucun calcul. Le détail et ce qui n'est
-> pas fait — **le PDF, décision d'Ivan** — sont dans `docs/tickets/w6-dossier.md`, section
-> « Livré » ; l'état est au point 22 de `docs/REPRISE.md`.
-
 **2.6 — Le dossier d'une adresse.** Un fichier téléchargeable pour **une** adresse : une ligne par
 indicateur, et à côté sa source, sa licence, son millésime, sa méthode et sa réserve. Un fichier
 où la moitié de la largeur sert à dire d'où vient l'autre moitié.
@@ -575,49 +562,8 @@ donnée distingue un quartier de bureaux qui triple à midi d'un quartier résid
 inverse, deux emplacements que la population résidentielle INSEE décrit à l'identique. Réserves à
 afficher : jour de semaine moyen, enquêtes de 2009 à 2019 selon les villes, maille secteur.
 
-**3.2 — Validations IDFM.** ~~Par station, par jour, par titre, historique depuis 2015 avec
-profils horaires. Remplace le passage estimé par un nombre compté.~~
-
-> **Cette phrase était fausse, et elle a fait écrire un ticket faux — corrigée le 15 septembre
-> 2026.** Elle décrivait ce que le jeu IDFM *semblait* promettre, jamais ce qui a été ingéré, et
-> `docs/tickets/w6-amenites-corpus.md` l'a recopiée mot pour mot dans son plan : « IDFM —
-> comptages de validation réels par station ». Les deux documents portaient la même erreur, donc
-> aucun des deux ne pouvait corriger l'autre.
->
-> **Ce qui est réellement en base, chargé le 7 septembre 2026 par `w2-idfm` (#19) :**
->
-> - `idfm_station` — **258** zones d'arrêt du réseau **ferré** dans Paris, avec leur géométrie.
->   Licence Ouverte 2.0 (Etalab). **Pas de bus.**
-> - `idfm_validation_profile` — **29 489** lignes, une par (station, type de jour, tranche
->   horaire), portant `pct_validations` : la part d'une journée de station tombant dans cette
->   tranche. ODbL. **C'est une FORME, jamais un volume** — le jeu ne publie aucun compte absolu,
->   l'en-tête de `20260907000002` le dit, et la mesure le confirme (24 tranches JOHV sommant à
->   99,99 % à Oberkampf). Deux stations n'y sont pas comparables sur leur fréquentation.
-> - **85 410** `premise_location` rattachés à leur station la plus proche, sur 85 418.
->
-> **Donc le passage estimé n'est pas remplacé par un nombre compté, et il ne peut pas l'être avec
-> cette source.** Ce que `w6-amenites-corpus` en a tiré, le 15 septembre 2026, est la seule chose
-> qu'elle donne : la **distance à l'arrêt le plus proche**, qui remplace un comptage d'aménités
-> OpenStreetMap par une mesure du référentiel officiel. `footfall` reste un proxy et le dit.
->
-> **Ce qui rendrait la promesse d'origine vraie** : l'historique 2015-2024
-> (`histo-validations-reseau-ferre`), une archive d'un zip par année sans schéma stable entre
-> années — un chantier à part entière, toujours non fait, et à ne pas réécrire ici comme s'il
-> l'était.
->
-> **La seconde moitié est faite depuis le 17 septembre 2026** — `w2-rythme` (#208). Cette section
-> et le ticket sont **un seul chantier** : celle-ci dit ce que la source EST, le ticket dit ce que
-> l'écran en montre, et les deux ne doivent pas diverger. La fiche de contexte affiche désormais
-> la **forme** de la journée de la station la plus proche — les parts horaires du code JOHV, sous
-> **ODbL** et non sous la Licence Ouverte du référentiel d'arrêts — à côté des six constats et
-> **hors de la composition du verdict**. Aucun volume n'en sort et un contrôle l'interdit.
->
-> **Une phrase de cette section est à lire avec la correction du 17 septembre** : « distinguer un
-> quartier de bureaux (pic de midi) d'un quartier résidentiel (pic du soir) » est FAUX, et
-> `20260907000002` porte la même erreur dans deux commentaires. Mesuré sur les 258 stations : la
-> fenêtre 11h-14h n'est la plus forte à AUCUNE, et le signe est inversé — une validation se compte
-> à la montée, donc le profil dit d'où l'on PART. `DIAGNOSTIC.md` §57, et
-> [#213](https://github.com/IvandeMurard/paris-compass/issues/213) pour la migration corrective.
+**3.2 — Validations IDFM.** Par station, par jour, par titre, historique depuis 2015 avec profils
+horaires. Remplace le passage estimé par un nombre compté.
 
 **3.3 — BODACC (DILA).** API ouverte et gratuite, sans clé. Deux usages distincts : les **ventes
 et cessions de fonds de commerce avec leur prix**, qui est la donnée de prix la plus proche de ce

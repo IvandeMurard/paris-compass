@@ -1,18 +1,5 @@
 import { fetchJson } from './http';
-import type { AirQuality, Reading, RiskInfo } from './types';
-
-/**
- * Both lookups used to answer `T | null`, and `null` carried two unrelated meanings — #145.
- *
- * On 13 September 2026 the Géorisques call failed on the published site (`TypeError: Failed to
- * fetch`, logged to the console and nowhere else) while the screen rendered `n/d`, which is the
- * same thing it renders when a point genuinely has no registered risk. A visitor could not tell
- * an outage from an answer, and neither could anything downstream.
- *
- * `Reading<T>` makes the two states different values, so the distinction survives as far as the
- * screen instead of being lost at the `catch`.
- */
-const withheld = <T>(): Reading<T> => ({ state: 'withheld', because: 'source_injoignable' });
+import type { AirQuality, RiskInfo } from './types';
 
 /** European Air Quality Index bands (EEA). */
 function aqiLabel(aqi: number): string {
@@ -24,7 +11,7 @@ function aqiLabel(aqi: number): string {
 }
 
 /** Real-time air quality from the CAMS European model (Open-Meteo, no key required). */
-export async function fetchAirQuality(lat: number, lng: number): Promise<Reading<AirQuality>> {
+export async function fetchAirQuality(lat: number, lng: number): Promise<AirQuality | null> {
   const url =
     `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat.toFixed(3)}` +
     `&longitude=${lng.toFixed(3)}&current=european_aqi,pm2_5,nitrogen_dioxide`;
@@ -35,21 +22,16 @@ export async function fetchAirQuality(lat: number, lng: number): Promise<Reading
     }>(url, { cacheKey: `air:${lat.toFixed(2)},${lng.toFixed(2)}`, maxAgeMs: 60 * 60 * 1000 });
 
     const aqi = data.current?.european_aqi;
-    // The model answered without an index for this point. That IS an answer, and it is not the
-    // same thing as the model not answering — hence `empty` rather than `withheld`.
-    if (typeof aqi !== 'number') return { state: 'empty' };
+    if (typeof aqi !== 'number') return null;
     return {
-      state: 'read',
-      value: {
-        aqi,
-        pm25: data.current?.pm2_5 ?? null,
-        no2: data.current?.nitrogen_dioxide ?? null,
-        label: aqiLabel(aqi),
-      },
+      aqi,
+      pm25: data.current?.pm2_5 ?? null,
+      no2: data.current?.nitrogen_dioxide ?? null,
+      label: aqiLabel(aqi),
     };
   } catch (error) {
     console.error('Air quality lookup failed', error);
-    return withheld();
+    return null;
   }
 }
 
@@ -60,7 +42,7 @@ interface GeorisquesResponse {
 }
 
 /** Natural and technological risks registered by Géorisques (BRGM / Ministère). */
-export async function fetchRisks(lat: number, lng: number): Promise<Reading<RiskInfo>> {
+export async function fetchRisks(lat: number, lng: number): Promise<RiskInfo | null> {
   const url =
     `https://georisques.gouv.fr/api/v1/resultats_rapport_risque?latlon=${lng.toFixed(5)},` +
     `${lat.toFixed(5)}&rayon=1000`;
@@ -77,12 +59,9 @@ export async function fetchRisks(lat: number, lng: number): Promise<Reading<Risk
         if (entry?.present && entry.libelle) labels.push(entry.libelle);
       }
     }
-    // No registered risk within a kilometre is a real, reassuring answer. Reporting it as an
-    // outage would be as wrong as the reverse, so `empty` carries it and `withheld` never does.
-    if (labels.length === 0 && !data.commune?.libelle) return { state: 'empty' };
-    return { state: 'read', value: { labels, commune: data.commune?.libelle } };
+    return { labels, commune: data.commune?.libelle };
   } catch (error) {
     console.error('Géorisques lookup failed', error);
-    return withheld();
+    return null;
   }
 }

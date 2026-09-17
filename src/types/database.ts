@@ -9,27 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      /**
-       * One row per ingested source, publicly readable — the only place that knows WHEN a
-       * source's own publisher last produced what we hold.
-       *
-       * The sheet reads exactly one column of it, `source_as_of` for source `idfm`, to date
-       * the rail layer. Same discipline as `compass_vintages` for BDCom: a date typed into a
-       * front-end file would be an unmeasured claim about data that file never reads.
-       */
-      ingestion_run: {
-        Row: {
-          source: string;
-          label: string;
-          cadence: string;
-          cadence_note: string | null;
-          source_as_of: string | null;
-          last_success_at: string | null;
-        };
-        Insert: never;
-        Update: never;
-        Relationships: [];
-      };
       user_preferences: {
         Row: {
           id: string;
@@ -305,108 +284,6 @@ export type Database = {
            * genuinely empty. Never conflate the two.
            */
           withheld: boolean;
-        }[];
-      };
-      /**
-       * The bare points feeding `NeighbourhoodContext.premises` — w6-fiche-corpus (#157).
-       *
-       * No score and no label: Postgres does the spatial selection, `src/core` does the
-       * arithmetic. The same function the MCP server has called since 15 August, so the two
-       * surfaces read one corpus rather than two.
-       */
-      compass_scoring_context_within: {
-        Args: {
-          p_lat: number;
-          p_lng: number;
-          p_radius_m?: number;
-          p_vintage_year?: number;
-        };
-        Returns: {
-          lat: number | null;
-          lng: number | null;
-          is_vacant: boolean | null;
-          /**
-           * How many the radius holds, BEFORE PostgREST's `db-max-rows` cap. Repeated on
-           * every row: it is a window count, not a per-row value — and it is the only thing
-           * that tells a caller its array is a floor rather than a total. Ignoring it is
-           * `DIAGNOSTIC.md` §51.
-           */
-          total_matched: number | null;
-          /** One row, no coordinates: the vintage may not be served to this caller. */
-          withheld: boolean;
-          /** One row, no coordinates: the point is in none of the 80 quartiers. */
-          out_of_corpus: boolean;
-        }[];
-      };
-      /** Licence, survey date and scope per BDCom vintage. The only place that knows them. */
-      compass_vintages: {
-        Args: Record<string, never>;
-        Returns: {
-          vintage_year: number;
-          vintage_scope: string;
-          licence: string;
-          licence_note: string | null;
-          as_of: string;
-          source_url: string | null;
-          record_count: number | null;
-          ingested_at: string | null;
-        }[];
-      };
-      /**
-       * What a premise around here became between two vintages — `PLAN.md` §6.1.
-       *
-       * Withheld in full from an anonymous caller, and structurally rather than incidentally:
-       * a transition derives from two vintages and only 2023 is redistributable, so every
-       * possible pair contains a vintage whose licence nobody has read. The answer is then ONE
-       * marked row carrying the reason, never an empty result.
-       */
-      compass_activity_transitions: {
-        Args: {
-          p_lat: number;
-          p_lng: number;
-          p_radius_m?: number;
-          p_from_vintage?: number;
-          p_to_vintage?: number;
-        };
-        Returns: {
-          from_niv18: number | null;
-          from_label: string | null;
-          to_niv18: number | null;
-          to_label: string | null;
-          premises: number | null;
-          is_same_trade: boolean | null;
-          withheld: boolean;
-          licence: string | null;
-          evidence: string | null;
-        }[];
-      };
-      /**
-       * The nearest IDFM rail stop's full hourly validation profile — `w2-idfm` (#19), read by
-       * the sheet since `w6-amenites-corpus`.
-       *
-       * **What the sheet reads, and what it deliberately does not.** `distance_m` and
-       * `station_name` are the whole of the `stations` layer: metres to the nearest stop.
-       * `pct_validations` is the share of that one station's own day falling in an hour
-       * bucket — a SHAPE, never a volume, because the dataset publishes no absolute count
-       * (`20260907000002`, and measured 15 September 2026: 24 JOHV buckets summing to 99.99 %
-       * at Oberkampf). No axis can be counted from it.
-       *
-       * Zero rows means no Paris stop with a profile sits inside the radius — a reading, not
-       * a failure. It carries no `withheld` column: both source datasets are fully open.
-       */
-      compass_station_profile: {
-        Args: {
-          p_lat: number;
-          p_lng: number;
-          p_radius_m?: number;
-        };
-        Returns: {
-          station_id: number;
-          station_name: string;
-          distance_m: number;
-          cat_jour: string;
-          hour_bucket: string;
-          pct_validations: number;
         }[];
       };
     };

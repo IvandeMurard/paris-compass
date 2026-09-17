@@ -37,18 +37,9 @@ const inputShape = {
     ),
 }
 
-/**
- * The one-line form, with the motif beside the sentence — w6-langue-absences (#181).
- *
- * `detail` below already carries `missing` and `caveats` structured, because it serialises the
- * whole `Measured<T>`. Naming the motif here too is not redundancy: this is the line an agent
- * reads first, and a caller that has to parse a sentence to learn it hit an unreachable mirror
- * rather than a licence refusal is a caller reduced to `includes()` — the thing `#61` refused.
- */
 function explain(metric: Metric, measured: Measured<number>): string {
   if (measured.value === null) {
-    const motif = measured.missing ? ` [${measured.missing.kind}]` : ""
-    return `${metric}: unavailable${motif} — ${measured.missingReason ?? "no reason recorded"}`
+    return `${metric}: unavailable — ${measured.missingReason ?? "no reason recorded"}`
   }
   const label = metric === "noise" ? noiseLabel(measured.value) : scoreLabel(measured.value);
   const parts = [

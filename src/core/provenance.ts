@@ -11,9 +11,6 @@
  * chain of thought, so a caller can explain a figure without reconstructing it.
  */
 
-import { motifsText, motifText, type FigureMotif } from './motif';
-import type { VerdictLocale } from './verdict';
-
 export type Method =
   /** Counted or recorded by an instrument or a survey. The strongest claim. */
   | 'measured'
@@ -33,28 +30,10 @@ export interface Measured<T> {
   /** When the underlying data was produced, ISO-ish: "2023-06", "2026-08-07". */
   asOf: string;
   method: Method;
-  /**
-   * Why the figure should be read with caution — truncation, proxy, small sample.
-   *
-   * **English, and derived — w6-langue-absences (#181).** It is `caveats` written out for the
-   * agent path, which is English by the convention of this directory. A screen never renders
-   * it: it renders `caveats` in the reader's language. Kept beside the motifs rather than
-   * dropped because the MCP response has served this sentence since the first release, and an
-   * agent that was reading prose must not find the field gone.
-   */
+  /** Why the figure should be read with caution — truncation, proxy, small sample. */
   note?: string;
-  /** Why there is no value, in English and derived from `missing`. Same rule as `note`. */
+  /** Why there is no value. Required reading whenever `value` is null. */
   missingReason?: string;
-  /**
-   * Why there is no value, in a form that has no language — `src/core/motif.ts`.
-   *
-   * This is the field a screen reads and the field an agent branches on. `missingReason` is
-   * this motif rendered into English; the French page renders the same motif into French, and
-   * neither is obtained by reading the other (`#61`).
-   */
-  missing?: FigureMotif;
-  /** The caveats behind `note`, in the order they were joined. Structured, so translatable. */
-  caveats?: readonly FigureMotif[];
 }
 
 export interface Origin {
@@ -67,58 +46,20 @@ export function withValue<T>(
   value: T,
   origin: Origin,
   method: Method,
-  /** Structured caveats, never a sentence — w6-langue-absences (#181). */
-  caveats: readonly FigureMotif[] = [],
+  note?: string,
 ): Measured<T> {
-  const note = motifsText(caveats, 'en');
-  return {
-    value,
-    ...origin,
-    method,
-    ...(note ? { note, caveats } : {}),
-  };
+  return { value, ...origin, method, ...(note ? { note } : {}) };
 }
 
-/**
- * A figure Compass cannot produce. Never fall back to zero: absent is not the same as none.
- *
- * **The second parameter is a motif and not a sentence, and the type is the enforcement** —
- * w6-langue-absences (#181). An absence that can only say why in one language is an absence
- * half the readers cannot read, and a `string` here is what let that happen for five weeks
- * (`DIAGNOSTIC.md` §49). The English sentence is still produced, from the motif, for the agent
- * path; it can no longer be produced without one.
- */
-export function unavailable<T>(origin: Origin, missing: FigureMotif): Measured<T> {
-  return {
-    value: null,
-    ...origin,
-    method: 'derived',
-    missing,
-    missingReason: motifText(missing, 'en'),
-  };
+/** A figure Compass cannot produce. Never fall back to zero: absent is not the same as none. */
+export function unavailable<T>(origin: Origin, missingReason: string): Measured<T> {
+  return { value: null, ...origin, method: 'derived', missingReason };
 }
 
 /** True when the figure can be shown as-is, without a caveat. */
 export function isReliable(m: Measured<unknown>): boolean {
   return m.value !== null && m.method !== 'estimated' && !m.note;
 }
-
-/**
- * Why a figure is absent, in the reader's language — or `undefined` when it has a value.
- *
- * Every screen and every document goes through these two functions rather than reading `note`
- * and `missingReason`: those two are the English rendering, and a page that reads them is the
- * defect this ticket closed. Reading the motif is also what makes the English page and the
- * French page the same code path, run twice.
- */
-export const missingText = (
-  m: Measured<unknown>,
-  locale: VerdictLocale = 'fr',
-): string | undefined => (m.missing ? motifText(m.missing, locale) : m.missingReason);
-
-/** The caveats of a figure, in the reader's language. Same rule as `missingText`. */
-export const noteText = (m: Measured<unknown>, locale: VerdictLocale = 'fr'): string | undefined =>
-  m.caveats ? motifsText(m.caveats, locale) : m.note;
 
 /**
  * `ODbL-1.0` rather than the loose "ODbL" this used to carry, and the spelling matters:
@@ -144,86 +85,6 @@ export const OSM_ORIGIN = (asOf: string): Origin => ({
 export const BDCOM_ORIGIN = (vintageYear: number, licence: string, asOf: string): Origin => ({
   source: `APUR BDCom ${vintageYear}`,
   licence,
-  asOf,
-});
-
-/**
- * Île-de-France Mobilités' rail-stop reference — w6-amenites-corpus.
- *
- * `asOf` is a parameter for the same reason it is on `BDCOM_ORIGIN`: only the database knows
- * it (`ingestion_run.source_as_of` for source `idfm`), and writing a date here would be an
- * unmeasured claim about data this module never reads.
- *
- * **The licence is the STOP reference's, not the validation profile's, and the two differ.**
- * `idfm_station` — the 258 Paris zones d'arrêt this axis measures a distance to — is Licence
- * Ouverte 2.0 (Etalab). `idfm_validation_profile`, loaded beside it, is ODbL. Naming ODbL on a
- * figure derived from the Etalab layer would bind a redistributor to an obligation the data
- * does not carry — the mirror image of the mislabelling `LayerOrigins` was created to stop.
- *
- * **This comment said « and is NOT read by any figure here » until w2-rythme (#208).** That
- * ceased to be true the day the sheet started showing the shape of a station's day, and the
- * two licences stopped being a theoretical hazard: they now sit on the same page, one under
- * each figure. The profile's is `IDFM_PROFILE_ORIGIN` below, and `rythme.test.ts` refuses a
- * day shape stamped with this one.
- */
-export const IDFM_ORIGIN = (asOf: string): Origin => ({
-  source: 'IDFM — référentiel des arrêts',
-  licence: 'Licence Ouverte 2.0 (Etalab)',
-  asOf,
-});
-
-/**
- * Île-de-France Mobilités' hourly validation profiles — w2-rythme (#208).
- *
- * **A different dataset from the one above, and a DIFFERENT LICENCE: ODbL.** They are loaded
- * by the same run, dated by the same `ingestion_run.source_as_of`, joined by the same key and
- * shown on the same sheet — which is exactly what makes copying one licence onto the other
- * easy and wrong. The stop reference gives the distance axis its metres under Licence Ouverte
- * 2.0; these rows give the shape of a day under ODbL, whose share-alike clause a redistributor
- * has to honour. One origin per dataset is the only arrangement in which neither figure can
- * borrow the other's obligation.
- *
- * `asOf` is a parameter for the reason it is on the three constructors above: only the
- * database knows it, and a date typed here would be a claim about data this module never
- * reads. The spelling is `ODbL`, the one `20260907000002` writes on the table itself and the
- * one `src/services/opendata/sources.ts` publishes — not the `ODbL-1.0` of `OSM_ORIGIN`, which
- * is a BDCom vintage identifier and belongs to a figure that joins two layers.
- */
-export const IDFM_PROFILE_ORIGIN = (asOf: string): Origin => ({
-  source: 'IDFM — validations sur le réseau ferré, profils horaires',
-  licence: 'ODbL',
-  asOf,
-});
-
-/**
- * The Ville de Paris terrace and display-stall register — w6-modes (#36).
- *
- * `asOf` is a parameter for the same reason it is on the three above: only the database knows
- * it (`ingestion_run.source_as_of` for source `terrasses`), and a date written here would be a
- * claim about data this module never reads. The licence is the one
- * `src/services/opendata/sources.ts` has published since 26 August and the one
- * `src/i18n/terrasseText.ts` prints beside the premise's own answer — a second spelling of it
- * would put two obligations on screen where there is one.
- */
-export const TERRASSES_ORIGIN = (asOf: string): Origin => ({
-  source: 'Ville de Paris — terrasses et étalages autorisés',
-  licence: 'ODbL',
-  asOf,
-});
-
-/**
- * The PLU protection of commerce and craft, `plub_protcom` — w6-modes (#36).
- *
- * **Informational, with no regulatory value**, and that reserve belongs with the figure rather
- * than beside it: the authority is the Portail des Règles d'Urbanisme, never this table
- * (`docs/PLAN.md` §2.4, `20260825000004_plu_protection.sql`). The reserve is carried on screen
- * by the checklist wording, which is tested; what this constructor owes is the licence and the
- * date, and `asOf` is the Conseil de Paris vote the dataset itself states — read from
- * `ingestion_run.source_as_of`, never typed.
- */
-export const PLU_ORIGIN = (asOf: string): Origin => ({
-  source: 'Ville de Paris — PLU bioclimatique, protection du commerce et de l’artisanat',
-  licence: 'ODbL',
   asOf,
 });
 

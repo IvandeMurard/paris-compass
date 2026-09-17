@@ -87,76 +87,7 @@ export const DATA_SOURCES: DataSource[] = [
     licenceEn: 'ODbL',
     url: 'https://opendata.paris.fr/explore/dataset/terrasses-autorisations/',
   },
-  // Entered this list on 16 September 2026, the day the trade checklists started counting it —
-  // w6-modes (#36). Loaded since 25 August (`w0-plu`, #9), and rightly absent from here for
-  // three weeks: a dataset is listed once a SCREEN reads it, never once it is loaded.
-  {
-    name: 'PLU bioclimatique — protection du commerce et de l’artisanat',
-    nameEn: 'Bioclimatic PLU — protection of commerce and craft',
-    provider: 'Ville de Paris',
-    providerEn: 'City of Paris',
-    // What the screen counts, and the reserve that has to travel with it. The three flags are
-    // kept apart rather than collapsed: the boutique checklist counts « at least one of the
-    // three », the craft checklist counts `ppa` alone, and those are two different questions.
-    usage:
-      'Protection du commerce et de l’artisanat sur le linéaire de rue, comptée sur les locaux relevés à moins de 25 m dans les checklists métier de la fiche de contexte. Trois protections distinctes — générale, commerce artisanal de proximité, commerce culturel. Informatif, sans valeur réglementaire : l’autorité est le Portail des Règles d’Urbanisme.',
-    usageEn:
-      'Protection of commerce and craft along the street frontage, counted over the premises surveyed within 25 m in the trade checklists of the context sheet. Three distinct protections — general, local craft trade, cultural trade. Informational, with no regulatory value: the authority is the Portail des Règles d’Urbanisme.',
-    licence: 'ODbL',
-    licenceEn: 'ODbL',
-    url: 'https://opendata.paris.fr/explore/dataset/plub_protcom/',
-  },
-  // Entered this list on 15 September 2026, the day `/contexte/:slug` started measuring an
-  // axis from it — w6-amenites-corpus. Loaded since 7 September (`w2-idfm`, #19), and rightly
-  // absent from here for eight days: a dataset is listed once a SCREEN reads it.
-  {
-    name: 'Île-de-France Mobilités — référentiel des arrêts',
-    nameEn: 'Île-de-France Mobilités — stop reference',
-    provider: 'Île-de-France Mobilités',
-    providerEn: 'Île-de-France Mobilités',
-    // What this layer measures, and what it does not. The hourly validation profiles are a
-    // SEPARATE dataset with a separate licence, and they have their own entry below since
-    // w2-rythme (#208) — until then this sentence said they served no figure, which was true
-    // for eight days and stopped being true the day the sheet drew the shape of a day.
-    usage:
-      'Distance à l’arrêt ferré le plus proche — métro, RER, tramway — sur la fiche de contexte d’une adresse. 258 arrêts dans Paris. Les bus n’y sont pas. Les profils horaires de validation sont un autre jeu, sous une autre licence : voir la ligne suivante.',
-    usageEn:
-      'Distance to the nearest rail stop — metro, RER, tram — on the context sheet of an address. 258 stops inside Paris. Buses are not in it. The hourly validation profiles are a separate dataset under a separate licence: see the next row.',
-    // The stop reference and the validation profiles carry DIFFERENT licences, and each figure
-    // names its own. Naming ODbL here would bind a redistributor to an obligation the distance
-    // does not carry; naming Etalab on the shape would release them from one it does.
-    licence: 'Licence Ouverte 2.0 (Etalab) — référentiel des arrêts',
-    licenceEn: 'Open Licence 2.0 (Etalab) — stop reference',
-    url: 'https://data.iledefrance-mobilites.fr/explore/dataset/zones-d-arrets/',
-  },
-  // Entered this list on 17 September 2026, the day `/contexte/:slug` started SHOWING the shape
-  // of a station's day — w2-rythme (#208). Loaded since 7 September with the stop reference
-  // above and rightly absent from here for ten days: a dataset is listed once a screen reads
-  // it. Its own row rather than a clause in the one above, because the two carry two licences
-  // and a reader of this page has to be able to tell which obligation attaches to which figure.
-  {
-    name: 'Île-de-France Mobilités — validations, profils horaires',
-    nameEn: 'Île-de-France Mobilités — validations, hourly profiles',
-    provider: 'Île-de-France Mobilités',
-    providerEn: 'Île-de-France Mobilités',
-    usage:
-      'La forme de la journée de l’arrêt le plus proche, sur la fiche de contexte d’une adresse : la part de la journée de cette station tombant dans chaque tranche horaire, un jour ouvré hors vacances scolaires. Une PART, jamais un compte — la source ne publie aucun volume, donc deux stations ne se comparent pas sur leur fréquentation. Et une validation se compte à la montée : le profil dit d’où l’on part, pas où l’on arrive. Aucune note, aucun score : ce constat n’entre pas dans le verdict.',
-    usageEn:
-      'The shape of the nearest stop’s day, on the context sheet of an address: the share of that station’s own day falling in each hour bucket, on a term-time working day. A SHARE, never a count — the source publishes no volume, so two stations cannot be compared on how busy they are. And a validation is counted on boarding: the profile says where people depart from, not where they arrive. No score and no rating: this finding does not enter the verdict.',
-    licence: 'ODbL',
-    licenceEn: 'ODbL',
-    // A SEARCH on the family and not a dataset id, which is the one thing that cannot be
-    // pinned here: IDFM republishes this family every quarter under an id that never settles
-    // into one spelling (`20260907000002`'s header, and `scripts/ingest/lib/idfmOpendata.ts`,
-    // which resolves it by title on every run for the same reason). Measured 17 September
-    // 2026: the family id a reader would guess,
-    // `…/explore/dataset/validations-reseau-ferre-profils-horaires-par-jour-type/`, answers
-    // **404**, while this search answers **200** and lists all eight current editions. Pinning
-    // the quarter that happens to be loaded today would repeat `#56` on the page whose whole
-    // job is to say where a figure comes from.
-    url: 'https://data.iledefrance-mobilites.fr/explore/?q=validations+profils+horaires+par+jour+type',
-  },
-  // Deliberately absent, and the rule is the same for all three: a dataset is listed here once
+  // Deliberately absent, and the rule is the same for all four: a dataset is listed here once
   // a **screen reads it**, not once it is loaded. Claiming a provenance the interface does not
   // have is the one thing this product cannot afford.
   //   · Sirene — loaded (`scripts/ingest/sirene.ts`), client written

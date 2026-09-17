@@ -82,10 +82,6 @@ export const UI = {
   'map.env.risks': { fr: 'Risques recensés :', en: 'Recorded risks:' },
   'map.env.noRisk': { fr: 'Aucun dans 1 km', en: 'None within 1 km' },
   'map.na': { fr: 'n/d', en: 'n/a' },
-  // #145 — distinct de `map.na`, et c'est tout l'objet du ticket. « n/d » dit que la valeur n'est
-  // pas disponible ; celle-ci dit que la SOURCE n'a pas répondu, donc que rien n'a été mesuré.
-  // Confondre les deux fait lire une panne comme une absence mesurée.
-  'map.unreachable': { fr: 'source injoignable', en: 'source unreachable' },
   'map.zoomIn': { fr: 'Zoomer', en: 'Zoom in' },
   'map.zoomOut': { fr: 'Dézoomer', en: 'Zoom out' },
   'map.locate': { fr: 'Me localiser', en: 'Locate me' },
@@ -257,40 +253,8 @@ export const UI = {
     en: 'Compass — find a commercial space in Île-de-France by its surroundings',
   },
   'home.metaDescription': {
-    fr: 'Ce que les données publiques disent de l’environnement d’une adresse parisienne : passage, desserte, services à pied — et ce qui manque.',
-    en: 'What public open data says about the surroundings of a Paris address: footfall, transit, services on foot — and what is missing.',
-  },
-
-  // Home — w6-contexte (#119), step 3. One field, one sentence, three examples, nothing else
-  // above the fold. The editorial content stayed on /presentation; the map moved to /carte.
-  'home.sentence': {
-    fr: 'Entrez une adresse parisienne : Compass dit ce que les données publiques savent de son environnement, et ce qu’elles ne savent pas.',
-    en: 'Enter a Paris address: Compass says what public data knows about its surroundings, and what it does not.',
-  },
-  'home.placeholder': {
-    fr: 'Par exemple : 12 rue de Bretagne, Paris',
-    en: 'For example: 12 rue de Bretagne, Paris',
-  },
-  'home.submit': { fr: 'Voir le contexte', en: 'See the context' },
-  'home.fieldLabel': { fr: 'Adresse', en: 'Address' },
-  'home.examples': { fr: 'Ou essayez :', en: 'Or try:' },
-  'home.searching': { fr: 'Recherche de l’adresse…', en: 'Looking up the address…' },
-  'home.notFound': {
-    fr: 'Adresse introuvable dans la Base Adresse Nationale. Vérifiez l’orthographe, ou explorez la carte.',
-    en: 'Address not found in the Base Adresse Nationale. Check the spelling, or explore the map.',
-  },
-  'home.noAddress': { fr: 'Pas d’adresse en tête ?', en: 'No address in mind?' },
-  'home.openMap': { fr: 'Explorer la carte', en: 'Explore the map' },
-  'home.readMore': { fr: 'Ce que Compass fait, et refuse de faire', en: 'What Compass does, and refuses to do' },
-
-  // Map page — w6-contexte (#119), step 4. Free exploration, demoted to second rank.
-  'map.metaTitle': {
-    fr: 'Carte des locaux commerciaux parisiens dans leur environnement',
-    en: 'Map of Paris commercial spaces in their surroundings',
-  },
-  'map.metaDescription': {
-    fr: 'Carte gratuite des locaux commerciaux parisiens replacés dans leur environnement : commerces, transports, écoles, bruit et qualité de l’air, à partir de données publiques.',
-    en: 'Free map of Paris commercial spaces in context: shops, transport, schools, noise and air quality, all from public open data.',
+    fr: 'Carte gratuite des locaux commerciaux d’Île-de-France replacés dans leur environnement : commerces, transports, écoles, bruit, qualité de l’air et loyers de référence, à partir de données publiques.',
+    en: 'Free map of commercial spaces in Île-de-France in context: shops, transport, schools, noise, air quality and reference rents, all from public open data.',
   },
 } as const;
 

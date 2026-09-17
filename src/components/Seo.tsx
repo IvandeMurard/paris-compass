@@ -1,6 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 import { SITE_NAME, SITE_URL } from '@/content/site';
-import { localizePath, useLocale } from '@/i18n/locale';
+import { useLocale } from '@/i18n/locale';
 
 interface SeoProps {
   title: string;
@@ -16,11 +16,7 @@ interface SeoProps {
 const Seo = ({ title, description, path, type = 'website', jsonLd = [], noindex }: SeoProps) => {
   const { locale } = useLocale();
   const frPath = path === '/' ? '/' : path;
-  // Derived, never passed in. Two routes are served at an English path that is not the French
-  // one prefixed — `/contexte` and `/carte` — and half 1 of w6-contexte handed that exception
-  // to the one page that needed it as an `enPath` prop. A second exception is what turns that
-  // into a rule nobody applies twice, so `localizePath` owns it and every caller inherits it.
-  const enPath = localizePath(path, 'en');
+  const enPath = path === '/' ? '/en' : `/en${path}`;
   const url = `${SITE_URL}${locale === 'en' ? enPath : frPath}`;
   const fullTitle = path === '/' ? title : `${title} | ${SITE_NAME}`;
 

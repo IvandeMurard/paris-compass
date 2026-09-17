@@ -18,18 +18,14 @@ const ORIGIN = OSM_ORIGIN('2026-08-15');
 function scores(overrides: Partial<AreaScores> = {}): AreaScores {
   const at = (n: number) => withValue(n, ORIGIN, 'derived');
   return {
-    density: at(65),
-    services: at(65),
-    rail: at(65),
-    alimentaire: at(65),
     walkability: at(70),
     schools: at(60),
     healthcare: at(60),
     groceries: at(60),
     parks: at(60),
     transit: at(60),
-    footfall: withValue(50, ORIGIN, 'estimated', [{ kind: 'mandataire_passage' }]),
-    noise: withValue(20, ORIGIN, 'estimated', [{ kind: 'bruit_modelise' }]),
+    footfall: withValue(50, ORIGIN, 'estimated', 'proxy'),
+    noise: withValue(20, ORIGIN, 'estimated', 'roads only'),
     ...overrides,
   };
 }
@@ -94,7 +90,7 @@ describe('matchesPremise', () => {
 
     it('never excludes on a score it could not compute', () => {
       const f = filters({ amenityScores: { ...NO_FILTER.amenityScores, groceries: 80 } });
-      const blind = premise({ scores: scores({ groceries: unavailable(ORIGIN, { kind: 'couche_absente', layer: 'amenities' }) }) });
+      const blind = premise({ scores: scores({ groceries: unavailable(ORIGIN, 'no amenity layer') }) });
       expect(matchesPremise(blind, f, false)).toBe(true);
     });
 
@@ -140,7 +136,7 @@ describe('matchesPremise', () => {
     });
 
     it('keeps a premise whose walkability is unknown', () => {
-      const blind = premise({ scores: scores({ walkability: unavailable(ORIGIN, { kind: 'couche_absente', layer: 'amenities' }) }) });
+      const blind = premise({ scores: scores({ walkability: unavailable(ORIGIN, 'no layer') }) });
       expect(matchesPremise(blind, filters({ walkabilityScore: [80, 100] }), false)).toBe(true);
     });
   });

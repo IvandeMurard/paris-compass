@@ -12,15 +12,6 @@ const OVERPASS_ENDPOINTS = [
 export const OVERPASS_HOSTS = OVERPASS_ENDPOINTS.map((url) => new URL(url).host);
 
 /**
- * How long one mirror is given before the request is abandoned.
- *
- * Sized for `/carte`, where the visitor asked for OpenStreetMap data and a mirror that answers
- * in fifty seconds is still an answer. It is deliberately NOT the bound the context sheet
- * lives under: see `budgetMs`.
- */
-export const MIRROR_TIMEOUT_MS = 70000;
-
-/**
  * Every Overpass mirror refused the request.
  *
  * Distinguished from a generic failure because the two call for different words on screen.
@@ -173,26 +164,6 @@ const ROAD_WEIGHT: Record<string, number> = {
   secondary: 2,
 };
 
-export interface OverpassOptions {
-  /**
-   * Total wall-clock the caller is willing to spend, across every mirror — w6-fiche-robuste
-   * (#156), geste 2.
-   *
-   * **The budget belongs to the caller, not to this module.** Three mirrors at
-   * `MIRROR_TIMEOUT_MS` is the right shape for `/carte`: the visitor asked for OpenStreetMap
-   * data, the screen is the map, and waiting is the price of the answer. The context sheet has
-   * a different contract — it owes a verdict *or its refusal* in a readable delay — and it
-   * cannot express that here by picking a smaller per-request timeout, because what it needs
-   * bounded is the walk, not the hop. Measured on 13 September 2026 in production: three
-   * mirrors, no budget, **2 min 20** of « Lecture du quartier en cours… » before the sheet
-   * could say anything at all (`DIAGNOSTIC.md` §50).
-   *
-   * Left out, nothing changes: each mirror gets its own timeout and the walk lasts as long as
-   * it lasts.
-   */
-  budgetMs?: number;
-}
-
 /**
  * Fetch every OpenStreetMap feature Compass needs for a map viewport, in one request.
  *
@@ -200,28 +171,18 @@ export interface OverpassOptions {
  * same second are refusing for a local reason, and retrying them only spends the user's
  * time while the map stays blank. The caller is told, once, and offers a Retry button.
  */
-export async function fetchOverpassSnapshot(
-  bbox: BBox,
-  { budgetMs }: OverpassOptions = {},
-): Promise<OverpassSnapshot> {
+export async function fetchOverpassSnapshot(bbox: BBox): Promise<OverpassSnapshot> {
   const query = buildQuery(bbox);
-  const startedAt = Date.now();
   let data: OverpassResponse | null = null;
   let lastError: unknown = null;
   let refusals = 0;
 
   for (const endpoint of OVERPASS_ENDPOINTS) {
-    // A mirror is only tried with the time that is actually left. The budget bounds the walk,
-    // so a first mirror that burns all of it means the second is not attempted at all —
-    // which is the point: the caller asked for an answer within a delay, not for three tries.
-    const left = budgetMs === undefined ? MIRROR_TIMEOUT_MS : budgetMs - (Date.now() - startedAt);
-    if (left <= 0) break;
-
     try {
       data = await fetchJson<OverpassResponse>(endpoint, {
         cacheKey: `overpass:${bboxKey(bbox)}`,
         maxAgeMs: 60 * 60 * 1000,
-        timeoutMs: Math.min(MIRROR_TIMEOUT_MS, left),
+        timeoutMs: 70000,
         // A well-formed response with zero elements is a legitimate answer, not a failure:
         // some viewports genuinely hold nothing. Only a malformed payload is an error.
         validate: (payload) =>
@@ -243,9 +204,6 @@ export async function fetchOverpassSnapshot(
     const message = lastError instanceof Error ? lastError.message : 'Overpass unavailable';
     throw new OverpassUnreachableError(message, {
       // Every mirror refused at the network layer: the block is on this side of the wire.
-      // A budget that runs out stops the walk early, so this cannot be reached under one —
-      // which is the honest answer: a caller who gave up after ten seconds has not observed
-      // three mirrors refusing, and must not claim to have.
       blocked: refusals === OVERPASS_ENDPOINTS.length,
       cause: lastError,
     });

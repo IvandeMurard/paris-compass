@@ -8,8 +8,6 @@
  */
 
 import {
-  BDCOM_ORIGIN,
-  IDFM_ORIGIN,
   buildIndex,
   noiseLabel,
   scoreLabel as coreScoreLabel,
@@ -18,8 +16,6 @@ import {
   OSM_ORIGIN,
   type Amenity,
   type AmenityCategory,
-  type LayerOrigins,
-  type NeighbourhoodContext,
   type PremisePoint,
   type Road,
   type ScoringIndex,
@@ -46,19 +42,7 @@ const isAmenityCategory = (value: string): value is AmenityCategory =>
  * calls on the main thread. Building the index once and querying it per premise is the
  * whole fix.
  */
-/**
- * The snapshot as the core's own context type, before it is indexed.
- *
- * Split out of `buildScoringIndex` for `ContextMap` — w6-contexte (#119), step 5. A `GridIndex`
- * is built for lookup by radius and gives no way back to the points it holds, and a mini-map
- * needs the points themselves. Re-deriving them beside the index would mean two conversions
- * from one snapshot, free to drift apart: the map would then draw something the figures were
- * not computed on, which is the one thing a map beside a figure must never do.
- */
-export function toNeighbourhoodContext(
-  snapshot: OverpassSnapshot,
-  bounds?: BBox,
-): NeighbourhoodContext {
+export function buildScoringIndex(snapshot: OverpassSnapshot, bounds?: BBox): ScoringIndex {
   const amenities: Amenity[] = [];
   for (const poi of snapshot.pois) {
     if (!isAmenityCategory(poi.category)) continue;
@@ -78,48 +62,21 @@ export function toNeighbourhoodContext(
   }));
 
   // `loaded` comes from the snapshot, never from these array lengths: an empty array here
-  // would otherwise be indistinguishable from a layer that failed to arrive. The same rule
-  // is why the two corpus layers are empty AND absent from `loaded`: `/carte` reads one
-  // Overpass snapshot and nothing else, so `services` and `stations` are not loaded here and
-  // the axes that read them come back `unavailable` rather than as a measured zero.
-  return {
-    amenities,
-    premises,
-    roads,
-    services: [],
-    nearestStationM: null,
-    bounds,
-    loaded: snapshot.loaded,
-  };
-}
-
-export function buildScoringIndex(snapshot: OverpassSnapshot, bounds?: BBox): ScoringIndex {
-  return buildIndex(toNeighbourhoodContext(snapshot, bounds));
+  // would otherwise be indistinguishable from a layer that failed to arrive.
+  return buildIndex({ amenities, premises, roads, bounds, loaded: snapshot.loaded });
 }
 
 /**
- * Every layer `/carte` ACTUALLY loads comes out of one Overpass snapshot — amenities, roads
- * *and* premises, the latter from OSM's `shop=vacant` tagging rather than BDCom.
+ * Every layer of the browser's context comes out of one Overpass snapshot — amenities,
+ * roads *and* premises, the latter from OSM's `shop=vacant` tagging rather than BDCom.
+ * So the three per-layer origins are legitimately identical here, and `uniformOrigins`
+ * says that deliberately instead of leaving it assumed.
  *
- * **But `uniformOrigins` stopped being usable here on 15 September 2026** —
- * w6-amenites-corpus — and the reason is the one that type was created for. There are now
- * five layers, two of which this screen never loads; stamping OpenStreetMap on them would
- * make their absent figures say « OpenStreetMap is silent » when what is silent is APUR's
- * survey and IDFM's stop reference. `unavailable()` puts the origin on a MISSING figure
- * precisely so a reader learns which dataset is not there, so a wrong origin on a missing
- * figure is not a harmless placeholder — it is a false statement about an outage.
- *
- * Their real origins carry no date here: this screen never reads `compass_vintages` or
- * `ingestion_run`, so it does not know them, and « not loaded » is the only thing it may say.
+ * This is exactly what stops being true when the front starts reading `compass_*`
+ * (PLAN.md §2.7): the premises origin becomes APUR's, and the type will not let it be
+ * forgotten. On the agent side that day has already come — see `mcp-server/src/context.ts`.
  */
-const originsForNow = (): LayerOrigins => {
-  const osm = OSM_ORIGIN(new Date().toISOString().slice(0, 10));
-  return {
-    ...uniformOrigins(osm),
-    services: BDCOM_ORIGIN(2023, 'non lue sur cet écran', 'non lu sur cet écran'),
-    stations: IDFM_ORIGIN('non lu sur cet écran'),
-  };
-};
+const originsForNow = () => uniformOrigins(OSM_ORIGIN(new Date().toISOString().slice(0, 10)));
 
 /**
  * Scores for one point, provenance included.

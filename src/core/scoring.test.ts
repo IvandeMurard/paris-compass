@@ -41,21 +41,16 @@ function offset(point: Point, northM: number, eastM: number): Point {
 }
 
 /**
- * A context whose five layers all loaded and simply hold nothing — the "genuinely empty
+ * A context whose three layers all loaded and simply hold nothing — the "genuinely empty
  * neighbourhood" case. Tests that need the other case, a layer that never arrived, pass
  * `loaded` explicitly.
- *
- * `nearestStationM: null` on a LOADED `stations` layer is the empty case for rail: the layer
- * answered and found no stop, which is what the Bois de Vincennes actually looks like.
  */
 function context(partial: Partial<NeighbourhoodContext> = {}): NeighbourhoodContext {
   return {
     amenities: [],
     roads: [],
     premises: [],
-    services: [],
-    nearestStationM: null,
-    loaded: ['amenities', 'roads', 'premises', 'services', 'stations'],
+    loaded: ['amenities', 'roads', 'premises'],
     ...partial,
   };
 }
@@ -187,7 +182,7 @@ describe('scoreLocation', () => {
   it('does not report silence when the road layer is missing', () => {
     const scores = scoreLocation(
       MONTORGUEIL,
-      buildIndex(context({ loaded: ['amenities', 'premises', 'services', 'stations'] })),
+      buildIndex(context({ loaded: ['amenities', 'premises'] })),
       ORIGINS,
     );
 
@@ -195,14 +190,13 @@ describe('scoreLocation', () => {
     expect(scores.noise.missingReason).toContain('unmeasured');
     // The layers that did load are unaffected: absence is per-layer, not all-or-nothing.
     expect(scores.walkability.value).toBe(0);
-    expect(scores.services.value).toBe(0);
     expect(scores.footfall.value).toBe(0);
   });
 
   it('withholds a composite when either layer behind it is missing', () => {
     const noPremises = scoreLocation(
       MONTORGUEIL,
-      buildIndex(context({ loaded: ['amenities', 'roads', 'services', 'stations'] })),
+      buildIndex(context({ loaded: ['amenities', 'roads'] })),
       ORIGINS,
     );
     expect(noPremises.footfall.value).toBeNull();
@@ -303,18 +297,7 @@ describe('scoreLocation', () => {
 describe('scoreLocation attributes each metric to the layer it reads', () => {
   const OSM: Origin = { source: 'OpenStreetMap via Overpass', licence: 'ODbL', asOf: '2026-08-24' };
   const APUR: Origin = { source: 'APUR BDCom 2023', licence: 'ODbL', asOf: '2023-06' };
-  const IDFM: Origin = {
-    source: 'IDFM — référentiel des arrêts',
-    licence: 'Licence Ouverte 2.0 (Etalab)',
-    asOf: '2026-03-10',
-  };
-  const MIXED = {
-    amenities: OSM,
-    roads: OSM,
-    premises: APUR,
-    services: APUR,
-    stations: IDFM,
-  };
+  const MIXED = { amenities: OSM, roads: OSM, premises: APUR };
 
   it('names OpenStreetMap on the amenity axes, never the premises source', () => {
     const scores = scoreLocation(MONTORGUEIL, buildIndex(context()), MIXED);
@@ -329,11 +312,7 @@ describe('scoreLocation attributes each metric to the layer it reads', () => {
   it('names both sources on the footfall proxy, which mixes two layers', () => {
     const scores = scoreLocation(MONTORGUEIL, buildIndex(context()), MIXED);
     expect(scores.footfall.source).toContain('APUR BDCom 2023');
-    // The transport half moved from Overpass to IDFM — w6-amenites-corpus. The assertion is
-    // the ticket's whole point in one line: footfall no longer names a public mirror, so no
-    // mirror can blank it.
-    expect(scores.footfall.source).toContain('IDFM');
-    expect(scores.footfall.source).not.toContain('OpenStreetMap');
+    expect(scores.footfall.source).toContain('OpenStreetMap via Overpass');
   });
 
   // A missing figure still has to say which dataset is silent: "unavailable" alone does not
@@ -341,7 +320,7 @@ describe('scoreLocation attributes each metric to the layer it reads', () => {
   it('keeps the right source on a layer that never loaded', () => {
     const scores = scoreLocation(
       MONTORGUEIL,
-      buildIndex(context({ loaded: ['amenities', 'roads', 'services', 'stations'] })),
+      buildIndex(context({ loaded: ['amenities', 'roads'] })),
       MIXED,
     );
     expect(scores.footfall.value).toBeNull();

@@ -38,7 +38,7 @@ Compass answers on six axes at once.
 | --- | --- |
 | **What was here** | florist 2017 → florist 2020 → gone by 2023 |
 | **How the street behaves** | half the units turned over in three years — and the empty ones refilled |
-| **What it costs** | median *fonds* between 160 000 and 170 000 €, 220 000 € for a café |
+| **What it costs** | median *fonds* 160 000 €, 220 000 € for a café |
 | **What is moving now** | an insolvency filed here is public months before any listing |
 | **What is around it** | schools, healthcare, food, parks and transit counted within **800 m**, aggregated into walkability |
 | **What the environment is worth** | air quality **measured** (Copernicus), natural and technological risks within **1 km**, noise **modelled** from major roads at 500 m |
@@ -58,7 +58,7 @@ If a restaurant occupied the unit, the extraction, grease trap and power are pro
 Rue d'Argout turned over half its shops in three years — but it also filled its three empty units. Churning upward, not dying. And turnover only means something against its own trade: of the cafés trading in 2017, **77% were still trading six years later around Les Halles, 56% in the quartier du Mail**. Same city, same trade, a different bet.
 
 **What did people actually pay?**
-25 661 goodwill sales published with their price since 2015. For the 5 971 tied to a single shopfront, the median Paris *fonds* changes hands **between 160 000 and 170 000 €** — a range, not a point, because goodwill prices are declared in round numbers: the median sits on a step and moves in jumps, so a single figure would be precise about something the source is not. The trade decides almost everything.
+25 496 goodwill sales published with their price since 2015. For the 5 934 tied to a single shopfront, the median Paris *fonds* changes hands at **160 000 €** — and the trade decides almost everything.
 
 | Food shop | Café / restaurant | Clothing | Personal services |
 | --- | --- | --- | --- |

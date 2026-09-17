@@ -490,38 +490,6 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 - **Comment.** opendata.paris.fr registre des autorisations de changement d'usage. Comptage dans 200 m, millésime. Phrase : « n autorisations dans 200 m ».
 - **Doctrine.** Densité d'autorisations, pas un taux Airbnb au noir. Ça sépare deux rues.
 - **Fait quand.** Le Marais touristique et une rue du 20e résidentiel n'ont pas le même n à 200 m.
-- **Avancement, mesuré le 10 septembre 2026 — quatre migrations POSÉES, source chargée.**
-  Endpoint vérifié (`scripts/porte/catalogue.json`) : registre des autorisations de changement
-  d'usage sur opendata.paris.fr (`registre-des-autorisations-de-changement-dusage-pour-les-meubles`),
-  ODbL confirmée, aucune édition figée coexistante — contrairement à IDFM, `DIAGNOSTIC.md` §45.
-  Table `meuble_autorisation`, fonction `compass_meubles_within` (densité par rayon, défaut
-  200 m, doctrine écrite dans le `comment on function`, donc lue par PostgREST).
-  `npm.cmd run ledger` rend **PASS 63/63, 0 écart** ; `freshness` affiche `meubles` — cadence
-  `annual`, **265 lignes**, à jour.
-
-  **L'enregistrement dans `ingestion_run` a été délibérément séparé, et c'est ce qui a bien
-  fonctionné** : #70 lit les migrations sur disque qu'elles soient posées ou non, donc déclarer
-  la source sans cron ni premier chargement aurait rouvert le trou que #70 a fermé. L'enum de
-  cadence, la ligne `ingestion_run`, le cron d'`ingestion.yml` et le premier passage de
-  `scripts/ingest/meubles.ts` sont partis **dans la même fenêtre**, le 10 septembre.
-
-  **Le budget anon a été mesuré deux fois, et la première ne valait rien.** La ligne portait
-  500 pages / 50 ms — un plafond volontairement large, jamais une mesure, la session d'écriture
-  travaillant dans un arbre isolé sans `DATABASE_URL`. Remesuré après la pose : 41 pages sur
-  trois passages. Puis `20260910000003` a redéfini la fonction pour qu'elle appelle
-  `compass_record_question` — elle écrit désormais au journal —, et la mesure est passée à
-  **78 pages sur trois exécutions d'`eval`, puis 80 à la quatrième**. Plafond posé à **90** par
-  marge, avec sa cause écrite. C'est le défaut [#117](https://github.com/IvandeMurard/paris-compass/issues/117) :
-  rien ne relie une ligne de budget au corps de fonction qu'elle a mesuré.
-
-  **L'illustration**, jamais la preuve : les facettes `arrondissement` du jeu source donnent
-  50 décisions cumulées sur 75003+75004 (le Marais) contre 4 sur 75020, mesuré le 8 septembre.
-  **La preuve** est `I55` — recalcul indépendant de `compass_meubles_within` sur les 265
-  décisions, chacune comme point de sonde — et son miroir `I56`, qui rougit sur un corpus vide.
-  Les deux sont **verts contre le distant** depuis le 10 septembre. `I56` ne garde en revanche
-  **pas** la politique RLS, contrairement à ce que son en-tête a affirmé un temps : `@as anon`
-  pose un claim JWT et non un rôle, et c'est l'issue
-  [#102](https://github.com/IvandeMurard/paris-compass/issues/102).
 
 #### w4-ecoles — Effectifs scolaires
 
@@ -613,21 +581,7 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 - **Doctrine.** Upstream. Absent sur cette couche ≠ rien à saisir — légender la couverture de chaque signal.
 - **Fait quand.** L'ouverture de l'app sans requête montre des signaux de libération, chacun avec source et date, et une légende de couverture.
 
-#### w6-modes — Trois modes métier — **fait le 16 septembre 2026**
-
-> **Livré.** Un mode est un ordre de lecture et une checklist ; il réordonne les axes, les
-> clauses du verdict et les alertes sans toucher à une seule valeur, et il n'existe aucune note
-> par métier. Trois des neuf lignes de checklist sont répondues par le corpus — terrasses, et les
-> deux protections du PLU, c'est-à-dire deux des trois dépendances de ce ticket ; les six autres
-> nomment le ticket qui leur manque. Ce ticket redit le bloc « Produit → Trois modes métier »
-> ci-dessous, qui porte la même clôture. Détail : `docs/tickets/w6-modes.md`. **L'ordre de tête
-> des trois modes attend une décision d'Ivan.**
->
-> **Amendé le 16 septembre 2026 par `w6-mode-raison` (#197)** : cet ordre attend toujours la
-> décision, mais il ne l'attend plus en silence. Chacun des neuf axes de tête porte à l'écran sa
-> raison et le **statut** de cette raison — mesurée, mesurable et non mesurée, ou arbitrage —
-> dans les deux langues, le statut étant lu d'une énumération et jamais d'une phrase. Détail :
-> `docs/tickets/w6-mode-raison.md`.
+#### w6-modes — Trois modes métier
 
 - Priorité **P1** · vague 6 · Q4 2026
 - Dépend de : `w0-fiche`, `w1-terrasses`, `w0-plu`
@@ -636,12 +590,7 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 - **Doctrine.** Pas un score par métier. Une checklist par métier.
 - **Fait quand.** Le basculement de mode réordonne les axes et les alertes, sans inventer de chiffre.
 
-#### w6-dossier — Dossier exportable d'une adresse — **fait le 15 septembre 2026**
-
-> **Livré.** Le fichier part d'une fiche et de nulle part ailleurs, et chaque chiffre y descend
-> avec sa source, sa licence, son millésime, sa méthode — plus la formule, ses constantes, le
-> rayon et l'opérande, sans quoi rien ne se refait. Ce ticket redisait `docs/PLAN.md` §2.6, qui
-> porte la même clôture. Détail : `docs/tickets/w6-dossier.md`. Pas de PDF — décision d'Ivan.
+#### w6-dossier — Dossier exportable d'une adresse
 
 - Priorité **P1** · vague 6 · Q4 2026
 - Dépend de : `w0-fiche`, `w0-provenance`
@@ -726,7 +675,7 @@ jamais un rangement dans le voisin.
 | BDCom 2017 / 2020 / 2023 | APUR | ingérée | 2017–2020 personnalisée (non redistribuable) · 2023 ODbL | local à vitrine, identifiant stable | Fleuriste 2017 → fleuriste 2020 → disparu en 2023. Rotation rapportée au tronçon. | Vacance 2023 non calculable. 2017/2020 withheld à l'anonyme. Ne pas comparer les effectifs bruts (84k → 60k). |
 | BODACC | DILA | ingérée | Licence Ouverte | adresse, pas le local | Cession de fonds avec prix, procédure collective — signal que ça se libère, des mois avant l'annonce. | Nomme une adresse. 69 % des locaux partagent le numéro → probable, pas établi. |
 | Sirene géolocalisé | INSEE | ingérée | Licence Ouverte 2.0 | établissement, pas le local | Corroboration, dates de création/cessation en continu. | Un SIRET n'est pas une vitrine. Un local peut être vide avec SIRET ouvert. |
-| PLU linéaires protégés (plub_protcom) | Ville de Paris | ingérée · affichée — **statut remesuré le 16/09/2026** : 5 107 linéaires chargés le 25/08 par `w0-plu` (#9), **29 338 des 85 418 locaux sur linéaire protégé** — 26 074 `pca`, 3 809 `ppa`, 828 `pcc` — et lus à l'écran depuis `w6-modes` (#36). La ligne disait « planifiée … pas encore ingéré » trois semaines après le chargement | ODbL (déclarée par le portail, mesurée le 05/09/2026) | linéaire de façade | Sur ce linéaire, le RDC ne peut pas changer de destination. | Informatif, sans valeur réglementaire. **La colonne `plu_commerce_artisanat` est `pca`, la protection GÉNÉRALE ; celle qui vise l'artisanat est `ppa`, `plu_commerce_proximite`** — le nom de colonne et le sens du drapeau ne coïncident pas. |
+| PLU linéaires protégés (plub_protcom) | Ville de Paris | planifiée | ODbL (déclarée par le portail, mesurée le 05/09/2026) | linéaire de façade | Sur ce linéaire, le RDC ne peut pas changer de destination. | Informatif, sans valeur réglementaire. Pas encore ingéré. |
 | Chantiers de voirie | Ville de Paris | planifiée | ODbL (déclarée par le portail, mesurée le 05/09/2026) | polygone + dates | 40 m d'un chantier perturbant, sept. 2026 → mars 2027. | Fait d'exposition, jamais une prévision d'impact sur le CA. |
 | Terrasses et étalages | Ville de Paris | ingérée · affichée | ODbL (mesuré le 26/08) | autorisation géolocalisée, rattachée par numéro de rue | Une terrasse permanente est déjà autorisée sur cette façade — trois états, `inconnu` quand plusieurs locaux partagent le numéro. | Autorisation ≠ terrasse installée aujourd'hui : ni date de délivrance, ni expiration, ni statut dans la source. |
 | DIA / droit de préemption commercial | Ville de Paris | **écartée — non publiée, vérifié le 27/08** | aucune — seul le périmètre d'application est en open data | — | — | Les DIA elles-mêmes ne sont pas publiées ; seules les parcelles soumises au droit le sont (`plu-annexes-droit-de-preemption-urbain-renforce`). Piste close, `w1-dia`. |
@@ -739,7 +688,7 @@ jamais un rangement dans le voisin.
 | Airparif | Airparif | nouvelle | Open data Airparif | maille Île-de-France | Qualité de l'air mesurée / modelée localement. | Si ça ne sépare pas deux rues, ne pas l'afficher comme discriminant. |
 | Bruitparif | Bruitparif | planifiée | Open data air-bruit | maille / façade selon couche | Bruit mesuré ou modelé par l'observatoire, à la place du proxy « routes à 500 m ». | Garder mesuré vs modelé. Pas d'indice unique air-bruit. |
 | Mapillary (imagerie de rue) | Mapillary / contributeurs | nouvelle | CC-BY (vérifier millésime et attribution) | façade, cliché daté | Façade au rideau baissé / mention « à louer » sur cliché du 12 mars 2026. | Ce n'est pas vacant=true. Google Street View : ToS hostile, à écarter. |
-| Meublés touristiques (changement d'usage) | Ville de Paris | planifiée — endpoint choisi et migration préparée, non posée (8/09/2026) | Open Database License (ODbL), mesurée le 8/09/2026 | décision (n°, date, adresse, arrondissement, nb de logements), 265 lignes | n autorisations de changement d'usage dans 200 m. | Déclaré ≠ stock Airbnb réel. Suffit à séparer deux rues. |
+| Meublés touristiques (changement d'usage) | Ville de Paris | nouvelle | Open data Paris | adresse / autorisation | n autorisations de changement d'usage dans 200 m. | Déclaré ≠ stock Airbnb réel. Suffit à séparer deux rues. |
 | Effectifs scolaires | Ministère de l'Éducation | nouvelle | Licence Ouverte | établissement | 1 200 élèves à 400 m. | Rythme scolaire, vacances, pas une demande annuelle lissée. |
 | ABF / monuments / SPR | État / Ville | nouvelle | Open data (périmètres MH, SPR) | périmètre | Façade dans le champ de visibilité d'un MH : enseigne et extraction soumises à l'ABF. | Informatif, pas un avis d'architecte. |
 | ERP / accessibilité PMR | Registres publics | nouvelle | selon registre | établissement | Capacité ERP, accessibilité déclarée. | Couverture inégale. n/a si silencieux. |
@@ -782,7 +731,7 @@ L'IA ne doit pas entrer dans src/core/. Le cœur reste déterministe, testé, re
 
 Vue par défaut sans adresse. Cessations, procédures, DIA, rideaux. Légender la couverture de chaque signal pour ne pas recréer la fausse absence.
 
-**Trois modes métier** — **fait le 16 septembre 2026**, `w6-modes` (#36), qui redit ce bloc.
+**Trois modes métier**
 
 Restauration, boutique, artisanat. Même corpus, phrases et alertes différentes. Checklist, pas score.
 

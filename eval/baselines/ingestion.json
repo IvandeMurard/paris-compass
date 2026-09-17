@@ -101,15 +101,12 @@
       "sql": "select count(*) n from public.bodacc_establishment where operator_confirmed = false"
     },
     "prix_median_local_identifiable": {
-      "value": 165000,
+      "value": 160868,
       "sql": "select round(percentile_cont(0.5) within group (order by e.price_eur))::text as n from public.bodacc_establishment e join public.bodacc_announcement a on a.id = e.announcement_id join public.premise_location l on l.street_key = e.street_key and l.num = e.house_number_int where e.price_eur is not null and e.geom is not null and a.family = 'vente' and (select count(*) from public.premise_location q where q.street_key = l.street_key and q.num = l.num) = 1",
       "publie": {
         "pas": 10000,
-        "bas": 160000
-      },
-      "regele_le": "2026-09-13",
-      "regele_depuis": 160868,
-      "regele_pour": "#135 — la mediane a atteint 165 000 EUR, soit le MILIEU du pas de 10 000, apres l'ingestion BODACC du 11 septembre 2026 a 08:12 UTC. Deux mesures prises sur le distant ce jour-la : l'arrondi serait parti a 170 000, 5 000 EUR au-dessus de la mesure, l'ecart maximal qu'un arrondi puisse produire ; et 165 000 ne revient que 10 fois sur 5 971 cessions, le rang median etant le PREMIER du plateau, avec 164 174 juste en dessous — une seule cession de plus faisait rebasculer le chiffre publie a 160 000. Le produit publie donc une TRANCHE depuis le 13 septembre 2026, tranche par Ivan, et le bras la juge au Math.floor : voir scripts/eval/drift.ts. Les trois valeurs qu'a prises cette mediane — 160 868, 163 000, 165 000 — tombent dans la meme tranche 160 000-170 000, donc la phrase publiee n'a en realite jamais change. Gel partiel : la derive BODACC de la meme passe (cessions_local_identifiable 5 942 -> 5 971, et les dix autres avertissements) n'est PAS absorbee ici, elle appartient a quelqu'un d'autre."
+        "valeur": 160000
+      }
     },
     "cessions_local_identifiable": {
       "value": 5942,
@@ -117,7 +114,7 @@
     }
   },
   "note_confiance": "La composition de fiabilité est la métrique de qualité du produit : « s'améliorer » veut dire déplacer ces quatre nombres vers etabli. Mesurée sur une cohorte FIXE de 10 000 locaux (les 10 000 plus petits identifiants), choisie pour être comparable d'une exécution à l'autre — pas pour être représentative. Son rôle est de détecter un déplacement, pas de décrire la base.",
-  "note_prix": "Les prix publies dans le README sortent de ces deux mesures, A UNE EXCEPTION PRES, constatee le 13 septembre 2026 : le tableau des medianes PAR METIER (250 000 / 220 000 / 86 000 / 50 000 EUR) n'est garde par aucune baseline, donc rien ne rougit s'il vieillit. Issue ouverte le meme jour. La phrase qui suit decrit la methode de ce tableau, pas sa surveillance. Ils sont groupes sur le code d'activite BDCom du local, jamais sur le champ texte libre de BODACC ou « Restauration rapide » et « Restauration rapide. » sont deux categories distinctes. Et ils sont restreints aux cessions dont le local est seul a son numero : ailleurs on ignore laquelle des vitrines a ete vendue, donc a quel metier rattacher le prix.",
+  "note_prix": "Les prix publies dans le README sortent de ces deux mesures. Ils sont groupes sur le code d'activite BDCom du local, jamais sur le champ texte libre de BODACC ou « Restauration rapide » et « Restauration rapide. » sont deux categories distinctes. Et ils sont restreints aux cessions dont le local est seul a son numero : ailleurs on ignore laquelle des vitrines a ete vendue, donc a quel metier rattacher le prix.",
   "target": "dbefhvmyfmmhjeetdddu via aws-1-eu-west-1.pooler.supabase.com",
   "previous_freezes": [
     {

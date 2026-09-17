@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ZoomIn, ZoomOut, Locate, Navigation2, Loader2 } from 'lucide-react';
 import { usePremises, useAreaEnvironment } from '@/hooks/useOpenData';
 import { useFiltersContext } from '@/providers/FiltersProvider';
-import type { AirQuality, BBox, Reading, RiskInfo } from '@/services/opendata/types';
+import type { BBox } from '@/services/opendata/types';
 import DataSourcesPanel from './DataSourcesPanel';
 import OpenDataErrorNotice from './OpenDataErrorNotice';
 import { useLocale } from '@/i18n/locale';
@@ -27,12 +27,6 @@ const MapView = () => {
 
   const center = { lat: (bbox.south + bbox.north) / 2, lng: (bbox.west + bbox.east) / 2 };
   const { data: environment } = useAreaEnvironment(center.lat, center.lng);
-  // While the query is still in flight there is no reading at all — neither a value nor an
-  // outage. `empty` carries that, and the panel shows `n/d` as it always did; only a lookup that
-  // actually came back `withheld` says so. Guessing « injoignable » during loading would fabricate
-  // an outage, which is the symmetric error of the one #145 is about.
-  const air: Reading<AirQuality> = environment?.air ?? { state: 'empty' };
-  const risks: Reading<RiskInfo> = environment?.risks ?? { state: 'empty' };
 
   // Initialize map
   useEffect(() => {
@@ -176,36 +170,24 @@ const MapView = () => {
         <div className="space-y-1 text-xs">
           <div className="flex justify-between gap-4">
             <span>{t('map.env.air')}</span>
-            {/* #145 — trois lectures, trois états, et le troisième ne se confond plus avec le
-                deuxième. `withheld` dit que la source n'a pas répondu ; `n/d` dit qu'elle a
-                répondu sans valeur. Le 13 septembre, Géorisques échouait et l'écran affichait
-                `n/d` : un visiteur lisait une panne comme une absence mesurée. */}
-            <span className={`font-medium ${air.state === 'withheld' ? 'italic text-muted-foreground' : ''}`}>
-              {air.state === 'read'
-                ? `${translateLabel(air.value.label, locale)} (${Math.round(air.value.aqi)})`
-                : air.state === 'withheld'
-                  ? t('map.unreachable')
-                  : t('map.na')}
+            <span className="font-medium">
+              {environment?.air ? `${translateLabel(environment.air.label, locale)} (${Math.round(environment.air.aqi)})` : t('map.na')}
             </span>
           </div>
           <div className="flex justify-between gap-4">
             <span>{t('map.env.pm25')}</span>
-            <span className={`font-medium ${air.state === 'withheld' ? 'italic text-muted-foreground' : ''}`}>
-              {air.state === 'read' && air.value.pm25 !== null
-                ? `${air.value.pm25.toFixed(1)} µg/m³`
-                : air.state === 'withheld'
-                  ? t('map.unreachable')
-                  : t('map.na')}
+            <span className="font-medium">
+              {environment?.air?.pm25 !== null && environment?.air?.pm25 !== undefined
+                ? `${environment.air.pm25.toFixed(1)} µg/m³`
+                : t('map.na')}
             </span>
           </div>
           <div className="flex justify-between gap-4">
             <span>{t('map.env.risks')}</span>
-            <span className={`font-medium text-right ${risks.state === 'withheld' ? 'italic text-muted-foreground' : ''}`}>
-              {risks.state === 'read' && risks.value.labels.length
-                ? risks.value.labels.slice(0, 2).join(', ')
-                : risks.state === 'withheld'
-                  ? t('map.unreachable')
-                  : t('map.env.noRisk')}
+            <span className="font-medium text-right">
+              {environment?.risks?.labels.length
+                ? environment.risks.labels.slice(0, 2).join(', ')
+                : t('map.env.noRisk')}
             </span>
           </div>
         </div>

@@ -7,7 +7,7 @@
  * harness; `MeasuredFigure.tsx` is then only responsible for putting the result on screen.
  */
 
-import { missingText, noteText, type Measured } from '@/core';
+import type { Measured } from '@/core';
 import type { Locale } from '@/i18n/locale';
 
 export const FIGURE_COPY = {
@@ -47,15 +47,10 @@ export function describeFigure(
   const { unit = '/100', display } = options;
 
   // An absent figure is never dressed up with a unit or a label: there is nothing to
-  // qualify. The core's own reason is preferred to the generic wording because the core knows
+  // qualify. `missingReason` is preferred to the generic wording because the core knows
   // which layer was missing and the reader deserves that, not a shrug.
-  //
-  // **Read through `missingText`, not off `missingReason`** — w6-langue-absences (#181). The
-  // field is the core's English; `missingText` renders the same motif in `locale`, which is
-  // what this whole module exists to be given. The generic fallback stays for a `Measured<T>`
-  // built by hand with neither.
   if (measured.value === null) {
-    return { text: c.na, absent: true, caveat: missingText(measured, locale) ?? c.naTitle };
+    return { text: c.na, absent: true, caveat: measured.missingReason ?? c.naTitle };
   }
 
   const text = display ?? `${measured.value}${unit}`;
@@ -63,9 +58,8 @@ export function describeFigure(
   // A note wins over the generic estimate wording: it is the specific thing the core had
   // to say about this figure — truncated coverage, a proxy's limits — and it is worth
   // more than the category the figure belongs to.
-  const note = noteText(measured, locale);
-  if (note) {
-    return { text, absent: false, caveat: note, marker: '?' };
+  if (measured.note) {
+    return { text, absent: false, caveat: measured.note, marker: '?' };
   }
   if (measured.method === 'estimated') {
     return { text, absent: false, caveat: c.estimatedTitle, marker: c.estimated };
