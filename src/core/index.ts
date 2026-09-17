@@ -15,3 +15,4 @@ export * from './comparison';
 export * from './agentCall';
 export * from './dossier';
 export * from './modes';
+export * from './rythme';

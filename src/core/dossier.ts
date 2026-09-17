@@ -46,6 +46,7 @@
 import { contextToolCall, type AgentCall, type ContextToolArguments } from './agentCall';
 import type { FigureMotif } from './motif';
 import { missingText, noteText, type Measured, type Method } from './provenance';
+import type { DayShape } from './rythme';
 import {
   FOOTFALL_RADIUS_M,
   FOOTFALL_WEIGHTS,
@@ -158,6 +159,48 @@ export interface DossierFigure {
   derivation: DossierDerivation;
 }
 
+/**
+ * The day-shape record of a dossier — w2-rythme (#208), criterion 7.
+ *
+ * It carries the same five things the block shows and under the same rule as any other figure:
+ * the shape, its LICENCE, its vintage, the reserve and the reading with the kind of claim the
+ * reading is. The provenance fields keep the names `Measured<T>` gives them, like
+ * `DossierFigure` above and for the same reason.
+ *
+ * **`scale` is a string and not `'0-100'`.** A day's shape is a distribution of percentages
+ * over hours, and a consumer that read the axis scale here could put it on the same chart as a
+ * walkability score. Saying the scale out loud is the cheapest way to make that impossible.
+ */
+export interface DossierRythme {
+  /** The station, its distance and the day type, or null when none sits in range. */
+  shape: {
+    stationName: string;
+    distanceM: number;
+    dayType: string;
+    buckets: readonly { hour: number; label: string; pct: number }[];
+    windows: Readonly<Record<string, number>>;
+    kind: string;
+    /** `mesure` | `mesurable` | `arbitrage`, read off `LEAD_REASON_STATUSES`. */
+    status: string;
+  } | null;
+  scale: 'pourcentage-de-la-journee-de-la-station';
+  source: string;
+  licence: string;
+  asOf: string;
+  method: Method;
+  /** The reserve, in the language the file declares. */
+  note?: string;
+  /** The reserve without a language, so a reader of neither can still act. */
+  noteMotifs?: readonly FigureMotif[];
+  /** Why there is no shape, in the file's language. Present exactly when `shape` is null. */
+  missingReason?: string;
+  missingMotif?: FigureMotif;
+  /** The reading, already written in the file's language by the producer. */
+  reading?: string;
+  /** What would settle the reading, when it is an arbitrage. */
+  settles?: string;
+}
+
 export interface DossierGap {
   axis: VerdictAxis;
   because: Withholding;
@@ -189,6 +232,20 @@ export interface Dossier {
     used: readonly VerdictAxis[];
   };
   figures: readonly DossierFigure[];
+  /**
+   * The shape of the nearest station's working day — w2-rythme (#208).
+   *
+   * **Beside `figures` and never inside it, and that placement IS the frontier.** Every member
+   * of `figures` is keyed by a `VerdictAxis` and carries `scale: '0-100'`; a day's shape has
+   * no level and belongs to no axis, so putting it there would have required inventing one of
+   * each. A consumer reading `figures` therefore sees exactly what the verdict composes from,
+   * which is what makes the frontier checkable in the exported file and not only on screen.
+   *
+   * Absent when the layer did not answer, and present with a null `shape` when the layer
+   * answered and no station sits in range — the same two states the block draws, carried into
+   * the file rather than flattened on the way out.
+   */
+  rythme?: DossierRythme;
   /** What Compass does not know at this point, with the cause the producer named. */
   gaps: readonly DossierGap[];
   /** How to obtain this same answer without this file. */
@@ -371,6 +428,19 @@ export interface DossierInput {
   issuedAt: string;
   /** Prose the sheet already publishes: the methodology line and the doctrine sentence. */
   copy: { methodology: string; doctrine: string };
+  /**
+   * The day shape and the two sentences that go with it — w2-rythme (#208).
+   *
+   * **The sentences are passed in, never composed here.** `src/core/` has no `src/i18n`, and a
+   * reading written in this file would be a reading the sheet and the file could disagree
+   * about — the fault `LEAD_REASON_COPY` was extracted to end. Omitted entirely by a caller
+   * whose layer did not answer.
+   */
+  rythme?: {
+    measured: Measured<DayShape>;
+    reading: string;
+    settles: string;
+  };
 }
 
 /**
@@ -429,6 +499,7 @@ export function buildDossier(input: DossierInput): Dossier {
       used: input.verdict.kind === 'compose' ? input.verdict.used : [],
     },
     figures,
+    ...(input.rythme ? { rythme: rythmeRecord(input.rythme, input.locale) } : {}),
     // Derived from the figures rather than taken as a parameter: a dossier whose gap list could
     // be supplied separately is a dossier whose list can disagree with its own rows.
     gaps: figures
@@ -450,6 +521,48 @@ export function buildDossier(input: DossierInput): Dossier {
 
 /** What a provenance field says when the caller supplied no finding for an axis at all. */
 const UNSUPPLIED = 'non fourni';
+
+/**
+ * The day-shape record, built from the `Measured` the sheet already holds — w2-rythme (#208).
+ *
+ * The five provenance fields are copied off `Measured<T>` exactly as `DossierFigure` copies
+ * them, and the reserve goes through `noteText` / `missingText` so the file's sentence is in
+ * the file's declared language rather than the core's English (`w6-langue-absences`, #181).
+ *
+ * The reading and its settling cross-check are only written when there IS a shape: a sentence
+ * reading a distribution that does not exist would be the one claim this record cannot make.
+ */
+function rythmeRecord(
+  input: { measured: Measured<DayShape>; reading: string; settles: string },
+  locale: VerdictLocale,
+): DossierRythme {
+  const m = input.measured;
+  const v = m.value;
+  const note = noteText(m, locale);
+  const reason = missingText(m, locale);
+  return {
+    shape:
+      v === null
+        ? null
+        : {
+            stationName: v.stationName,
+            distanceM: v.distanceM,
+            dayType: v.dayType,
+            buckets: v.buckets,
+            windows: v.windows,
+            kind: v.shape,
+            status: v.status,
+          },
+    scale: 'pourcentage-de-la-journee-de-la-station',
+    source: m.source,
+    licence: m.licence,
+    asOf: m.asOf,
+    method: m.method,
+    ...(note ? { note, ...(m.caveats ? { noteMotifs: m.caveats } : {}) } : {}),
+    ...(reason ? { missingReason: reason, ...(m.missing ? { missingMotif: m.missing } : {}) } : {}),
+    ...(v === null ? {} : { reading: input.reading, settles: input.settles }),
+  };
+}
 
 /**
  * The name the file lands under.

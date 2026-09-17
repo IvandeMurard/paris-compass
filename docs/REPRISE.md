@@ -28,7 +28,7 @@ a bougé les 31 août et 1er septembre, et rien d'autre :
 | Mesure | Valeur, mesurée le 31 août 2026, sauf mention du 1er septembre |
 | --- | --- |
 | Ledger distant `supabase_migrations` | **54 posées, 54 suivies par git, 0 en écart — mesuré le 7 septembre 2026** (`npm.cmd run ledger`, sortie 0) : 52 appariées corps compris et 2 divergences consignées. La cinquante-quatrième est `20260906000001_analyses_du_schema.sql`, posée par `supabase db push` le 6 septembre 2026 au soir — `w6-analyse` (#50). **53, et recoupé pour la première fois aux migrations SUIVIES par git : 53 des deux côtés, mesuré le 6 septembre 2026 par le douzième bras** (`npm.cmd run ledger`, `w1-ledger` #82). Le recoupement va au-delà des identifiants — le ledger garde `statements text[]`, donc le texte appliqué — et **51 des 53 corps sont identiques caractère pour caractère** ; les deux autres sont `20260825000002` et `20260825000003`, réécrites après leur application le 25 août pour repasser leurs commentaires en anglais, consignées avec leurs empreintes dans `scripts/porte/ledger.json` et documentées en `DIAGNOSTIC.md` §39. **53** — mesuré le 5 septembre 2026 après `w1-geometrie` (#68), qui en pose **une** : `…20260905000006` rend `premise_location.geom` nullable, rattrape les quinze `POINT(NaN NaN)` et pose un `check` de finitude sur les **huit** colonnes `geography` du schéma. Il était à **52** — mesuré le 5 septembre 2026 après `w1-observabilite` (#72), qui en pose **cinq** : `…0001` le journal des questions, puis quatre qui la finissent et dont **trois viennent de défauts que seule une exécution a montrés** — `…0002` le cast d'enum (un `case` ne se convertit pas tout seul), `…0003` l'échappement de la porte (elle se comptait elle-même, dix seaux sur un produit sans trafic), `…0004` la volatilité (derrière PostgREST, une fonction `STABLE` tourne en lecture seule et ne journalise rien, en silence), `…0005` la latence, omise. Les trois pièges sont dans `docs/REPRISE-PIEGES.md`. Il était à **47** depuis le 31 août : ni `#69`, ni `#70`, ni `#71`, ni `#73` n'avaient posé de migration |
-| Tests unitaires | **852 sur 59 fichiers, remesurés le 16 septembre 2026** par `w6-mode-raison` (#197), qui ajoute **douze contrôles et aucun fichier** — la correspondance entre `LEAD_AXES` et les raisons écrites, tenue **dans les deux sens**, le libellé de statut lu depuis l'énumération, et l'interdit de corrélation non mesurée avec sa contre-preuve. **`main` en portait 840 sur 59, remesurés le même jour, sortie 0** — le chiffre que `#36` avait écrit est donc confirmé, pas recopié. Antérieurement **840 sur 59 fichiers, remesurés le 16 septembre 2026** par `w6-modes` (#36), qui ajoute **trois fichiers et 42 tests** — `src/core/modes.test.ts` (la permutation des axes, l'identité des clauses du verdict mode par mode, le recensement des neuf contrôles depuis `TRADE_CHECK_IDS`), `src/i18n/modeText.test.ts` (chaque état × chaque contrôle × chaque langue, l'élision de « ne », l'interdit de prévision de `w1-survie`) et `src/lib/tradeMode.test.ts` (le pluriel de la clé d'URL, lu et refusé). Quatre autres entrent dans `src/lib/contextGaps.test.ts`. **`main` en portait 798 sur 56, remesurés le même jour** — sortie 0, et le chiffre que `#181` avait écrit est donc confirmé, pas recopié. **Les relevés antérieurs — 798 à 273, du 13 au 16 septembre 2026 — sont dans `docs/REPRISE-ARCHIVE.md`**, sortis d'ici le 16 septembre 2026 par `w6-modes` pour tenir le budget de `documents.test.ts`. |
+| Tests unitaires | **896 sur 61 fichiers, remesurés le 17 septembre 2026** par `w2-rythme` (#208), qui ajoute **deux fichiers et 44 contrôles** — `src/core/rythme.test.ts` (la licence ODbL du profil contre la Licence Ouverte de l’axe de distance, le balayage de l’objet produit qui refuse tout nombre hors [0, 100], la frontière contre `VERDICT_AXES`, et l’absence de station rendue comme une réponse) et `src/i18n/rythmeText.test.ts` (les trois formes dans les deux langues, l’interdit de prévision, l’interdit de vocabulaire de volume, et le statut lu de l’énumération). Les autres entrent dans `dossier.test.ts`, `useAddressContext.test.ts` et `motif.test.ts`. **`main` en portait 852 sur 59, remesurés le même jour dans un arbre détaché sur `origin/main`, sortie 0** — le chiffre ci-dessous est donc confirmé, pas recopié. Antérieurement **852 sur 59 fichiers, remesurés le 16 septembre 2026** par `w6-mode-raison` (#197), qui ajoute **douze contrôles et aucun fichier** — la correspondance entre `LEAD_AXES` et les raisons écrites, tenue **dans les deux sens**, le libellé de statut lu depuis l'énumération, et l'interdit de corrélation non mesurée avec sa contre-preuve. **`main` en portait 840 sur 59, remesurés le même jour, sortie 0** — le chiffre que `#36` avait écrit est donc confirmé, pas recopié. Antérieurement **840 sur 59 fichiers, remesurés le 16 septembre 2026** par `w6-modes` (#36), qui ajoute **trois fichiers et 42 tests** — `src/core/modes.test.ts` (la permutation des axes, l'identité des clauses du verdict mode par mode, le recensement des neuf contrôles depuis `TRADE_CHECK_IDS`), `src/i18n/modeText.test.ts` (chaque état × chaque contrôle × chaque langue, l'élision de « ne », l'interdit de prévision de `w1-survie`) et `src/lib/tradeMode.test.ts` (le pluriel de la clé d'URL, lu et refusé). Quatre autres entrent dans `src/lib/contextGaps.test.ts`. **`main` en portait 798 sur 56, remesurés le même jour** — sortie 0, et le chiffre que `#181` avait écrit est donc confirmé, pas recopié. **Les relevés antérieurs — 798 à 273, du 13 au 16 septembre 2026 — sont dans `docs/REPRISE-ARCHIVE.md`**, sortis d'ici le 16 septembre 2026 par `w6-modes` pour tenir le budget de `documents.test.ts`. |
 | **Sources et cadences** | **8 sources dans `compass_source_freshness()`, 8 entrées `cron`**, mesuré le 1er septembre 2026. Les huit du distant sont exactement les huit que les migrations déclarent — recoupé par `freshness`, zéro écart. Entretien remesuré le 5 septembre 2026 : **3 par `schedule`** (`bodacc`, `sirene`, `sirene_stock`), **2 par `workflow-dispatch`** (`geography`, `chantiers`), 3 depuis un terminal — le relevé du 1er septembre disait 1 / 1 / 6 et deux crons mensuels ont eu leur tour depuis. Les cadences les plus lentes n'ont toujours pas eu le leur, donc `freshness` sort en **3** et le dira jusqu'à ce qu'elles l'aient eu |
 | Invariants | **56 — remesuré le 14 septembre 2026** (`grep -c '^-- @invariant' eval/invariants.sql`), et le chiffre est remesuré parce que `w6-fiche-corpus` (#157) allait en recopier un faux : son énoncé disait 50, ce qui était vrai le 7 septembre après `w2-idfm`. Dix de plus sont entrés depuis sans que cette ligne bouge. Antérieurement **46 — mesuré le 7 septembre 2026** (même commande) : `I43` à `I46` ajoutés par `w6-analyse` (#50), un par analyse neuve, tous `@as anon` et tous en deux moitiés — un côté qui vérifie qu'on ne divulgue pas, un côté qui vérifie qu'on ne retient pas trop. Les quatre **dérivent leur millésime de `bdcom_vintage`** au lieu de l'épingler, pour ne pas rougir sur une réponse correcte le jour où l'APUR répond, et les quatre énoncent ce qu'ils ne rattrapent pas. Aucun n'a encore d'acte dans `eval:sabotage` — #94. **42** — `I42` ajouté le 5 septembre 2026 par `w1-geometrie` (#68) : aucune colonne `geography`/`geometry` du schéma ne porte de coordonnée non finie, **et** chacune porte un `check` validé qui l'interdit — population énumérée depuis `pg_attribute`, donc la table suivante y entre en rouge tant qu'elle n'a pas sa contrainte. Rouge à **9 lignes** avant la migration (une de contenu, huit de forme), vert après, et démontré rouge deux fois dans l'acte 6 de `eval:sabotage`. **41** — `I39`, `I40` et `I41` ajoutés le 5 septembre 2026 par `w1-observabilite` (#72) : la rétention du journal, l'énumération de ses colonnes, et la retenue du quartier d'une question unique. Les trois sont **joués sous sabotage** dans l'acte 5 de `eval:sabotage`, en transaction annulée — colonne `ip` ajoutée, clé étrangère du quartier retirée, ligne de 400 jours insérée : les trois rougissent, et l'écriture suivante purge la ligne périmée d'elle-même. Le recensement de `I24` est passé de **6 à 7 fonctions** (`compass_question_summary` y entre d'office, `DIAGNOSTIC.md` §37), toutes couvertes. **38** — `I38` ajouté le 5 septembre 2026 par `w1-catalogue`, sur la table de codes des chantiers ; mesuré à **0 ligne** sur le distant, et démontré à **2 lignes** sous sabotage en transaction annulée, volume inchangé à 120 chantiers — **le rechargement du 5 septembre a porté la table à 113 lignes**, et `I38` reste à 0 sur ce contenu-là. Trois d'entre eux, `I1`, `I2` et `I7`, sont **joués en 22 instructions** au lieu d'une. Même population, toutes les tranches jouées |
 | **Journal des questions** (`question_tally`) | **0 ligne, mesuré le 6 septembre 2026** — et mesuré *après* avoir rejoué les deux bras qui passent par PostgREST avec la vraie clé publiable, `eval:anon` (15 contrôles) puis `verify:mcp` (41 contrôles) : le journal est resté à zéro. C'est ce qui démontre que l'échappement de `#72` **s'applique** et n'est pas seulement déclaré — et la dernière porte planifiée, le 5 septembre à 11:21 UTC, avait tourné **avant** que l'échappement soit poussé (18:26 UTC), donc rien ne l'avait encore éprouvé sur un runner. Le zéro n'est pas un tuyau mort : un contre-test délibéré — un appel PostgREST sans l'en-tête, depuis `scripts/eval/sonde-w1-81.ts`, le 6 septembre — a bien écrit **un seau**, nommé et daté ici avant purge : *jour 2026-09-06, `rpc`, `compass_premises_within`, axe `premises`, rayon 800 m, millésime 2023, quartier `13`, issue `repondu`, 1 appel, 568 ms*. Purgé nommément le même jour, table revenue à 0 |
@@ -944,93 +944,56 @@ docs/tickets/w2-idfm.md.
 
 ## La suite, par ordre
 
-25. **Un ordre affiché porte sa raison, comme un chiffre affiché porte sa source.**
-    `w6-mode-raison` (#197) fermée le 16 septembre 2026, ouverte sur objection d'Ivan le jour même
-    de la livraison de `#36`. Le détail, les huit lectures d'écran et les quatre actes de la
-    contre-preuve sont dans `docs/tickets/w6-mode-raison.md`, section « Livré ».
+26. **Une adresse a des heures, et la source les portait depuis dix jours sans lecteur.**
+    `w2-rythme` (#208) fermée le 17 septembre 2026. Le détail, les sept critères et leur
+    démonstration sont dans `docs/tickets/w2-rythme.md`, section « Livré ».
 
-    **Ce qui est démontré, Chrome sans tête contre le `dist/` de la branche, dans les deux
-    langues** : chacun des neuf axes de tête porte sa raison sur sa carte de constat — à côté de
-    l'axe, jamais au survol — avec le **statut** de cette raison lu d'une énumération de trois
-    valeurs. Les axes de queue n'en portent aucune, et aucune n'apparaît tant qu'aucun métier
-    n'est choisi. Trois raisons sur neuf disent « mesurable, non mesuré à ce jour » et nomment le
-    recoupement qui les trancherait ; les six autres disent « arbitrage, pas une mesure ».
-    **Aucune ne dit « mesuré »**, et un contrôle rougit le jour où quelqu'un l'écrit.
+    **La condition dont dépendait tout le ticket est vérifiée** : les lignes horaires sortent
+    jusqu'au visiteur anonyme. Mesuré en `anon` avec la seule clé publiable —
+    `compass_station_profile` rend **117 lignes à Châtelet en 416 ms**, 24 tranches JOHV sommant
+    à 99,99 %, et les deux tables sont lisibles en direct (**29 489** lignes de profil, **258**
+    stations). Le précédent de `#97` — une table muette derrière une fonction `security
+    definer` — ne se rejoue pas.
 
-    **La contre-preuve est jouée en quatre actes**, `npm.cmd run test` à chacun : une raison
-    retirée de `LEAD_AXES` sort en **1**, un axe de tête ajouté sans raison sort en **1** (douze
-    contrôles sur trois fichiers), la phrase française d'une raison retirée sort en **1**, tout
-    remis sort en **0**.
+    **Le ticket s'était trompé de SENS, et le schéma aussi.** L'énoncé, le commentaire de colonne
+    de `20260907000002` et celui de `compass_station_profile` annoncent tous les trois qu'un pic
+    de midi signe un quartier de bureaux. Mesuré sur les **258 stations**, 6 099 lignes JOHV : la
+    fenêtre 11h-14h est la plus forte des trois à **ZÉRO station**, l'heure de pic est 8h à 89
+    stations et 17h ou 18h à 166, et ce sont les quartiers **résidentiels** qui sont menés par le
+    matin. Une validation se compte **à la montée** : le profil d'une station est la forme des
+    départs depuis ce lieu, pas des arrivées. La lecture livrée est donc construite sur
+    l'asymétrie matin/soir. `DIAGNOSTIC.md` §57 porte le défaut, `docs/REPRISE-PIEGES.md` le
+    geste qui l'a trouvé.
 
-    **Un chiffre de l'énoncé était faux, et il est corrigé dans le ticket** : `noise` ne lit pas
-    les 25 094 tronçons du corpus mais la couche OpenStreetMap des voies, à la demande. La mesure
-    qui trancherait le bruit passe donc par le miroir qui tombe et non par une requête SQL —
-    `docs/REPRISE-PIEGES.md`.
+    **Ce qui est démontré, Chrome sans tête contre le `dist/` de la branche, cinq adresses, les
+    deux langues** : la forme de la journée de la station la plus proche, avec son nom, son
+    millésime et **sa propre licence ODbL** — sur la même page que la carte « desserte ferrée »
+    qui porte la **Licence Ouverte 2.0 (Etalab)**, même millésime, deux obligations. La réserve
+    au-dessus du graphique et jamais au survol. La lecture avec son statut lu de
+    `LEAD_REASON_STATUSES` — « arbitrage, pas une mesure » — et ce qui la trancherait. Aucun
+    volume : un contrôle **parcourt** l'objet produit et refuse tout nombre hors [0, 100]. Rien
+    n'entre dans le verdict : le bloc est hors de la liste des constats et la phrase du verdict
+    est identique au caractère près avec et sans les lignes horaires. Au bois de Vincennes,
+    l'absence de station est rendue par son motif, celui que l'axe de distance emploie déjà.
 
-    **Ce qui attend TOUJOURS une décision d'Ivan** : `LEAD_AXES` lui-même. Ce ticket rend
-    l'arbitrage visible et discutable ; il ne le rend pas vrai, et ce qui le trancherait sort du
-    dépôt.
+    **La contre-preuve est jouée en cinq actes** : licence recopiée (7 contrôles rouges sur 3
+    fichiers), champ de volume ajouté (2), `rythme` promu axe du verdict (1), une lecture retirée
+    de la table des mots (2), une réponse rendue comme une panne (5). Tout remis, sortie 0.
 
-    **Ce qui n'est PAS fait** : aucun bras n'ouvre la page avec une clé `mode=` — le trou que
-    `#36` avait déjà nommé, inchangé — et le serveur MCP ne sert toujours pas les modes, donc la
-    raison attend son consommateur dans `w5-explain-metier` (#31).
+    **Ce qui attend une décision d'Ivan** : la marge de **1,15** qui sépare les trois formes est
+    un arbitrage écrit une fois — 39 stations « menée par le matin », 43 « deux pointes », 176
+    « menée par le soir ». Elle se déplace en une ligne.
 
-24. **Le métier arbitre à l'écran, et il ne touche à aucun chiffre.** `w6-modes` (#36) fermée
-    le 16 septembre 2026. Le détail, les deux adresses mesurées et ce qui n'est pas fait sont dans
-    `docs/tickets/w6-modes.md`, section « Livré ».
+    **Ce qui n'est PAS fait** : les deux `comment on` du distant disent toujours l'inverse et
+    demandent un `supabase db push` — **#213** ; le serveur MCP ne sert pas la forme de la
+    journée, elle attend `w5-explain-metier` (#31) comme la raison d'un axe de tête ; et aucun
+    bras n'ouvre la page sur ce bloc, le même trou que pour `mode=`.
 
-    **Ce qui est démontré, Chrome sans tête contre le build local** : basculer de mode réordonne
-    les cartes de constat, les clauses du verdict et le bloc des trous, en gardant **la même
-    population et le même texte pour chaque axe, chiffre compris**. Le contrôle des alertes a
-    demandé une SECONDE adresse : sur un point sain un seul trou porte un axe, donc il n'y a rien
-    à permuter et une session qui s'arrêtait là aurait conclu à tort. C'est Massy, hors corpus et
-    cinq trous rattachés à un axe, qui le montre.
-
-    **Trois des neuf lignes de checklist sont répondues** — terrasses et les deux protections du
-    PLU, lues dans des colonnes que `compass_premises_within` servait déjà et que la fiche jetait,
-    comptées à 25 m et sans un appel de plus sur le chemin critique. **Les six autres nomment ce
-    qui leur manque** : #13, #25, #49, et trois pour lesquelles aucune source ouverte n'existe.
-
-    **Ce qui attend une décision d'Ivan** : l'ordre de tête des trois modes (`LEAD_AXES`) est un
-    arbitrage produit, écrit avec sa raison, et il se change en trois lignes.
-
-    **Ce qui n'est PAS fait** : aucun bras n'ouvre la page avec une clé `mode=`, donc une
-    régression propre à un mode passerait au vert chaque matin — même trou que pour le bouton de
-    `#33` et pour `/en/context/`. Et le mode ne suit ni dans le dossier exporté ni dans l'appel
-    MCP montré, ce qui est voulu pour le fichier et n'était écrit nulle part.
-
-23. — **le noyau produit un motif, la page l'écrit dans sa langue**, `w6-langue-absences`
-    (#181), fermée le 16 septembre 2026, `DIAGNOSTIC.md` §49 clos. Sortie d'ici le 16 septembre
-    2026 par `w6-mode-raison` (#197) pour tenir le plafond de `documents.test.ts` : l'état, ce
-    qui dépasse la livraison et ce qui n'est PAS fait sont dans `docs/REPRISE-ARCHIVE.md`, le
-    détail dans `docs/tickets/w6-langue-absences.md`.
-
-22. — **une fiche se télécharge, et chaque chiffre du fichier se refait sans nous croire**,
-    `w6-dossier` (#33), fermée le 15 septembre 2026. Sortie d'ici le 16 septembre 2026 par
-    `w6-mode-raison` (#197) pour la même raison : les mesures du fichier — 167 ms, six figures,
-    zéro écart de re-dérivation — les deux défauts trouvés à l'écran et le PDF non fait sont dans
-    `docs/REPRISE-ARCHIVE.md`, le détail dans `docs/tickets/w6-dossier.md`.
-
-21. — **la fiche rend son verdict en moins d'une seconde et demie, miroirs pendus**,
-    `w6-fiche-delai` (#180), fermée le 15 septembre 2026. Sortie d'ici le 16 septembre 2026
-    par `w6-modes` (#36) pour tenir le plafond de `documents.test.ts` : l'état, les six
-    passages comparés — 573 à 1 115 ms contre 10 178 à 10 201 ms sur `2dabf49` — et ce qui
-    n'est PAS fait sont dans `docs/REPRISE-ARCHIVE.md`, le détail dans
-    `docs/tickets/w6-fiche-delai.md`.
-
-20. — **les quatre axes porteurs lisent le corpus**, `w6-amenites-corpus` (#169), fermée le
-    15 septembre 2026. Sortie d'ici le soir même par `w6-dossier` (#33) pour tenir le plafond
-    de `documents.test.ts` : l'état, les mesures miroirs coupés et **ce qui attend une décision
-    d'Ivan — `rail` est ferré seulement, les bus n'y sont pas** — sont dans
-    `docs/REPRISE-ARCHIVE.md`, le détail dans `docs/tickets/w6-amenites-corpus.md`.
-
-19. — **la fiche lit le corpus**, sorti d'ici le 15 septembre 2026 (`docs/REPRISE-ARCHIVE.md`).
-    Ce qui y restait vivant — « `page` reste rouge contre la production » — a été **mesuré faux
-    le même soir** : PASS en 10 901 ms, Lovable ayant republié sans que personne le mesure.
-
-Les points **1, 3, 4, 8, 9, 10, 11, 15, 17 et 18 sont rayés** et sont partis dans
-`docs/REPRISE-ARCHIVE.md`, avec leur numérotation d'origine — `docs/PLAN.md` et
-`docs/PLAN-ACTION-VACANCE.md` y renvoient par leur numéro. Restent ceux-ci.
+25. **`w6-mode-raison` (#197) et `w6-modes` (#36), fermées le 16 septembre 2026, sont
+    passées à `docs/REPRISE-ARCHIVE.md` le 17 septembre** — par `w2-rythme` (#208), pour tenir
+    le budget de `documents.test.ts`. Leurs mesures datées y sont entières ; ce qu’elles ont
+    laissé ouvert est repris ici : `LEAD_AXES` attend toujours une décision d’Ivan, et aucun
+    bras n’ouvre la page avec une clé `mode=`.
 
 2. **Message à l'APUR** — ~~rédigé, à envoyer le lundi 10 août.~~ **Envoyé.
    Réponse en attente au 23 août 2026.** Il décide de trois choses : si 2017 et

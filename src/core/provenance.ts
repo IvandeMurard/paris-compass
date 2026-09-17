@@ -156,15 +156,42 @@ export const BDCOM_ORIGIN = (vintageYear: number, licence: string, asOf: string)
  *
  * **The licence is the STOP reference's, not the validation profile's, and the two differ.**
  * `idfm_station` — the 258 Paris zones d'arrêt this axis measures a distance to — is Licence
- * Ouverte 2.0 (Etalab). `idfm_validation_profile`, loaded beside it, is ODbL and is NOT read
- * by any figure here: it holds the SHAPE of a station's day as percentages and carries no
- * volume at all, so nothing on this page can be counted from it. Naming ODbL on a figure
- * derived from the Etalab layer would bind a redistributor to an obligation the data does not
- * carry — the mirror image of the mislabelling `LayerOrigins` was created to stop.
+ * Ouverte 2.0 (Etalab). `idfm_validation_profile`, loaded beside it, is ODbL. Naming ODbL on a
+ * figure derived from the Etalab layer would bind a redistributor to an obligation the data
+ * does not carry — the mirror image of the mislabelling `LayerOrigins` was created to stop.
+ *
+ * **This comment said « and is NOT read by any figure here » until w2-rythme (#208).** That
+ * ceased to be true the day the sheet started showing the shape of a station's day, and the
+ * two licences stopped being a theoretical hazard: they now sit on the same page, one under
+ * each figure. The profile's is `IDFM_PROFILE_ORIGIN` below, and `rythme.test.ts` refuses a
+ * day shape stamped with this one.
  */
 export const IDFM_ORIGIN = (asOf: string): Origin => ({
   source: 'IDFM — référentiel des arrêts',
   licence: 'Licence Ouverte 2.0 (Etalab)',
+  asOf,
+});
+
+/**
+ * Île-de-France Mobilités' hourly validation profiles — w2-rythme (#208).
+ *
+ * **A different dataset from the one above, and a DIFFERENT LICENCE: ODbL.** They are loaded
+ * by the same run, dated by the same `ingestion_run.source_as_of`, joined by the same key and
+ * shown on the same sheet — which is exactly what makes copying one licence onto the other
+ * easy and wrong. The stop reference gives the distance axis its metres under Licence Ouverte
+ * 2.0; these rows give the shape of a day under ODbL, whose share-alike clause a redistributor
+ * has to honour. One origin per dataset is the only arrangement in which neither figure can
+ * borrow the other's obligation.
+ *
+ * `asOf` is a parameter for the reason it is on the three constructors above: only the
+ * database knows it, and a date typed here would be a claim about data this module never
+ * reads. The spelling is `ODbL`, the one `20260907000002` writes on the table itself and the
+ * one `src/services/opendata/sources.ts` publishes — not the `ODbL-1.0` of `OSM_ORIGIN`, which
+ * is a BDCom vintage identifier and belongs to a figure that joins two layers.
+ */
+export const IDFM_PROFILE_ORIGIN = (asOf: string): Origin => ({
+  source: 'IDFM — validations sur le réseau ferré, profils horaires',
+  licence: 'ODbL',
   asOf,
 });
 

@@ -604,6 +604,20 @@ profils horaires. Remplace le passage estimé par un nombre compté.~~
 > (`histo-validations-reseau-ferre`), une archive d'un zip par année sans schéma stable entre
 > années — un chantier à part entière, toujours non fait, et à ne pas réécrire ici comme s'il
 > l'était.
+>
+> **La seconde moitié est faite depuis le 17 septembre 2026** — `w2-rythme` (#208). Cette section
+> et le ticket sont **un seul chantier** : celle-ci dit ce que la source EST, le ticket dit ce que
+> l'écran en montre, et les deux ne doivent pas diverger. La fiche de contexte affiche désormais
+> la **forme** de la journée de la station la plus proche — les parts horaires du code JOHV, sous
+> **ODbL** et non sous la Licence Ouverte du référentiel d'arrêts — à côté des six constats et
+> **hors de la composition du verdict**. Aucun volume n'en sort et un contrôle l'interdit.
+>
+> **Une phrase de cette section est à lire avec la correction du 17 septembre** : « distinguer un
+> quartier de bureaux (pic de midi) d'un quartier résidentiel (pic du soir) » est FAUX, et
+> `20260907000002` porte la même erreur dans deux commentaires. Mesuré sur les 258 stations : la
+> fenêtre 11h-14h n'est la plus forte à AUCUNE, et le signe est inversé — une validation se compte
+> à la montée, donc le profil dit d'où l'on PART. `DIAGNOSTIC.md` §57, et
+> [#213](https://github.com/IvandeMurard/paris-compass/issues/213) pour la migration corrective.
 
 **3.3 — BODACC (DILA).** API ouverte et gratuite, sans clé. Deux usages distincts : les **ventes
 et cessions de fonds de commerce avec leur prix**, qui est la donnée de prix la plus proche de ce

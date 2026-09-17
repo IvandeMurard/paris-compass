@@ -146,8 +146,25 @@ beforeEach(() => {
   fetchCorpusPremises.mockResolvedValue(corpusPremises(120));
   fetchPremisesOrigin.mockResolvedValue(BDCOM_2023);
   fetchCorpusServices.mockResolvedValue(corpusServices());
-  // Oberkampf — Filles du Calvaire, à 317 m, mesuré le 15 septembre 2026.
-  fetchCorpusStation.mockResolvedValue({ distanceM: 317, name: 'Oberkampf - Filles du Calvaire' });
+  // Oberkampf — Filles du Calvaire, à 317 m, mesuré le 15 septembre 2026. Les tranches
+  // horaires sont celles d'Oberkampf - Richard Lenoir, relevées le 17 septembre 2026 par
+  // w2-rythme (#208) : 18,8 % le matin contre 27,0 % le soir, donc une journée menée par le
+  // soir — et non `deux_pointes`, que des fenêtres égales rendraient.
+  fetchCorpusStation.mockResolvedValue({
+    distanceM: 317,
+    name: 'Oberkampf - Filles du Calvaire',
+    hours: [
+      { catJour: 'JOHV', hourBucket: '7H-8H', pct: 3.6 },
+      { catJour: 'JOHV', hourBucket: '8H-9H', pct: 8.6 },
+      { catJour: 'JOHV', hourBucket: '9H-10H', pct: 6.6 },
+      { catJour: 'JOHV', hourBucket: '12H-13H', pct: 4.4 },
+      { catJour: 'JOHV', hourBucket: '13H-14H', pct: 5.0 },
+      { catJour: 'JOHV', hourBucket: '17H-18H', pct: 9.3 },
+      { catJour: 'JOHV', hourBucket: '18H-19H', pct: 9.8 },
+      { catJour: 'JOHV', hourBucket: '19H-20H', pct: 7.9 },
+      { catJour: 'DIJFP', hourBucket: '8H-9H', pct: 2.1 },
+    ],
+  });
   fetchStationOrigin.mockResolvedValue(IDFM_2026);
   fetchActivityTransitions.mockResolvedValue({
     withheld: true,
@@ -253,7 +270,7 @@ describe('la fiche complète — le corpus d’abord', () => {
     // Le bois de Vincennes, mesuré le 15 septembre 2026 : aucun arrêt ferré dans 800 m. La
     // couche a répondu, donc l'axe vaut zéro et le dit dans sa note — le transformer en
     // « inconnu » détruirait la seule réponse que la couche donne avec certitude.
-    fetchCorpusStation.mockResolvedValue({ distanceM: null, name: null });
+    fetchCorpusStation.mockResolvedValue({ distanceM: null, name: null, hours: [] });
 
     const { scores, loaded, withheldBy } = await ficheComplete(POINT);
 
@@ -301,7 +318,7 @@ describe('la fiche complète — les trois absences ne se confondent pas', () =>
     );
     // Les deux autres répondent, et vide — exactement ce que le distant fait à Massy.
     fetchCorpusServices.mockResolvedValue({ points: [], rendered: 0, totalMatched: 0, truncated: false });
-    fetchCorpusStation.mockResolvedValue({ distanceM: null, name: null });
+    fetchCorpusStation.mockResolvedValue({ distanceM: null, name: null, hours: [] });
 
     const { scores, loaded, withheldBy } = await ficheComplete(POINT);
 
@@ -498,5 +515,88 @@ describe('QUAND la fiche répond — w6-fiche-delai (#180)', () => {
     // Le constat existe toujours, avec sa source : c'est ce que `w6-fiche-robuste` a construit
     // et ce que ce ticket n'a pas le droit de défaire.
     expect(scores.noise.source).toBe('OpenStreetMap via Overpass');
+  });
+});
+
+describe('la forme de la journée traverse la fiche — w2-rythme (#208)', () => {
+  it('arrive composée, avec sa forme, sa réserve et l’ODbL du profil', async () => {
+    const { rythme, scores } = await ficheComplete(POINT);
+
+    expect(rythme?.value?.stationName).toBe('Oberkampf - Filles du Calvaire');
+    expect(rythme?.value?.shape).toBe('depart_du_soir');
+    expect(rythme?.caveats).toEqual([{ kind: 'journee_de_station' }]);
+    // La licence du PROFIL, sur la même fiche que celle du référentiel d'arrêts. Les deux
+    // viennent d'une seule ingestion et portent deux obligations : c'est le piège que
+    // `src/core/provenance.ts` documente, et il se voit ici plutôt que dans une note.
+    expect(rythme?.licence).toBe('ODbL');
+    expect(scores.rail.licence).toBe('Licence Ouverte 2.0 (Etalab)');
+    expect(rythme?.licence).not.toBe(scores.rail.licence);
+    // Le même millésime, parce que c'est la même exécution — et une seule lecture de la base.
+    expect(rythme?.asOf).toBe(scores.rail.asOf);
+  });
+
+  it('ne touche à aucun constat : la fiche est identique sans les tranches', async () => {
+    // Critère 5, mesuré sur la fiche entière plutôt que sur le noyau : les mêmes six chiffres,
+    // le même verdict composable, que les lignes horaires soient là ou non.
+    const avec = await ficheComplete(POINT);
+    fetchCorpusStation.mockResolvedValue({
+      distanceM: 317,
+      name: 'Oberkampf - Filles du Calvaire',
+      hours: [],
+    });
+    const sans = await ficheComplete(POINT);
+
+    expect(sans.scores).toEqual(avec.scores);
+    expect(sans.loaded).toEqual(avec.loaded);
+    // La couche a répondu dans les deux cas : l'axe de distance vaut toujours ses 317 m.
+    expect(sans.scores.rail.value).toBe(avec.scores.rail.value);
+    // Seul le bloc change, et il change en disant pourquoi.
+    expect(sans.rythme?.value).toBeNull();
+    expect(sans.rythme?.missing).toEqual({ kind: 'aucun_arret_dans_rayon' });
+  });
+
+  it('aucun arrêt dans le rayon est une réponse — critère 6', async () => {
+    fetchCorpusStation.mockResolvedValue({ distanceM: null, name: null, hours: [] });
+
+    const { rythme, withheldBy } = await ficheComplete(POINT);
+
+    expect(withheldBy.stations).toBeUndefined();
+    expect(rythme).not.toBeNull();
+    expect(rythme?.value).toBeNull();
+    expect(rythme?.missing).toEqual({ kind: 'aucun_arret_dans_rayon' });
+  });
+
+  it('une couche ferrée injoignable retire le bloc au lieu de le rendre vide', async () => {
+    // Trois états et non deux. `null` est « la couche n'a pas répondu » — un trou ; un
+    // `Measured` dont la valeur est nulle est « elle a répondu, il n'y a pas d'arrêt » — une
+    // mesure. Les aplatir mettrait « pas de rythme ici » à l'écran pendant une panne.
+    fetchCorpusStation.mockRejectedValue(new CorpusUnavailable('PostgREST muet', 'source_injoignable'));
+
+    const { rythme, withheldBy } = await ficheComplete(POINT);
+
+    expect(withheldBy.stations).toBe('source_injoignable');
+    expect(rythme).toBeNull();
+  });
+
+  it('hors corpus, le bloc tombe avec la couche et ne montre aucune forme', async () => {
+    fetchCorpusPremises.mockRejectedValue(
+      new CorpusUnavailable('hors des 80 quartiers', 'hors_corpus'),
+    );
+
+    const { rythme, withheldBy } = await ficheComplete(POINT);
+
+    expect(withheldBy.stations).toBe('hors_corpus');
+    expect(rythme).toBeNull();
+  });
+
+  it('un millésime illisible retire le bloc plutôt que de lui inventer une date', async () => {
+    // Même règle que pour les locaux : des lignes dont on ne sait pas dater la source sont des
+    // lignes qu'on ne montre pas. Une forme de journée sans millésime serait une figure
+    // incapable de dire sa provenance, ce que `Measured<T>` existe pour empêcher.
+    fetchStationOrigin.mockRejectedValue(new Error('ingestion_run muet'));
+
+    const { rythme } = await ficheComplete(POINT);
+
+    expect(rythme).toBeNull();
   });
 });

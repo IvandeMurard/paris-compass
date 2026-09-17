@@ -36,6 +36,7 @@ import {
   buildIndex,
   composeVerdict,
   contextToolCall,
+  dayShape,
   dossierFilename,
   dossierToJson,
   findingsFromScores,
@@ -380,5 +381,125 @@ describe('le fichier se tient tout seul', () => {
     const dossier = dossierFor();
     expect(JSON.parse(dossierToJson(dossier))).toEqual(JSON.parse(JSON.stringify(dossier)));
     expect(dossierToJson(dossier)).toContain('\n  ');
+  });
+});
+
+/**
+ * The seventh criterion of w2-rythme (#208): the exported file carries the shape of the
+ * nearest station's day — its licence, its vintage, its reserve and its reading — under the
+ * same rule as every other figure, and OUTSIDE `figures`, which is the frontier of criterion 5
+ * made checkable in the artefact that gets forwarded.
+ */
+describe('le dossier porte la forme de la journée, à côté des constats — w2-rythme (#208)', () => {
+  const AS_OF = '2026-03-10';
+
+  const shape = dayShape(
+    // Opéra's real relative shape, measured 17 September 2026: evening-led.
+    [
+      { catJour: 'JOHV', hourBucket: '7H-8H', pct: 0.6 },
+      { catJour: 'JOHV', hourBucket: '8H-9H', pct: 1.4 },
+      { catJour: 'JOHV', hourBucket: '12H-13H', pct: 4.5 },
+      { catJour: 'JOHV', hourBucket: '17H-18H', pct: 11.7 },
+      { catJour: 'JOHV', hourBucket: '18H-19H', pct: 14.5 },
+    ],
+    { name: 'Opéra', distanceM: 120.4 },
+    AS_OF,
+  );
+
+  const avecRythme = (measured = shape): Dossier => {
+    const points = neighbourhood();
+    const scored = scoreLocationDetailed(BRETAGNE, buildIndex(points), ORIGINS);
+    const findings = findingsFromScores(scored.scores, {});
+    return buildDossier({
+      address: {
+        label: 'Rue de Bretagne, 75003 Paris',
+        lat: BRETAGNE.lat,
+        lng: BRETAGNE.lng,
+        source: 'Base Adresse Nationale',
+        licence: 'Licence Ouverte (Etalab 2.0)',
+      },
+      findings,
+      operands: scored.operands,
+      verdict: composeVerdict(findings, 'fr'),
+      labels: LABELS,
+      locale: 'fr',
+      issuedAt: '2026-09-15T18:42:07.000Z',
+      copy: COPY,
+      rythme: { measured, reading: 'lecture de test', settles: 'recoupement de test' },
+    });
+  };
+
+  it('porte forme, licence, millésime, réserve et lecture', () => {
+    const r = avecRythme().rythme;
+    expect(r?.shape?.stationName).toBe('Opéra');
+    expect(r?.shape?.kind).toBe('depart_du_soir');
+    expect(r?.shape?.dayType).toBe('JOHV');
+    expect(r?.shape?.buckets.length).toBe(5);
+    expect(r?.licence).toBe('ODbL');
+    expect(r?.asOf).toBe(AS_OF);
+    expect(r?.note).toBeTruthy();
+    expect(r?.noteMotifs).toEqual([{ kind: 'journee_de_station' }]);
+    expect(r?.reading).toBe('lecture de test');
+    expect(r?.settles).toBe('recoupement de test');
+  });
+
+  it('porte l’ODbL du profil et JAMAIS la Licence Ouverte de l’axe de distance', () => {
+    // The two licences are on the same page and in the same file, one per figure. The rail
+    // axis's row and the day-shape record are the exact pair a copy would collapse.
+    const dossier = avecRythme();
+    const rail = dossier.figures.find((f) => f.axis === 'rail');
+    expect(rail?.licence).toBe(IDFM_ORIGIN('2026-03-10').licence);
+    expect(dossier.rythme?.licence).not.toBe(rail?.licence);
+  });
+
+  it('ne se range PAS dans les figures, et n’ajoute aucun axe — critère 5 dans le fichier', () => {
+    const dossier = avecRythme();
+    expect(dossier.figures.map((f) => f.axis)).toEqual([...VERDICT_AXIS_ORDER]);
+    expect(dossier.verdict.used.some((a) => String(a).includes('rythme'))).toBe(false);
+    // And the verdict sentence is byte-identical with and without it: a block that changed
+    // the conclusion would be a seventh axis whatever it was called.
+    expect(dossier.verdict.sentence).toBe(dossierFor().verdict.sentence);
+  });
+
+  it('dit son échelle, pour qu’on ne la pose pas sur celle des constats', () => {
+    expect(avecRythme().rythme?.scale).toBe('pourcentage-de-la-journee-de-la-station');
+    for (const f of avecRythme().figures) expect(f.scale).toBe('0-100');
+  });
+
+  it('aucun nombre du bloc ne peut se lire comme un compte de personnes — critère 2', () => {
+    const r = avecRythme().rythme;
+    for (const b of r?.shape?.buckets ?? []) {
+      expect(b.pct).toBeGreaterThanOrEqual(0);
+      expect(b.pct).toBeLessThanOrEqual(100);
+    }
+    for (const v of Object.values(r?.shape?.windows ?? {})) {
+      expect(v).toBeGreaterThanOrEqual(0);
+      expect(v).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it('descend l’absence de station comme une réponse, sans lecture — critère 6', () => {
+    const vide = dayShape([], { name: null, distanceM: null }, AS_OF);
+    const r = avecRythme(vide).rythme;
+    expect(r?.shape).toBeNull();
+    expect(r?.missingMotif).toEqual({ kind: 'aucun_arret_dans_rayon' });
+    expect(r?.missingReason).toBeTruthy();
+    // No reading over a distribution that does not exist — the one claim this record cannot make.
+    expect(r?.reading).toBeUndefined();
+    expect(r?.settles).toBeUndefined();
+    // And the licence survives the absence: a hole that cannot name its dataset is the hole
+    // this product refuses.
+    expect(r?.licence).toBe('ODbL');
+  });
+
+  it('est absent du fichier quand la couche n’a pas répondu du tout', () => {
+    // Three states, not two — the distinction `#180` drew for a pending layer. An outage
+    // leaves no record at all, so a consumer never reads « no rhythm here » off a silence.
+    expect(dossierFor().rythme).toBeUndefined();
+  });
+
+  it('survit à l’aller-retour JSON comme le reste du fichier', () => {
+    const dossier = avecRythme();
+    expect(JSON.parse(dossierToJson(dossier))).toEqual(JSON.parse(JSON.stringify(dossier)));
   });
 });

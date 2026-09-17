@@ -57,10 +57,13 @@ import {
   M_PER_DEG_LAT,
   SERVICE_RADIUS_M,
   buildIndex,
+  dayShape,
   mPerDegLng,
   scoreLocationDetailed,
   OSM_ORIGIN,
   type AreaScores,
+  type DayShape,
+  type Measured,
   type FigureMotif,
   type Layer,
   type LayerNotes,
@@ -241,6 +244,17 @@ export interface AddressContext {
    * for why `null` and `{ total: 0 }` are two different answers.
    */
   trade: TradeFacts | null;
+  /**
+   * The shape of the nearest station's working day — w2-rythme (#208).
+   *
+   * A `Measured<DayShape>` and not an axis: it never reaches `scores`, never reaches
+   * `composeVerdict`, and `VERDICT_AXES` does not know it exists. It sits beside the six
+   * findings because a day's shape is not a level, and `rythme.test.ts` holds that frontier.
+   * `null` when the whole rail layer was withheld — a licence refusal or an unreachable
+   * database — where a `Measured` whose value is null means the layer ANSWERED and found no
+   * station in range.
+   */
+  rythme: Measured<DayShape> | null;
 }
 
 /** The Overpass layers. `premises` is deliberately absent: it comes from the corpus now. */
@@ -274,6 +288,8 @@ export interface CorpusContext {
    * screen during an outage — `DIAGNOSTIC.md` §16, in a new block.
    */
   trade: TradeFacts | null;
+  /** The shape of the nearest station's day — w2-rythme (#208). See `AddressContext.rythme`. */
+  rythme: Measured<DayShape> | null;
   bbox: BBox;
 }
 
@@ -313,6 +329,9 @@ export async function fetchCorpusContext(point: {
 }): Promise<CorpusContext> {
   const bbox = boxAround(point);
 
+  // Still SIX calls after w2-rythme (#208): the hourly shares ride in with the station call
+  // that was already being made, and their licence is built from the date this same
+  // `fetchStationOrigin` already reads. The sheet gained a block and paid no round trip.
   const [premises, premisesOrigin, transitions, services, station, stationOrigin] =
     await Promise.allSettled([
       fetchCorpusPremises(point.lat, point.lng, SHEET_RADIUS_M),
@@ -438,6 +457,21 @@ export async function fetchCorpusContext(point: {
     premises: premisePoints,
     services: servicePoints,
     nearestStationM: !horsCorpus && station.status === 'fulfilled' ? station.value.distanceM : null,
+    // Gated on the SAME condition as the layer itself — the rows arrived AND their licence
+    // arrived with them — for the reason the trade facts are: a shape whose licence is unknown
+    // is a shape that must not be redistributed, and ODbL is the obligation at stake. `null`
+    // when the layer was withheld, which the block renders as a hole; a `Measured` whose value
+    // is null means the layer answered and found no station, which it renders as an answer.
+    rythme:
+      stationLoaded && station.status === 'fulfilled' && stationOrigin.status === 'fulfilled'
+        ? dayShape(
+            station.value.hours,
+            { name: station.value.name, distanceM: station.value.distanceM },
+            // The DATE of the run, never its licence: one run loads both tables, and
+            // `dayShape` stamps the profile's own ODbL on the figure itself.
+            stationOrigin.value.asOf,
+          )
+        : null,
     transitions: transitions.status === 'fulfilled' ? transitions.value : null,
     // Gated on the SAME two conditions as the `services` layer above — the rows arrived and
     // their vintage metadata arrived with them — rather than on `services.status` alone. Rows
@@ -508,6 +542,10 @@ export function composeContext(
     bbox: corpus.bbox,
     transitions: corpus.transitions,
     trade: corpus.trade,
+    // Carried through untouched, and deliberately not recomputed here: the day's shape depends
+    // on nothing Overpass holds, so composing it a second time on the second paint could only
+    // introduce a way for the two paints to disagree.
+    rythme: corpus.rythme,
   };
 }
 

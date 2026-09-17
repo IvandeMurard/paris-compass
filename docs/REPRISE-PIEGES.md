@@ -1586,3 +1586,96 @@ ticket. Une session qui croirait le chiffre de l'énoncé estimerait cette mesur
 **Ce que ça ne rattrape pas** : rien ici ne dit que le bruit DEVRAIT se lire sur `street_segment`.
 Les deux sources ne décrivent pas la même chose — un tronçon du corpus porte un côté de rue,
 une voie OSM porte une classe de trafic — et cette comparaison-là n'a pas été faite.
+
+---
+
+## Un commentaire de schéma qui décrit le SENS d'une donnée peut être faux, et rien ne le relit — 17 septembre 2026
+
+`w2-rythme` (#208) devait afficher la forme de la journée d'une station. Deux documents du dépôt
+et l'énoncé du ticket disaient comment la lire : *« gonflement à midi » = quartier de bureaux*,
+*« double pic matin-soir » = quartier d'où l'on part travailler*. Les trois étaient faux, et de
+la manière la plus coûteuse : **le signe était inversé**.
+
+Mesuré en `anon` sur les 258 stations avant d'écrire une ligne : la fenêtre 11h-14h est la plus
+forte des trois à **0 station sur 258**, et ce sont les quartiers résidentiels qui sont menés par
+le MATIN, les quartiers de destination par le SOIR. Cause : une validation se compte à la
+**montée**, et le réseau ferré parisien n'a pas de validation à la sortie — le profil d'une
+station est la forme des **départs** depuis ce lieu.
+
+**Le geste qui l'a trouvé**, et il tient en une requête : avant d'implémenter une lecture,
+compter sur la POPULATION ce que la lecture prétend distinguer.
+
+```ts
+// 6 099 lignes JOHV, 258 stations, lues par PostgREST avec la clé publiable.
+// Combien de stations ont bien le profil que le commentaire annonce ?
+const midiMax = stations.filter((b) => somme(b, 11, 14) > somme(b, 7, 10)
+                                    && somme(b, 11, 14) > somme(b, 17, 20)).length
+// → 0
+```
+
+**Pourquoi c'est un piège et pas une coquille.** Une lecture inversée passe tous les tests
+unitaires : aucun test ne lit un commentaire SQL, et une phrase d'interprétation n'a pas de
+valeur de retour à comparer. Elle serait arrivée à l'écran, plausible, sur chaque fiche, et le
+premier lecteur à s'en apercevoir aurait été un commerçant qui connaît sa rue.
+
+**Ce que ça ne rattrape pas** : rien dans la porte ne recoupe la prose d'un `comment on` avec ce
+que la donnée fait. Les deux commentaires du distant disent toujours l'inverse — `DIAGNOSTIC.md`
+§57, suivi en [#213](https://github.com/IvandeMurard/paris-compass/issues/213). Et la correction
+est **une migration de plus**, jamais une réécriture : `20260907000002` est posée.
+
+---
+
+## Une migration écrite dans une proposition qu'on ne peut pas pousser met la porte en ambre le lendemain — 17 septembre 2026
+
+Corollaire du piège ci-dessus, et la raison pour laquelle `#208` a ouvert une issue plutôt que
+d'écrire le fichier. `npm.cmd run ledger` classe une migration **suivie par git et non posée**
+en `absent-du-ledger`, avec sa propre phrase : *« du travail écrit et pas encore appliqué. Normal
+entre l'écriture et la poussée ; anormal le lendemain »*. Ce verdict sort en **3**.
+
+Donc une session qui livre une migration sans pouvoir lancer `supabase db push` — ce qui est le
+cas ici, la commande est bloquée côté classifieur et c'est Ivan qui la lance — laisse la porte
+du matin en ambre jusqu'à ce que quelqu'un pousse. Pour un fait déjà consigné dans
+`DIAGNOSTIC.md`, c'est du bruit qui coûte une lecture par matin.
+
+**La règle qui en sort** : écrire une migration et la pousser sont un seul geste. Si la session
+ne peut pas faire le second, elle ne fait pas le premier — elle ouvre l'issue avec le SQL décrit,
+et le prochain passage fait les deux. C'est la même leçon que « poser une cadence ne recharge
+rien », à l'envers : ici ce n'est pas la déclaration qui devance la mesure, c'est le fichier qui
+devance son application.
+
+**Ce que ça ne rattrape pas** : une migration écrite ET poussée le même jour ne pose aucun
+problème, et rien n'oblige à passer par une issue. La règle ne vaut que pour la session qui sait
+d'avance qu'elle ne poussera pas.
+
+---
+
+## Une étiquette `vague-N` sur une issue de défaut fait rougir `sessions:check` — 17 septembre 2026
+
+`w2-rythme` (#208) a ouvert #213 en passant, pour un défaut consigné dans `DIAGNOSTIC.md`, et
+lui a mis `plan-action` + `P2` + **`vague-2`** — le réflexe du ticket de plan. `npm.cmd run
+sessions:check` est sorti en **1** :
+
+```
+Les listes des épics ne disent plus ce que portent les étiquettes.
+  #43 — 1 écart(s)
+      convention #213 porte vague-2 et son titre ne suit pas « [Pn] <ticket> — … »
+```
+
+**La règle, et elle est juste.** Une étiquette `vague-N` déclare qu'une issue appartient à la
+liste d'un épic, et un épic lie ses lignes aux tickets **par le titre** — `[Pn] <ticket> — …`.
+Une issue sans identifiant de ticket ne peut donc pas y entrer, et lui poser la vague crée une
+ligne que rien ne peut résoudre. Ce n'est pas la vérification qui est trop stricte : c'est
+l'étiquette qui affirmait une appartenance fausse.
+
+**Ce que fait le dépôt, vérifié sur les quatre précédents** — #79, #80, #83, #88, toutes des
+issues de défaut nées d'une session : elles portent `plan-action` et/ou `Pn`, et **aucune ne
+porte de `vague-N`**. La convention existait, elle n'était juste écrite nulle part.
+
+**Le geste** : une issue ouverte en passant pour un défaut prend `plan-action` + `Pn`, jamais une
+vague, et gagne à nommer sa section dans son titre — `… — DIAGNOSTIC.md §57`, comme #80 le fait
+déjà pour §36. Une vague ne se pose que sur une issue qui a un fichier dans `docs/tickets/`.
+
+**Ce que ça ne rattrape pas** : la vérification lit les étiquettes et les titres, jamais si
+l'issue mérite d'exister. Et elle ne se déclenche qu'au `sessions:check` — une session qui
+ouvrirait l'issue sans rejouer la vérification laisserait le rouge au matin suivant, ce qui est
+exactement le trou que la règle de la cadence nomme ailleurs sur cette page.

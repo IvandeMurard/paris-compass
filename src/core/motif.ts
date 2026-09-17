@@ -47,6 +47,7 @@ export const MOTIF_KINDS = [
   'couverture_tronquee',
   'reponse_plafonnee',
   'aucun_arret_dans_rayon',
+  'journee_de_station',
   'mandataire_passage',
   'bruit_modelise',
 ] as const;
@@ -70,6 +71,8 @@ export type FigureMotif =
   | { kind: 'reponse_plafonnee'; layer: Layer; rendered: number; total: number; radiusM: number }
   /** The rail layer answered and found no stop in range. A measurement, not an absence. */
   | { kind: 'aucun_arret_dans_rayon' }
+  /** The day's shape belongs to a station, never to the frontage of one shop — w2-rythme. */
+  | { kind: 'journee_de_station' }
   /** Footfall is a proxy: no open pedestrian count exists for Île-de-France. */
   | { kind: 'mandataire_passage' }
   /** Road noise is modelled from geometry alone. */
@@ -146,6 +149,8 @@ const COPY = {
       `${noun} est tronquée : le service a rendu ${rendered} lignes sur les ${total} que le rayon de ${radiusM} m contient, parce que PostgREST plafonne une réponse à sa propre limite de lignes. Toute figure qui lit cette couche est un plancher, pas un total. Un rayon plus étroit rend l'ensemble.`,
     aucun_arret_dans_rayon:
       "Aucun arrêt ferré Île-de-France Mobilités n'a été trouvé dans le rayon de recherche : ce zéro dit qu'il n'y en a aucun à proximité, pas que la couche s'est tue.",
+    journee_de_station:
+      "C'est la journée d'une STATION, pas le trottoir de cette vitrine : deux adresses de part et d'autre du même arrêt reçoivent la même forme de journée. Et une validation se fait à la montée — le profil dit d'où l'on part, jamais où l'on arrive.",
     mandataire_passage:
       "Il n'existe aucun comptage piéton ouvert pour l'Île-de-France. Ce chiffre est une approximation dérivée de la densité de commerces actifs et de la desserte ferrée : elle compare deux emplacements entre eux, elle ne dit rien du passage réel.",
     bruit_modelise:
@@ -158,6 +163,8 @@ const COPY = {
       `${noun} is truncated: the service returned ${rendered} of the ${total} rows the ${radiusM} m radius holds, because PostgREST caps a response at its own row limit. Every figure that reads this layer is a FLOOR, not a total. A narrower radius returns the whole set.`,
     aucun_arret_dans_rayon:
       'No Île-de-France Mobilités rail stop was found inside the search radius, so this reads zero because none is near — not because the layer is silent.',
+    journee_de_station:
+      'This is the day of a STATION, not the pavement outside this shop: two addresses on either side of the same stop receive the same shape of day. And a validation is recorded on boarding — the profile says where people depart FROM, never where they arrive.',
     mandataire_passage:
       'No open pedestrian count exists for Île-de-France. This is a proxy from active-business density and rail access: it compares two locations against each other, it says nothing about actual footfall.',
     bruit_modelise:
@@ -189,6 +196,8 @@ export function motifText(motif: FigureMotif, locale: VerdictLocale = 'fr'): str
       );
     case 'aucun_arret_dans_rayon':
       return c.aucun_arret_dans_rayon;
+    case 'journee_de_station':
+      return c.journee_de_station;
     case 'mandataire_passage':
       return c.mandataire_passage;
     case 'bruit_modelise':

@@ -37,6 +37,7 @@ import ContextDossier from '@/components/context/ContextDossier';
 import ContextFinding from '@/components/context/ContextFinding';
 import ContextGaps from '@/components/context/ContextGaps';
 import ContextModes from '@/components/context/ContextModes';
+import ContextRythme from '@/components/context/ContextRythme';
 import ContextVerdict from '@/components/context/ContextVerdict';
 import {
   compareAddresses,
@@ -52,6 +53,7 @@ import { useAddressContext, useAddressFromSlug, useTradeOrigins } from '@/hooks/
 import { CONTEXT_COPY, dossierLabels } from '@/i18n/contextText';
 import { useLocale } from '@/i18n/locale';
 import { leadReasonText } from '@/i18n/modeText';
+import { rythmeReadingText } from '@/i18n/rythmeText';
 import {
   contextPath,
   fromSlug,
@@ -244,6 +246,17 @@ const Context = () => {
     [mode, locale],
   );
 
+  // The day shape as the exported file carries it — w2-rythme (#208). Built from the SAME
+  // `Measured` the block above renders, so the file and the screen cannot disagree about the
+  // shape, its licence or its reserve; only the two sentences are added, and they come from the
+  // one function the block also calls.
+  const rythmeForDossier = useMemo(() => {
+    const measured = context.data?.rythme ?? null;
+    if (!measured || measured.value === null) return undefined;
+    const text = rythmeReadingText(measured.value, locale);
+    return { measured, reading: text.reading, settles: text.settles };
+  }, [context.data?.rythme, locale]);
+
   // The provenance of the two datasets the checklist cites, fetched only once a mode has been
   // chosen — the sheet `#180` brought under a second and a half pays nothing for a block nobody
   // asked for.
@@ -369,6 +382,12 @@ const Context = () => {
                 </ul>
               </section>
 
+              {/* Beside the six findings and after them, outside the list — w2-rythme (#208).
+                  Not a seventh card: a day's shape has no level, so it is a section of its own
+                  and `VERDICT_AXES` never hears of it. It sits AFTER the findings and BEFORE
+                  the gaps because it is an answer, not a hole. */}
+              <ContextRythme rythme={context.data.rythme} />
+
               <ContextGaps gaps={orderedGaps} />
 
               {point && (
@@ -437,6 +456,11 @@ const Context = () => {
                   operands={context.data.operands}
                   verdict={verdict}
                   labels={dossierLabels(locale)}
+                  // The exported file carries the day's shape under the same rule as any other
+                  // figure — criterion 7. The two sentences are written here rather than in the
+                  // core, for the reason a lead reason is: `src/core/` has no `src/i18n`, and a
+                  // sentence composed twice is a sentence free to disagree with itself.
+                  rythme={rythmeForDossier}
                 />
               )}
 
