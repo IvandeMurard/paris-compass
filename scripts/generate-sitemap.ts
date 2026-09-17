@@ -23,6 +23,7 @@ const entries: SitemapEntry[] = [
   { path: "/guides", changefreq: "weekly", priority: "0.8" },
   { path: "/faq", changefreq: "monthly", priority: "0.8" },
   { path: "/glossaire", changefreq: "monthly", priority: "0.6" },
+  { path: "/travaux", changefreq: "weekly", priority: "0.6" },
   { path: "/paris", changefreq: "weekly", priority: "0.8" },
   ...GUIDES.map((g) => ({
     path: `/guides/${g.slug}`,

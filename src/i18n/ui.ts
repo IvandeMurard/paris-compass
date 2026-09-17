@@ -32,8 +32,13 @@ export const UI = {
   'nav.breadcrumb': { fr: 'Fil d’Ariane', en: 'Breadcrumb' },
   'nav.home': { fr: 'Accueil', en: 'Home' },
   'nav.backToMap': { fr: 'Ouvrir la carte', en: 'Open the map' },
+  'nav.progress': { fr: 'Travail en cours', en: 'Work in progress' },
   'nav.toggleSidebar': { fr: 'Afficher ou masquer les filtres', en: 'Toggle filters' },
   'nav.language': { fr: 'Changer de langue', en: 'Switch language' },
+
+  // Aria
+  'aria.collapse': { fr: 'Réduire', en: 'Collapse' },
+  'aria.expand': { fr: 'Agrandir', en: 'Expand' },
 
   // Auth
   'auth.signIn': { fr: 'Connexion', en: 'Sign in' },
@@ -247,7 +252,7 @@ export const UI = {
     en: 'How Compass puts commercial spaces in Île-de-France back into their environment: walkability, estimated footfall, noise, air, risks and reference rents, all from public open data.',
   },
 
-  // Home meta
+  // Home meta & welcome overlay
   'home.metaTitle': {
     fr: 'Compass — trouver un local commercial en Île-de-France par son environnement',
     en: 'Compass — find a commercial space in Île-de-France by its surroundings',
@@ -255,6 +260,67 @@ export const UI = {
   'home.metaDescription': {
     fr: 'Carte gratuite des locaux commerciaux d’Île-de-France replacés dans leur environnement : commerces, transports, écoles, bruit, qualité de l’air et loyers de référence, à partir de données publiques.',
     en: 'Free map of commercial spaces in Île-de-France in context: shops, transport, schools, noise, air quality and reference rents, all from public open data.',
+  },
+  'home.welcome': { fr: 'Bienvenue sur Compass', en: 'Welcome to Compass' },
+  'home.skipHero': { fr: 'Passer l’introduction', en: 'Skip introduction' },
+  'home.headline': {
+    fr: 'Trouvez un local commercial à Paris en regardant autour, pas seulement dedans.',
+    en: 'Find a commercial space in Paris by looking around it, not just inside.',
+  },
+  'home.subheadline': {
+    fr: 'Compass croise les données publiques ouvertes — commerces, transports, écoles, qualité de l’air, bruit, loyers de référence — pour scorer l’environnement de chaque local.',
+    en: 'Compass cross-references open public data — shops, transport, schools, air quality, noise, reference rents — to score the surroundings of every space.',
+  },
+  'home.searchCta': { fr: 'Rechercher', en: 'Search' },
+  'home.exploreMap': { fr: 'Explorer la carte', en: 'Explore the map' },
+  'home.howItWorks': { fr: 'Comment ça marche', en: 'How it works' },
+  'home.pillar1Title': { fr: 'Données ouvertes', en: 'Open data' },
+  'home.pillar1Body': {
+    fr: 'Sources publiques : Etalab, Ville de Paris, OpenStreetMap, INSEE, Géorisques, Copernicus.',
+    en: 'Public sources: Etalab, City of Paris, OpenStreetMap, INSEE, Géorisques, Copernicus.',
+  },
+  'home.pillar2Title': { fr: 'Scores locales', en: 'Local scores' },
+  'home.pillar2Body': {
+    fr: 'Marchabilité, flux piéton estimé, accès aux transports et exposition aux nuisances.',
+    en: 'Walkability, estimated footfall, transport access and exposure to nuisances.',
+  },
+  'home.pillar3Title': { fr: 'Gratuit et transparent', en: 'Free and transparent' },
+  'home.pillar3Body': {
+    fr: 'Aucune donnée de démonstration : chaque indicateur est documenté et vérifiable.',
+    en: 'No demo data: every indicator is documented and verifiable.',
+  },
+
+  // Progress page
+  'progress.metaTitle': { fr: 'Travail en cours — Compass', en: 'Work in progress — Compass' },
+  'progress.metaDescription': {
+    fr: 'Dernières avancées et travail prévu sur Compass : évolutions récentes et prochaines étapes.',
+    en: 'Latest progress and upcoming work on Compass: recent changes and next steps.',
+  },
+  'progress.title': { fr: 'Travail en cours', en: 'Work in progress' },
+  'progress.intro': {
+    fr: 'Compass est construit en public. Cette page résume les dernières améliorations livrées et celles en préparation.',
+    en: 'Compass is built in public. This page summarises the latest improvements shipped and the ones being prepared.',
+  },
+  'progress.recentTitle': { fr: 'Dernières avancées', en: 'Recent improvements' },
+  'progress.plannedTitle': { fr: 'Prochaines étapes', en: 'Next steps' },
+  'progress.empty': {
+    fr: 'Aucune activité récente accessible pour le moment.',
+    en: 'No recent activity is available right now.',
+  },
+  'progress.error': {
+    fr: 'Impossible de charger l’activité GitHub. Revenez plus tard.',
+    en: 'Could not load GitHub activity. Please come back later.',
+  },
+  'progress.repoMissing': {
+    fr: 'Le dépôt GitHub public n’est pas encore configuré ici.',
+    en: 'The public GitHub repository is not configured yet.',
+  },
+  'progress.mergedAt': { fr: 'fusionné le', en: 'merged on' },
+  'progress.openedAt': { fr: 'ouvert le', en: 'opened on' },
+  'progress.seeOnGithub': { fr: 'Voir sur GitHub', en: 'See on GitHub' },
+  'progress.plannedBody': {
+    fr: 'Intégration de nouvelles sources ouvertes, amélioration des scores d’environnement et première version des alertes de nouveaux locaux.',
+    en: 'Integration of new open data sources, improvement of environmental scores and first version of new-space alerts.',
   },
 } as const;
 

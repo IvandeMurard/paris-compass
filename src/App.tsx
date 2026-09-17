@@ -32,6 +32,7 @@ const Arrondissement = lazy(() => import("./pages/Arrondissement"));
 const SignIn = lazy(() => import("./pages/SignIn"));
 const SignUp = lazy(() => import("./pages/SignUp"));
 const Profile = lazy(() => import("./pages/Profile"));
+const Progress = lazy(() => import("./pages/Progress"));
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,7 @@ const AppRoutes = () => (
     <Route path="/signin" element={<SignIn />} />
     <Route path="/signup" element={<SignUp />} />
     <Route path="/profile" element={<Profile />} />
+    <Route path="/travaux" element={<Progress />} />
 
     <Route path="/en" element={<Index />} />
     <Route path="/en/presentation" element={<Presentation />} />
@@ -67,6 +69,7 @@ const AppRoutes = () => (
     <Route path="/en/signin" element={<SignIn />} />
     <Route path="/en/signup" element={<SignUp />} />
     <Route path="/en/profile" element={<Profile />} />
+    <Route path="/en/travaux" element={<Progress />} />
 
     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
     <Route path="*" element={<NotFound />} />

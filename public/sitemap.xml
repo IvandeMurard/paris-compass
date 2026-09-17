@@ -41,6 +41,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://paris-compass.lovable.app/travaux</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://paris-compass.lovable.app/paris</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -198,6 +203,11 @@
   <url>
     <loc>https://paris-compass.lovable.app/en/glossaire</loc>
     <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://paris-compass.lovable.app/en/travaux</loc>
+    <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>

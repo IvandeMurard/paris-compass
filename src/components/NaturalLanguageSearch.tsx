@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Mic } from 'lucide-react';
+import { Search, Mic, ArrowRight } from 'lucide-react';
 import { useLocale } from '@/i18n/locale';
 
 interface NLSearchProps {
   onSearch: (query: string) => void;
   className?: string;
+  size?: 'default' | 'hero';
 }
 
-const NaturalLanguageSearch = ({ onSearch, className = '' }: NLSearchProps) => {
+const NaturalLanguageSearch = ({ onSearch, className = '', size = 'default' }: NLSearchProps) => {
   const { t } = useLocale();
   const [query, setQuery] = useState('');
   const [isListening, setIsListening] = useState(false);
 
-  const searchSuggestions = [
+  const suggestions = [
     t('search.suggestion1'),
     t('search.suggestion2'),
     t('search.suggestion3'),
@@ -33,37 +34,49 @@ const NaturalLanguageSearch = ({ onSearch, className = '' }: NLSearchProps) => {
 
   const toggleVoiceRecognition = () => setIsListening((v) => !v);
 
+  const isHero = size === 'hero';
+
   return (
-    <div className={`${className}`}>
+    <div className={className}>
       <form onSubmit={handleSubmit} className="relative">
-        <Search className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+        <Search className={`absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground ${isHero ? 'h-5 w-5 left-4' : 'h-4 w-4'}`} />
         <Input
           placeholder={t('search.placeholder')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="pl-10 pr-10"
+          className={`pr-20 ${isHero ? 'h-14 pl-12 text-base' : 'pl-9'}`}
         />
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label={t('search.voice')}
-          className={`absolute right-1 top-1 ${isListening ? 'text-primary' : ''}`}
-          onClick={toggleVoiceRecognition}
-        >
-          <Mic size={18} />
-        </Button>
+        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={t('search.voice')}
+            onClick={toggleVoiceRecognition}
+            className={`${isListening ? 'text-primary' : 'text-muted-foreground'} ${isHero ? 'h-10 w-10' : 'h-7 w-7'}`}
+          >
+            <Mic size={isHero ? 18 : 16} />
+          </Button>
+          <Button
+            type="submit"
+            size={isHero ? 'default' : 'sm'}
+            className={`${isHero ? 'h-11 px-4 gap-1' : 'h-7 px-2'}`}
+          >
+            {isHero && <ArrowRight size={16} />}
+            {!isHero && <Search size={14} />}
+          </Button>
+        </div>
       </form>
 
       {query === '' && (
         <div className="mt-2">
-          <p className="text-sm text-muted-foreground mb-1">{t('search.trySearching')}</p>
+          <p className="text-xs text-muted-foreground mb-1.5">{t('search.trySearching')}</p>
           <div className="flex flex-wrap gap-2">
-            {searchSuggestions.map((suggestion) => (
+            {suggestions.map((suggestion) => (
               <button
                 key={suggestion}
                 onClick={() => handleSuggestionClick(suggestion)}
-                className="text-xs bg-muted hover:bg-muted/80 text-muted-foreground px-2 py-1 rounded-md"
+                className="text-xs bg-muted hover:bg-accent hover:text-accent-foreground text-muted-foreground px-2.5 py-1 rounded-full transition-colors"
               >
                 {suggestion}
               </button>

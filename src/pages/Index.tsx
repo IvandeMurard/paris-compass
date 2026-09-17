@@ -1,11 +1,11 @@
 import React, { Suspense, lazy, useState, useEffect } from 'react';
 import Header from '@/components/Header';
-import Sidebar from '@/components/Sidebar';
 import PropertyList from '@/components/PropertyList';
 import NaturalLanguageSearch from '@/components/NaturalLanguageSearch';
+import FiltersSheet from '@/components/FiltersSheet';
+import HeroOverlay from '@/components/home/HeroOverlay';
 import { Button } from '@/components/ui/button';
-import { MapPin, LayoutGrid } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { MapPin, LayoutGrid, ListFilter } from 'lucide-react';
 import { FiltersProvider, useFiltersContext } from '@/providers/FiltersProvider';
 import { geocode } from '@/services/opendata/geocoding';
 import Seo from '@/components/Seo';
@@ -13,12 +13,10 @@ import { SITE_URL } from '@/content/site';
 import { useLocale } from '@/i18n/locale';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-// Leaflet and its layer code only ever run inside MapView, so the map is loaded on demand:
-// that keeps the mapping library out of the bundle the page has to parse before it can paint
-// its shell. The map is the default tab, so this buys first render, not bytes never fetched.
 const MapView = lazy(() => import('@/components/MapView'));
 
-/** MapView with its own boundary, so a pending map never suspends the rest of the page. */
+const HERO_DISMISSED_KEY = 'compass_hero_dismissed';
+
 const MapPanel = () => (
   <Suspense fallback={<div className="h-full" />}>
     <MapView />
@@ -28,26 +26,28 @@ const MapPanel = () => (
 const IndexContent = () => {
   const { updateQuery } = useFiltersContext();
   const { t, locale } = useLocale();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const isMobile = useIsMobile();
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  const [heroDismissed, setHeroDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return sessionStorage.getItem(HERO_DISMISSED_KEY) === '1';
+  });
 
-  // Handle window resize to auto-show sidebar on desktop
-  useEffect(() => {
-    const handleResize = () => setIsSidebarOpen(window.innerWidth >= 768);
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const dismissHero = () => {
+    setHeroDismissed(true);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(HERO_DISMISSED_KEY, '1');
+    }
+  };
 
-  // Geocode the query with the Base Adresse Nationale, then filter on the matched address.
   const handleSearch = async (query: string) => {
+    dismissHero();
     const [match] = await geocode(query, 1);
     updateQuery(match ? match.label : query);
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-customBg font-sans flex flex-col">
+    <div className="h-screen overflow-hidden bg-background font-sans flex flex-col">
       <Seo
         title={t('home.metaTitle')}
         description={t('home.metaDescription')}
@@ -67,80 +67,100 @@ const IndexContent = () => {
           },
         ]}
       />
-      <Header isSidebarOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+
+      <Header filtersTrigger={<FiltersSheet />} />
       <h1 className="sr-only">{t('home.metaTitle')}</h1>
 
+      <div className="relative flex flex-1 min-h-0">
+        {/* Map is always mounted, list view overlays it on mobile */}
+        <div className="relative flex-1 min-h-0">
+          <MapPanel />
 
-      <div className="flex flex-col flex-1 min-h-0">
-        {/* Mobile search and view toggle */}
-        <div className="md:hidden p-4 bg-white shadow-sm space-y-4">
-          <NaturalLanguageSearch onSearch={handleSearch} className="w-full" />
+          {!heroDismissed && (
+            <HeroOverlay
+              hidden={heroDismissed}
+              onExplore={dismissHero}
+              onSearch={handleSearch}
+            />
+          )}
 
-          <div className="flex border rounded-md overflow-hidden">
-            <Button
-              variant={viewMode === 'map' ? 'default' : 'ghost'}
-              onClick={() => setViewMode('map')}
-              className="flex-1 rounded-none"
-            >
-              <MapPin size={18} className="mr-1" /> {t('nav.map')}
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
-              onClick={() => setViewMode('list')}
-              className="flex-1 rounded-none"
-            >
-              <LayoutGrid size={18} className="mr-1" /> {t('view.list')}
-            </Button>
-          </div>
+          {/* Floating map/list toggle and search on desktop */}
+          {!isMobile && (
+            <div className="absolute left-1/2 top-4 z-[1000] w-[min(42rem,calc(100%-2rem))] -translate-x-1/2">
+              <div className="flex items-center gap-2 rounded-xl border bg-background/95 p-2 shadow-lg backdrop-blur-sm">
+                <div className="flex rounded-lg border bg-muted p-0.5">
+                  <Button
+                    variant={viewMode === 'map' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('map')}
+                    className="gap-1"
+                  >
+                    <MapPin size={16} /> {t('nav.map')}
+                  </Button>
+                  <Button
+                    variant={viewMode === 'list' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('list')}
+                    className="gap-1"
+                  >
+                    <LayoutGrid size={16} /> {t('view.list')}
+                  </Button>
+                </div>
+                <div className="flex-1">
+                  <NaturalLanguageSearch onSearch={handleSearch} className="w-full" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Desktop list panel slides over the map */}
+          {!isMobile && viewMode === 'list' && (
+            <div className="absolute inset-0 z-[1000] bg-background overflow-auto">
+              <div className="mx-auto max-w-6xl px-6 py-6">
+                <PropertyList />
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="flex flex-1 min-h-0 overflow-hidden">
-          <Sidebar isOpen={isSidebarOpen} />
-
-          {/* Main content area */}
-          <div className="flex-1 min-h-0 overflow-hidden ml-0 md:ml-80">
-            {/* Mount exactly one responsive map. Keeping both variants in the DOM made two
-                Leaflet instances fetch and update the same viewport, even when one was hidden. */}
-            {isMobile ? (
-              <div className="h-full">
-                {viewMode === 'map' ? (
-                  <div className="h-full">
-                    <MapPanel />
-                  </div>
-                ) : (
-                  <div className="h-full overflow-auto">
-                    <PropertyList />
-                  </div>
-                )}
+        {/* Mobile bottom controls */}
+        {isMobile && (
+          <div className="absolute bottom-4 left-1/2 z-[1000] w-[min(24rem,calc(100%-2rem))] -translate-x-1/2">
+            <div className="flex items-center gap-2 rounded-full border bg-background/95 p-1.5 shadow-lg backdrop-blur-sm">
+              <FiltersSheet>
+                <Button variant="ghost" size="sm" className="gap-1 rounded-full">
+                  <ListFilter size={16} /> {t('filters.title')}
+                </Button>
+              </FiltersSheet>
+              <NaturalLanguageSearch onSearch={handleSearch} className="flex-1" />
+              <div className="flex rounded-full border bg-muted p-0.5">
+                <Button
+                  variant={viewMode === 'map' ? 'default' : 'ghost'}
+                  size="icon"
+                  onClick={() => setViewMode('map')}
+                  className="h-8 w-8 rounded-full"
+                >
+                  <MapPin size={16} />
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
+                  size="icon"
+                  onClick={() => setViewMode('list')}
+                  className="h-8 w-8 rounded-full"
+                >
+                  <LayoutGrid size={16} />
+                </Button>
               </div>
-            ) : (
-              <div className="flex h-full flex-col">
-                <Tabs defaultValue="map" className="flex flex-1 min-h-0 flex-col">
-                  <div className="flex shrink-0 items-center justify-between border-b px-4 py-2">
-                    <TabsList>
-                      <TabsTrigger value="map" className="flex items-center">
-                        <MapPin size={16} className="mr-1" /> {t('view.map')}
-                      </TabsTrigger>
-                      <TabsTrigger value="list" className="flex items-center">
-                        <LayoutGrid size={16} className="mr-1" /> {t('view.list')}
-                      </TabsTrigger>
-                    </TabsList>
-
-                    <NaturalLanguageSearch onSearch={handleSearch} className="w-96" />
-                  </div>
-
-                  <TabsContent value="map" className="mt-0 min-h-0 flex-1">
-                    <MapPanel />
-                  </TabsContent>
-
-                  <TabsContent value="list" className="mt-0 min-h-0 flex-1 overflow-auto">
-                    <PropertyList />
-                  </TabsContent>
-                </Tabs>
-              </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Mobile list view */}
+        {isMobile && viewMode === 'list' && (
+          <div className="absolute inset-0 z-[1000] bg-background overflow-auto">
+            <PropertyList />
+          </div>
+        )}
       </div>
     </div>
   );

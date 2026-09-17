@@ -25,8 +25,8 @@ const PageLayout = ({ title, intro, crumbs = [], children }: PageLayoutProps) =>
   const { t, lp, canonicalPath } = useLocale();
 
   return (
-    <div className="min-h-screen bg-customBg flex flex-col font-sans">
-      <header className="bg-white border-b">
+    <div className="min-h-screen bg-background flex flex-col font-sans">
+      <header className="bg-background border-b">
         <div className="mx-auto max-w-5xl px-6 py-4 flex flex-wrap items-center gap-4 justify-between">
           <Link to={lp('/')} className="text-xl font-bold text-primary">
             Compass

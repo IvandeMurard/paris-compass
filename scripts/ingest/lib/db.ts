@@ -123,7 +123,6 @@ export type IngestionSource =
   | "terrasses"
   | "sirene_stock"
   | "idfm"
-  | "filosofi"
 
 /**
  * Records a successful load.

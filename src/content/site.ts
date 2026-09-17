@@ -8,6 +8,9 @@ export interface NavItem {
   labelKey: UiKey;
 }
 
+/** Public GitHub repository used by the "Work in progress" page. Leave undefined to disable it. */
+export const GITHUB_REPO: { owner: string; repo: string } | undefined = undefined;
+
 export const MAIN_NAV: NavItem[] = [
   { to: '/', labelKey: 'nav.map' },
   { to: '/presentation', labelKey: 'nav.presentation' },
@@ -17,4 +20,5 @@ export const MAIN_NAV: NavItem[] = [
   { to: '/guides', labelKey: 'nav.guides' },
   { to: '/faq', labelKey: 'nav.faq' },
   { to: '/glossaire', labelKey: 'nav.glossary' },
+  { to: '/travaux', labelKey: 'nav.progress' },
 ];

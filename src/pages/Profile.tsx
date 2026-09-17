@@ -169,9 +169,9 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-customBg font-sans flex flex-col">
+    <div className="min-h-screen bg-background font-sans flex flex-col">
       <Seo title={copy.myAccount} description={copy.manageAccount} path="/profile" noindex />
-      <Header isSidebarOpen={false} toggleSidebar={() => {}} />
+      <Header />
       
       <div className="flex-1 container mx-auto p-4 md:p-6 max-w-5xl">
         <div className="mb-6">
