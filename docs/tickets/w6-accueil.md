@@ -1,4 +1,4 @@
-# [P1] w6-accueil — L'accueil, la refonte visuelle et la page `/travaux`
+# [P1] w6-accueil — L'accueil, l'allègement de l'outil et la page `/travaux`
 
 **ID** `w6-accueil` · **vague 6** · **P1**
 **Dépend de** `w6-dossier`, `w6-modes`, `w6-liberations`
@@ -19,8 +19,9 @@ servie, la page charge toujours **Inter**, et aucun des fichiers annoncés n'est
 témoins du relevé répondent — `Inter` 57 fois dans le JS, `/methodologie` 3 fois — donc la
 mesure fonctionne et l'absence est réelle.
 
-Quatre volets : l'accueil, l'allègement de l'outil, la refonte visuelle (palette en jetons HSL,
-Space Grotesk / DM Sans, `prefers-reduced-motion`), et la page `/travaux`.
+Quatre volets à l'origine. **Le troisième — la refonte visuelle — est parti le 17 septembre
+2026 dans [`w6-peinture`](./w6-peinture.md) (#215)**, décidé par Ivan, et ce ticket n'en porte
+plus rien. Restent trois : l'accueil, l'allègement de l'outil, et la page `/travaux`.
 
 ## Doctrine
 
@@ -46,10 +47,14 @@ tranchée, et ces trois-là vont encore déplacer ce que la fiche montre : peind
 peindre deux fois.
 
 **L'argument inverse a été pesé et écarté, pas ignoré** : le produit compose désormais un verdict
-et a l'air plus brut qu'il n'est, ce qui le dessert. Si cet argument redevient prioritaire, la
-bonne réponse est de **scinder** ce ticket — ce qui ne dépend d'aucune structure (typographie,
-palette, respiration) d'un côté, l'accueil et `/travaux` de l'autre — plutôt que de le remonter
-entier.
+et a l'air plus brut qu'il n'est, ce qui le dessert. Si cet argument redevenait prioritaire, la
+bonne réponse était de **scinder** ce ticket plutôt que de le remonter entier.
+
+**C'est ce qui a été fait le 17 septembre 2026**, sur la décision d'Ivan : *« je ne veux plus
+attendre pour le design »*. La typographie, la palette et la respiration vivent dans
+[`w6-peinture`](./w6-peinture.md) (#215), sans dépendance et exécutées par Lovable en parallèle.
+**Ce ticket ne garde que les murs** — et la raison d'attendre vaut toujours pour eux : `w2-rythme`
+(#208) et `w6-appuis` (#206) vont encore déplacer ce que la fiche montre.
 
 ## Fait quand
 
@@ -61,7 +66,7 @@ entier.
    development, et une panne du lien Lovable serait sinon invisible.
 4. `npm.cmd run servi` voit `/travaux` servie, ou dit qu'elle ne l'est pas. Un vert obtenu en
    retirant la route ne compte pas.
-5. `prefers-reduced-motion` respecté, **aucune couleur en dur** — recensée, pas relue.
+5. ~~`prefers-reduced-motion`, aucune couleur en dur~~ — **parti dans `w6-peinture` (#215)**.
 
 **Ce que ça ne rattrape pas.** Livrer ce ticket met la refonte dans le dépôt ; l'y voir en
 production est une autre question, et le déploiement appartient à Lovable. Depuis `#142` un
