@@ -126,13 +126,13 @@ const ORDER = [
   // stations, et `fetchCorpusStation` n'en lit que la distance et le nom. Ivan a tranché qu'il
   // passe DEVANT w5-explain-metier et w6-appuis : c'est le plus proche de la promesse du produit
   // pour le moins de travail de tout le backlog, puisqu'il n'ingère rien.
-  // Demandé par Ivan le 17 septembre 2026, après la SEPTIÈME fusion restée en soute. `servi` est
-  // le bras censé le dire, et il reste vert : il ne dérive que les routes de `src/App.tsx` et les
-  // libellés de `src/i18n/ui.ts`, donc un bloc neuf sur une page existante lui est invisible —
-  // c'est la forme qu'ont prise les sept. Mesuré le jour même : ~307 chaînes affichées hors de sa
-  // population contre 288 dedans. Placé en tête parce que sa contre-preuve est périssable : la
-  // production est en retard de deux fusions en ce moment, le bundle est capturé dans
-  // `eval/temoins/`, et le cas réel disparaît à la prochaine republication.
+  // Livré le 17 septembre 2026. Ce que la session a mesuré contre l'énoncé est dans le ticket,
+  // et deux points valent d'être gardés ici : « ~307 chaînes dehors contre 288 dedans » était
+  // faux — `ui.ts` en portait 360 — et surtout la production ne servait pas un bundle en retard
+  // de deux fusions mais un bundle ANTÉRIEUR à `w6-contexte` (#119), sans `/carte` ni
+  // `/contexte/:slug`. La fiche rendait une 404, et personne ne l'avait vu. Le bras dérive
+  // désormais 1 138 chaînes rendues par langue dans 27 modules atteignables, et sa contre-preuve
+  // est un témoin joué en test — `scripts/porte/servi-temoin-2026-09-17.json`.
   "w1-servi-contenu",
   "w2-rythme",
   "w5-explain-metier",
