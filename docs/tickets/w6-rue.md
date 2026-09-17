@@ -1,7 +1,8 @@
 # [P1] w6-rue — Compass mesure en cercles, et une rue n'est pas un cercle
 
 **ID** `w6-rue` · **vague 6** · **P1**
-**Dépend de** `w0-plu` (#9), `w2-rythme`
+**Dépend de** `w0-plu` (#9)
+**Placé après** `w2-rythme` (#208) — un ordre voulu par Ivan, **pas une dépendance technique** : compter les locaux d'une voie ne demande aucune heure. Si `w2-rythme` s'enlise, celui-ci n'est pas bloqué.
 **Sources** — *aucune source nouvelle : une échelle que le corpus porte déjà et que rien ne
 rapporte*
 

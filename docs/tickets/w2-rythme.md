@@ -30,6 +30,21 @@ chargée, sous licence redistribuable, et jetée à chaque fiche.
 
 Ce ticket n'ajoute pas une source. Il affiche une source que le produit possède déjà.
 
+## La première chose à mesurer, avant d'écrire une ligne
+
+**Le rapport gain/effort de ce ticket tient à une condition non vérifiée** : que les lignes
+horaires sortent jusqu'au visiteur anonyme. `fetchCorpusStation` ne lit aujourd'hui que deux
+champs, donc rien ne prouve que les 24 tranches sont servies à `anon`.
+
+**Et le précédent est exactement celui-là.** La revue de `#97` a trouvé `idfm_validation_profile`
+muette pour un appelant PostgREST direct — RLS active, zéro politique de lecture : la fonction
+`security definer` répondait pendant que la table restait invisible. Corrigé par
+`20260907000003_idfm_lecture_publique.sql`.
+
+Donc : **mesurer cet accès en `anon` d'abord, et écrire la mesure.** Si la couche ne sort pas, ce
+ticket n'est plus « afficher ce qu'on possède » et son coût change — ce qui est une information à
+rendre à Ivan, pas un obstacle à contourner en silence.
+
 ## Ce que cette donnée peut dire, et les trois choses qu'elle ne peut pas
 
 **Elle porte une FORME, jamais un VOLUME.** `pct_validations` est la part de la journée d'une
