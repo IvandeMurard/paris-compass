@@ -126,6 +126,14 @@ const ORDER = [
   // stations, et `fetchCorpusStation` n'en lit que la distance et le nom. Ivan a tranché qu'il
   // passe DEVANT w5-explain-metier et w6-appuis : c'est le plus proche de la promesse du produit
   // pour le moins de travail de tout le backlog, puisqu'il n'ingère rien.
+  // Demandé par Ivan le 17 septembre 2026, après la SEPTIÈME fusion restée en soute. `servi` est
+  // le bras censé le dire, et il reste vert : il ne dérive que les routes de `src/App.tsx` et les
+  // libellés de `src/i18n/ui.ts`, donc un bloc neuf sur une page existante lui est invisible —
+  // c'est la forme qu'ont prise les sept. Mesuré le jour même : ~307 chaînes affichées hors de sa
+  // population contre 288 dedans. Placé en tête parce que sa contre-preuve est périssable : la
+  // production est en retard de deux fusions en ce moment, le bundle est capturé dans
+  // `eval/temoins/`, et le cas réel disparaît à la prochaine republication.
+  "w1-servi-contenu",
   "w2-rythme",
   "w5-explain-metier",
   // Demandé par Ivan le 17 septembre 2026, en mesurant pourquoi l'agent et l'écran ne nommaient
