@@ -120,6 +120,14 @@ const ORDER = [
   // faite sans qu'on y ait touché : `modeAxisOrder` vit dans `src/core/`, donc le serveur MCP
   // l'atteint déjà.
   "w5-explain-metier",
+  // Demandé par Ivan le 17 septembre 2026, en mesurant pourquoi l'agent et l'écran ne nommaient
+  // pas les mêmes axes : « une école à cent mètres, c'est une clientèle du midi ; un parc, c'est
+  // un week-end — ces informations doivent faire partie du livrable final ». `AreaScores` porte
+  // douze axes, la fiche en affiche six, et trois des six jetés sont une information que rien
+  // d'autre ne donne. Placé DERRIÈRE w5-explain-metier parce qu'ouvrir une surface neuve pendant
+  // qu'une promesse affichée est fausse coûte deux fois : la promesse casse plus fort à chaque
+  // constat qu'un agent ne reçoit pas.
+  "w6-appuis",
   "w0-deploy",
   "w0-history",
   "w0-provenance",
