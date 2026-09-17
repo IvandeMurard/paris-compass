@@ -1,7 +1,7 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte 60 au 17 septembre 2026**, et la
+« quatre défauts, par ordre de gravité » : il en porte 61 au 17 septembre 2026**, et la
 phrase est restée fausse trois semaines. Le nombre est désormais dérivé du tableau
 ci-dessous par `scripts/porte/documents.test.ts` : le recopier faux fait rougir `test`.
 
@@ -83,7 +83,8 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 57 | Le schéma se trompe de sens sur le profil horaire : « midi = bureaux » est faux à 258 stations sur 258 | **partiel** — mesuré le 17 septembre 2026 par `w2-rythme` ; le produit corrigé, les deux `comment on` du distant non, [#213](https://github.com/IvandeMurard/paris-compass/issues/213) | ici |
 | 58 | `src/i18n/survivalText.ts` : douze chaînes de prose qu'aucun import n'atteint, donc aucun écran ne rend | **ouvert** — mesuré le 17 septembre 2026 par `w1-servi-contenu` | ici |
 | 59 | `servi` ne lisait que les morceaux que l'ENTRÉE nomme : 1 sur 29, et 424 003 octets servis jamais demandés | clos le 17 septembre 2026 par `w1-servi-contenu` | ici |
-| 60 | La production sert un bundle antérieur à `#119` : `/carte` et `/contexte/` ne sont pas déclarés, la fiche rend une 404 | **ouvert** — mesuré le 17 septembre 2026, appartient au déploiement | ici |
+| 60 | La production sert un bundle antérieur à `#119` : `/carte` et `/contexte/` ne sont pas déclarés, la fiche rend une 404 | clos le 17 septembre 2026 par une republication d'Ivan — `servi` sortie 0, 1 168 jetons sur 1 168 | ici |
+| 61 | Le bundle publié vise `nwnhhvogwrzstslxtxca`, l'ANCIEN projet Supabase : la fiche rend un refus sur les quatre axes | **ouvert** — mesuré le 17 septembre 2026, appartient au déploiement | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -1575,3 +1576,108 @@ plus.
 **Ce qui attend une décision d'Ivan** : republier depuis Lovable, puis rejouer `npm.cmd run servi`
 et `npm.cmd run page`. Les deux doivent reverdir ; s'ils ne reverdissent pas, la cause est en
 amont du dépôt et c'est un ticket Lovable, pas un ticket ici.
+
+### Clos le 17 septembre 2026 — Ivan a republié, et les deux bras ont reverdi
+
+Remesuré dans l'heure. `servi` **sortie 0** : 1 282 169 octets servis, **1 168 jetons sur
+1 168**, toutes les routes déclarées — contre 758 sur 1 168 et quatre routes manquantes avant.
+`page` **sortie 0** : la page rend quelque chose de décidable en 1 535 ms, plus aucune 404.
+L'entrée servie est passée de `index-DAmk8dIZ.js` à `index-BsiM9msj.js`.
+
+La régression de déploiement est donc levée : **le code servi est celui de `main`**. Le témoin du
+bundle en retard reste dans `scripts/porte/servi-temoin-2026-09-17.json`, joué par
+`scripts/porte/servi.test.ts` — c'est exactement la raison pour laquelle il a été capturé avant
+la republication, et cette clôture est la preuve que la fenêtre était bien d'une journée.
+
+**Ce que la republication n'a PAS réglé, et il faut lire le §61 avant de conclure quoi que ce
+soit d'un site qui répond** : le bundle neuf est configuré pour l'**ancien** projet Supabase,
+donc la fiche rend un refus sur les quatre axes. Le code est à jour, la page est servie, et le
+produit ne peut répondre à aucune question.
+
+## 61. Le bundle publié vise `nwnhhvogwrzstslxtxca`, l'ANCIEN projet Supabase — mesuré le 17 septembre 2026
+
+Trouvé en rejouant `npm.cmd run page` après la republication qui a clos le §60. La page est
+servie, elle n'est plus en 404 — et elle rend un **refus sur les quatre axes**, en 1 535 ms :
+
+```
+PASS — La page rend un refus nommé en 1535 ms (délai 14000 ms) :
+« Compass ne compose pas de verdict pour cette adresse — le tissu commercial :
+source injoignable ; le passage : source injoignable ; la desserte ferrée :
+source injoignable ; les services marchands à pied : source injoignable. »
+```
+
+**Mille cinq cents millisecondes est la mesure qui oriente tout.** Un refus qui arrive dix fois
+sous le budget n'a pas attendu un réseau lent : quelque chose a échoué tout de suite.
+
+### Ce que le bundle porte
+
+`npm.cmd run porte:publie`, sortie **1** :
+
+```
+lu   /assets/index-BsiM9msj.js (163732 octets, 0 occurrence(s))
+lu   App-CEs5NX0V.js (467137 octets, 0 occurrence(s))
+note couples `void 0` dans l'entrée : 0 — compté, pas jugé
+ÉCHEC — la référence du projet Supabase n'est dans aucun des 2 bundle(s) servis
+```
+
+**Et ce n'est PAS le §32.** Le §32 — le build publié sans sa configuration, page muette — laisse
+une signature précise : des `void 0` figés là où les deux valeurs devraient être. Le bras les
+compte, et il en compte **zéro**. La configuration est là ; elle est simplement fausse. Lu dans
+l'entrée servie :
+
+```js
+const mp = {
+  VITE_SUPABASE_URL: "https://nwnhhvogwrzstslxtxca.supabase.co",
+  VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_x21GF-tZOR3F6G1hvVINSA_S1v8oHBq"
+}
+```
+
+Le dépôt, lui, déclare `dbefhvmyfmmhjeetdddu` dans `.env` — suivi par git depuis le §32
+précisément pour que le build publié l'ait. L'environnement du build Lovable prime donc sur le
+fichier du dépôt.
+
+`nwnhhvogwrzstslxtxca` n'est pas un projet inconnu : `docs/REPRISE.md`, « Le nœud Supabase, à ne
+pas redécouvrir », le nomme comme l'**ancienne cible** (backend Lovable Cloud), avec la mention
+*« Ne plus utiliser — absent du compte Supabase d'Ivan »* depuis le 15 août 2026.
+
+### La mesure qui ferme le raisonnement
+
+Les deux projets appelés sur la même adresse, au même instant, avec la clé publiable de chacun,
+sur la fonction dont la fiche a besoin :
+
+| Projet | Réponse à `compass_premises_within` (48.8631, 2.3621, 300 m) |
+| --- | --- |
+| `nwnhhvogwrzstslxtxca` — **servi** | **HTTP 404**, `PGRST202` : *« Could not find the function public.compass_premises_within … no matches were found in the schema cache »* |
+| `dbefhvmyfmmhjeetdddu` — dépôt | **HTTP 200**, `39 RUE BRETAGNE` à 13,81 m, quartier Enfants-Rouges |
+
+Le projet servi n'a pas le schéma de Compass. Chaque axe échoue immédiatement, et la fiche fait
+exactement ce qu'elle doit faire d'un échec de source : elle nomme le refus au lieu d'inventer
+un verdict. **Le produit se comporte correctement ; c'est sa configuration qui est fausse.**
+
+### Ce que ça dit des bras, et c'est plutôt une bonne nouvelle
+
+Trois bras ont parlé, et chacun a dit vrai sur sa question :
+
+- `servi` **sortie 0** — le code servi est bien celui de `main`. Il ne juge pas la configuration,
+  et son en-tête l'a toujours dit.
+- `page` **sortie 0** — un refus nommé est un succès pour ce bras, par construction (#156) : il
+  rougit quand la page ne dit *rien*, pas quand elle dit honnêtement qu'elle ne sait pas.
+- `porte:publie` **sortie 1** — le seul qui regarde la configuration, et le seul rouge. Il a
+  fonctionné.
+
+**Aucun instrument neuf n'est requis**, et c'est pour ça que ce constat n'ouvre pas de chantier
+d'outillage. Mais le message du rouge, lui, nomme une cause quand deux sont possibles : *« le
+build publié n'a pas eu sa configuration »* alors que la vérité est *« il en a une, pour un autre
+projet »*. C'est mot pour mot ce que
+[`#127`](https://github.com/IvandeMurard/paris-compass/issues/127) avait prévu, avant que le cas
+n'existe.
+
+### Ce qui attend une décision d'Ivan
+
+Corriger `VITE_SUPABASE_URL` et `VITE_SUPABASE_PUBLISHABLE_KEY` **dans l'environnement de build
+Lovable** pour viser `dbefhvmyfmmhjeetdddu`, republier, puis rejouer `npm.cmd run porte:publie`
+et `npm.cmd run page`. Le premier doit sortir en 0 ; le second doit rendre un **verdict composé**
+et non un refus.
+
+**Tant que ce n'est pas fait, le site est en ligne, complet, à jour — et ne peut répondre à
+aucune question.** C'est la forme la plus coûteuse de panne : tout a l'air de marcher.
