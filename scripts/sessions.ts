@@ -119,6 +119,14 @@ const ORDER = [
   // casser passe avant d'ouvrir une surface nouvelle. La moitié du travail est d'ailleurs déjà
   // faite sans qu'on y ait touché : `modeAxisOrder` vit dans `src/core/`, donc le serveur MCP
   // l'atteint déjà.
+  // Décidé par Ivan le 17 septembre 2026, sur le témoignage de Baptiste Braux (Kafé, rue Martel) :
+  // « un lieu se définit surtout par les heures auxquelles il est utile à quelqu'un ». Compass
+  // n'a AUCUNE notion d'heure — les douze axes sont des photos fixes. Et la donnée est déjà
+  // payée : `idfm_validation_profile`, remplie le 7 septembre, porte la forme horaire de 258
+  // stations, et `fetchCorpusStation` n'en lit que la distance et le nom. Ivan a tranché qu'il
+  // passe DEVANT w5-explain-metier et w6-appuis : c'est le plus proche de la promesse du produit
+  // pour le moins de travail de tout le backlog, puisqu'il n'ingère rien.
+  "w2-rythme",
   "w5-explain-metier",
   // Demandé par Ivan le 17 septembre 2026, en mesurant pourquoi l'agent et l'écran ne nommaient
   // pas les mêmes axes : « une école à cent mètres, c'est une clientèle du midi ; un parc, c'est
@@ -128,6 +136,13 @@ const ORDER = [
   // qu'une promesse affichée est fausse coûte deux fois : la promesse casse plus fort à chaque
   // constat qu'un agent ne reçoit pas.
   "w6-appuis",
+  // Décidé par Ivan le 17 septembre 2026, même conversation : « la rue doit devenir une échelle
+  // affichée et valorisable par l'utilisateur ». Compass mesure au local (BDCom est porte-à-porte)
+  // et restitue dans des cercles de 400 et 800 m ; l'échelle où un commerce vit n'existe nulle
+  // part. Placé derrière w2-rythme parce qu'une rue sans heure reste une photo fixe, et derrière
+  // w6-appuis parce que la vraie difficulté — où s'arrête « la rue » quand elle fait trois
+  // kilomètres — mérite une file dégagée devant elle.
+  "w6-rue",
   "w0-deploy",
   "w0-history",
   "w0-provenance",
