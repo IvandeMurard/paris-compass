@@ -29,7 +29,7 @@ affichées** : la vraie population se dérive des tables, et ce comptage sert à
 
 | Module | Littéraux de 12 caractères ou plus | Dans la population de `servi` |
 | --- | --- | --- |
-| `src/i18n/ui.ts` | 288 | **oui** |
+| `src/i18n/ui.ts` | ~~288~~ **360**, remesuré le 17 septembre 2026 | **oui** |
 | `src/i18n/modeText.ts` | 112 | non |
 | `src/i18n/contextText.ts` | 101 | non |
 | `src/core/verdict.ts` | 62 | non |
@@ -89,3 +89,38 @@ Pas de nouvelle route, pas de nouveau libellé pour se rendre visible.
 
 Voir `scripts/porte/servi.ts` pour l'en-tête qui déclare déjà cette limite, et
 `DIAGNOSTIC.md` pour ce que `#142` et `#152` ont mesuré.
+
+---
+
+## Ce que la session du 17 septembre 2026 a mesuré contre ce ticket
+
+Écrit par `w1-servi-contenu` en le livrant. Les chiffres du ticket ont été rédigés sans accès en
+lecture au dépôt ; voici ceux qui ont tenu et ceux qui n'ont pas tenu.
+
+**Ce qui a tenu.** `modeText.ts` 112, `contextText.ts` 101, `verdict.ts` 62, `rythmeText.ts` 32 —
+les quatre comptes au `grep -oE "'[^']{12,}'"` sont exacts. Le diagnostic aussi : la population
+du bras laissait dehors la prose qu'un bloc neuf apporte, et c'est la forme qu'ont prise les
+dernières livraisons.
+
+**Ce qui n'a pas tenu, et qu'il faut lire avant de citer ce ticket.**
+
+1. **`src/i18n/ui.ts` porte 360 littéraux, pas 288** — corrigé dans le tableau ci-dessus. Le
+   rapport n'est donc pas « 307 dehors contre 288 dedans » mais 307 contre 360. La conclusion ne
+   change pas de sens, sa force si.
+2. **Le bundle servi n'est pas `index-BBCkdSb9.js`, mais `index-DAmk8dIZ.js`**, et il n'existe
+   aucun `Context-DazhfY1Z.js` en production : la production ne sert **aucun** morceau `Context`.
+3. **« L'actuel sort vert » est faux.** Le bras d'avant élargissement sortait déjà en **1**
+   contre cette production, avec 27 jetons absents. La contre-preuve n'est donc pas
+   « vert contre rouge » mais « 27 jetons contre 358 » — et surtout, le bras d'avant ne nommait
+   aucun des modules de prose restés en soute.
+4. **La cause est plus grave que le retard annoncé.** La production sert un bundle **antérieur à
+   `w6-contexte` (#119)** : ni `/carte` ni `/contexte/:slug` n'y sont déclarés, et la fiche rend
+   une 404. `DIAGNOSTIC.md` §60, recoupé par `npm.cmd run page`.
+
+**Un défaut trouvé en route, qui commandait la règle** : `src/i18n/survivalText.ts` n'est importé
+par personne, et sa prose n'est dans aucun bundle. Sans le filtre d'atteignabilité, le bras
+élargi serait sorti rouge dès son premier matin sur du texte que le produit ne rend pas.
+`DIAGNOSTIC.md` §58.
+
+**Et un défaut de mesure dans le bras lui-même** : il ne suivait les morceaux que sur un niveau,
+donc il lisait 611 440 des 1 247 018 octets d'un build. `DIAGNOSTIC.md` §59.
