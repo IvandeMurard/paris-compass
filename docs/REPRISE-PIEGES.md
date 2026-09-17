@@ -1646,3 +1646,36 @@ devance son application.
 **Ce que ça ne rattrape pas** : une migration écrite ET poussée le même jour ne pose aucun
 problème, et rien n'oblige à passer par une issue. La règle ne vaut que pour la session qui sait
 d'avance qu'elle ne poussera pas.
+
+---
+
+## Une étiquette `vague-N` sur une issue de défaut fait rougir `sessions:check` — 17 septembre 2026
+
+`w2-rythme` (#208) a ouvert #213 en passant, pour un défaut consigné dans `DIAGNOSTIC.md`, et
+lui a mis `plan-action` + `P2` + **`vague-2`** — le réflexe du ticket de plan. `npm.cmd run
+sessions:check` est sorti en **1** :
+
+```
+Les listes des épics ne disent plus ce que portent les étiquettes.
+  #43 — 1 écart(s)
+      convention #213 porte vague-2 et son titre ne suit pas « [Pn] <ticket> — … »
+```
+
+**La règle, et elle est juste.** Une étiquette `vague-N` déclare qu'une issue appartient à la
+liste d'un épic, et un épic lie ses lignes aux tickets **par le titre** — `[Pn] <ticket> — …`.
+Une issue sans identifiant de ticket ne peut donc pas y entrer, et lui poser la vague crée une
+ligne que rien ne peut résoudre. Ce n'est pas la vérification qui est trop stricte : c'est
+l'étiquette qui affirmait une appartenance fausse.
+
+**Ce que fait le dépôt, vérifié sur les quatre précédents** — #79, #80, #83, #88, toutes des
+issues de défaut nées d'une session : elles portent `plan-action` et/ou `Pn`, et **aucune ne
+porte de `vague-N`**. La convention existait, elle n'était juste écrite nulle part.
+
+**Le geste** : une issue ouverte en passant pour un défaut prend `plan-action` + `Pn`, jamais une
+vague, et gagne à nommer sa section dans son titre — `… — DIAGNOSTIC.md §57`, comme #80 le fait
+déjà pour §36. Une vague ne se pose que sur une issue qui a un fichier dans `docs/tickets/`.
+
+**Ce que ça ne rattrape pas** : la vérification lit les étiquettes et les titres, jamais si
+l'issue mérite d'exister. Et elle ne se déclenche qu'au `sessions:check` — une session qui
+ouvrirait l'issue sans rejouer la vérification laisserait le rouge au matin suivant, ce qui est
+exactement le trou que la règle de la cadence nomme ailleurs sur cette page.
