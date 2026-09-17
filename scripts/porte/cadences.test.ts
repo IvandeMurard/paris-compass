@@ -153,20 +153,17 @@ describe("la règle, jouée sur ce dépôt-ci", () => {
     expect(cadencesOfTheSources().filter((v) => v.state === "contradictoire").map((v) => v.source)).toEqual([])
   })
 
-  it("recense les onze sources, et les sept que #70, w2-idfm, w2-filosofi et w4-meubles nomment sont planifiées", () => {
+  it("recense les neuf sources, et les cinq que #70 et w2-idfm nomment sont planifiées", () => {
     // Measured 1 September 2026 against the remote, `compass_source_freshness()`: eight rows,
     // the same eight the migrations declared that day. w2-idfm (#19) added a ninth,
-    // 7 September 2026 — `idfm`, migration 20260907000002. w2-filosofi (#18) added a tenth,
-    // 8 September 2026 — `filosofi`, migration 20260908000001. w4-meubles (#27) added an
-    // eleventh, 10 September 2026 — `meubles`, migration 20260910000002 (the count here reads
-    // migration files on disk, so a migration prepared but not yet posed to any database still
-    // counts). If the enumeration ever finds nothing it has stopped working, and reporting that
-    // as success is the silent-absence defect this whole family of checks refuses
-    // (scripts/eval/census.ts says so first) — a hardcoded count is what catches a source ADDED
-    // without this test noticing, same as the day this one goes stale again.
+    // 7 September 2026 — `idfm`, migration 20260907000002. If the enumeration ever finds
+    // nothing it has stopped working, and reporting that as success is the silent-absence
+    // defect this whole family of checks refuses (scripts/eval/census.ts says so first) — a
+    // hardcoded count is what catches a source ADDED without this test noticing, same as the
+    // day this one goes stale again.
     const verdicts = cadencesOfTheSources()
-    expect(verdicts.length).toBe(11)
-    for (const source of ["chantiers", "sirene_stock", "plu", "terrasses", "idfm", "filosofi", "meubles"]) {
+    expect(verdicts.length).toBe(9)
+    for (const source of ["chantiers", "sirene_stock", "plu", "terrasses", "idfm"]) {
       expect(verdicts.find((v) => v.source === source)?.state, `${source} n'est pas planifiée`).toBe("planifie")
     }
   })

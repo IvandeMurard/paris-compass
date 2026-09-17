@@ -7,12 +7,5 @@
 
 export * from './geo';
 export * from './observational';
-export * from './motif';
 export * from './provenance';
 export * from './scoring';
-export * from './verdict';
-export * from './comparison';
-export * from './agentCall';
-export * from './dossier';
-export * from './modes';
-export * from './rythme';

@@ -17,38 +17,10 @@
 // `--check` compares the **claims**, not the bytes: the "régénérée le …" line is expected to
 // differ every day and a check that failed on it would be noise, and noise is how a check
 // gets disabled. It reports which ticket moved, so the diff is readable without a diff.
-//
-// ── The epics, added 15 September 2026 ────────────────────────────────────────────────────
-//
-// The same pair, one level up: the eight `[épic] Vague N` issues carry a checklist that was
-// ticked by hand and compared to nothing. Three of the eight were wrong the morning this was
-// written — #42 listed 7 of its 17 labelled tickets. The rule and its limits are in
-// scripts/session-epiques.ts; this file only holds the two ends:
-//
-//   npm.cmd run sessions -- --epiques   rewrites the `## Tickets` block of each epic on GitHub
-//   npm.cmd run sessions:check          ALSO cross-checks those lists, and exits 1 on drift
-//
-// `--epiques` is a flag rather than a second npm script on purpose. It is the same data, read
-// by the same call, under the same promise — and a new script would owe `scripts/porte/
-// cadence.json` an entry for an arm that adds nothing the check does not already say. The
-// write stays behind the flag because it touches GitHub and `sessions` alone touches only a
-// file in the repository.
 
-import { readFileSync, writeFileSync, readdirSync, mkdtempSync } from "fs"
+import { readFileSync, writeFileSync, readdirSync } from "fs"
 import { execFileSync } from "child_process"
-import { tmpdir } from "os"
-import { join, resolve } from "path"
-
-import { modeleDe } from "./session-choix"
-import {
-  Ecart,
-  corpsRegenere,
-  epiquesDe,
-  recouperLesEpiques,
-  ticketsDeLaVague,
-  vagueDe,
-} from "./session-epiques"
-import { Issue, RefusGitHub, issuesDuTicket, lireIssues } from "./session-issues"
+import { resolve } from "path"
 
 const DOC = resolve("docs/SESSIONS.md")
 const TICKETS = resolve("docs/tickets")
@@ -58,118 +30,12 @@ const END = "<!-- END sessions -->"
 /** Order is a human decision, so it is declared here rather than inferred. Unlisted
  *  tickets fall to the end, sorted by id — visible, never silently dropped. */
 const ORDER = [
-  // --- P0, 13 September 2026: the product page does not work ----------------------------
-  // Measured as an anonymous visitor: /contexte/<address> shows a loading line for 2 min 20
-  // and then an error screen, on two addresses. These three head the queue because nothing
-  // else can be measured on a page that crashes — and because the gate was entirely green
-  // while it happened. Order decided by Ivan: the crash, then the corpus, then the arm that
-  // would have caught both. They sit before every closed w0 ticket on purpose: what matters
-  // is that they precede every ticket still OPEN, and the queue derives itself from that.
-  "w6-fiche-robuste",
-  "w6-fiche-corpus",
-  "w1-porte-page",
-  // Ouvert en passant par la session de #156, placé ici le 14 septembre 2026. Il suit
-  // w6-fiche-corpus et non les tickets produit, pour une raison de connaissance et non de
-  // valeur : c'est la session qui vient de découpler la fiche d'Overpass qui sait ce qu'il
-  // reste à /carte. Placé plus loin, il serait repris par quelqu'un qui devrait tout
-  // remesurer. Ce n'est pas un P0 — la fiche n'en dépendra plus — mais /carte interroge
-  // toujours la même liste, sans budget, et rien ne dit si son ordre est encore juste.
-  // Passe DEVANT w1-overpass-ordre, le 14 septembre 2026, et le rend presque sans objet pour
-  // la fiche : une fois `amenities` servi par le corpus, l'ordre des miroirs ne décide plus
-  // que de /carte. Mesuré le même jour — la fiche rend un constat sur six, et une seule
-  // couche explique les trois axes porteurs manquants. C'est le dernier ticket entre l'état
-  // courant et « un verdict se compose », pour le navigateur et pour l'agent à la fois.
-  "w6-amenites-corpus",
-  // --- Ce que l'utilisateur ressent, avant ce qui le protège — ordre validé par Ivan le
-  // 15 septembre 2026. Le produit répond depuis ce jour-là ; ces deux tickets sont les seuls
-  // défauts encore visibles à l'écran, et ils passent donc devant les instruments.
-  "w6-fiche-delai",
-  "w6-langue-absences",
-  "w1-overpass-ordre",
-  // Trouvé le 15 septembre en vérifiant que l'agent recevait bien le verdict que l'écran
-  // compose : deux passages de verify:mcp, un refus puis un verdict, et le bras vert sur les
-  // deux. Placé ici parce qu'il garde une promesse déjà livrée — le produit marche, ce ticket
-  // empêche qu'il cesse de marcher sans que personne ne le voie.
-  "w1-parite-refus",
-  // Les trouvailles de la revue du 15 septembre, qui n'a pas été faite par les sessions qui
-  // ont écrit le code. Elles gardent des instruments, donc elles ne se voient pas à l'écran —
-  // et elles passent après les deux tickets qui s'y voient.
-  //
-  // Celui-ci passe devant les deux autres : il ne garde pas un bras, il garde l'outil qui
-  // DISPATCHE les sessions. Depuis #187 le mauvais numéro d'issue porte un ordre
-  // « ARRÊTE-TOI », donc tant qu'il est là, n'importe quelle session suivante peut être
-  // arrêtée sur l'état d'une autre issue — y compris celles qui traitent les deux tickets
-  // ci-dessous.
-  "w1-brief-appariement",
-  "w1-page-delai-derive",
-  "w1-parite-axes-enumere",
-  // Demandé par Ivan le 15 septembre 2026, après que la page est passée de 10 976 à 3 611 ms :
-  // « il faudra itérer en continu pour accélérer le chargement ». Sans chiffre gardé, cette
-  // intention n'a rien contre quoi itérer — le bras mesure la durée et la jette, donc une
-  // dégradation de 3,6 s à 9 s ne rougirait nulle part.
-  "w1-page-tendance",
-  // Ouvert le 16 septembre 2026 : le journal des questions existe depuis #72, il ne voit que la
-  // surface agent et personne ne le relit. C'est le seul instrument du depot qui dirait ce que
-  // le produit ne sait PAS repondre — les quinze autres disent seulement s'il ment.
-  "w1-questions-lues",
-  // Remonté de la 58ᵉ place et de P2 à P1 le 16 septembre 2026, décidé par Ivan. La raison
-  // n'est pas que le ticket a grandi : c'est que `w6-modes` (#36) vient de donner trois modes
-  // métier à l'écran et aucun à l'agent. « La même réponse pour un agent » est la promesse
-  // centrale du produit, et elle est fausse depuis hier — réparer une promesse qu'on vient de
-  // casser passe avant d'ouvrir une surface nouvelle. La moitié du travail est d'ailleurs déjà
-  // faite sans qu'on y ait touché : `modeAxisOrder` vit dans `src/core/`, donc le serveur MCP
-  // l'atteint déjà.
-  // Décidé par Ivan le 17 septembre 2026, sur le témoignage de Baptiste Braux (Kafé, rue Martel) :
-  // « un lieu se définit surtout par les heures auxquelles il est utile à quelqu'un ». Compass
-  // n'a AUCUNE notion d'heure — les douze axes sont des photos fixes. Et la donnée est déjà
-  // payée : `idfm_validation_profile`, remplie le 7 septembre, porte la forme horaire de 258
-  // stations, et `fetchCorpusStation` n'en lit que la distance et le nom. Ivan a tranché qu'il
-  // passe DEVANT w5-explain-metier et w6-appuis : c'est le plus proche de la promesse du produit
-  // pour le moins de travail de tout le backlog, puisqu'il n'ingère rien.
-  // Demandé par Ivan le 17 septembre 2026, après la SEPTIÈME fusion restée en soute. `servi` est
-  // le bras censé le dire, et il reste vert : il ne dérive que les routes de `src/App.tsx` et les
-  // libellés de `src/i18n/ui.ts`, donc un bloc neuf sur une page existante lui est invisible —
-  // c'est la forme qu'ont prise les sept. Mesuré le jour même : ~307 chaînes affichées hors de sa
-  // population contre 288 dedans. Placé en tête parce que sa contre-preuve est périssable : la
-  // production est en retard de deux fusions en ce moment, le bundle est capturé dans
-  // `eval/temoins/`, et le cas réel disparaît à la prochaine republication.
-  "w1-servi-contenu",
-  "w2-rythme",
-  "w5-explain-metier",
-  // Demandé par Ivan le 17 septembre 2026, en mesurant pourquoi l'agent et l'écran ne nommaient
-  // pas les mêmes axes : « une école à cent mètres, c'est une clientèle du midi ; un parc, c'est
-  // un week-end — ces informations doivent faire partie du livrable final ». `AreaScores` porte
-  // douze axes, la fiche en affiche six, et trois des six jetés sont une information que rien
-  // d'autre ne donne. Placé DERRIÈRE w5-explain-metier parce qu'ouvrir une surface neuve pendant
-  // qu'une promesse affichée est fausse coûte deux fois : la promesse casse plus fort à chaque
-  // constat qu'un agent ne reçoit pas.
-  "w6-appuis",
-  // Décidé par Ivan le 17 septembre 2026, même conversation : « la rue doit devenir une échelle
-  // affichée et valorisable par l'utilisateur ». Compass mesure au local (BDCom est porte-à-porte)
-  // et restitue dans des cercles de 400 et 800 m ; l'échelle où un commerce vit n'existe nulle
-  // part. Placé derrière w2-rythme parce qu'une rue sans heure reste une photo fixe, et derrière
-  // w6-appuis parce que la vraie difficulté — où s'arrête « la rue » quand elle fait trois
-  // kilomètres — mérite une file dégagée devant elle.
-  "w6-rue",
-  // Soulevé par Ivan le 17 septembre 2026 : « que se passe-t-il si des données s'opposent ? ».
-  // Mesuré le jour même : `composeVerdict` juxtapose et ne remarque rien quand deux constats se
-  // contredisent — il ne refuse de composer que sur un constat porteur MANQUANT. C'était le bon
-  // comportement tant que le produit comptait ; depuis #197 il LIT, et deux lectures peuvent
-  // s'opposer pour de bon. BLOQUÉ : ce qu'il faut trancher est une doctrine, pas du code.
-  "w6-desaccord",
   "w0-deploy",
   "w0-history",
   "w0-provenance",
   "w0-fiche",
   "w0-mcp-verif",
-  // Trouvé le 24 août en écrivant w0-mcp-verif, donc placé derrière lui : c'est le contrôle de
-  // conformité du MCP qui a rendu le défaut visible. Identifiant et fichier posés le
-  // 15 septembre 2026 — il n'en avait pas, et restait donc hors de toute table.
-  "w0-hors-corpus",
   "w0-cron",
-  // Trouvé le 25 août en rejouant les chargeurs pour w0-cron, donc placé derrière lui. Même
-  // rattrapage d'identifiant, le même jour.
-  "w0-sirene-url",
   "w0-retenue",
   "w0-plu",
   "w1-chantiers",
@@ -273,40 +139,10 @@ const ORDER = [
   "w5-confiance-agent",
   "w5-parse",
   // --- L'écran, en second, et c'est la direction du 31 août qui le dit -------------------
-  // w6-contexte passe devant les trois autres, décidé par Ivan le 10 septembre après un
-  // aller-retour avec Lovable. Ce n'est pas un ticket d'écran de plus : il tranche que la
-  // carte n'est pas le centre du produit. Les trois suivants supposent tous une réponse à
-  // cette question — un dossier exportable, une couche « ce qui se libère » et des modes
-  // métier se posent sur une structure, et cette structure n'était pas décidée.
-  "w6-contexte",
-  // Ouvert le 16 septembre sur objection d'Ivan, le jour même de la livraison de w6-modes.
-  // Il passe devant w6-liberations pour la même raison que w5-explain-metier passe devant :
-  // #36 a mis à l'écran un arbitrage qui ne dit pas son nom, et un produit dont la thèse est
-  // qu'un chiffre porte sa provenance ne peut pas laisser un classement n'en porter aucune.
-  // Réparer ce qu'on vient de livrer avant d'ouvrir une surface neuve.
-  "w6-mode-raison",
-  // Decision de perimetre, marquee BLOQUE : elle deplace ce que Compass EST — un lecteur de
-  // donnees publiques qui devient aussi un collecteur — et un fait declare ne se re-derive pas.
-  // Elle est dans la file pour rester visible, pas pour etre prise.
-  "w6-declaration-preneur",
   "w6-liberations",
   "w6-dossier",
   "w6-modes",
-  // Le design passe APRÈS les trois tickets produit ci-dessus, décidé par Ivan le 15 septembre
-  // 2026 : ils vont encore déplacer ce que la fiche montre, et peindre avant eux serait peindre
-  // deux fois. L'argument inverse — le produit compose un verdict et a l'air plus brut qu'il
-  // n'est — a été pesé et écarté ; s'il redevient prioritaire, la réponse est de scinder le
-  // ticket (typographie et palette d'un côté, accueil et /travaux de l'autre) plutôt que de le
-  // remonter entier. Il n'avait jusqu'ici ni fichier ni place : c'est l'orphelin de la scission
-  // de #119.
-  // Scindé de w6-accueil le 17 septembre 2026, décidé par Ivan : « je ne veux plus attendre pour
-  // le design ». Il ne dépend de RIEN et n'est pas exécuté par une session — Lovable le fait, à
-  // 5 crédits/jour, sur `index.css`, `tailwind.config.ts`, `src/components/ui/` et `index.html`,
-  // qu'aucun ticket ouvert ne touche. Ce qu'une session a à y faire est de VÉRIFIER : la refonte
-  // a déjà été exécutée les 7 et 8 septembre et s'est évaporée — la page publiée chargeait
-  // toujours Inter dix jours plus tard.
-  "w6-peinture",
-  "w6-accueil",
+  "w5-explain-metier",
   // --- P2 : de l'appoint, à prendre quand une session est courte -------------------------
   "w3-osm-notes",
   "w2-bpe-marches-velo",
@@ -339,15 +175,6 @@ const BLOQUE: Record<string, string> = {
     "(la question est ouverte dans `catalogue.json`). Décision d'Ivan, pas travail de session.",
   "w2-air-bruit": "clé d'API Airparif à demander. Bruitparif n'a pas d'endpoint ouvert épinglé.",
   "w7-foncier": "convention Ville / APUR / Cerema — accès réservé aux acteurs publics.",
-  "w6-desaccord":
-    "décision de doctrine d'Ivan, pas travail de session — cinq points à trancher, dont le " +
-    "premier est ce qu'un désaccord EST mécaniquement. Le dériver demande que chaque lecture " +
-    "porte une direction, champ qui n'existe pas ; le déclarer à la main est un arbitrage de " +
-    "plus. Poser l'un ou l'autre avant la décision reviendrait à la prendre en silence.",
-  "w6-declaration-preneur":
-    "décision de périmètre d'Ivan, pas travail de session — six points à trancher, dont la " +
-    "licence des déclarations et ce que devient le dossier téléchargeable, qui ne se re-dérive " +
-    "plus. Écrire du schéma avant la décision reviendrait à la prendre en silence.",
 }
 
 /**
@@ -360,9 +187,27 @@ const BLOQUE: Record<string, string> = {
  * une phrase que le produit assumera. Ce n'est pas la difficulté du SQL qui départage, c'est
  * la présence ou non d'un arbitrage irréversible dans le ticket.
  */
-// Le choix de modèle vit dans scripts/session-choix.ts depuis le 13 septembre 2026 : ce
-// fichier appelle main() à l'import, donc brief.ts ne pouvait pas le lui emprunter. Un seul
-// propriétaire, deux lecteurs — plutôt qu'une seconde table tenue à la main à côté.
+const MODEL: Record<string, string> = {
+  "w0-plu": "Sonnet 5",
+  "w1-chantiers": "Sonnet 5",
+  "w1-terrasses": "Sonnet 5",
+  "w2-idfm": "Sonnet 5",
+  "w2-filosofi": "Sonnet 5",
+  "w2-mobiliscope": "Sonnet 5",
+  "w2-bpe-marches-velo": "Sonnet 5",
+  "w4-meubles": "Sonnet 5",
+  "w4-ecoles": "Sonnet 5",
+  "w4-frequentation": "Sonnet 5",
+  "w3-osm-notes": "Sonnet 5",
+}
+const DEFAULT_MODEL = "Opus 5"
+
+interface Issue {
+  number: number
+  title: string
+  state: string
+  labels: { name: string }[]
+}
 
 interface Row {
   id: string
@@ -384,6 +229,17 @@ function readTickets(): Row[] {
       const id = f.slice(0, -3)
       return { id, priority: m?.[1] ?? "?", title: m?.[3]?.trim() ?? id }
     })
+}
+
+function readIssues(): Issue[] {
+  // gh is the only way to know whether an issue is still open. If it is missing or
+  // unauthenticated, we refuse to rewrite rather than publish a table built on guesses.
+  const out = execFileSync(
+    "gh",
+    ["issue", "list", "--state", "all", "--limit", "200", "--json", "number,title,state,labels"],
+    { encoding: "utf8" },
+  )
+  return JSON.parse(out) as Issue[]
 }
 
 function build(rows: Row[]): string {
@@ -410,7 +266,7 @@ function build(rows: Row[]): string {
     const bloque = !done && BLOQUE[r.id] !== undefined
     const state = r.issue ? (done ? "**fait**" : bloque ? "**bloqué**" : "ouvert") : "**pas d'issue**"
     const idx = done ? `~~${n}~~` : `${n}`
-    lines.push(`| ${idx} | ${label} | ${num} | ${state} | ${r.priority} | ${modeleDe(r.id)} |`)
+    lines.push(`| ${idx} | ${label} | ${num} | ${state} | ${r.priority} | ${MODEL[r.id] ?? DEFAULT_MODEL} |`)
   }
 
   // Les raisons sous la table plutôt que dans une colonne : une raison utile est une phrase,
@@ -471,108 +327,29 @@ function claims(block: string): string[] {
  */
 function rowsById(block: string): Map<string, string> {
   const out = new Map<string, string>()
-  // `.replace(/\r\n/g, "\n")` and not `split("\n")` alone: JavaScript's `.` does not match
-  // a carriage return, so on a CRLF checkout the `(.*)$` below matched NOTHING and every row
-  // was reported "absent de la table" — including rows plainly present. The drift verdict
-  // itself was right (claims() trims); only the explanation was false, which is worse than
-  // no explanation: it sent a reader looking for a missing table instead of one changed row.
-  //
-  // Fourth time this repository pays for CRLF, and the second time in this very file.
-  for (const line of block.replace(/\r\n/g, "\n").split("\n")) {
+  for (const line of block.split("\n")) {
     const m = line.match(/\|\s*~?~?\d+~?~?\s*\|\s*~*`?([\w-]+)`?~*\s*\|(.*)$/)
     if (m) out.set(m[1], m[2].trim())
   }
   return out
 }
 
-/**
- * Prints every drift of every epic, and says whether there was one.
- *
- * Grouped by epic rather than listed flat: an epic is what a reader opens next, and a list
- * sorted by kind would make them reconstruct which issue to go and edit.
- */
-function direLesEcarts(ecarts: Ecart[]): void {
-  const parEpique = new Map<number, Ecart[]>()
-  for (const e of ecarts) parEpique.set(e.epique, [...(parEpique.get(e.epique) ?? []), e])
-  console.error("Les listes des épics ne disent plus ce que portent les étiquettes.")
-  for (const [numero, siennes] of [...parEpique].sort((a, b) => a[0] - b[0])) {
-    console.error(`  #${numero} — ${siennes.length} écart(s)`)
-    for (const e of siennes) console.error(`      ${e.genre.padEnd(10)} ${e.dit}`)
-  }
-  console.error("Corriger avec : npm.cmd run sessions -- --epiques")
-}
-
-/** The write direction: each epic's `## Tickets` block, rebuilt from the labels. */
-function ecrireLesEpiques(issues: Issue[]): void {
-  const epiques = epiquesDe(issues).sort((a, b) => a.number - b.number)
-  if (epiques.length === 0) {
-    console.error("Aucune issue ne porte l'étiquette `epic` : il n'y a pas de population.")
-    process.exit(1)
-  }
-
-  // A file, never a pipe, and never an inline argument: the Windows console of this machine
-  // mangles em dashes and accents on the way through, and an issue body is the one place where
-  // that damage is published. `gh issue edit --body-file` reads the bytes Node wrote, and
-  // writeFileSync in utf8 writes no BOM.
-  const dossier = mkdtempSync(join(tmpdir(), "compass-epique-"))
-  let touchees = 0
-  for (const epique of epiques) {
-    const suivant = corpsRegenere(epique, issues)
-    if (suivant === null) {
-      console.log(`#${epique.number} — déjà à jour.`)
-      continue
-    }
-    const chemin = join(dossier, `${epique.number}.md`)
-    writeFileSync(chemin, suivant, "utf8")
-    execFileSync("gh", ["issue", "edit", String(epique.number), "--body-file", chemin], {
-      encoding: "utf8",
-    })
-    touchees += 1
-    console.log(`#${epique.number} — liste régénérée.`)
-  }
-  console.log(`${epiques.length} épics lus, ${touchees} réécrit(s).`)
-}
-
 function main() {
   const rows = readTickets()
   let issues: Issue[]
   try {
-    issues = lireIssues()
+    issues = readIssues()
   } catch (e) {
-    console.error(
-      e instanceof RefusGitHub
-        ? e.message
-        : "Impossible d'interroger GitHub (gh absent, non authentifié, ou hors ligne).",
-    )
-    console.error("Rien n'est réécrit et rien n'est jugé : mieux vaut une table datée qu'une table devinée.")
+    console.error("Impossible d'interroger GitHub (gh absent, non authentifié, ou hors ligne).")
+    console.error("La table n'est PAS réécrite : mieux vaut une table datée qu'une table devinée.")
     process.exit(1)
     return
   }
 
   for (const r of rows) {
-    // The anchored ticket↔issue link lives in scripts/session-issues.ts since 15 September
-    // 2026, because the epics need the very same rule and a second copy of it is how #131
-    // happened in the first place. What it guards is written there.
-    const officielles = issuesDuTicket(issues, r.id)
-
-    // Two issues claiming one ticket is an ambiguity, and an ambiguity resolved in silence
-    // is how the wrong number gets published. Say it, and stop.
-    if (officielles.length > 1) {
-      console.error(
-        `${r.id} : ${officielles.length} issues portent le titre officiel du ticket — ` +
-          officielles.map((i) => `#${i.number}`).join(", ") +
-          `.\nUne seule issue par ticket. Renommer les autres : le titre « [Pn] <ticket> — » ` +
-          `est ce qui lie la table au ticket, pas une mention du nom.`,
-      )
-      process.exit(1)
-    }
-
-    r.issue = officielles[0]
-  }
-
-  if (process.argv.includes("--epiques")) {
-    ecrireLesEpiques(issues)
-    return
+    // Issue titles carry the id: "[P0] w0-history — ...". Match on the id alone so a
+    // reworded title never breaks the link.
+    r.issue = issues.find((i) => new RegExp(`\\b${r.id}\\b`).test(i.title))
   }
 
   const doc = readFileSync(DOC, "utf8")
@@ -588,47 +365,28 @@ function main() {
   const closed = rows.filter((r) => r.issue?.state === "CLOSED").length
 
   if (process.argv.includes("--check")) {
-    // Two populations, one call, one verdict — and BOTH are always reported. Stopping at the
-    // first drift would hide the second behind it, and a session that fixed the table would
-    // believe it had finished.
     const drifted = claims(committed).join("\n") !== claims(expected).join("\n")
-    if (drifted) {
-      const before = rowsById(committed)
-      const after = rowsById(expected)
-      console.error("docs/SESSIONS.md — la table committée ne dit plus l'état GitHub.")
-      for (const id of new Set([...before.keys(), ...after.keys()])) {
-        const b = before.get(id)
-        const a = after.get(id)
-        if (b === a) continue
-        if (b === undefined) console.error(`  + ${id} — absent de la table`)
-        else if (a === undefined) console.error(`  − ${id} — présent dans la table, plus dans la file`)
-        else console.error(`  ~ ${id}\n      committé : ${b}\n      réel     : ${a}`)
-      }
-      console.error("Corriger avec : npm.cmd run sessions")
-    } else {
+    if (!drifted) {
       console.log(
         `docs/SESSIONS.md — la table dit vrai : ${rows.length} tickets, ${closed} fermé(s), ` +
           `recoupé à l'état GitHub.`,
       )
+      return
     }
 
-    const epiques = epiquesDe(issues)
-    const ecarts = recouperLesEpiques(issues)
-    if (ecarts.length > 0) {
-      direLesEcarts(ecarts)
-    } else {
-      const lignes = epiques.reduce((n, e) => {
-        const vague = vagueDe(e)
-        return n + (vague ? ticketsDeLaVague(issues, vague).length : 0)
-      }, 0)
-      console.log(
-        `Les ${epiques.length} épics disent vrai : ${lignes} tickets étiquetés, ` +
-          `recoupés ligne à ligne et case à case.`,
-      )
+    const before = rowsById(committed)
+    const after = rowsById(expected)
+    console.error("docs/SESSIONS.md — la table committée ne dit plus l'état GitHub.")
+    for (const id of new Set([...before.keys(), ...after.keys()])) {
+      const b = before.get(id)
+      const a = after.get(id)
+      if (b === a) continue
+      if (b === undefined) console.error(`  + ${id} — absent de la table`)
+      else if (a === undefined) console.error(`  − ${id} — présent dans la table, plus dans la file`)
+      else console.error(`  ~ ${id}\n      committé : ${b}\n      réel     : ${a}`)
     }
-
-    if (drifted || ecarts.length > 0) process.exit(1)
-    return
+    console.error("Corriger avec : npm.cmd run sessions")
+    process.exit(1)
   }
 
   const next = doc.slice(0, i) + expected + doc.slice(j + END.length)

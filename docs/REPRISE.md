@@ -28,13 +28,13 @@ a bougé les 31 août et 1er septembre, et rien d'autre :
 | Mesure | Valeur, mesurée le 31 août 2026, sauf mention du 1er septembre |
 | --- | --- |
 | Ledger distant `supabase_migrations` | **54 posées, 54 suivies par git, 0 en écart — mesuré le 7 septembre 2026** (`npm.cmd run ledger`, sortie 0) : 52 appariées corps compris et 2 divergences consignées. La cinquante-quatrième est `20260906000001_analyses_du_schema.sql`, posée par `supabase db push` le 6 septembre 2026 au soir — `w6-analyse` (#50). **53, et recoupé pour la première fois aux migrations SUIVIES par git : 53 des deux côtés, mesuré le 6 septembre 2026 par le douzième bras** (`npm.cmd run ledger`, `w1-ledger` #82). Le recoupement va au-delà des identifiants — le ledger garde `statements text[]`, donc le texte appliqué — et **51 des 53 corps sont identiques caractère pour caractère** ; les deux autres sont `20260825000002` et `20260825000003`, réécrites après leur application le 25 août pour repasser leurs commentaires en anglais, consignées avec leurs empreintes dans `scripts/porte/ledger.json` et documentées en `DIAGNOSTIC.md` §39. **53** — mesuré le 5 septembre 2026 après `w1-geometrie` (#68), qui en pose **une** : `…20260905000006` rend `premise_location.geom` nullable, rattrape les quinze `POINT(NaN NaN)` et pose un `check` de finitude sur les **huit** colonnes `geography` du schéma. Il était à **52** — mesuré le 5 septembre 2026 après `w1-observabilite` (#72), qui en pose **cinq** : `…0001` le journal des questions, puis quatre qui la finissent et dont **trois viennent de défauts que seule une exécution a montrés** — `…0002` le cast d'enum (un `case` ne se convertit pas tout seul), `…0003` l'échappement de la porte (elle se comptait elle-même, dix seaux sur un produit sans trafic), `…0004` la volatilité (derrière PostgREST, une fonction `STABLE` tourne en lecture seule et ne journalise rien, en silence), `…0005` la latence, omise. Les trois pièges sont dans `docs/REPRISE-PIEGES.md`. Il était à **47** depuis le 31 août : ni `#69`, ni `#70`, ni `#71`, ni `#73` n'avaient posé de migration |
-| Tests unitaires | **896 sur 61 fichiers, remesurés le 17 septembre 2026** par `w2-rythme` (#208), qui ajoute **deux fichiers et 44 contrôles** — `src/core/rythme.test.ts` (la licence ODbL du profil contre la Licence Ouverte de l’axe de distance, le balayage de l’objet produit qui refuse tout nombre hors [0, 100], la frontière contre `VERDICT_AXES`, et l’absence de station rendue comme une réponse) et `src/i18n/rythmeText.test.ts` (les trois formes dans les deux langues, l’interdit de prévision, l’interdit de vocabulaire de volume, et le statut lu de l’énumération). Les autres entrent dans `dossier.test.ts`, `useAddressContext.test.ts` et `motif.test.ts`. **`main` en portait 852 sur 59, remesurés le même jour dans un arbre détaché sur `origin/main`, sortie 0** — le chiffre ci-dessous est donc confirmé, pas recopié. Antérieurement **852 sur 59 fichiers, remesurés le 16 septembre 2026** par `w6-mode-raison` (#197), qui ajoute **douze contrôles et aucun fichier** — la correspondance entre `LEAD_AXES` et les raisons écrites, tenue **dans les deux sens**, le libellé de statut lu depuis l'énumération, et l'interdit de corrélation non mesurée avec sa contre-preuve. **`main` en portait 840 sur 59, remesurés le même jour, sortie 0** — le chiffre que `#36` avait écrit est donc confirmé, pas recopié. Antérieurement **840 sur 59 fichiers, remesurés le 16 septembre 2026** par `w6-modes` (#36), qui ajoute **trois fichiers et 42 tests** — `src/core/modes.test.ts` (la permutation des axes, l'identité des clauses du verdict mode par mode, le recensement des neuf contrôles depuis `TRADE_CHECK_IDS`), `src/i18n/modeText.test.ts` (chaque état × chaque contrôle × chaque langue, l'élision de « ne », l'interdit de prévision de `w1-survie`) et `src/lib/tradeMode.test.ts` (le pluriel de la clé d'URL, lu et refusé). Quatre autres entrent dans `src/lib/contextGaps.test.ts`. **`main` en portait 798 sur 56, remesurés le même jour** — sortie 0, et le chiffre que `#181` avait écrit est donc confirmé, pas recopié. **Les relevés antérieurs — 798 à 273, du 13 au 16 septembre 2026 — sont dans `docs/REPRISE-ARCHIVE.md`**, sortis d'ici le 16 septembre 2026 par `w6-modes` pour tenir le budget de `documents.test.ts`. |
+| Tests unitaires | **418**, remesurés le 6 septembre 2026 au soir sur `ticket/w6-analyse`, qui n'ajoute aucun test — le chiffre de 416 daté du même jour avait été pris avant `#85` et `#86`. Antérieurement **416**, mesurés le 6 septembre 2026 — dont les 20 de `scripts/porte/ledger.test.ts` ajoutés par `w1-ledger` (#82), qui jouent la comparaison des deux listes sans base et vérifient que chaque divergence consignée nomme encore un fichier suivi, **avec l'empreinte contre laquelle elle a été écrite** : une seconde réécriture de `20260825000002` fait échouer `test` seul, sans secret ni connexion. **396** mesurés plus tôt le même jour — dont les 20 de `scripts/porte/observabilite.test.ts` ajoutés par `w1-observabilite-echappement` (#81), qui énumèrent les fichiers atteignant PostgREST et exigent de chacun l'échappement ou une raison écrite. **376** mesurés le 5 septembre 2026 — dont les 10 de `scripts/ingest/lib/arcgis.test.ts` ajoutés par `w1-geometrie` (#68), qui éprouvent `featurePoint` sur la chaîne `"NaN"` que le service envoie pour un point absent. **366** mesurés plus tôt le même jour — dont les 15 de `scripts/porte/etat.test.ts` ajoutés par `w1-porte-lue` (#77) et les 14 de `scripts/porte/catalogue.test.ts`. **Le chiffre de 335 daté du 3 septembre était déjà faux** : remesuré sans le fichier neuf, le dépôt en portait **337**. Historique : 273 après `#71` , puis 299 avec `scripts/porte/cadences.test.ts`, la réconciliation distant/migrations et deux cas ajoutés de part et d'autre dans `scripts/ingest/workflow.test.ts` et `scripts/porte/workflow.test.ts`, puis **301** en tranchant les cadences sans seuil, puis **325** le 2 septembre 2026 avec les 14 tests de `scripts/build/envPublic.test.ts` , les 6 de `scripts/porte/publie.test.ts` , les 4 de `scripts/esbuildInvocation.test.ts` , les 6 de `scripts/eval/drift.test.ts` et les 4 de `scripts/mcpRegistry.test.ts` |
 | **Sources et cadences** | **8 sources dans `compass_source_freshness()`, 8 entrées `cron`**, mesuré le 1er septembre 2026. Les huit du distant sont exactement les huit que les migrations déclarent — recoupé par `freshness`, zéro écart. Entretien remesuré le 5 septembre 2026 : **3 par `schedule`** (`bodacc`, `sirene`, `sirene_stock`), **2 par `workflow-dispatch`** (`geography`, `chantiers`), 3 depuis un terminal — le relevé du 1er septembre disait 1 / 1 / 6 et deux crons mensuels ont eu leur tour depuis. Les cadences les plus lentes n'ont toujours pas eu le leur, donc `freshness` sort en **3** et le dira jusqu'à ce qu'elles l'aient eu |
-| Invariants | **56 — remesuré le 14 septembre 2026** (`grep -c '^-- @invariant' eval/invariants.sql`), et le chiffre est remesuré parce que `w6-fiche-corpus` (#157) allait en recopier un faux : son énoncé disait 50, ce qui était vrai le 7 septembre après `w2-idfm`. Dix de plus sont entrés depuis sans que cette ligne bouge. Antérieurement **46 — mesuré le 7 septembre 2026** (même commande) : `I43` à `I46` ajoutés par `w6-analyse` (#50), un par analyse neuve, tous `@as anon` et tous en deux moitiés — un côté qui vérifie qu'on ne divulgue pas, un côté qui vérifie qu'on ne retient pas trop. Les quatre **dérivent leur millésime de `bdcom_vintage`** au lieu de l'épingler, pour ne pas rougir sur une réponse correcte le jour où l'APUR répond, et les quatre énoncent ce qu'ils ne rattrapent pas. Aucun n'a encore d'acte dans `eval:sabotage` — #94. **42** — `I42` ajouté le 5 septembre 2026 par `w1-geometrie` (#68) : aucune colonne `geography`/`geometry` du schéma ne porte de coordonnée non finie, **et** chacune porte un `check` validé qui l'interdit — population énumérée depuis `pg_attribute`, donc la table suivante y entre en rouge tant qu'elle n'a pas sa contrainte. Rouge à **9 lignes** avant la migration (une de contenu, huit de forme), vert après, et démontré rouge deux fois dans l'acte 6 de `eval:sabotage`. **41** — `I39`, `I40` et `I41` ajoutés le 5 septembre 2026 par `w1-observabilite` (#72) : la rétention du journal, l'énumération de ses colonnes, et la retenue du quartier d'une question unique. Les trois sont **joués sous sabotage** dans l'acte 5 de `eval:sabotage`, en transaction annulée — colonne `ip` ajoutée, clé étrangère du quartier retirée, ligne de 400 jours insérée : les trois rougissent, et l'écriture suivante purge la ligne périmée d'elle-même. Le recensement de `I24` est passé de **6 à 7 fonctions** (`compass_question_summary` y entre d'office, `DIAGNOSTIC.md` §37), toutes couvertes. **38** — `I38` ajouté le 5 septembre 2026 par `w1-catalogue`, sur la table de codes des chantiers ; mesuré à **0 ligne** sur le distant, et démontré à **2 lignes** sous sabotage en transaction annulée, volume inchangé à 120 chantiers — **le rechargement du 5 septembre a porté la table à 113 lignes**, et `I38` reste à 0 sur ce contenu-là. Trois d'entre eux, `I1`, `I2` et `I7`, sont **joués en 22 instructions** au lieu d'une. Même population, toutes les tranches jouées |
+| Invariants | **46 — mesuré le 7 septembre 2026** (`grep -c '^-- @invariant' eval/invariants.sql`) : `I43` à `I46` ajoutés par `w6-analyse` (#50), un par analyse neuve, tous `@as anon` et tous en deux moitiés — un côté qui vérifie qu'on ne divulgue pas, un côté qui vérifie qu'on ne retient pas trop. Les quatre **dérivent leur millésime de `bdcom_vintage`** au lieu de l'épingler, pour ne pas rougir sur une réponse correcte le jour où l'APUR répond, et les quatre énoncent ce qu'ils ne rattrapent pas. Aucun n'a encore d'acte dans `eval:sabotage` — #94. **42** — `I42` ajouté le 5 septembre 2026 par `w1-geometrie` (#68) : aucune colonne `geography`/`geometry` du schéma ne porte de coordonnée non finie, **et** chacune porte un `check` validé qui l'interdit — population énumérée depuis `pg_attribute`, donc la table suivante y entre en rouge tant qu'elle n'a pas sa contrainte. Rouge à **9 lignes** avant la migration (une de contenu, huit de forme), vert après, et démontré rouge deux fois dans l'acte 6 de `eval:sabotage`. **41** — `I39`, `I40` et `I41` ajoutés le 5 septembre 2026 par `w1-observabilite` (#72) : la rétention du journal, l'énumération de ses colonnes, et la retenue du quartier d'une question unique. Les trois sont **joués sous sabotage** dans l'acte 5 de `eval:sabotage`, en transaction annulée — colonne `ip` ajoutée, clé étrangère du quartier retirée, ligne de 400 jours insérée : les trois rougissent, et l'écriture suivante purge la ligne périmée d'elle-même. Le recensement de `I24` est passé de **6 à 7 fonctions** (`compass_question_summary` y entre d'office, `DIAGNOSTIC.md` §37), toutes couvertes. **38** — `I38` ajouté le 5 septembre 2026 par `w1-catalogue`, sur la table de codes des chantiers ; mesuré à **0 ligne** sur le distant, et démontré à **2 lignes** sous sabotage en transaction annulée, volume inchangé à 120 chantiers — **le rechargement du 5 septembre a porté la table à 113 lignes**, et `I38` reste à 0 sur ce contenu-là. Trois d'entre eux, `I1`, `I2` et `I7`, sont **joués en 22 instructions** au lieu d'une. Même population, toutes les tranches jouées |
 | **Journal des questions** (`question_tally`) | **0 ligne, mesuré le 6 septembre 2026** — et mesuré *après* avoir rejoué les deux bras qui passent par PostgREST avec la vraie clé publiable, `eval:anon` (15 contrôles) puis `verify:mcp` (41 contrôles) : le journal est resté à zéro. C'est ce qui démontre que l'échappement de `#72` **s'applique** et n'est pas seulement déclaré — et la dernière porte planifiée, le 5 septembre à 11:21 UTC, avait tourné **avant** que l'échappement soit poussé (18:26 UTC), donc rien ne l'avait encore éprouvé sur un runner. Le zéro n'est pas un tuyau mort : un contre-test délibéré — un appel PostgREST sans l'en-tête, depuis `scripts/eval/sonde-w1-81.ts`, le 6 septembre — a bien écrit **un seau**, nommé et daté ici avant purge : *jour 2026-09-06, `rpc`, `compass_premises_within`, axe `premises`, rayon 800 m, millésime 2023, quartier `13`, issue `repondu`, 1 appel, 568 ms*. Purgé nommément le même jour, table revenue à 0 |
 | **Coût des trois bras distants** (le quatrième, `freshness`, est **un aller-retour** : une RPC, aucun balayage) | Deux passages. `eval` **306 s** puis **299 s** (bras A seul 240 s) · `eval:anon` **5 s** deux fois · `verify:mcp` **114 s** puis **227 s** — **425 s puis 531 s**. L'écart est entièrement `verify:mcp`, et c'est Overpass : les contrôles suspendus attendent des miroirs publics à 429 et 504, chacun avec son délai. C'est ce chiffre-là qui dimensionne la cadence de la porte planifiée, **pas les 115 s de `#69`**, qui étaient `I1` seul avant son découpage |
 | **Secrets de dépôt** | **`DATABASE_URL` seul.** `SUPABASE_URL` et `SUPABASE_ANON_KEY` **manquent**, donc `eval:anon` et `verify:mcp` n'ont pas de clé sur un runner. Le workflow s'arrête là-dessus en le nommant, avant de dépenser dix minutes |
-| Portes | **`page` PASS, sortie 0 CONTRE LA PRODUCTION — remesuré le 15 septembre 2026 au soir** par `w6-fiche-delai` (#180) : **10 901 ms** sur un verdict composé. **Le rouge du 13 septembre est donc levé — Lovable a republié entre les deux**, et personne ne l'avait mesuré depuis. Les 10 901 ms sont le comportement d'AVANT `#180`, que la production porte encore : ils recoupent les 10 976 ms du ticket. Le même bras, build local, trois passages chacun : **788, 547 et 805 ms** sur `ticket/w6-fiche-delai`, **8 316, 10 145 et 10 197 ms** sur `2dabf49`. Antérieurement **`page` ÉCHEC, sortie 1 contre la production — premier relevé, 13 septembre 2026 au soir** (`w1-porte-page`, `#158`) : le quinzième bras ouvre `/contexte/rue-de-bretagne-paris?lat=48.863100&lng=2.362100` dans Chrome sans tête et n'obtient **ni verdict ni refus** dans les 14 000 ms — deux passages, 14 176 et 14 055 ms, « Lecture du quartier en cours… » à l'écran — puis la page **meurt à 95 945 ms** sur `layerPointToLatLng`, le message d'avant `#156`. **Ce rouge est correct et tiendra chaque matin jusqu'à ce que Lovable republie** : le même bras rend **PASS, sortie 0** contre le build de `main` servi depuis le disque — **10 214 ms** sur un refus nommé (miroirs Overpass muets), **9 580 ms** sur un verdict composé quand `overpass-api.de` répond. Le délai de 14 000 ms est `CONTEXT_BUDGET_MS` **lu dans `src/hooks/useAddressContext.ts`** plus 4 000 ms de marge — aucun chiffre recopié, pire cas mesuré 10 136 à 10 389 ms sur huit passages. Aucune dépendance ajoutée : DevTools en quatre commandes sur le `WebSocket` global de Node · `servi` **ÉCHEC, sortie 1 — remesuré le même soir** : **274 jetons sur 276**, `map.unreachable [fr]` et `[en]` absents, mêmes bundles qu'à 16:17 — c'est la cause du rouge de `page`, et elle appartient au déploiement, pas au dépôt · `servi` **PASS, sortie 0 — mesuré le 13 septembre 2026 à 16:17** (`#142`) : 623 736 octets lus en deux bundles sur la production, 30 routes déclarées, **15 prouvables, toutes servies**, 30 jetons trouvés. Les quinze autres sont *non discriminantes* — leur jeton vit dans celui d'une autre route, `/presentation` dans `/en/presentation` — donc elles témoignent sans jamais décider. **Le même relevé rendait ZÉRO sur `/contexte/`, `/carte`, `/en/context/` et `/en/map` le matin même** (c'est `#142`) : le site a été republié entre 14:04 et 16:17, la fenêtre s'est ouverte le 11 et refermée le 13, et sans ce bras personne n'aurait su ni l'un ni l'autre. **Démontré rouge** contre un bouchon servant le bundle du matin : sortie **1**, les quatre routes nommées, 26 témoins — et **sortie 2, « mesure cassée », quand le morceau à la demande ne répond pas**, jamais un rouge qui dirait que le site est vide. **Élargi le soir même par `#152`** : il portait 30 jetons, il en porte **276** — 30 routes de `src/App.tsx` et 246 libellés de `src/i18n/ui.ts`, **deux populations dérivées, aucune liste tenue à la main**. Il sort désormais en **1** sur l'état qui l'avait laissé vert : `map.unreachable [fr]` et `[en]`, ajoutés par `#145`, ne sont pas servis — 274 jetons sur 276 trouvés, donc la mesure fonctionne. Le seuil de discrimination des libellés, **12 caractères**, vient d'un comptage : « Map » apparaît 91 fois dans le bundle servi, « Data » 92. Ce qu'il ne voit toujours pas : un libellé neuf et **court**, une chaîne écrite en dur hors de `UI`, et tout changement ne créant aucun littéral · `avis` **PASS, sortie 0, 0 avis — mesuré le 9 septembre 2026** (`#115`) : `npm audit` rend zéro vulnérabilité sur les deux manifestes après les trois montées du jour, donc le registre `scripts/porte/avis.json` est vide et c'est un résultat, pas un oubli. **Démontré rouge** dans un clone où `vitest` est remis en 3.2.7 : l'avis remonte, la portée `développement` est lue sur le lockfile, la borne du correctif est lue sur la plage (`>=2.1.0 <4.1.11` → **4.1.11**), et le bras imprime à côté ce que `npm audit fix --force` installerait — **5.0.0, une majeure plus haut** — avec la mention de regarder la borne d'abord. Sortie 1, verdict « aucun verdict écrit » · `typecheck` ✓ · `ledger` **PASS, sortie 0** — 53 au ledger, 53 suivies par git, 51 appariées corps compris, 2 divergences consignées, 0 en écart (6 septembre 2026, première exécution) ; **démontré rouge sur l'incident du 5 septembre rejoué** : `git rm --cached` sur `20260905000006_geometrie_finie.sql`, fichier laissé sur le disque, rend **53 au ledger / 52 suivies, sortie 1**, identifiant nommé — et sortie 0 dès le fichier remis au suivi · `porte:etat` **0 sur un dépôt sans rouge ouvert, 1 démontré sur `#74` rouverte** (5 septembre) · `freshness` **8 sources, 0 en retard, 0 écart, 4 sans seuil par décision**, sortie 3, **remesuré le 5 septembre après le rechargement de `chantiers`** — `chantiers` était passé en retard le 4 (voir `docs/REPRISE-PIEGES.md`, le trou entre une cadence déclarée et sa première occurrence) · `eval` **sortie 3, zéro échec, 11 avertissements**, remesuré le 5 septembre 2026 après `w1-geometrie` (#68) — **42 invariants**, `I42` vert en 9,9 s, et les **onze** avertissements sont exactement ceux d'avant le ticket : le passage intermédiaire en portait 14, les trois de plus étant les rattachements que #68 déplace, regelés seuls avec leur cause. La dérive BODACC et SIRENE, elle, **n'a pas été regelée** — elle appartient à un autre ticket. Antérieurement remesuré après `w1-observabilite` — 41 invariants, dont les trois neufs au vert, et `porte:sabotage`/`eval:sabotage` **PASS en sept actes** · `prix_median_local_identifiable` mesuré à **163 587** (1,69 %), toujours en avertissement et chiffre publié inchangé à 160 000 ; rejoué le 5 septembre après le rechargement de `chantiers` — `I38` au vert en 0,0 s sur les 113 lignes neuves ; `prix_median_local_identifiable` est passé de 1,33 % à **1,69 %** d'écart brut, toujours en avertissement et **chiffre publié inchangé à 160 000** · `eval:anon` **PASS, 15 contrôles**, sortie 0, **rejoué le 6 septembre 2026** · `verify:mcp` **48 contrôles, 48 au vert, 0 en échec, 0 suspendu, sortie 0 — remesuré le 16 septembre 2026 sur `main`** par `w6-modes` (#36), et **46 au vert / 2 suspendus sur la branche dans la même heure**, les deux suspendus étant `E11` et `E12` sur un Overpass en 504 : même population, l'écart est amont. Le relevé de **47** ci-dessous était donc déjà faux d'un contrôle, et c'est pour ça qu'il est remesuré plutôt que recopié. Antérieurement `verify:mcp` **47 contrôles, 46 au vert, 0 en échec, 1 suspendu, sortie 0 — remesuré le 15 septembre 2026 par `w6-amenites-corpus`, MIROIRS OVERPASS COUPÉS** (`NODE_OPTIONS` préchargeant un `fetch` qui refuse les URL `overpass` ; `docs/REPRISE-PIEGES.md` porte le geste). C'est cette condition-là qui vaut démonstration, pas le vert ordinaire : la famille `PARITE` entière au vert avec les miroirs morts est le critère 2 du ticket, et `V2` rend la même phrase que l'écran. Le bras a gagné **`P4b`** — chaque axe du corpus nomme sa propre source, `IDFM` pour le ferré et `APUR BDCom` pour les trois autres — et **`P4` a changé d'énoncé** : `footfall` cite désormais APUR + IDFM et **jamais OpenStreetMap**, ce qui est la propriété qui le fait survivre à un miroir mort. `P4` a rougi sur l'ancien énoncé avant d'être corrigé **dans le bras**, ce qui est la règle. Le suspendu est `E9`, qui a besoin d'Overpass vivant par construction — il ne peut pas être vert dans cette condition. Antérieurement **46 contrôles, 46 au vert, 0 en échec, 0 suspendu, sortie 0 — remesuré le 13 septembre 2026 au soir** sur `ticket/w6-fiche-robuste`, contre le distant : le bras a grossi de cinq contrôles depuis le relevé de 41, et c'est la première fois qu'il sort sans aucun suspendu. Antérieurement **41 contrôles, 40 verts, 0 échec, 1 suspendu**, sortie 0, **rejoué deux fois le 6 septembre 2026**, même relevé les deux fois ; antérieurement **remesuré le 5 septembre 2026 après l'instrumentation du serveur MCP** (#72) — et **41 au vert, 0 suspendu** une heure plus tôt le même jour, un miroir Overpass allant et venant dans la journée : la différence est amont, pas dans le dépôt (39/2 plus tôt le même jour : un miroir Overpass est revenu) · `porte:sabotage` **PASS, sept actes** (6 septembre) — le septième rejoue le 5 septembre : une migration posée et suivie par personne rougit, remise au suivi elle reverdit, et un corps modifié sous le même identifiant rougit aussi. **Le chiffre de quatre était déjà faux le 5** : `w1-catalogue` (#73) en avait posé un cinquième, et `#81` pose le sixième, sur l'échappement d'observabilité · `eval:sabotage` **PASS, six actes, neuf sabotages** (5 septembre) · `porte:publie` **PASS contre la production, sortie 0** (2 septembre) · `build` ✓ **remesuré le 5 septembre** : `index-z86I-NBQ.js`, `App-PPJJEVRR.js`, un avertissement de taille de chunk et rien d'autre. Ce n'est pas le relevé du 2 septembre (`index-DX8ZO1QB.js`, `App-uI7Bjffv.js`, `MapView-BiNyeJsQ.js`), et l'écart n'est pas attribuable à cette session — `w1-porte-lue` n'a touché que `scripts/` et la documentation. `build:dev` ✓ (2 septembre), non rejoué le 5 : aucune montée de `vite` entre les deux |
+| Portes | `typecheck` ✓ · `test` **416** ✓ (6 septembre, `w1-ledger`) · `ledger` **PASS, sortie 0** — 53 au ledger, 53 suivies par git, 51 appariées corps compris, 2 divergences consignées, 0 en écart (6 septembre 2026, première exécution) ; **démontré rouge sur l'incident du 5 septembre rejoué** : `git rm --cached` sur `20260905000006_geometrie_finie.sql`, fichier laissé sur le disque, rend **53 au ledger / 52 suivies, sortie 1**, identifiant nommé — et sortie 0 dès le fichier remis au suivi · `test` **396** ✓ (6 septembre, `w1-observabilite-echappement`) · `porte:etat` **0 sur un dépôt sans rouge ouvert, 1 démontré sur `#74` rouverte** (5 septembre) · `freshness` **8 sources, 0 en retard, 0 écart, 4 sans seuil par décision**, sortie 3, **remesuré le 5 septembre après le rechargement de `chantiers`** — `chantiers` était passé en retard le 4 (voir `docs/REPRISE-PIEGES.md`, le trou entre une cadence déclarée et sa première occurrence) · `eval` **sortie 3, zéro échec, 11 avertissements**, remesuré le 5 septembre 2026 après `w1-geometrie` (#68) — **42 invariants**, `I42` vert en 9,9 s, et les **onze** avertissements sont exactement ceux d'avant le ticket : le passage intermédiaire en portait 14, les trois de plus étant les rattachements que #68 déplace, regelés seuls avec leur cause. La dérive BODACC et SIRENE, elle, **n'a pas été regelée** — elle appartient à un autre ticket. Antérieurement remesuré après `w1-observabilite` — 41 invariants, dont les trois neufs au vert, et `porte:sabotage`/`eval:sabotage` **PASS en sept actes** · `prix_median_local_identifiable` mesuré à **163 587** (1,69 %), toujours en avertissement et chiffre publié inchangé à 160 000 ; rejoué le 5 septembre après le rechargement de `chantiers` — `I38` au vert en 0,0 s sur les 113 lignes neuves ; `prix_median_local_identifiable` est passé de 1,33 % à **1,69 %** d'écart brut, toujours en avertissement et **chiffre publié inchangé à 160 000** · `eval:anon` **PASS, 15 contrôles**, sortie 0, **rejoué le 6 septembre 2026** · `verify:mcp` **41 contrôles, 40 verts, 0 échec, 1 suspendu**, sortie 0, **rejoué deux fois le 6 septembre 2026**, même relevé les deux fois ; antérieurement **remesuré le 5 septembre 2026 après l'instrumentation du serveur MCP** (#72) — et **41 au vert, 0 suspendu** une heure plus tôt le même jour, un miroir Overpass allant et venant dans la journée : la différence est amont, pas dans le dépôt (39/2 plus tôt le même jour : un miroir Overpass est revenu) · `porte:sabotage` **PASS, sept actes** (6 septembre) — le septième rejoue le 5 septembre : une migration posée et suivie par personne rougit, remise au suivi elle reverdit, et un corps modifié sous le même identifiant rougit aussi. **Le chiffre de quatre était déjà faux le 5** : `w1-catalogue` (#73) en avait posé un cinquième, et `#81` pose le sixième, sur l'échappement d'observabilité · `eval:sabotage` **PASS, six actes, neuf sabotages** (5 septembre) · `porte:publie` **PASS contre la production, sortie 0** (2 septembre) · `build` ✓ **remesuré le 5 septembre** : `index-z86I-NBQ.js`, `App-PPJJEVRR.js`, un avertissement de taille de chunk et rien d'autre. Ce n'est pas le relevé du 2 septembre (`index-DX8ZO1QB.js`, `App-uI7Bjffv.js`, `MapView-BiNyeJsQ.js`), et l'écart n'est pas attribuable à cette session — `w1-porte-lue` n'a touché que `scripts/` et la documentation. `build:dev` ✓ (2 septembre), non rejoué le 5 : aucune montée de `vite` entre les deux |
 
 **Le passage du 3 septembre 2026 est le premier entièrement au vert** —
 [`33753907840`](https://github.com/IvandeMurard/paris-compass/actions/runs/33753907840), 12:12 UTC :
@@ -45,20 +45,9 @@ contrôles, 39 au vert, 0 en échec** — que Windows ne pouvait pas éprouver, 
 `porte:publie`, le dixième bras, y sort vert à sa première exécution planifiée.
 
 **La porte tourne toute seule depuis le 31 août** — `.github/workflows/porte.yml`, tous les
-jours à 07:29 UTC, **quinze bras** depuis le 13 septembre 2026 au soir : le quinzième est
-`page`, **le seul qui OUVRE la page produit** (`#158`) — il existe parce que les quatorze
-autres étaient au vert pendant que `/contexte/` mettait 2 min 20 à ne rien dire. Une seule
-affirmation : quelque chose de décidable arrive à l'écran. **Un refus nommé est un succès** —
-Overpass tombé et la fiche qui l'explique est le comportement que `#156` a construit. Il ne
-rougit que si la page ne dit rien. Le quatorzième est `servi`,
-le seul qui recoupe le code **servi** au code **suivi** (`#142`). Le dixième, `porte:publie`,
-regardait déjà le site publié mais y cherche une *configuration* : un bundle vieux de trois
-semaines porte la même référence Supabase que celui d'aujourd'hui, donc il passe. Les treize
-autres, depuis le 9 septembre 2026 : `typecheck`, `test`, `build`,
+jours à 07:29 UTC, **douze bras** depuis le 6 septembre 2026 : `typecheck`, `test`, `build`,
 `build:dev`, `sessions:check`, `freshness`, `eval`, `eval:anon`, `verify:mcp`, `porte:publie`,
-`catalogue`, `ledger`, `avis`. Le treizième est le seul qui juge une chose que ni le dépôt ni le
-distant ne portent — l'**atteignabilité** d'un avis de sécurité (`#115`) — et il ne porte aucun
-secret : `npm audit` interroge le registre npm public. Le onzième est le seul qui interroge les **producteurs** plutôt que le
+`catalogue`, `ledger`. Le onzième est le seul qui interroge les **producteurs** plutôt que le
 produit ; il ne porte aucun secret, et c'est voulu — il doit voir ce qu'un tiers voit. Le
 douzième est le seul qui recoupe le dépôt **par** le distant — `w1-ledger` (#82) — là où les onze
 autres regardent l'un **ou** l'autre ; il coûte une requête sur 53 lignes, l'ordre de grandeur de
@@ -376,48 +365,6 @@ refaire sur tout nouveau projet avant `supabase db push`.
 ---
 
 ## Décisions qui ne se déduisent pas du code
-
-**Le budget d'attente de la fiche est de dix secondes, il appartient à l'appelant, et
-l'augmenter n'achèterait aucune réponse.** Tranché le 13 septembre 2026 en fermant
-`w6-fiche-robuste` ([#156](https://github.com/IvandeMurard/paris-compass/issues/156)).
-`CONTEXT_BUDGET_MS`, dans `src/hooks/useAddressContext.ts` — pas dans le client HTTP, pas dans
-`overpass.ts`.
-
-- **Ce qui est borné est la MARCHE, pas le saut.** `/carte` garde trois miroirs à
-  `MIRROR_TIMEOUT_MS` : là-bas le visiteur a demandé des données OSM et la carte EST l'écran,
-  donc attendre achète quelque chose. La fiche doit un verdict **ou son refus** dans un délai
-  lisible ; elle ne pouvait pas exprimer ça en choisissant un timeout par requête, puisque ce
-  qu'elle veut borner est la somme. D'où un `budgetMs` total passé par l'appelant.
-- **Dix secondes parce que c'est une phrase sur le lecteur**, la limite publiée de maintien de
-  l'attention sur une tâche — la borne la plus large qui parle encore de l'humain et non de la
-  durée qu'un miroir saturé met à expirer. Deux minutes n'est pas une lenteur, c'est une
-  absence : personne ne reste.
-- **Et le chiffre au-dessus n'achèterait rien, c'est mesuré.** Le 13 septembre 2026,
-  `overpass-api.de` refuse en 0,2 s (406), `overpass.kumi.systems` met **35 à 43 s** à rendre
-  un 504, et le seul miroir qui répond, `overpass.private.coffee`, est **troisième dans la
-  liste**. Sous n'importe quel budget d'échelle humaine, le deuxième miroir mange tout ce qui
-  reste et le troisième n'est jamais atteint : passer de 10 à 20 s doublerait l'attente pour
-  exactement le même refus. Ce qui rendrait le budget utile n'est pas de le monter, c'est de
-  changer l'ordre des miroirs ou de cesser de dépendre d'eux — le second est `#157`.
-- **Ce que ça coûte, écrit plutôt que découvert plus tard** : sous ce budget la fiche refuse
-  presque toujours tant qu'elle lit Overpass. Elle ne dit plus rien de faux ; elle ne dit
-  presque rien. C'était déjà la limite annoncée par le ticket, et elle est maintenant chiffrée.
-
-> **Amendé le 15 septembre 2026 en fermant `w6-fiche-delai`
-> ([#180](https://github.com/IvandeMurard/paris-compass/issues/180)) : le nombre n'a pas bougé,
-> ce qu'il borne n'est plus la page.** La fiche n'attend plus Overpass pour répondre — elle rend
-> son verdict et ses cinq constats du corpus dès que le corpus a parlé, et `CONTEXT_BUDGET_MS` ne
-> borne plus qu'une couche NON PORTEUSE, celle de `noise`. « Le budget appartient à l'appelant »
-> reste vrai et devient structurel : les deux moitiés sont deux requêtes React Query, donc le
-> miroir n'a plus de promesse par laquelle retenir la base.
->
-> **La direction écartée est celle qui aurait ajouté un chiffre.** Donner à la couche non
-> porteuse un budget plus court que celui du verdict était la seconde piste du ticket ; elle
-> suppose un réglage à tenir juste, et elle ne survit pas au prochain axe non porteur. Rendre dès
-> les porteurs n'en suppose aucun.
->
-> **Ce que ça ne rachète pas** : le seul miroir qui ait jamais répondu à la vraie requête met
-> 10 587 ms et reste abandonné 587 ms trop tôt. Le prix de cet abandon a changé, pas le fait.
 
 **Le métier d'un local vendu se lit sur le dernier millésime strictement antérieur à la
 cession.** Tranché par Ivan le 7 septembre 2026, sur `#89`, ouverte par `w6-analyse` (#50).
@@ -944,56 +891,37 @@ docs/tickets/w2-idfm.md.
 
 ## La suite, par ordre
 
-26. **Une adresse a des heures, et la source les portait depuis dix jours sans lecteur.**
-    `w2-rythme` (#208) fermée le 17 septembre 2026. Le détail, les sept critères et leur
-    démonstration sont dans `docs/tickets/w2-rythme.md`, section « Livré ».
+17. **`ticket/w2-idfm` attend une seule commande, et elle n'est pas dans mes mains.**
+    Ouvert le 7 septembre 2026, **revu** le même jour (revue de #97), **corrigé** dans la
+    foulée. État réel : `20260907000001_idfm_cadence.sql` et
+    `20260907000002_idfm_station_profile.sql` sont **POSÉES et au ledger**, les données
+    **chargées** — 258 stations, 29 489 lignes de profil, 85 410 locaux rattachés. Le
+    catalogue porte la source en `ingérée`.
 
-    **La condition dont dépendait tout le ticket est vérifiée** : les lignes horaires sortent
-    jusqu'au visiteur anonyme. Mesuré en `anon` avec la seule clé publiable —
-    `compass_station_profile` rend **117 lignes à Châtelet en 416 ms**, 24 tranches JOHV sommant
-    à 99,99 %, et les deux tables sont lisibles en direct (**29 489** lignes de profil, **258**
-    stations). Le précédent de `#97` — une table muette derrière une fonction `security
-    definer` — ne se rejoue pas.
+    **La revue a trouvé la porte ROUGE** : `npm.cmd run eval` sort en **1**, quatre
+    défaillances toutes introduites par la branche, parce que le bras n'avait jamais été joué.
+    `I23`/`I24`/`I32` sont une seule cause — `idfm_validation_profile` avec RLS active et
+    **zéro politique de lecture** : 29 489 lignes présentes et muettes pour un appelant
+    PostgREST direct, pendant que `compass_station_profile`, `security definer`, répondait
+    normalement. `I42` en est une seconde — `idfm_station.geom` sans contrainte de finitude.
 
-    **Le ticket s'était trompé de SENS, et le schéma aussi.** L'énoncé, le commentaire de colonne
-    de `20260907000002` et celui de `compass_station_profile` annoncent tous les trois qu'un pic
-    de midi signe un quartier de bureaux. Mesuré sur les **258 stations**, 6 099 lignes JOHV : la
-    fenêtre 11h-14h est la plus forte des trois à **ZÉRO station**, l'heure de pic est 8h à 89
-    stations et 17h ou 18h à 166, et ce sont les quartiers **résidentiels** qui sont menés par le
-    matin. Une validation se compte **à la montée** : le profil d'une station est la forme des
-    départs depuis ce lieu, pas des arrivées. La lecture livrée est donc construite sur
-    l'asymétrie matin/soir. `DIAGNOSTIC.md` §57 porte le défaut, `docs/REPRISE-PIEGES.md` le
-    geste qui l'a trouvé.
+    Corrigé par une **troisième** migration, `20260907000003_idfm_lecture_publique.sql` — les
+    deux premières sont au ledger et **ne se réécrivent pas** (`#83`). Elle est **POSÉE** : le
+    classifieur de permissions, qui avait refusé la commande deux fois pour les précédentes,
+    l'a laissée passer à la session de correction. Mesuré ensuite, tout posé :
+    `npm.cmd run ledger` rend **PASS — 57 au ledger, 57 suivies par git, 0 en écart**, et
+    `npm.cmd run eval`, joué sans tube, sort en **3** — zéro défaillance, 11 avertissements de
+    baseline sous le seuil bloquant, tous sur des comptes BODACC et SIRENE sans rapport avec
+    IDFM. Les 50 invariants sont au vert, `I49` et `I50` compris.
 
-    **Ce qui est démontré, Chrome sans tête contre le `dist/` de la branche, cinq adresses, les
-    deux langues** : la forme de la journée de la station la plus proche, avec son nom, son
-    millésime et **sa propre licence ODbL** — sur la même page que la carte « desserte ferrée »
-    qui porte la **Licence Ouverte 2.0 (Etalab)**, même millésime, deux obligations. La réserve
-    au-dessus du graphique et jamais au survol. La lecture avec son statut lu de
-    `LEAD_REASON_STATUSES` — « arbitrage, pas une mesure » — et ce qui la trancherait. Aucun
-    volume : un contrôle **parcourt** l'objet produit et refuse tout nombre hors [0, 100]. Rien
-    n'entre dans le verdict : le bloc est hors de la liste des constats et la phrase du verdict
-    est identique au caractère près avec et sans les lignes horaires. Au bois de Vincennes,
-    l'absence de station est rendue par son motif, celui que l'axe de distance emploie déjà.
+    **Il ne reste donc que la fusion de #97.** Deux points ouverts la suivent, sans la
+    bloquer : `DIAGNOSTIC.md` §44 (l'exclusion de Porte de Clichy est plus large que le
+    défaut — 156 locaux mesurés reçoivent une station qui n'est pas la plus proche) et §45 (la
+    sonde de catalogue IDFM dérivera vers le vert sur une édition gelée).
 
-    **La contre-preuve est jouée en cinq actes** : licence recopiée (7 contrôles rouges sur 3
-    fichiers), champ de volume ajouté (2), `rythme` promu axe du verdict (1), une lecture retirée
-    de la table des mots (2), une réponse rendue comme une panne (5). Tout remis, sortie 0.
-
-    **Ce qui attend une décision d'Ivan** : la marge de **1,15** qui sépare les trois formes est
-    un arbitrage écrit une fois — 39 stations « menée par le matin », 43 « deux pointes », 176
-    « menée par le soir ». Elle se déplace en une ligne.
-
-    **Ce qui n'est PAS fait** : les deux `comment on` du distant disent toujours l'inverse et
-    demandent un `supabase db push` — **#213** ; le serveur MCP ne sert pas la forme de la
-    journée, elle attend `w5-explain-metier` (#31) comme la raison d'un axe de tête ; et aucun
-    bras n'ouvre la page sur ce bloc, le même trou que pour `mode=`.
-
-25. **`w6-mode-raison` (#197) et `w6-modes` (#36), fermées le 16 septembre 2026, sont
-    passées à `docs/REPRISE-ARCHIVE.md` le 17 septembre** — par `w2-rythme` (#208), pour tenir
-    le budget de `documents.test.ts`. Leurs mesures datées y sont entières ; ce qu’elles ont
-    laissé ouvert est repris ici : `LEAD_AXES` attend toujours une décision d’Ivan, et aucun
-    bras n’ouvre la page avec une clé `mode=`.
+Les points **1, 3, 4, 8, 9, 10, 11 et 15 sont rayés** et sont partis dans
+`docs/REPRISE-ARCHIVE.md`, avec leur numérotation d'origine — `docs/PLAN.md` et
+`docs/PLAN-ACTION-VACANCE.md` y renvoient par leur numéro. Restent ceux-ci.
 
 2. **Message à l'APUR** — ~~rédigé, à envoyer le lundi 10 août.~~ **Envoyé.
    Réponse en attente au 23 août 2026.** Il décide de trois choses : si 2017 et
@@ -1015,20 +943,52 @@ docs/tickets/w2-idfm.md.
    > qu'elle couvre les trois questions — ni, en cas de réponse partielle, laquelle
    > est restée sans réponse. À consigner, avec sa date, au même titre qu'un chiffre
    > affiché porte sa source.
+3. ~~**Corriger `?? 0`** dans `src/services/opendata/scoring.ts`.~~ **Fait le
+   9 août.** L'absence remonte maintenant jusqu'à l'interface : `AreaScores` et
+   `NoiseEstimate` sont nullables, la carte affiche « n/d » et un point gris
+   plutôt qu'un rouge qui se lirait comme une mauvaise note, et un score inconnu
+   n'exclut plus un local du filtre — l'exclure reviendrait à affirmer qu'il est
+   hors bornes. Couvert par `src/services/opendata/scoring.test.ts`.
+
+   **Suite, le même jour, un cran plus bas.** Le chemin nul câblé jusqu'à
+   l'interface était correct mais inatteignable : le noyau n'émettait jamais de
+   valeur nulle, et un `saturating(0, n)` valait 0 — donc une couche absente
+   produisait un zéro *mesuré*. Deux correctifs :
+
+   - `NeighbourhoodContext.loaded` (obligatoire) déclare les couches réellement
+     chargées. Un tableau vide ne tranche pas entre « rien ici » et « rien reçu » ;
+     seul l'appelant le sait, et le noyau reste pur en refusant de deviner.
+     `scoreLocation` rend `unavailable()` par couche manquante, y compris pour les
+     composites qui lisent deux couches.
+   - **Le défaut réellement atteignable en production était ailleurs** : Overpass
+     répond **HTTP 200** avec `elements: []` et un `remark` quand sa requête expire.
+     Le `validate` l'acceptait. Tous les scores tombaient à 0 et le bruit devenait
+     « très faible » — une rue calme affirmée à partir d'une panne. Voir
+     `DIAGNOSTIC.md` §3.e.
+
+   `src/pages/Methodology.tsx` publie désormais la règle, section « Quand une
+   source manque » (règle de `CLAUDE.md` : formule modifiée, page mise à jour).
+4. ~~**Remonter la provenance dans l'interface.**~~ **Fait le 12 août**, dans le
+   dépôt et non côté Lovable. `computeScores` ne déballe plus `Measured<T>` : le
+   noyau rend, l'interface affiche. Le bruit a rejoint les autres scores, sa
+   forme propre `{ score, label }` étant celle qui lui faisait perdre sa réserve.
+   Trois règles tenues en un point unique — absent en « n/d », estimation
+   annoncée, source et millésime collés au nombre. Le marqueur de réserve est un
+   **lien** vers `/methodologie`, pas une infobulle : une réserve au survol
+   n'existe pas sur écran tactile et ne survit pas à une lecture à voix haute.
+   La décision d'affichage est isolée dans `src/components/figureText.ts`, sans
+   JSX, parce que le harnais tourne en `environment: 'node'`.
+
 5. **Afficher la composition de fiabilité — après la bascule.** Les quatre
    niveaux (`etabli`, `corrobore`, `probable`, `indetermine`) sont **un
    instrument de traçabilité, pas un indicateur de tableau de bord** : un agent
    qui répond doit pouvoir annoncer son degré de confiance dans la donnée qu'il
    cite. C'est donc autant le serveur MCP (§4.1) que l'écran qui en a besoin.
 
-   ~~Bloqué tant que le front ne parle qu'à Overpass~~ — **débloqué le 14 septembre 2026** :
-   la fiche parle à la base depuis `#157`, et `src/services/compass/addressCorpus.ts` est le
-   chemin par lequel un cinquième appel passerait. Ces quatre nombres viennent du croisement
-   BDCom × BODACC, donc de la base ; les écrire en dur reste le chiffre invérifiable que le
-   produit refuse. Ce qui manque n'est plus le tuyau mais la **fonction** : aucune `compass_*`
-   ne rend la composition de fiabilité aujourd'hui — `eval/baselines/ingestion.json` la fige
-   pour la porte, ce qui n'est pas la même chose qu'un appelant produit. C'est donc un ticket,
-   pas une reprise.
+   Bloqué tant que le front ne parle qu'à Overpass : ces quatre nombres viennent
+   du croisement BDCom × BODACC, donc de la base. Les écrire en dur serait
+   exactement le chiffre invérifiable que le produit refuse. À reprendre une fois
+   `dbefhvmyfmmhjeetdddu` chargé, et pas avant.
 
 6. **Cap de long terme : l'agent s'évalue lui-même.** Décidé le 12 août. La
    métacognition et l'amélioration continue — l'agent sachant dire ce qu'il sait,
@@ -1095,21 +1055,185 @@ docs/tickets/w2-idfm.md.
 
    *Une fois vérifié*, supprimer ce point 7 : il n'aura plus lieu d'être.
 
-12. — **le contrôle de la page publiée**, fait le 2 septembre 2026, sorti d'ici le 15. Sa mesure
-    et **la question qui y reste ouverte** — la garde `prebuild` a-t-elle tourné chez Lovable —
-    sont dans `docs/REPRISE-ARCHIVE.md`.
+12. ~~**Contrôler la page publiée après republication.**~~ **Fait le 2 septembre 2026, la
+    production est réparée.** Ivan a republié depuis Lovable ; mesuré sur l'artefact servi
+    juste après :
 
-13. et 14. — **deux rouges de la porte fermés le 3 septembre 2026**, sortis d'ici le
-    9 septembre : `#74`, le rouge que personne n'avait relevé et qui a écrit `#77`, et
-    `eval` rouge depuis le 2 septembre, premier défaut que la porte planifiée ait montré.
-    Leurs mesures sont dans `docs/REPRISE-ARCHIVE.md`. Les numéros restent troués
-    volontairement : renuméroter casserait les renvois écrits ailleurs.
+    | | Avant republication | Après |
+    | --- | --- | --- |
+    | Chunk d'entrée servi | `index-DZV_6s4n.js`, 771 180 octets | `index-BDzDPi5T.js`, **163 738 octets** |
+    | Référence de projet dans le bundle | **0** occurrence | **1** |
+    | Couple `void 0` à la place du client | présent | **aucun** |
+    | Garde de configuration de `src/main.tsx` | absente | **présente** |
 
-15. et 16. — **les deux publications du serveur MCP**, faites le 3 septembre 2026 : npm puis
-    le registre MCP, en `0.1.2`. Sorties d'ici le 13 septembre, leurs mesures sont dans
-    `docs/REPRISE-ARCHIVE.md`. Les numéros restent troués volontairement : renuméroter
-    casserait les renvois écrits ailleurs.
+    L'entrée est passée de 771 ko à 164 ko parce que le découpage d'`App` a survécu au build
+    de Lovable : c'est la preuve que le bundle publié vient bien de ce dépôt, et pas d'un
+    artefact plus ancien.
 
+    **Ce que ça ne dit pas, et qui reste ouvert.** Que les valeurs soient arrivées ne prouve
+    pas que la garde `prebuild` ait tourné : elles peuvent venir de `.env` sans que
+    `scripts/build/envGuard.ts` ait été appelé, si Lovable invoque `vite build` plutôt que
+    `npm run build`. La réponse tient en une ligne à chercher dans leur journal de build :
+
+    ```
+    Configuration du front présente en mode « production » : VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY.
+    ```
+
+    Absente, la garde 2 ne protège pas le chemin de publication et seule celle de `main.tsx`
+    tient. À consigner ici dans les deux cas — c'est ce qui décide si la règle est au bon
+    endroit.
+
+13. ~~**Un rouge de la porte est ouvert et sans preneur — [`#74`](https://github.com/IvandeMurard/paris-compass/issues/74), du 1er septembre 2026.**~~ **Fermé le 3 septembre 2026.**
+    Repéré le 2 septembre en cherchant autre chose, ce qui est déjà le symptôme : personne
+    n'était allé voir. `verify:mcp` sort en **1** sur le runner, à l'étape « build index.ts » :
+
+    ```
+    /home/runner/.../node_modules/esbuild/bin/esbuild:1
+    ELF^B^A^A
+    SyntaxError: Invalid or unexpected token
+    ```
+
+    **Diagnostiqué et corrigé le 2 septembre 2026 — `DIAGNOSTIC.md` §33.** `verify-mcp.mjs`
+    lançait `node node_modules/esbuild/bin/esbuild` : ce chemin est un script Node sur Windows
+    et le binaire natif partout ailleurs. La ligne était *juste* sur le seul système où elle a
+    été écrite. L'appel se décide désormais en lisant le fichier — `#!` ou `ELF` — et non en
+    lisant `process.platform` ; `scripts/esbuildInvocation.mjs` porte la règle, et ses 4 tests
+    jouent **les deux branches sur la même machine**, ce qu'aucun poste ne pouvait faire seul.
+
+    **Preuve obtenue, et `#74` est fermée.** Passage planifié
+    [`33753907840`](https://github.com/IvandeMurard/paris-compass/actions/runs/33753907840),
+    3 septembre 2026 à 12:12 UTC — le premier à tourner avec les deux correctifs :
+
+    ```
+    **Rien à faire.** 8 bras sur 10 au vert le 3 septembre 2026.
+    **Changé, sans décision requise.** freshness · eval (11 avertissements)
+    **Décision requise.** Aucune.
+    ```
+
+    `verify:mcp` : **41 contrôles, 39 au vert, 0 en échec**, 2 suspendus (Overpass). C'est la
+    mesure que ce poste ne pouvait pas prendre — une machine n'a qu'un système d'exploitation.
+    Et `porte:publie`, le dixième bras, sort vert à son premier passage planifié.
+
+    Ce que ça ne règle pas : ce rouge avait attendu deux jours sans lecteur, et c'est
+    [`#77`](https://github.com/IvandeMurard/paris-compass/issues/77) qui porte ce défaut-là.
+
+14. ~~**`eval` est rouge depuis le 2 septembre 2026, et personne ne l'avait vu.**~~ Sortie **1**,
+    donc un vrai échec et non les 11 avertissements de baseline habituels :
+
+    ```
+    FAIL  prix_median_local_identifiable — attendu 160868, mesuré 163000 (1.33%)
+    ```
+
+    Signalé par la porte le 2 septembre à 12:22 UTC, en commentaire de
+    [`#74`](https://github.com/IvandeMurard/paris-compass/issues/74), avec `verify:mcp`. Trouvé
+    le soir même en cherchant autre chose — c'est ce qui a motivé
+    [`#77`](https://github.com/IvandeMurard/paris-compass/issues/77).
+
+    **Traité le 2 septembre 2026 — et ce n'était pas une dérive de données, mais un défaut de la
+    règle qui les juge.** `DIAGNOSTIC.md` §34.
+
+    Le bras B comparait **toutes** les baselines au même seuil de 1 %, dont le commentaire
+    donnait la raison : au-delà, ce n'est plus une correction de source mais un changement de
+    pipeline. Juste — *pour un comptage*. La médiane n'en est pas un : mesuré sur le distant, une
+    population qui passe de 5 942 à 5 959 cessions (**+0,29 %**) déplace la médiane de
+    160 868 à 163 000 € (**+1,33 %**), parce que les prix de fonds se massent sur les nombres
+    ronds — `150 000` revient 130 fois, `180 000` 88 fois, `160 000` 63 fois — et que la médiane
+    est assise sur une marche. Dix-sept cessions déplacent le rang médian de huit positions, et
+    huit positions valent 5 000 € à cet endroit.
+
+    **Le seuil était faux dans les deux sens**, et le second est le grave : une médiane passant
+    de 164 999 à 165 001 € bouge de 0,001 %, donc passe en simple avertissement — alors qu'elle
+    fait basculer le chiffre publié au `README` de 160 000 à 170 000 €. Le produit aurait affirmé
+    un prix que la base ne portait plus, porte au vert.
+
+    Une baseline porte donc désormais `publie: { pas, valeur }`, et `scripts/eval/drift.ts` juge
+    un quantile sur le changement du **chiffre publié**, pas sur un pourcentage. Ce n'est pas un
+    desserrage : la règle devient plus stricte là où le produit mentirait.
+
+    **Vérifié** le 2 septembre 2026, `eval` rejoué en entier :
+
+    ```
+    WARN  prix_median_local_identifiable — attendu 160868, mesuré 163000 (1.33%) — quantile, chiffre publié inchangé à 160000
+    AVERTISSEMENT — 11 écart(s) sous le seuil bloquant
+    ```
+
+    Sortie **3, zéro échec** — l'état du 31 août et du 1er septembre.
+
+    **La baseline n'a pas été regelée, délibérément.** L'avertissement à 1,33 % reste, et il est
+    honnête : la valeur brute a bougé. `note_regel` autorise le regel à trois conditions, mais
+    impose de remesurer **toutes** les valeurs à la reprise du gel — jamais de les reporter
+    depuis un pourcentage. C'est un acte daté et justifié, pas l'effet de bord d'un correctif de
+    règle. À faire un jour, en le disant.
+
+    *Ce qui reste ouvert et que ce correctif ne touche pas :* les prix par métier du `README` —
+    250 000 €, 220 000 €, 86 000 €, 50 000 € — ne sont sous aucune baseline. Ils peuvent vieillir
+    en silence, exactement comme la médiane l'aurait fait.
+
+15. ~~**Publier `paris-compass-mcp`.**~~ **Fait le 3 septembre 2026** —
+    [`paris-compass-mcp@0.1.0`](https://www.npmjs.com/package/paris-compass-mcp), et
+    [`#35`](https://github.com/IvandeMurard/paris-compass/issues/35) est fermée avec sa
+    démonstration.
+
+    **Démontré sur ce que npm sert**, pas sur l'arbre : `npm.cmd run mcp:paquet -- --registre`
+    installe le paquet depuis le registre dans un répertoire neuf hors du dépôt, puis
+    l'interroge en JSON-RPC sans le SDK — s'en servir prouverait que notre client sait parler à
+    notre serveur, pas que le protocole passe. **PASS, sortie 0**, 6 outils annoncés, les quatre
+    du « Fait quand » exercés, **aucune configuration** dans le bac d'installation.
+
+    **Deux défauts trouvés en chemin, qui auraient été publiés :**
+
+    - `prepublishOnly` **ne tourne pas sur `npm pack`**. La première archive emportait un `dist/`
+      périmé et levait encore l'ancienne erreur de configuration. Corrigé en `prepack`. Sans le
+      contrôle d'avant-publication, c'est ce paquet-là qui serait sur npm ;
+    - le contrôle ne regardait que l'archive **locale**, ce qui prouve l'empaquetage et jamais la
+      publication — le §32 une fois de plus. Le drapeau `--registre` ferme cet écart.
+
+    **La 2FA d'npm a bloqué deux tentatives**, et la sortie est le navigateur :
+    `npm.cmd publish --access public --auth-type=web`. Un OTP npm ne s'envoie jamais par
+    courriel — c'est un code TOTP de l'application appairée, ou un passkey, et dans le second cas
+    le prompt `Enter OTP:` ne peut rien recevoir. Compte `compass222`, 2FA en `auth-and-writes`.
+
+    *Ce qui reste ouvert, et qui n'est pas rien :* **le compte npm a été créé le 2 septembre à
+    17:40 et sa 2FA activée neuf minutes plus tard.** Si les codes de récupération n'ont pas été
+    conservés, le paquet dépend d'un seul appareil. À vérifier avant qu'il y ait des
+    utilisateurs, pas après.
+
+    *Et ce qu'aucun bras ne couvre :* `mcp:paquet` est excusé dans `cadence.json` — un `npm pack`
+    et une installation réseau chaque matin dépenseraient ça contre un artefact qui ne bouge
+    qu'à la publication. Une version publiée qui se casserait après coup, un dépendant retiré du
+    registre par exemple, ne serait pas vue. À rejouer à la main avant chaque publication.
+
+16. ~~**Publier au registre MCP.**~~ **Fait le 3 septembre 2026, `0.1.2`.**
+    [`io.github.IvandeMurard/paris-compass-mcp`](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.IvandeMurard/paris-compass-mcp)
+    — `status: active`, `isLatest: true`. Le serveur est **détectable** là où les clients MCP
+    cherchent, en plus d'être accessible par npm.
+
+    Vérifié une dernière fois sur ce que npm sert : `mcp:paquet -- --registre` rend **PASS,
+    sortie 0**, `initialize → paris-compass 0.1.2`, six outils, les quatre du « Fait quand »
+    exercés, sans configuration.
+
+    **Trois refus du registre, tous découverts après une publication npm.** C'est la leçon, et
+    elle a coûté deux montées de version :
+
+    | Refus | Cause | Ce qui l'attrape maintenant |
+    | --- | --- | --- |
+    | `Registry validation failed` | `mcpName` absent du paquet npm | `mcpRegistry.test.ts` |
+    | `422 expected length <= 100` | description de 209 caractères | idem, plafond **et** plancher |
+    | `403 You do not have permission` | `io.github.ivandemurard` ≠ `io.github.IvandeMurard` — le registre compare **à la casse** | idem, recoupé au propriétaire du dépôt |
+
+    Chacun n'apparaît qu'au `publish`, donc **après** que npm a figé la version : corriger impose
+    de republier. Les six règles de `scripts/mcpRegistry.test.ts` les refusent désormais à chaque
+    `npm.cmd run test`, donc aussi sur la porte planifiée. Le mode d'emploi complet, avec le
+    tableau des messages et leur cause réelle, est dans **`mcp-server/PUBLISHING.md`**.
+
+    *Un piège de séquence, à retenir :* le jeton du registre est de courte durée. Le nôtre a
+    expiré pendant qu'on corrigeait la casse et republiait sur npm — `login github` puis
+    `publish` s'enchaînent, ils ne se laissent pas séparer par un autre chantier.
+
+    *Ce qui reste à décider, et qui n'est pas technique :* les descriptions de `lat` et `lng` sont
+    en français quand tout le reste de la surface est en anglais. Un agent s'en accommode ; un
+    lecteur humain du registre y verra une négligence. À trancher avant que le serveur ait des
+    utilisateurs.
 
 
 

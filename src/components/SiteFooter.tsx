@@ -7,7 +7,7 @@ const SiteFooter = () => {
   const { t, lp, locale } = useLocale();
 
   return (
-    <footer className="border-t bg-white">
+    <footer className="border-t bg-background">
       <div className="mx-auto max-w-5xl px-6 py-10 grid gap-8 sm:grid-cols-3 text-sm">
         <div>
           <p className="font-semibold text-primary">Compass</p>

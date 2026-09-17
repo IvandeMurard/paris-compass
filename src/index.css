@@ -125,3 +125,56 @@
   font-weight: 600;
   margin-bottom: 4px;
 }
+
+/* Keep the welcome panel fully reachable when the map has little vertical room. */
+[role='dialog'][aria-modal='true'][class*='backdrop-blur-sm'] > div {
+  max-height: 100%;
+}
+
+[role='dialog'][aria-modal='true'][class*='backdrop-blur-sm'] > div > div {
+  max-height: calc(100dvh - 6rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-height: 900px) {
+  [role='dialog'][aria-modal='true'][class*='backdrop-blur-sm'] {
+    align-items: flex-start;
+  }
+
+  [role='dialog'][aria-modal='true'][class*='backdrop-blur-sm'] > div {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+
+  [role='dialog'][aria-modal='true'][class*='backdrop-blur-sm'] > div > div {
+    max-height: calc(100dvh - 5.5rem);
+    padding: 1.25rem !important;
+  }
+
+  [role='dialog'][aria-modal='true'][class*='backdrop-blur-sm'] > div > div > div:first-of-type {
+    margin-bottom: 0.75rem;
+  }
+
+  [role='dialog'][aria-modal='true'][class*='backdrop-blur-sm'] h1 + p {
+    margin-top: 0.5rem;
+  }
+
+  [role='dialog'][aria-modal='true'][class*='backdrop-blur-sm'] form,
+  [role='dialog'][aria-modal='true'][class*='backdrop-blur-sm'] form + div,
+  [role='dialog'][aria-modal='true'][class*='backdrop-blur-sm'] form + div + div,
+  [role='dialog'][aria-modal='true'][class*='backdrop-blur-sm'] form + div + div + div {
+    margin-top: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

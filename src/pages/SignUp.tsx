@@ -43,7 +43,7 @@ const COPY = {
     confirmPassword: 'Confirmer le mot de passe',
     creating: 'Création du compte…',
     signUp: "S'inscrire",
-    alreadyAccount: 'Vous avez déjà un compte ?',
+    alreadyAccount: 'Vous avez déjà un compte ?',
     signIn: 'Se connecter',
     continueWithGoogle: 'Continuer avec Google',
     or: 'ou',

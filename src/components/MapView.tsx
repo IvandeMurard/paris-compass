@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { ZoomIn, ZoomOut, Locate, Navigation2, Loader2 } from 'lucide-react';
 import { usePremises, useAreaEnvironment } from '@/hooks/useOpenData';
 import { useFiltersContext } from '@/providers/FiltersProvider';
-import type { AirQuality, BBox, Reading, RiskInfo } from '@/services/opendata/types';
+import type { BBox } from '@/services/opendata/types';
 import DataSourcesPanel from './DataSourcesPanel';
 import OpenDataErrorNotice from './OpenDataErrorNotice';
+import MapPanelCard from './MapPanelCard';
 import { useLocale } from '@/i18n/locale';
 import { translateLabel } from '@/i18n/labels';
 
@@ -27,12 +28,6 @@ const MapView = () => {
 
   const center = { lat: (bbox.south + bbox.north) / 2, lng: (bbox.west + bbox.east) / 2 };
   const { data: environment } = useAreaEnvironment(center.lat, center.lng);
-  // While the query is still in flight there is no reading at all — neither a value nor an
-  // outage. `empty` carries that, and the panel shows `n/d` as it always did; only a lookup that
-  // actually came back `withheld` says so. Guessing « injoignable » during loading would fabricate
-  // an outage, which is the symmetric error of the one #145 is about.
-  const air: Reading<AirQuality> = environment?.air ?? { state: 'empty' };
-  const risks: Reading<RiskInfo> = environment?.risks ?? { state: 'empty' };
 
   // Initialize map
   useEffect(() => {
@@ -98,7 +93,7 @@ const MapView = () => {
   const handleResetView = () => mapInstanceRef.current?.setView([48.8655, 2.3475], 16);
 
   return (
-    <div className="relative h-full w-full bg-[#f5f5f5]">
+    <div className="relative h-full w-full bg-muted/40">
       <div ref={mapRef} className="h-full w-full" />
 
       {/* Centred, not tucked into the layers panel: an empty map is read as an answer unless
@@ -111,109 +106,95 @@ const MapView = () => {
         />
       )}
 
-
-
       <div className="absolute left-4 top-4 flex flex-col gap-2 z-[1000]">
-        <Button variant="secondary" size="icon" aria-label={t('map.zoomIn')} onClick={handleZoomIn} className="bg-white hover:bg-gray-100">
-          <ZoomIn className="h-4 w-4 text-gray-700" />
+        <Button variant="secondary" size="icon" aria-label={t('map.zoomIn')} onClick={handleZoomIn} className="bg-background hover:bg-muted shadow-sm">
+          <ZoomIn className="h-4 w-4 text-foreground" />
         </Button>
-        <Button variant="secondary" size="icon" aria-label={t('map.zoomOut')} onClick={handleZoomOut} className="bg-white hover:bg-gray-100">
-          <ZoomOut className="h-4 w-4 text-gray-700" />
+        <Button variant="secondary" size="icon" aria-label={t('map.zoomOut')} onClick={handleZoomOut} className="bg-background hover:bg-muted shadow-sm">
+          <ZoomOut className="h-4 w-4 text-foreground" />
         </Button>
-        <Button variant="secondary" size="icon" aria-label={t('map.locate')} onClick={handleLocate} className="bg-white hover:bg-gray-100">
-          <Locate className="h-4 w-4 text-gray-700" />
+        <Button variant="secondary" size="icon" aria-label={t('map.locate')} onClick={handleLocate} className="bg-background hover:bg-muted shadow-sm">
+          <Locate className="h-4 w-4 text-foreground" />
         </Button>
-        <Button variant="secondary" size="icon" aria-label={t('map.reset')} onClick={handleResetView} className="bg-white hover:bg-gray-100">
-          <Navigation2 className="h-4 w-4 text-gray-700" />
+        <Button variant="secondary" size="icon" aria-label={t('map.reset')} onClick={handleResetView} className="bg-background hover:bg-muted shadow-sm">
+          <Navigation2 className="h-4 w-4 text-foreground" />
         </Button>
       </div>
 
       {/* Data layer controls */}
-      <div className="absolute top-4 right-4 bg-white/90 p-3 rounded-md shadow-md z-[1000] w-56">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-medium">{t('map.layers')}</h3>
-          {isFetching && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
-        </div>
-        <div className="space-y-2">
-          {[
-            { id: 'none', label: t('map.layer.none') },
-            { id: 'walkability', label: t('map.layer.walkability') },
-            { id: 'accessibility', label: t('map.layer.amenities') },
-          ].map((layer) => (
-            <div key={layer.id} className="flex items-center gap-2">
-              <input
-                type="radio"
-                id={`layer-${layer.id}`}
-                name="dataLayer"
-                checked={dataLayer === layer.id}
-                onChange={() => setDataLayer(layer.id as typeof dataLayer)}
-              />
-              <label htmlFor={`layer-${layer.id}`} className="text-sm">
-                {layer.label}
-              </label>
-            </div>
-          ))}
-        </div>
-        {/* Four distinct states. A viewport still loading must never read as an empty
-            result — that was the single most misleading thing about this panel. */}
-        <p className="mt-3 text-[11px] text-muted-foreground">
-          {tooLarge
-            ? t('map.tooLarge')
-            : isError
-              ? t('map.unavailable')
-              : isFetching && !data
-                ? t('map.searching')
-                : data && premises.length === 0 && pois.length === 0
-                  ? t('map.noResult')
-                  : `${premises.length} ${t('map.premises')} · ${pois.length} ${t('map.amenitiesInView')}`}
-        </p>
-        <DataSourcesPanel className="mt-3 w-full" />
+      <div className="absolute top-4 right-4 z-[1000] w-56">
+        <MapPanelCard title={t('map.layers')}>
+          <div className="space-y-2">
+            {[
+              { id: 'none', label: t('map.layer.none') },
+              { id: 'walkability', label: t('map.layer.walkability') },
+              { id: 'accessibility', label: t('map.layer.amenities') },
+            ].map((layer) => (
+              <div key={layer.id} className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  id={`layer-${layer.id}`}
+                  name="dataLayer"
+                  checked={dataLayer === layer.id}
+                  onChange={() => setDataLayer(layer.id as typeof dataLayer)}
+                  className="accent-primary"
+                />
+                <label htmlFor={`layer-${layer.id}`} className="text-sm">
+                  {layer.label}
+                </label>
+              </div>
+            ))}
+          </div>
+          {/* Four distinct states. A viewport still loading must never read as an empty
+              result — that was the single most misleading thing about this panel. */}
+          <p className="mt-3 text-[11px] text-muted-foreground">
+            {tooLarge
+              ? t('map.tooLarge')
+              : isError
+                ? t('map.unavailable')
+                : isFetching && !data
+                  ? t('map.searching')
+                  : data && premises.length === 0 && pois.length === 0
+                    ? t('map.noResult')
+                    : `${premises.length} ${t('map.premises')} · ${pois.length} ${t('map.amenitiesInView')}`}
+          </p>
+          <DataSourcesPanel className="mt-3 w-full" />
+        </MapPanelCard>
       </div>
 
       {/* Environmental indicators for the current viewport */}
-      <div className="absolute bottom-4 right-4 bg-white/90 p-3 rounded-md shadow-md z-[1000] max-w-xs">
-        <h3 className="text-sm font-medium mb-1">{t('map.env.title')}</h3>
-        <div className="space-y-1 text-xs">
-          <div className="flex justify-between gap-4">
-            <span>{t('map.env.air')}</span>
-            {/* #145 — trois lectures, trois états, et le troisième ne se confond plus avec le
-                deuxième. `withheld` dit que la source n'a pas répondu ; `n/d` dit qu'elle a
-                répondu sans valeur. Le 13 septembre, Géorisques échouait et l'écran affichait
-                `n/d` : un visiteur lisait une panne comme une absence mesurée. */}
-            <span className={`font-medium ${air.state === 'withheld' ? 'italic text-muted-foreground' : ''}`}>
-              {air.state === 'read'
-                ? `${translateLabel(air.value.label, locale)} (${Math.round(air.value.aqi)})`
-                : air.state === 'withheld'
-                  ? t('map.unreachable')
+      <div className="absolute bottom-4 right-4 z-[1000] max-w-xs">
+        <MapPanelCard title={t('map.env.title')}>
+          <div className="space-y-1 text-xs">
+            <div className="flex justify-between gap-4">
+              <span>{t('map.env.air')}</span>
+              <span className="font-medium">
+                {environment?.air ? `${translateLabel(environment.air.label, locale)} (${Math.round(environment.air.aqi)})` : t('map.na')}
+              </span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span>{t('map.env.pm25')}</span>
+              <span className="font-medium">
+                {environment?.air?.pm25 !== null && environment?.air?.pm25 !== undefined
+                  ? `${environment.air.pm25.toFixed(1)} µg/m³`
                   : t('map.na')}
-            </span>
-          </div>
-          <div className="flex justify-between gap-4">
-            <span>{t('map.env.pm25')}</span>
-            <span className={`font-medium ${air.state === 'withheld' ? 'italic text-muted-foreground' : ''}`}>
-              {air.state === 'read' && air.value.pm25 !== null
-                ? `${air.value.pm25.toFixed(1)} µg/m³`
-                : air.state === 'withheld'
-                  ? t('map.unreachable')
-                  : t('map.na')}
-            </span>
-          </div>
-          <div className="flex justify-between gap-4">
-            <span>{t('map.env.risks')}</span>
-            <span className={`font-medium text-right ${risks.state === 'withheld' ? 'italic text-muted-foreground' : ''}`}>
-              {risks.state === 'read' && risks.value.labels.length
-                ? risks.value.labels.slice(0, 2).join(', ')
-                : risks.state === 'withheld'
-                  ? t('map.unreachable')
+              </span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span>{t('map.env.risks')}</span>
+              <span className="font-medium text-right">
+                {environment?.risks?.labels.length
+                  ? environment.risks.labels.slice(0, 2).join(', ')
                   : t('map.env.noRisk')}
-            </span>
+              </span>
+            </div>
           </div>
-        </div>
-        <p className="mt-2 text-[10px] text-muted-foreground">Copernicus CAMS · Géorisques</p>
+          <p className="mt-2 text-[10px] text-muted-foreground">Copernicus CAMS · Géorisques</p>
+        </MapPanelCard>
       </div>
 
       {!mapLoaded && (
-        <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+        <div className="absolute inset-0 bg-muted flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto mb-4" />
             <p>{t('map.loading')}</p>

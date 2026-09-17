@@ -57,9 +57,6 @@ npm.cmd run freshness       # les huit sources et leurs cadences
 npm.cmd run catalogue       # les 35 sources du catalogue : l'endpoint repond-il, la licence tient-elle
 npm.cmd run porte:publie    # la page publiée porte-t-elle sa configuration
 npm.cmd run ledger          # le ledger de migrations contre les migrations suivies par git
-npm.cmd run avis            # les avis de securite npm contre leurs verdicts d'atteignabilite
-npm.cmd run servi           # les routes servies par le site publie contre celles que main declare
-npm.cmd run page            # ouvre /contexte/ dans Chrome sans tete : un verdict, un refus nomme, ou rouge
 npm.cmd run porte:sabotage  # demontre la porte : bras non planifie, rouge, panne amont
 
 # Le serveur MCP publié — voir mcp-server/PUBLISHING.md pour la suite complète
@@ -70,15 +67,28 @@ npm.cmd run mcp:paquet -- --registre  # la même chose, sur ce que npm sert vrai
 npm.cmd run porte:etat      # les rouges ouverts et leur age, sans ouvrir GitHub — 0 aucun, 3 ouvert du jour, 1 en retard
 npm.cmd run brief <ticket>  # assemble le prompt d'une session et ce qu'elle doit lire ; joue porte:etat tout seul
 npm.cmd run sessions        # regenere le tableau d'ordre de docs/SESSIONS.md depuis GitHub
-npm.cmd run sessions -- --epiques  # regenere le bloc `## Tickets` des huit epics depuis leurs etiquettes
-npm.cmd run sessions:check  # recoupe table ET listes d'epics a l'etat GitHub, sort en 1 si l'une a derive
+npm.cmd run sessions:check  # recoupe la table committee a l'etat GitHub, sort en 1 si elle a derive
 ```
 
-**Si `vite` refuse de démarrer sur « Failed to load native binding »**, c'est Smart App Control
-qui bloque le binaire natif de `@swc/core`. Le blocage a disparu depuis le 2 septembre 2026,
-mais il peut revenir sans préavis : l'incident, ses quatre remesures et ce qu'elles ont
-réellement établi sont dans `docs/REPRISE-PIEGES.md`. Un second chemin de build reste en place
-pour ce cas, sans SWC :
+**Si `vite` refuse de démarrer sur « Failed to load native binding ».** Le 26 août 2026, Windows
+Smart App Control bloquait le binaire natif de `@swc/core` sur cette machine, et il n'a **ni
+liste d'autorisation ni exception par fichier** : on ne peut pas lui faire accepter ce
+fichier-là, et le désactiver est irréversible sans réinstaller Windows. **Depuis, le blocage a
+disparu** — remesuré quatre fois, le 28 août, le 31 août et deux fois le 2 septembre 2026 :
+`require('@swc/core').transformSync` rend du code, et `npm.cmd run build` / `npm.cmd run
+build:dev` vont au bout en produisant des hashes identiques à `build:local`. **Ce qui se
+remesure ici est l'identité des trois chemins, pas les hashes eux-mêmes** : ceux-ci bougent dès
+qu'une dépendance ou une source bouge, et les recopier sans les redater est le piège que ce
+fichier interdit ailleurs. Aux trois premières mesures : `index-DKJzmj15.js`,
+`MapView-8C8F8Ymz.js`, `index-C7sT89I7.css`. À la quatrième, le 2 septembre après la montée
+de `browserslist` en 4.28.8 et de `postcss-selector-parser` en 6.1.4 :
+`index-z86I-NBQ.js`, `MapView-CcIGsnA-.js`, `index-CXVx5M-3.css` — les trois chemins
+toujours d'accord entre eux. L'écart n'est pas attribuable à la seule montée : le dépôt a aussi
+reçu entre-temps le correctif de l'écran blanc (`2aaab7e`), qui touche l'environnement de
+build. Rien
+n'explique la disparition — pas de changement connu de la politique Smart App Control entre
+les dates — donc le blocage peut revenir.
+Un second chemin de build reste en place pour ce cas, sans SWC :
 
 ```powershell
 npm.cmd run dev:local        # serveur de dev
@@ -172,19 +182,9 @@ où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lova
   --squash --delete-branch` — **aucune approbation n'est requise**, la session fusionne
   elle-même : c'est la trace qui est exigée. `.github/workflows/pr.yml` rejoue `typecheck` et
   `test`, et pas le reste : `porte.yml` détient la chaîne privilégiée et le dépôt est public.
-  **La revue est distincte de la proposition, et elle est due sur TOUTES** — décidé par Ivan le
-  15 septembre 2026, contre ce que `docs/SESSIONS.md` disait jusque-là. Ce qui l'a renversé, et
-  le signe qui dirait que la case à cocher est arrivée : `docs/SESSIONS.md`, « La revue ». Son
-  prompt y est aussi. Pourquoi la proposition elle-même : `docs/REGLES-INCIDENTS.md`.
-
-- **Les workflows s'accordent sur leur version de Node, ou `test` rougit** — `#171`. `pr.yml`
-  épinglait 20 quand `porte.yml` et `ingestion.yml` épinglaient 22 : depuis `#157`, un test
-  échouait sur **toute** proposition pendant que la porte du matin restait verte. Une
-  proposition verte doit vouloir dire une porte verte. La population est dérivée de
-  `.github/workflows/`, jamais listée ; une divergence se déclare avec sa raison dans
-  `scripts/porte/node.json`. **Ce que ça ne rattrape pas** : les épingles sont comparées entre
-  elles, jamais à ce qu'un coureur installe ni à ce qu'un champ `engines` exige — c'est pourtant
-  `engines` qui avait révélé le défaut.
+  **La revue est distincte de la proposition** et ne vaut que pour les tickets qui la méritent —
+  ses signes et son prompt sont dans `docs/SESSIONS.md`. Pourquoi ce renversement :
+  `docs/REGLES-INCIDENTS.md`.
 
 - **Ne jamais `git add -A` dans ce dépôt : stager par nom.** Des sessions parallèles et
   Lovable écrivent dans le même arbre, donc un balayage revendique du travail qui n'est pas le
@@ -193,15 +193,17 @@ où `lovable-tagger` n'est pas monté, et laisserait donc une panne du lien Lova
   fichier suivi faite par une autre session. Les deux incidents, leurs mesures et le symétrique
   du commit qui annonçait une règle non stagée : `docs/REGLES-INCIDENTS.md`.
 
-- **Un avis de sécurité se juge sur son atteignabilité, jamais sur son score** — `#115`.
-  `npm.cmd run avis` refuse tout avis que npm rapporte sans verdict écrit dans
-  `scripts/porte/avis.json` : sa raison, sa date, et **la condition qui l'annulerait**. Un CVSS
-  est calculé sans rien savoir d'ici. **Ne jamais lancer `npm audit fix --force`** : il vise la
-  dernière majeure, jamais la plus petite version qui suffit — celle-là est la **borne haute de
-  la plage vulnérable**, et le bras imprime les deux. Même exigence avant d'ajouter une
-  dépendance, sans s'en remettre au modèle : sa connaissance s'arrête à une date. **Ce que ça ne
-  rattrape pas** : le registre dit qu'un verdict *existe*, jamais qu'il est *vrai*, et il ne
-  voit que ce que npm publie. Les incidents : `docs/REGLES-INCIDENTS.md`.
+- **Ne pas lancer `npm audit fix --force`** : cela remonterait des versions majeures et casserait
+  le build. Et ne pas confondre ce que l'outil **propose** avec ce qui **corrige** : `audit fix
+  --force` vise toujours la dernière majeure publiée, jamais la plus petite version qui suffit.
+  Chercher celle-là — l'avis GitHub et les exports Socket la donnent — avant de conclure qu'une
+  montée est hors de portée. Quatre jours ont été perdus sur un « correctif = vite 8 » qui était
+  en réalité vite 6.4.3, trois majeures plus bas.
+- **Vérifier les avis avant d'ajouter une dépendance**, et ne pas s'en remettre à ce que le
+  modèle croit savoir : sa connaissance des vulnérabilités s'arrête à une date, les avis
+  paraissent en continu. Une vulnérabilité ne disqualifie pas une bibliothèque à elle seule —
+  juger d'abord si elle est **atteignable** dans ce produit, qui est un site statique sans
+  serveur joignable. Les cinq avis de vite et vitest ne visaient que le serveur de développement.
 - **Un correctif consigné porte sa source, comme un chiffre affiché.** Écrire d'où vient un
   numéro rend l'erreur repérable — même exigence que `Measured<T>`, appliquée à la
   documentation. Deux clauses : **une documentation n'est pas une mesure** — citer la base, le
