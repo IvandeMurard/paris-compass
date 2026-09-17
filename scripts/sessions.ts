@@ -291,6 +291,13 @@ const ORDER = [
   // ticket (typographie et palette d'un côté, accueil et /travaux de l'autre) plutôt que de le
   // remonter entier. Il n'avait jusqu'ici ni fichier ni place : c'est l'orphelin de la scission
   // de #119.
+  // Scindé de w6-accueil le 17 septembre 2026, décidé par Ivan : « je ne veux plus attendre pour
+  // le design ». Il ne dépend de RIEN et n'est pas exécuté par une session — Lovable le fait, à
+  // 5 crédits/jour, sur `index.css`, `tailwind.config.ts`, `src/components/ui/` et `index.html`,
+  // qu'aucun ticket ouvert ne touche. Ce qu'une session a à y faire est de VÉRIFIER : la refonte
+  // a déjà été exécutée les 7 et 8 septembre et s'est évaporée — la page publiée chargeait
+  // toujours Inter dix jours plus tard.
+  "w6-peinture",
   "w6-accueil",
   // --- P2 : de l'appoint, à prendre quand une session est courte -------------------------
   "w3-osm-notes",
