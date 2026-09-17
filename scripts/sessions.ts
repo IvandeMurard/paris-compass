@@ -143,6 +143,12 @@ const ORDER = [
   // w6-appuis parce que la vraie difficulté — où s'arrête « la rue » quand elle fait trois
   // kilomètres — mérite une file dégagée devant elle.
   "w6-rue",
+  // Soulevé par Ivan le 17 septembre 2026 : « que se passe-t-il si des données s'opposent ? ».
+  // Mesuré le jour même : `composeVerdict` juxtapose et ne remarque rien quand deux constats se
+  // contredisent — il ne refuse de composer que sur un constat porteur MANQUANT. C'était le bon
+  // comportement tant que le produit comptait ; depuis #197 il LIT, et deux lectures peuvent
+  // s'opposer pour de bon. BLOQUÉ : ce qu'il faut trancher est une doctrine, pas du code.
+  "w6-desaccord",
   "w0-deploy",
   "w0-history",
   "w0-provenance",
@@ -318,6 +324,11 @@ const BLOQUE: Record<string, string> = {
     "(la question est ouverte dans `catalogue.json`). Décision d'Ivan, pas travail de session.",
   "w2-air-bruit": "clé d'API Airparif à demander. Bruitparif n'a pas d'endpoint ouvert épinglé.",
   "w7-foncier": "convention Ville / APUR / Cerema — accès réservé aux acteurs publics.",
+  "w6-desaccord":
+    "décision de doctrine d'Ivan, pas travail de session — cinq points à trancher, dont le " +
+    "premier est ce qu'un désaccord EST mécaniquement. Le dériver demande que chaque lecture " +
+    "porte une direction, champ qui n'existe pas ; le déclarer à la main est un arbitrage de " +
+    "plus. Poser l'un ou l'autre avant la décision reviendrait à la prendre en silence.",
   "w6-declaration-preneur":
     "décision de périmètre d'Ivan, pas travail de session — six points à trancher, dont la " +
     "licence des déclarations et ce que devient le dossier téléchargeable, qui ne se re-dérive " +
