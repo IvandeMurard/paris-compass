@@ -399,7 +399,7 @@ export const LEAD_REASON_COPY: Record<
         reason:
           'Le bruit monte parce qu’une terrasse se paie sur la rue : l’exposition aux voies est un actif du métier avant d’être une gêne.',
         settles:
-          'Recouper, sur les millésimes du corpus, les restaurants disparus entre deux relevés avec l’exposition aux voies à leur point — la survie, pas la ressemblance entre deux axes. L’obstacle est nommé : les voies viennent d’OpenStreetMap, à la demande, et non des tronçons du corpus.',
+          'Recouper, sur les millésimes du corpus, les restaurants disparus entre deux relevés avec l’exposition aux voies à leur point. L’obstacle est nommé : les voies viennent d’OpenStreetMap, à la demande, et non des tronçons du corpus.',
       },
     },
     boutique: {
@@ -447,7 +447,7 @@ export const LEAD_REASON_COPY: Record<
         reason:
           'Noise climbs because a terrace is paid for on the street: road exposure is an asset of the trade before it is a nuisance.',
         settles:
-          'Cross the corpus’s own vintages (which restaurants were gone between two surveys) against the road exposure at their point — survival, not resemblance between two axes. The obstacle is named: the roads come from OpenStreetMap on demand, not from the street segments of the corpus.',
+          'Cross the corpus’s own vintages (which restaurants were gone between two surveys) against the road exposure at their point. The obstacle is named: the roads come from OpenStreetMap on demand, not from the street segments of the corpus.',
       },
     },
     boutique: {
