@@ -367,8 +367,17 @@ interface LeadReasonCopy {
  * of this file — and it may not assert a relation nobody has measured. The retracted example is
  * the one that opened the ticket: *« le bruit est corrélé au passage »*, recommended on
  * 16 September 2026 and withdrawn the same day, having measured nothing. The relation is within
- * reach here, so `noise` reads `mesurable` and `settles` names the cross-check — which is the
- * honest form of the same sentence.
+ * reach here, so `noise` reads `mesurable` and `settles` names the measurement that would settle
+ * it — which is the honest form of the same sentence.
+ *
+ * **And a `settles` must settle the reason ABOVE it, not a neighbouring question** — found in
+ * review of `#203`, 17 September 2026. The first wording for `noise` proposed crossing road
+ * exposure against footfall: that measures whether two axes resemble each other, while the reason
+ * claims road exposure is an ASSET for the trade. Only survival answers that, which is what the
+ * other two `settles` already cross — premises gone between two vintages, against the axis
+ * computed at their point. A promised measurement that answers a different question is the same
+ * slippage as the retracted sentence, one notch quieter: it hides in the promise instead of the
+ * claim. `modeText.test.ts` cannot hold this — no test reads a sentence for what it answers.
  */
 export const LEAD_REASON_COPY: Record<
   Locale,
@@ -390,7 +399,7 @@ export const LEAD_REASON_COPY: Record<
         reason:
           'Le bruit monte parce qu’une terrasse se paie sur la rue : l’exposition aux voies est un actif du métier avant d’être une gêne.',
         settles:
-          'Recouper l’exposition aux voies et le passage aux mêmes points. Les deux axes ne lisent pas la même source : les voies viennent d’OpenStreetMap, à la demande, et non des tronçons du corpus.',
+          'Recouper, sur les millésimes du corpus, les restaurants disparus entre deux relevés avec l’exposition aux voies à leur point. L’obstacle est nommé : les voies viennent d’OpenStreetMap, à la demande, et non des tronçons du corpus.',
       },
     },
     boutique: {
@@ -438,7 +447,7 @@ export const LEAD_REASON_COPY: Record<
         reason:
           'Noise climbs because a terrace is paid for on the street: road exposure is an asset of the trade before it is a nuisance.',
         settles:
-          'Cross road exposure against footfall at the same points. The two axes do not read the same source: the roads come from OpenStreetMap on demand, not from the street segments of the corpus.',
+          'Cross the corpus’s own vintages (which restaurants were gone between two surveys) against the road exposure at their point. The obstacle is named: the roads come from OpenStreetMap on demand, not from the street segments of the corpus.',
       },
     },
     boutique: {
