@@ -287,7 +287,7 @@ deux côtés.
 | 11 | `w1-parite-axes-enumere` | [#183](https://github.com/IvandeMurard/paris-compass/issues/183) | ouvert | P1 | Opus 5 |
 | 12 | `w1-page-tendance` | [#192](https://github.com/IvandeMurard/paris-compass/issues/192) | ouvert | P1 | Opus 5 |
 | 13 | `w1-questions-lues` | [#199](https://github.com/IvandeMurard/paris-compass/issues/199) | ouvert | P1 | Opus 5 |
-| 14 | `w2-rythme` | [#208](https://github.com/IvandeMurard/paris-compass/issues/208) | ouvert | P1 | Opus 5 |
+| ~~14~~ | ~~`w2-rythme`~~ | [#208](https://github.com/IvandeMurard/paris-compass/issues/208) | **fait** | P1 | Opus 5 |
 | 15 | `w5-explain-metier` | [#31](https://github.com/IvandeMurard/paris-compass/issues/31) | ouvert | P1 | Opus 5 |
 | 16 | `w6-appuis` | [#206](https://github.com/IvandeMurard/paris-compass/issues/206) | ouvert | P1 | Opus 5 |
 | 17 | `w6-rue` | [#209](https://github.com/IvandeMurard/paris-compass/issues/209) | ouvert | P1 | Opus 5 |
