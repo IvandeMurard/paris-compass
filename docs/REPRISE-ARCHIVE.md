@@ -1117,3 +1117,100 @@ ici est ce que ces deux points portaient de mesuré et de daté. Numérotation d
     `compass_address_timeline`, pas les avis BODACC, pas la suite d'activités. Et **aucun bras de
     porte n'ouvre le navigateur pour ce chemin** : `page` s'arrête au verdict et ne clique rien,
     donc une régression du bouton passerait au vert chaque matin.
+
+---
+
+## « La suite » — deux entrées closes sorties de `docs/REPRISE.md` le 17 septembre 2026
+
+Sorties par `w2-rythme` (#208) pour tenir le plafond de `scripts/porte/documents.test.ts`,
+et non parce qu’elles auraient cessé d’être vraies : les deux tickets sont fermés, leurs
+mesures sont datées, et c’est exactement ce que cette page garde.
+
+25. **Un ordre affiché porte sa raison, comme un chiffre affiché porte sa source.**
+    `w6-mode-raison` (#197) fermée le 16 septembre 2026, ouverte sur objection d'Ivan le jour même
+    de la livraison de `#36`. Le détail, les huit lectures d'écran et les quatre actes de la
+    contre-preuve sont dans `docs/tickets/w6-mode-raison.md`, section « Livré ».
+
+    **Ce qui est démontré, Chrome sans tête contre le `dist/` de la branche, dans les deux
+    langues** : chacun des neuf axes de tête porte sa raison sur sa carte de constat — à côté de
+    l'axe, jamais au survol — avec le **statut** de cette raison lu d'une énumération de trois
+    valeurs. Les axes de queue n'en portent aucune, et aucune n'apparaît tant qu'aucun métier
+    n'est choisi. Trois raisons sur neuf disent « mesurable, non mesuré à ce jour » et nomment le
+    recoupement qui les trancherait ; les six autres disent « arbitrage, pas une mesure ».
+    **Aucune ne dit « mesuré »**, et un contrôle rougit le jour où quelqu'un l'écrit.
+
+    **La contre-preuve est jouée en quatre actes**, `npm.cmd run test` à chacun : une raison
+    retirée de `LEAD_AXES` sort en **1**, un axe de tête ajouté sans raison sort en **1** (douze
+    contrôles sur trois fichiers), la phrase française d'une raison retirée sort en **1**, tout
+    remis sort en **0**.
+
+    **Un chiffre de l'énoncé était faux, et il est corrigé dans le ticket** : `noise` ne lit pas
+    les 25 094 tronçons du corpus mais la couche OpenStreetMap des voies, à la demande. La mesure
+    qui trancherait le bruit passe donc par le miroir qui tombe et non par une requête SQL —
+    `docs/REPRISE-PIEGES.md`.
+
+    **Ce qui attend TOUJOURS une décision d'Ivan** : `LEAD_AXES` lui-même. Ce ticket rend
+    l'arbitrage visible et discutable ; il ne le rend pas vrai, et ce qui le trancherait sort du
+    dépôt.
+
+    **Ce qui n'est PAS fait** : aucun bras n'ouvre la page avec une clé `mode=` — le trou que
+    `#36` avait déjà nommé, inchangé — et le serveur MCP ne sert toujours pas les modes, donc la
+    raison attend son consommateur dans `w5-explain-metier` (#31).
+
+24. **Le métier arbitre à l'écran, et il ne touche à aucun chiffre.** `w6-modes` (#36) fermée
+    le 16 septembre 2026. Le détail, les deux adresses mesurées et ce qui n'est pas fait sont dans
+    `docs/tickets/w6-modes.md`, section « Livré ».
+
+    **Ce qui est démontré, Chrome sans tête contre le build local** : basculer de mode réordonne
+    les cartes de constat, les clauses du verdict et le bloc des trous, en gardant **la même
+    population et le même texte pour chaque axe, chiffre compris**. Le contrôle des alertes a
+    demandé une SECONDE adresse : sur un point sain un seul trou porte un axe, donc il n'y a rien
+    à permuter et une session qui s'arrêtait là aurait conclu à tort. C'est Massy, hors corpus et
+    cinq trous rattachés à un axe, qui le montre.
+
+    **Trois des neuf lignes de checklist sont répondues** — terrasses et les deux protections du
+    PLU, lues dans des colonnes que `compass_premises_within` servait déjà et que la fiche jetait,
+    comptées à 25 m et sans un appel de plus sur le chemin critique. **Les six autres nomment ce
+    qui leur manque** : #13, #25, #49, et trois pour lesquelles aucune source ouverte n'existe.
+
+    **Ce qui attend une décision d'Ivan** : l'ordre de tête des trois modes (`LEAD_AXES`) est un
+    arbitrage produit, écrit avec sa raison, et il se change en trois lignes.
+
+    **Ce qui n'est PAS fait** : aucun bras n'ouvre la page avec une clé `mode=`, donc une
+    régression propre à un mode passerait au vert chaque matin — même trou que pour le bouton de
+    `#33` et pour `/en/context/`. Et le mode ne suit ni dans le dossier exporté ni dans l'appel
+    MCP montré, ce qui est voulu pour le fichier et n'était écrit nulle part.
+
+23. — **le noyau produit un motif, la page l'écrit dans sa langue**, `w6-langue-absences`
+    (#181), fermée le 16 septembre 2026, `DIAGNOSTIC.md` §49 clos. Sortie d'ici le 16 septembre
+    2026 par `w6-mode-raison` (#197) pour tenir le plafond de `documents.test.ts` : l'état, ce
+    qui dépasse la livraison et ce qui n'est PAS fait sont dans `docs/REPRISE-ARCHIVE.md`, le
+    détail dans `docs/tickets/w6-langue-absences.md`.
+
+22. — **une fiche se télécharge, et chaque chiffre du fichier se refait sans nous croire**,
+    `w6-dossier` (#33), fermée le 15 septembre 2026. Sortie d'ici le 16 septembre 2026 par
+    `w6-mode-raison` (#197) pour la même raison : les mesures du fichier — 167 ms, six figures,
+    zéro écart de re-dérivation — les deux défauts trouvés à l'écran et le PDF non fait sont dans
+    `docs/REPRISE-ARCHIVE.md`, le détail dans `docs/tickets/w6-dossier.md`.
+
+21. — **la fiche rend son verdict en moins d'une seconde et demie, miroirs pendus**,
+    `w6-fiche-delai` (#180), fermée le 15 septembre 2026. Sortie d'ici le 16 septembre 2026
+    par `w6-modes` (#36) pour tenir le plafond de `documents.test.ts` : l'état, les six
+    passages comparés — 573 à 1 115 ms contre 10 178 à 10 201 ms sur `2dabf49` — et ce qui
+    n'est PAS fait sont dans `docs/REPRISE-ARCHIVE.md`, le détail dans
+    `docs/tickets/w6-fiche-delai.md`.
+
+20. — **les quatre axes porteurs lisent le corpus**, `w6-amenites-corpus` (#169), fermée le
+    15 septembre 2026. Sortie d'ici le soir même par `w6-dossier` (#33) pour tenir le plafond
+    de `documents.test.ts` : l'état, les mesures miroirs coupés et **ce qui attend une décision
+    d'Ivan — `rail` est ferré seulement, les bus n'y sont pas** — sont dans
+    `docs/REPRISE-ARCHIVE.md`, le détail dans `docs/tickets/w6-amenites-corpus.md`.
+
+19. — **la fiche lit le corpus**, sorti d'ici le 15 septembre 2026 (`docs/REPRISE-ARCHIVE.md`).
+    Ce qui y restait vivant — « `page` reste rouge contre la production » — a été **mesuré faux
+    le même soir** : PASS en 10 901 ms, Lovable ayant republié sans que personne le mesure.
+
+Les points **1, 3, 4, 8, 9, 10, 11, 15, 17 et 18 sont rayés** et sont partis dans
+`docs/REPRISE-ARCHIVE.md`, avec leur numérotation d'origine — `docs/PLAN.md` et
+`docs/PLAN-ACTION-VACANCE.md` y renvoient par leur numéro. Restent ceux-ci.
+

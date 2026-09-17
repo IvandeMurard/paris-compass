@@ -127,3 +127,159 @@ chargement de source nouvelle — ni Mobiliscope, ni l'emploi INSEE : ils ont le
 Voir [`w6-mode-raison.md`](./w6-mode-raison.md) pour l'énumération de statuts,
 [`w6-appuis.md`](./w6-appuis.md) pour la même frontière avec le verdict, et
 `src/core/provenance.ts` pour le piège de licence.
+
+---
+
+## Livré — 17 septembre 2026
+
+Proposition sur `ticket/w2-rythme`. **Tout chiffre de cette section est mesuré ce jour-là**, en
+`anon` contre `dbefhvmyfmmhjeetdddu` ou dans un Chrome sans tête contre le `dist/` de la branche.
+
+### La première chose à mesurer : la couche sort jusqu'au visiteur anonyme
+
+C'est la condition dont le ticket disait que tout le rapport gain/effort dépendait, et elle est
+**vérifiée**. Clé publiable, aucun autre identifiant, en-tête d'échappement d'observabilité posé :
+
+| Point | Réponse de `compass_station_profile` |
+| --- | --- |
+| Châtelet | **200**, 117 lignes, 5 codes de jour, **24 tranches JOHV sommant à 99,99 %**, 416 ms |
+| Oberkampf | **200**, 114 lignes, 24 tranches, 100,01 %, 236 ms |
+| Poissonnière (rue Martel) | **200**, 113 lignes, **23 tranches**, 99,99 %, 133 ms |
+| Bois de Vincennes | **200**, **0 ligne** — une réponse, pas une panne |
+
+Les deux tables sont lisibles en direct : `idfm_validation_profile` **29 489 lignes**,
+`idfm_station` **258**, les deux en `200`. Le précédent de `#97` — table muette derrière une
+fonction `security definer` — ne se rejoue pas : `20260907000003` tient.
+
+### Les chiffres de l'énoncé, remesurés plutôt que recopiés
+
+| Chiffre de l'énoncé | Remesuré le 17 septembre 2026 | Verdict |
+| --- | --- | --- |
+| 29 489 lignes | `ingestion_run.row_count` = **29 489**, `source_as_of` **2026-03-10** | juste |
+| 258 stations parisiennes | **258** | juste |
+| `fetchCorpusStation` ne retient que deux champs | vrai : `distance_m` et `station_name` sur six colonnes rendues | juste |
+| 24 tranches par station | **faux** : 188 stations sur 258 en portent 24, 50 en portent 23, 17 en portent 22, 3 en portent 21 — et les parts somment quand même à 100 % | corrigé |
+| « gonflement à midi = quartier de bureaux » | **faux sur toute la population** — voir ci-dessous | corrigé |
+
+### Le ticket s'est trompé de SENS, et c'est la découverte de la session
+
+L'énoncé, le commentaire de colonne de `20260907000002` et celui de `compass_station_profile`
+disent tous les trois qu'un pic de midi signe un quartier de bureaux et un pic du soir un
+quartier résidentiel. Mesuré sur les 258 stations, 6 099 lignes JOHV :
+
+- la fenêtre **11h-14h est la plus forte des trois à 0 station sur 258** ;
+- l'heure de pic est **8h** à 89 stations, **17h** à 90, **18h** à 76, **16h** à 3 ;
+- le matin dépasse le soir à **59** stations, l'inverse à **199** ;
+- et le signe est **inversé** : Jourdain, résidentiel, fait 29,6 % le matin contre 21,3 % le
+  soir ; Opéra, destination, fait 3,6 % contre 37,1 %.
+
+**Une validation se compte à la montée** — pas de validation à la sortie sur le réseau ferré
+parisien — donc le profil d'une station est la forme des **départs** depuis ce lieu. On part d'un
+quartier résidentiel le matin, d'un quartier de bureaux le soir, et personne ne prend le métro
+pour déjeuner.
+
+La lecture livrée est donc construite sur l'asymétrie matin/soir et non sur le midi. Le défaut
+du schéma est consigné en `DIAGNOSTIC.md` §57, le geste qui l'a trouvé dans
+`docs/REPRISE-PIEGES.md`, et la migration corrective — deux `comment on`, jamais une réécriture —
+est suivie en **#213**.
+
+### Les sept critères, et ce qui les démontre
+
+Chrome sans tête, `dist/` de la branche servi en local, cinq adresses, les deux langues :
+
+1. **La forme, avec son nom de station, son millésime et sa propre licence.** Rue Martel : station
+   *Poissonnière*, 367 m, code *JOHV*, 23 tranches affichées, `Source IDFM — validations sur le
+   réseau ferré, profils horaires · Licence **ODbL** · Millésime 2026-03-10`. Sur **la même
+   page**, la carte « desserte ferrée » affiche `Source IDFM — référentiel des arrêts · Licence
+   **Licence Ouverte 2.0 (Etalab)** · Millésime 2026-03-10` : même millésime, deux licences, une
+   par figure. Trois contrôles le tiennent, et la garde est **structurelle avant d'être testée** —
+   `dayShape` prend une DATE et construit son origine, donc aucun appelant ne nomme de licence.
+2. **Aucun volume.** Un contrôle **parcourt l'objet produit** au lieu de lister ses champs : tout
+   nombre émis est une part dans [0, 100] hors la distance, les tranches somment entre 99,9 et
+   100,1 %, et aucune clé ne porte un nom de compte. Un second balaie les phrases des deux
+   langues et refuse « voyageurs », « fréquentation », « personnes » hors des phrases qui les
+   **refusent**.
+3. **La réserve voyage avec le chiffre**, jamais au survol : elle est un `caveats` du
+   `Measured<T>`, donc elle est rendue au-dessus du graphique à l'écran, dans le dossier exporté,
+   et en anglais sur le chemin de l'agent. Elle dit les deux choses — la journée d'une station et
+   non le trottoir de la vitrine, **et** que le profil dit d'où l'on part.
+4. **La lecture porte son statut**, lu de `LEAD_REASON_STATUSES` — l'énumération de `#197`, pas
+   une quatrième orthographe. L'écran rend « LA LECTURE — ARBITRAGE, PAS UNE MESURE », et
+   « Ce qui la trancherait — l'emploi au lieu de travail de l'INSEE, non chargé, publié à l'IRIS,
+   plus grossier que la rue ». Aucune lecture ne peut porter `mesure` : un contrôle le refuse.
+5. **Rien n'entre dans le verdict.** Le bloc est une `<section>` hors de la liste des constats
+   (`dansLaListe: false` à l'écran, cinq adresses sur cinq) ; un contrôle refuse que la moindre
+   forme ou fenêtre devienne une clé de `VERDICT_AXES` ; la phrase de verdict est identique au
+   caractère près avec et sans les lignes horaires, et le dossier exporté range la forme **à côté**
+   de `figures` et non dedans.
+6. **Aucune station dans le rayon est une réponse.** Bois de Vincennes : *« Aucune forme de journée
+   à lire ici »* suivi du motif `aucun_arret_dans_rayon` — le même que l'axe de distance emploie
+   pour ce fait, à trois lignes de là sur la même page. Une base injoignable, elle, retire le bloc
+   entier : trois états et non deux.
+7. **Le dossier le porte** — forme, licence, millésime, réserve et lecture, avec son échelle
+   nommée (`pourcentage-de-la-journee-de-la-station`) pour qu'aucun consommateur ne la pose sur
+   celle des constats.
+
+### La contre-preuve, en cinq actes
+
+Les tests rejoués à chaque fois, sur les fichiers concernés :
+
+| Acte | Sabotage | Résultat |
+| --- | --- | ---: |
+| 1 | `IDFM_PROFILE_ORIGIN` reçoit la Licence Ouverte de l'axe de distance | **7 contrôles rouges, 3 fichiers** |
+| 2 | Un champ `totalValidations: 18400` ajouté à `DayShape` | **2 contrôles rouges** |
+| 3 | `rythme` ajouté à `VerdictAxis`, `VERDICT_AXES` et `VERDICT_AXIS_ORDER` | **1 contrôle rouge** |
+| 4 | La lecture `deux_pointes` retirée de la table des mots | **2 contrôles rouges** |
+| 5 | L'absence de station rendue comme `couche_absente` au lieu d'une réponse | **5 contrôles rouges** |
+
+Tout remis : **896 tests sur 61 fichiers, sortie 0**. `main` en portait **852 sur 59**, remesuré
+le même jour dans un arbre détaché — le chiffre que `docs/REPRISE.md` écrivait est donc confirmé,
+pas recopié.
+
+### Les portes
+
+`typecheck` ✓ · `test` **896/61, sortie 0** · `build` ✓ (`Context-C6K1nOCy.js`, 71,09 kB) ·
+`verify:mcp` **48 contrôles, 47 au vert, 0 en échec, 1 suspendu, sortie 0** — le suspendu est
+`E12`, Overpass en 429, une panne amont. `build:dev` non rejoué : aucune montée de `vite`.
+
+### Une source à l'écran entre dans la page des sources
+
+`src/services/opendata/sources.ts` gagne une ligne pour `idfm_validation_profile`, ODbL, distincte
+de celle du référentiel d'arrêts — dont la phrase *« les profils horaires […] ne servent aucun
+chiffre »* est devenue fausse ce jour-là et est corrigée. **L'URL est une RECHERCHE et non un
+identifiant de jeu** : mesuré le 17 septembre 2026, l'identifiant qu'un lecteur devinerait répond
+**404**, parce que IDFM republie cette famille chaque trimestre sous un nom qui ne se fixe pas
+(`20260907000002`, et `scripts/ingest/lib/idfmOpendata.ts` qui le résout par titre à chaque
+exécution). La recherche répond **200** et liste les huit éditions.
+
+### Ce qui n'est PAS fait
+
+- **Les deux `comment on` du distant** disent toujours l'inverse de la donnée. Un agent qui lit le
+  schéma reçoit encore la phrase de 2026-09-07. **#213**, et il demande un `supabase db push`.
+- **Le serveur MCP ne sert pas la forme de la journée.** `mcp-server/src/context.ts` appelle
+  `compass_station_profile` et n'en retient toujours que la distance : le bloc existe pour un
+  lecteur d'écran et pas pour un agent, ce qui est le même trou que `#197` a laissé pour la raison
+  d'un axe de tête. Il se referme avec `w5-explain-metier` (#31).
+- **Aucun bras n'ouvre la page sur ce bloc.** Le bras `page` juge qu'un verdict arrive ; il ne
+  regarde pas la section `#rythme`. Une régression propre à ce bloc passerait au vert chaque
+  matin — même trou que pour `mode=`, nommé par `#36` puis par `#197`, et toujours ouvert.
+- **Les quatre autres codes de jour** (JOVS, SAHV, SAVS, DIJFP) sont chargés, traversent la
+  fonction et ne sont pas affichés. Un week-end n'est pas une semaine et c'est une autre lecture.
+- **La marge de 1,15 est un arbitrage écrit une fois**, pas une mesure. Elle range 39 stations en
+  « menée par le matin », 43 en « deux pointes » et 176 en « menée par le soir ». Ivan peut la
+  déplacer en changeant une ligne.
+
+### Ce que ça ne rattrape pas
+
+- **Une station n'est pas une rue**, et c'est la limite que le témoignage vise exactement : deux
+  adresses de part et d'autre du même arrêt reçoivent la même forme. Le complément est
+  `w2-mobiliscope` (#20), et l'échelle manquante celle de `w6-rue`.
+- **Les contrôles de « aucun volume » jugent ce que ce module PRODUIT.** Une page qui lirait les
+  parts et les multiplierait par un chiffre venu d'ailleurs les passerait tous. Ce qui rend ce
+  geste difficile est ailleurs et structurel : la source ne publie aucun compte, donc il n'y a
+  rien en base à multiplier.
+- **« Menée par le soir » ne dit pas « bureaux ».** Bureaux, universités et sorties donnent la
+  même forme, et rien dans le corpus ne les sépare — d'où le statut `arbitrage`.
+- **Une station desservie par deux lignes voit ses profils MOYENNÉS** et non pondérés, faute de
+  volume pour les pondérer. C'est la réserve n° 2 de `20260907000002`, elle est une propriété du
+  chiffre, et ce ticket ne la répare pas.

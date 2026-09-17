@@ -43,6 +43,7 @@ const CENSUS: readonly FigureMotif[] = [
   ),
   { kind: 'couverture_tronquee' },
   { kind: 'aucun_arret_dans_rayon' },
+  { kind: 'journee_de_station' },
   { kind: 'mandataire_passage' },
   { kind: 'bruit_modelise' },
 ];

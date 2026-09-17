@@ -1,7 +1,7 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte 56 au 16 septembre 2026**, et la
+« quatre défauts, par ordre de gravité » : il en porte 57 au 17 septembre 2026**, et la
 phrase est restée fausse trois semaines. Le nombre est désormais dérivé du tableau
 ci-dessous par `scripts/porte/documents.test.ts` : le recopier faux fait rougir `test`.
 
@@ -80,6 +80,7 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 54 | `brief` assemblait un prompt de session complet pour une issue FERMÉE, sans le dire | clos le 15 septembre 2026 — trouvé en étant la victime | ici |
 | 55 | Le dossier exporté citait la BAN sur un libellé qu'elle n'avait pas rendu, et perdait « mesure en cours » | clos le 15 septembre 2026 par `w6-dossier`, trouvé à l'écran | ici |
 | 56 | La checklist métier rendait « ne est », et « aucune terrasse » là où 26 emplacements sur 28 sont `inconnu` | clos le 16 septembre 2026 par `w6-modes`, trouvé à l'écran — les deux étaient verts au test unitaire | ici |
+| 57 | Le schéma se trompe de sens sur le profil horaire : « midi = bureaux » est faux à 258 stations sur 258 | **partiel** — mesuré le 17 septembre 2026 par `w2-rythme` ; le produit corrigé, les deux `comment on` du distant non, [#213](https://github.com/IvandeMurard/paris-compass/issues/213) | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -1366,3 +1367,78 @@ contrôle séparé exige maintenant qu'un `constate` avec `indetermine > 0` soit
   regarde.
 - **Rien n'a ouvert la page dans un mode depuis un bras de porte** : les deux défauts ont été vus
   parce qu'une session a lu la sortie d'une démonstration, pas parce qu'un instrument l'a lue.
+
+---
+
+## 57. Le schéma se trompe de sens sur le profil horaire : « midi = bureaux » est faux à 258 stations sur 258
+
+**Mesuré le 17 septembre 2026 par `w2-rythme` (#208)**, contre le distant, en `anon`, avant
+d'écrire une ligne de la lecture — et c'est le ticket lui-même qui a porté l'erreur en premier.
+
+### Ce que trois documents affirment, et qui est faux
+
+`20260907000002`, commentaire de colonne sur `idfm_validation_profile.cat_jour` :
+
+> *« JOHV […] is what distinguishes an office rhythm (**a lunchtime peak**) from a residential
+> one (**an evening peak**) »*
+
+`compass_station_profile`, commentaire de fonction dans la même migration, redit la même chose.
+Et l'énoncé de `#208` l'illustre à son tour : *« double pic matin et soir, creux à midi — un
+quartier d'où les gens partent travailler »* contre *« gonflement à midi — un quartier où les
+gens viennent travailler »*.
+
+### La mesure, sur la population entière
+
+6 099 lignes JOHV lues en direct sur `idfm_validation_profile`, 258 stations, toutes celles que
+le corpus porte :
+
+| Mesure | Valeur, 17 septembre 2026 |
+| --- | ---: |
+| Heure de pic la plus fréquente | **8h : 89 stations · 17h : 90 · 18h : 76 · 16h : 3** |
+| Stations dont la fenêtre 11h-14h est la plus forte des trois | **0 sur 258** |
+| Stations où matin 7h-10h dépasse soir 17h-20h | **59** ; l'inverse : **199** |
+| Extrêmes du rapport soir/matin | Château Landon **0,25** · Opéra **10,37** |
+
+**Aucune station parisienne ne culmine à midi.** Et le signe est inversé : les stations menées
+par le matin sont les quartiers RÉSIDENTIELS (Jourdain 29,6 % contre 21,3 %), celles menées par
+le soir sont les quartiers de DESTINATION — bureaux, études, sorties (Opéra 3,6 % contre 37,1 %).
+
+### La cause, et pourquoi ce n'est pas une coquille
+
+**Une validation se compte à la MONTÉE**, et le réseau ferré parisien n'a pas de validation à la
+sortie. Le profil d'une station est donc la forme des **départs** depuis ce lieu, jamais celle des
+arrivées. On part d'un quartier résidentiel le matin ; on part d'un quartier de bureaux le soir ;
+et personne ne prend le métro pour déjeuner, ce qui suffit à expliquer le zéro sur 258.
+
+Une session qui aurait implémenté la phrase du schéma aurait livré une lecture **inversée** :
+« double pic matin-soir » annoncé comme le profil d'un quartier qu'on quitte pour travailler, là
+où c'est le profil mixte, et « gonflement à midi » comme la signature des bureaux, là où il
+n'existe pas. L'erreur serait passée tous les tests unitaires, parce qu'aucun test ne lit un
+commentaire SQL.
+
+### Ce qui est fait, et ce qui reste
+
+**Fait par `#208`** : `src/core/rythme.ts` porte la mesure en tête, la lecture est construite sur
+l'asymétrie matin/soir, la réserve affichée à l'écran dit elle-même *« une validation se fait à la
+montée — le profil dit d'où l'on part, jamais où l'on arrive »*, et `rythme.test.ts` refuse qu'une
+forme se décide sur la fenêtre du midi. Le produit ne peut donc plus rendre la phrase fausse.
+
+**PAS fait, et c'est la partie qui demande une poussée** : les deux commentaires du distant
+disent toujours l'inverse, et un agent qui lit le schéma par `compass_station_profile` reçoit
+encore la phrase de 2026-09-07. `CLAUDE.md` interdit de réécrire une migration posée — la sortie
+est **une migration de plus**, deux `comment on` et rien d'autre. Elle n'est pas dans `#208`
+parce qu'une migration suivie par git et non posée fait sortir `npm.cmd run ledger` en **3** dès
+le lendemain matin, et `supabase db push` n'est pas lancé par une session ici. **Suivi en
+[#213](https://github.com/IvandeMurard/paris-compass/issues/213).**
+
+### Ce que ça ne rattrape pas
+
+- **Rien ne relit un commentaire SQL.** Ni `ledger`, ni les invariants, ni `verify:mcp` ne
+  comparent la prose d'un `comment on` à ce que la donnée fait. Ce défaut a été trouvé parce
+  qu'une session a mesuré avant de recopier ; il n'existe aucun instrument qui l'aurait trouvé.
+- **La mesure porte sur le millésime chargé** — `source_as_of` 2026-03-10, un trimestre. Que le
+  sens tienne sur les éditions 2015-2024 non chargées n'est pas établi ici, et la cause
+  (validation à la montée) rend l'inverse peu probable sans le démontrer.
+- **« Menée par le soir » ne dit pas « bureaux ».** Bureaux, universités et sorties produisent la
+  même forme, et rien dans le corpus ne les sépare : c'est pourquoi la lecture est rendue à
+  l'écran avec le statut `arbitrage` et non `mesure`.

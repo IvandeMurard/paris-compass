@@ -31,6 +31,7 @@ import {
   type Origin,
   type PremisePoint,
   type ServicePoint,
+  type StationHourShare,
   type TradeFacts,
   type TradeOrigins,
   type Withholding,
@@ -360,18 +361,41 @@ export async function fetchTradeOrigins(): Promise<TradeOrigins> {
  * 15 September 2026 at the Bois de Vincennes, which is a true statement about that place and
  * not a failure. An unreachable database throws instead, and the two must not meet.
  *
- * **What this call does NOT use, and the ticket assumed it would.** The function's rows carry
- * `pct_validations`: the share of one station's own day falling in each hour bucket. That is a
- * SHAPE and never a volume — the dataset publishes no absolute count, as `20260907000002`
- * states and as a measurement confirms (24 JOHV buckets summing to 99.99 % at Oberkampf). So
- * « comptages de validation réels par station » is not something this source can supply, and
- * the axis reads the one thing it can: `distance_m`, the metres to the nearest stop.
+ * **What the DISTANCE axis does not use, and what w2-rythme (#208) added.** The function's rows
+ * carry `pct_validations`: the share of one station's own day falling in each hour bucket. That
+ * is a SHAPE and never a volume — the dataset publishes no absolute count, as `20260907000002`
+ * states and as a measurement confirms (the JOHV buckets of all 258 stations sum to 99,96 % to
+ * 100,04 %, measured 17 September 2026). So « comptages de validation réels par station » is
+ * still not something this source can supply, and the rail AXIS reads the one thing it can:
+ * `distance_m`, the metres to the nearest stop.
+ *
+ * Since `#208` the same call also hands back `hours`, the rows themselves, for the day-shape
+ * block that sits beside the six findings and enters no score. Nothing new is fetched: those
+ * rows were already crossing the wire and being discarded — this function kept two of the six
+ * columns and threw the other four away on every sheet.
+ *
+ * **Measured before it was relied on, 17 September 2026, and the ticket asked for exactly
+ * this.** The precedent was `#97`, where `idfm_validation_profile` was invisible to a direct
+ * PostgREST caller (RLS on, no read policy) while the `security definer` function answered.
+ * Against the production project, as `anon`, with the publishable key and no other credential:
+ * `compass_station_profile` returns 117 rows at Châtelet (5 day-type codes, 24 JOHV buckets
+ * summing to 99,99 %) in 416 ms, 114 at Oberkampf, 113 at Poissonnière and 0 at the Bois de
+ * Vincennes. The two tables are readable directly as well — 29 489 profile rows and 258
+ * stations, both `200`. The layer reaches an anonymous visitor whole.
  */
 export interface CorpusStation {
   /** Metres to the nearest stop, or `null` when the radius holds none. */
   distanceM: number | null;
   /** The stop's own name, for the gaps block. `null` when there is none. */
   name: string | null;
+  /**
+   * Every hourly share the nearest station carries, unfiltered — w2-rythme (#208).
+   *
+   * All five day-type codes, not only the one the reading uses: filtering here would put the
+   * choice of day type in the transport layer, where `rythme.ts` could not state it or test
+   * it. Empty exactly when `distanceM` is null.
+   */
+  hours: readonly StationHourShare[];
 }
 
 export async function fetchCorpusStation(
@@ -387,9 +411,29 @@ export async function fetchCorpusStation(
   if (error) throw new CorpusUnavailable(`compass_station_profile: ${error.message}`, 'source_injoignable');
   const rows = data ?? [];
   const first = rows[0];
-  if (!first) return { distanceM: null, name: null };
-  return { distanceM: Number(first.distance_m), name: first.station_name ?? null };
+  if (!first) return { distanceM: null, name: null, hours: [] };
+  return {
+    distanceM: Number(first.distance_m),
+    name: first.station_name ?? null,
+    hours: rows.map((row) => ({
+      catJour: row.cat_jour,
+      hourBucket: row.hour_bucket,
+      pct: Number(row.pct_validations),
+    })),
+  };
 }
+
+/**
+ * **The hourly profiles have NO origin fetcher of their own, and that is deliberate** —
+ * w2-rythme (#208).
+ *
+ * One ingestion run loads `idfm_station` and `idfm_validation_profile` together and writes one
+ * `ingestion_run` row, so `fetchStationOrigin` above already holds the date both need. A second
+ * lookup would be two calls free to disagree about one run. What the two do NOT share is the
+ * licence — Etalab for the stops, ODbL for the profiles — and that half is settled where it
+ * cannot be got wrong: `dayShape` takes the DATE and builds its own origin with
+ * `IDFM_PROFILE_ORIGIN`, so no caller ever names a licence for this figure.
+ */
 
 /**
  * Provenance of the rail layer, read rather than written.
