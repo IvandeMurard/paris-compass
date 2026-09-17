@@ -1679,3 +1679,52 @@ déjà pour §36. Une vague ne se pose que sur une issue qui a un fichier dans `
 l'issue mérite d'exister. Et elle ne se déclenche qu'au `sessions:check` — une session qui
 ouvrirait l'issue sans rejouer la vérification laisserait le rouge au matin suivant, ce qui est
 exactement le trou que la règle de la cadence nomme ailleurs sur cette page.
+
+## Un worktree neuf n'a pas de `node_modules`, et seuls les tests qui LANCENT un sous-processus le disent — 17 septembre 2026
+
+Le worktree vit sous `.claude/worktrees/`, donc **dans** le dépôt : la résolution de modules de
+Node remonte et trouve `paris-compass/node_modules`. `npm.cmd run typecheck`, `npm.cmd run test`
+et `npm.cmd run build` marchent immédiatement, sans installer quoi que ce soit. C'est ce qui rend
+le piège cher : tout a l'air en place.
+
+Ce qui ne marche pas, ce sont les tests qui **relancent un bras dans un processus fils** en
+construisant le chemin absolu de `tsx` depuis la racine du worktree :
+
+```
+Error: Cannot find module
+'…\.claude\worktrees\w1-servi-contenu\node_modules\tsx\dist\cli.mjs'
+```
+
+Mesuré ce jour-là : `scripts/porte/publie.test.ts` (5 contrôles) et
+`scripts/eval/anon-http.test.ts` (1) échouent, **et eux seuls** — 7 rouges sur 899, tous verts sur
+`main` dans la minute qui suit. La lecture spontanée est « ma modification a cassé le bras
+voisin », alors que c'est l'environnement.
+
+**Le geste** : `npm.cmd install` dans le worktree avant de croire un rouge sur un test qui lance
+un sous-processus. Et avant ça, le contrôle qui coûte cinq secondes — rejouer le même fichier de
+test depuis l'arbre principal. S'il y est vert, la cause est le worktree, pas le diff.
+
+Cousin déjà consigné pour `verify:mcp`, qui veut en plus le `.env` copié. La règle générale :
+**ce qui est résolu par remontée de dossiers marche dans un worktree, ce qui est construit par
+chemin absolu ne marche pas.**
+
+## Un crawl d'un seul niveau ressemble à un vert, jamais à une mesure partielle — 17 septembre 2026
+
+Le quatorzième bras suit les morceaux à la demande d'un bundle publié. Son en-tête affirmait
+depuis quatre jours qu'il les suivait **tous** ; il n'appliquait `chunkNames` qu'au bundle
+d'entrée, donc il en atteignait **1 sur 29** sur un build de `main`.
+
+Rien ne le signalait, et c'est le cœur du piège : la population de l'époque — routes de
+`src/App.tsx` et libellés de `src/i18n/ui.ts` — vit précisément dans l'entrée et le morceau
+`App`, c'est-à-dire dans la moitié que le crawl lisait. Une mesure amputée de 424 003 octets
+rendait exactement le même verdict qu'une mesure complète. Elle n'est devenue visible qu'en
+élargissant la population à des tables qui vivent, elles, dans les morceaux de page.
+
+**Le geste, et il est général** : quand une règle lit une ressource qui en nomme d'autres,
+compter ce qu'elle a REELLEMENT lu et le comparer à ce qui existe, avant de croire son verdict.
+Ici, deux nombres suffisaient — morceaux demandés contre morceaux présents dans `dist/assets` —
+et ils étaient à 1 contre 29. Le bras les imprime désormais tous les deux.
+
+C'est la même famille que le `\y` mangé du 26 août et que le `\b` sur un mot accentué du
+15 septembre, consignés plus haut : **un défaut de mesure ne ressemble pas à un défaut, il
+ressemble à un résultat.** `DIAGNOSTIC.md` §59.

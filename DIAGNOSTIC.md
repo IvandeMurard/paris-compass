@@ -1,7 +1,7 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte 57 au 17 septembre 2026**, et la
+« quatre défauts, par ordre de gravité » : il en porte 60 au 17 septembre 2026**, et la
 phrase est restée fausse trois semaines. Le nombre est désormais dérivé du tableau
 ci-dessous par `scripts/porte/documents.test.ts` : le recopier faux fait rougir `test`.
 
@@ -81,6 +81,9 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 55 | Le dossier exporté citait la BAN sur un libellé qu'elle n'avait pas rendu, et perdait « mesure en cours » | clos le 15 septembre 2026 par `w6-dossier`, trouvé à l'écran | ici |
 | 56 | La checklist métier rendait « ne est », et « aucune terrasse » là où 26 emplacements sur 28 sont `inconnu` | clos le 16 septembre 2026 par `w6-modes`, trouvé à l'écran — les deux étaient verts au test unitaire | ici |
 | 57 | Le schéma se trompe de sens sur le profil horaire : « midi = bureaux » est faux à 258 stations sur 258 | **partiel** — mesuré le 17 septembre 2026 par `w2-rythme` ; le produit corrigé, les deux `comment on` du distant non, [#213](https://github.com/IvandeMurard/paris-compass/issues/213) | ici |
+| 58 | `src/i18n/survivalText.ts` : douze chaînes de prose qu'aucun import n'atteint, donc aucun écran ne rend | **ouvert** — mesuré le 17 septembre 2026 par `w1-servi-contenu` | ici |
+| 59 | `servi` ne lisait que les morceaux que l'ENTRÉE nomme : 1 sur 29, et 424 003 octets servis jamais demandés | clos le 17 septembre 2026 par `w1-servi-contenu` | ici |
+| 60 | La production sert un bundle antérieur à `#119` : `/carte` et `/contexte/` ne sont pas déclarés, la fiche rend une 404 | **ouvert** — mesuré le 17 septembre 2026, appartient au déploiement | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -1442,3 +1445,133 @@ le lendemain matin, et `supabase db push` n'est pas lancé par une session ici. 
 - **« Menée par le soir » ne dit pas « bureaux ».** Bureaux, universités et sorties produisent la
   même forme, et rien dans le corpus ne les sépare : c'est pourquoi la lecture est rendue à
   l'écran avec le statut `arbitrage` et non `mesure`.
+
+## 58. `src/i18n/survivalText.ts` : douze chaînes de prose qu'aucun écran ne rend — mesuré le 17 septembre 2026 par `w1-servi-contenu`
+
+Trouvé en élargissant la population du quatorzième bras (#217), et trouvé **parce que** la
+mesure a été faite avant d'être crue : sur les 920 chaînes distinctes que la dérivation
+proposait, **914 étaient dans le build de `main`, et les six absentes venaient toutes de ce
+fichier**.
+
+La cause n'est pas un défaut du bundler. **Personne n'importe `src/i18n/survivalText.ts`** —
+recoupé au `grep` sur `src/`, `scripts/` et `mcp-server/` : les trois seules occurrences du nom
+dans le dépôt sont des **commentaires** qui le citent en exemple, dans `src/core/observational.ts`
+et `src/i18n/terrasseText.ts`. Aucune ligne d'import. Le module est donc éliminé au build, et pas
+un octet de sa prose n'est dans les 1 247 018 que `npm.cmd run build` émet.
+
+Les six chaînes qui n'existent nulle part ailleurs :
+
+| Clé | Français | Anglais |
+| --- | --- | --- |
+| `operator` | `l'exploitant` | `the operator` |
+| `withheldMarker` | `millésime retenu` | `vintage withheld` |
+| `insufficientMarker` | `effectif insuffisant` | `cohort too small` |
+
+Les six autres entrées du module ne sont pas servies non plus ; elles sont simplement écrites à
+l'identique ailleurs, donc la population les porte sous un autre nom.
+
+**Pourquoi c'est un défaut et pas un détail.** Ce sont des phrases écrites pour l'écran, revues,
+traduites, et que personne ne lit. Soit un bloc de survie a été retiré sans emporter sa prose,
+soit il n'a jamais été branché — dans les deux cas le dépôt porte une intention produit qu'il ne
+sert pas.
+
+**Ce que ça a coûté immédiatement**, et c'est la raison pour laquelle la règle de #217 filtre par
+atteignabilité : sans ce filtre, le bras élargi serait sorti **rouge dès son premier matin**, sur
+de la prose que le produit ne rend pas. Un rouge permanent sans défaut derrière lui est celui
+qu'une session éteint — `scripts/porte/prose.ts` porte la règle et `scripts/porte/prose.test.ts`
+la rejoue sur ce cas précis.
+
+**Ce que ça ne dit pas.** La règle ne voit que les modules qu'aucun import n'atteint *depuis
+`src/main.tsx`*. Un module atteint mais dont le composant n'est jamais monté — une branche morte
+à l'exécution — reste invisible ici : sa prose est dans le bundle, donc elle est « servie » au
+sens de cette mesure, sans être rendue à qui que ce soit.
+
+**La sortie, et c'est une décision, pas un correctif mécanique** : brancher le bloc, ou retirer le
+module. Tant qu'aucune des deux n'est prise, le fichier reste hors population et ce constat le dit.
+
+## 59. `servi` ne lisait que les morceaux nommés par l'ENTRÉE — clos le 17 septembre 2026 par `w1-servi-contenu`
+
+Le quatorzième bras (#142) suit les morceaux à la demande, et son en-tête le revendique :
+« It follows every chunk, not just the first match ». Il en suivait **un niveau**.
+
+`chunkNames(entryJs)` n'était appliqué qu'au bundle d'entrée. Or dans cette application chaque
+écran est un `lazy(() => import(...))` **derrière le morceau `App`**, donc les noms vivent un
+cran plus bas et n'étaient jamais demandés. Mesuré le 17 septembre 2026 :
+
+| | Morceaux atteints | Octets lus | Octets réellement servis |
+| --- | ---: | ---: | ---: |
+| Build de `main`, un niveau | **1 sur 29** | 611 440 | 1 247 018 |
+| Production, un niveau | **2 sur 21** | 772 856 | 1 196 859 |
+| Production, transitif | 21 sur 21 | 1 196 859 | 1 196 859 |
+
+**424 003 octets de JavaScript servi que le bras appelait absents sans les avoir demandés.**
+
+**Pourquoi personne ne l'a vu pendant quatre jours.** Le défaut était *silencieux par chance* :
+la table des routes de `src/App.tsx` et la table `UI` vivent toutes deux dans l'entrée et le
+morceau `App`, c'est-à-dire exactement ce qu'un niveau atteint. Les deux populations de #152
+tombaient dans la moitié lue. Le jour où #217 a élargi la population aux tables de prose — qui
+vivent, elles, dans les morceaux de page — le bras serait sorti rouge sur **683 jetons sur 920**
+pour une raison entièrement fausse.
+
+C'est la forme d'erreur que `docs/REPRISE-PIEGES.md` consigne déjà deux fois : un défaut de
+mesure ne ressemble pas à un défaut de mesure, il ressemble à une découverte. Ici il aurait
+ressemblé à « la production est en retard de tout ».
+
+**Le correctif** est une file d'attente plutôt qu'une boucle : chaque morceau lu est à son tour
+interrogé pour les noms qu'il porte, chaque nom n'est demandé qu'une fois, et la borne
+`MAX_CHUNKS` passe de 24 à **60** — un peu plus du double des 29 mesurés. Le bras **dit tout
+haut** qu'il a atteint la borne au lieu de lire la moitié en silence, parce qu'un morceau non lu
+est un jeton faussement déclaré absent. L'entrée entre d'office dans le jeu des noms déjà
+demandés : elle s'auto-nomme, et le bras la retéléchargeait.
+
+**Ce qu'il faut noter sur le sens de la correction.** Lire plus d'octets rend le bras plus
+CLÉMENT à population constante, et la règle du dépôt interdit de desserrer un seuil pour éteindre
+un rouge. Ce n'en est pas un : le bras ne cesse pas de compter une absence, il cesse de compter
+comme absent ce qui était servi. La preuve que ça n'a rien éteint est dans la mesure du même
+jour — le rouge contre la production **tient**, à 358 jetons, crawl transitif compris.
+
+**Ce que ça ne rattrape pas.** Un morceau nommé autrement que par le motif de `chunkNames` — un
+nom construit à l'exécution, une concaténation — reste invisible, et le bras ne peut pas savoir
+qu'il existe. La borne de 60 est un fusible : si un build la dépasse un jour, c'est le message
+d'avertissement qu'il faudra lire, pas le verdict.
+
+## 60. La production sert un bundle antérieur à `#119` : la fiche de contexte rend une 404 — mesuré le 17 septembre 2026
+
+Trouvé en cherchant la contre-preuve de #217, et c'est **plus grave que ce que le ticket
+annonçait**. Le ticket disait « la production sert `index-BBCkdSb9.js`, le même bundle qu'avant
+`#204` ». Mesuré : elle sert `index-DAmk8dIZ.js`, et ce bundle **ne déclare ni `/carte` ni
+`/contexte/:slug`**.
+
+Les chemins lus dans le morceau `App` servi, au `grep -oE 'path:"[^"]*"'` : `/`, `/a-propos`,
+`/faq`, `/glossaire`, `/guides`, `/guides/:slug`, `/methodologie`, `/paris`, `/paris/:slug`,
+`/presentation`, `/profile`, `/signin`, `/signup`, `/sources`, `/travaux`, et leurs jumelles
+`/en`. **Ni `/carte`, ni `/contexte/`.** Le jeu de morceaux le confirme : la production sert un
+`Progress-*.js` et **aucun** `Carte-*.js`, `Context-*.js` ni `ContextMap-*.js`, là où un build de
+`main` du même jour émet les trois.
+
+C'est l'état d'avant `w6-contexte` (#119), fusionné le 11 septembre 2026 — donc l'incident
+fondateur de #142 **est revenu**, et sur la moitié qui porte le produit.
+
+**Recoupé par un second bras, qui ouvre la page pour de vrai.** `npm.cmd run page`, le quinzième,
+sortie **1** :
+
+```
+ÉCHEC — La page n'a rendu ni verdict ni refus nommé en 14000 ms —
+« 404 Oups ! Page introuvable Retour à l'accueil Edit with » à la place.
+```
+
+Deux mesures indépendantes, l'une sur le texte du bundle et l'autre sur le DOM rendu, disent la
+même chose : **la carte et la fiche de contexte ne sont pas servies au visiteur.**
+
+**Quand ça a basculé.** `docs/REPRISE.md` porte `page` **PASS, sortie 0, 10 901 ms sur un verdict
+composé** contre la production le 15 septembre 2026 au soir. La régression est donc postérieure
+au 15 et antérieure au 17 — deux jours pendant lesquels le produit servait une version d'il y a
+une semaine, et personne ne l'a lu.
+
+**Ce qui n'appartient pas au dépôt.** Le déploiement est à Lovable. Aucun bras d'ici ne peut dire
+POURQUOI la publication a reculé, ni la déclencher. Ce constat dit ce qui est servi, et rien de
+plus.
+
+**Ce qui attend une décision d'Ivan** : republier depuis Lovable, puis rejouer `npm.cmd run servi`
+et `npm.cmd run page`. Les deux doivent reverdir ; s'ils ne reverdissent pas, la cause est en
+amont du dépôt et c'est un ticket Lovable, pas un ticket ici.

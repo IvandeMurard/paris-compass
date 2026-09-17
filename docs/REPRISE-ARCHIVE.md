@@ -1214,3 +1214,55 @@ Les points **1, 3, 4, 8, 9, 10, 11, 15, 17 et 18 sont rayés** et sont partis da
 `docs/REPRISE-ARCHIVE.md`, avec leur numérotation d'origine — `docs/PLAN.md` et
 `docs/PLAN-ACTION-VACANCE.md` y renvoient par leur numéro. Restent ceux-ci.
 
+
+## Le point 26 — `w2-rythme` (#208) — sorti de `docs/REPRISE.md` le 17 septembre 2026
+
+Fermée le 17 septembre, sortie de la page de reprise le même jour par `w1-servi-contenu` (#217)
+pour tenir le plafond de `documents.test.ts`. Le détail vivant est dans
+`docs/tickets/w2-rythme.md`, section « Livré » ; ce qui suit est le relevé tel que la page de
+reprise le portait.
+
+26. **Une adresse a des heures, et la source les portait depuis dix jours sans lecteur.**
+    `w2-rythme` (#208) fermée le 17 septembre 2026. Le détail, les sept critères et leur
+    démonstration sont dans `docs/tickets/w2-rythme.md`, section « Livré ».
+
+    **La condition dont dépendait tout le ticket est vérifiée** : les lignes horaires sortent
+    jusqu'au visiteur anonyme. Mesuré en `anon` avec la seule clé publiable —
+    `compass_station_profile` rend **117 lignes à Châtelet en 416 ms**, 24 tranches JOHV sommant
+    à 99,99 %, et les deux tables sont lisibles en direct (**29 489** lignes de profil, **258**
+    stations). Le précédent de `#97` — une table muette derrière une fonction `security
+    definer` — ne se rejoue pas.
+
+    **Le ticket s'était trompé de SENS, et le schéma aussi.** L'énoncé, le commentaire de colonne
+    de `20260907000002` et celui de `compass_station_profile` annoncent tous les trois qu'un pic
+    de midi signe un quartier de bureaux. Mesuré sur les **258 stations**, 6 099 lignes JOHV : la
+    fenêtre 11h-14h est la plus forte des trois à **ZÉRO station**, l'heure de pic est 8h à 89
+    stations et 17h ou 18h à 166, et ce sont les quartiers **résidentiels** qui sont menés par le
+    matin. Une validation se compte **à la montée** : le profil d'une station est la forme des
+    départs depuis ce lieu, pas des arrivées. La lecture livrée est donc construite sur
+    l'asymétrie matin/soir. `DIAGNOSTIC.md` §57 porte le défaut, `docs/REPRISE-PIEGES.md` le
+    geste qui l'a trouvé.
+
+    **Ce qui est démontré, Chrome sans tête contre le `dist/` de la branche, cinq adresses, les
+    deux langues** : la forme de la journée de la station la plus proche, avec son nom, son
+    millésime et **sa propre licence ODbL** — sur la même page que la carte « desserte ferrée »
+    qui porte la **Licence Ouverte 2.0 (Etalab)**, même millésime, deux obligations. La réserve
+    au-dessus du graphique et jamais au survol. La lecture avec son statut lu de
+    `LEAD_REASON_STATUSES` — « arbitrage, pas une mesure » — et ce qui la trancherait. Aucun
+    volume : un contrôle **parcourt** l'objet produit et refuse tout nombre hors [0, 100]. Rien
+    n'entre dans le verdict : le bloc est hors de la liste des constats et la phrase du verdict
+    est identique au caractère près avec et sans les lignes horaires. Au bois de Vincennes,
+    l'absence de station est rendue par son motif, celui que l'axe de distance emploie déjà.
+
+    **La contre-preuve est jouée en cinq actes** : licence recopiée (7 contrôles rouges sur 3
+    fichiers), champ de volume ajouté (2), `rythme` promu axe du verdict (1), une lecture retirée
+    de la table des mots (2), une réponse rendue comme une panne (5). Tout remis, sortie 0.
+
+    **Ce qui attend une décision d'Ivan** : la marge de **1,15** qui sépare les trois formes est
+    un arbitrage écrit une fois — 39 stations « menée par le matin », 43 « deux pointes », 176
+    « menée par le soir ». Elle se déplace en une ligne.
+
+    **Ce qui n'est PAS fait** : les deux `comment on` du distant disent toujours l'inverse et
+    demandent un `supabase db push` — **#213** ; le serveur MCP ne sert pas la forme de la
+    journée, elle attend `w5-explain-metier` (#31) comme la raison d'un axe de tête ; et aucun
+    bras n'ouvre la page sur ce bloc, le même trou que pour `mode=`.
