@@ -37,3 +37,15 @@ export const HOME_EXAMPLES: readonly string[] = [
   'Rue du Poteau, Paris',
   'Avenue Daumesnil, Paris',
 ];
+
+/**
+ * Public GitHub repository read by the salvaged `/travaux` page — récupéré de `lovable-sync`
+ * le 17 septembre 2026.
+ *
+ * **Volontairement `undefined`, et ce n'est pas un oubli.** La page existe, elle compile, et elle
+ * rend son motif « dépôt non configuré » tant que cette constante est vide. La remplir est une
+ * décision — elle expose publiquement l'activité du dépôt — et elle appartient au volet 4 de
+ * `w6-accueil` (#148), avec la route qui va avec. Un sauvetage préserve du travail ; il ne prend
+ * pas les décisions que ce travail attendait.
+ */
+export const GITHUB_REPO: { owner: string; repo: string } | undefined = undefined;

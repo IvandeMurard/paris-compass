@@ -292,6 +292,79 @@ export const UI = {
     fr: 'Carte gratuite des locaux commerciaux parisiens replacés dans leur environnement : commerces, transports, écoles, bruit et qualité de l’air, à partir de données publiques.',
     en: 'Free map of Paris commercial spaces in context: shops, transport, schools, noise and air quality, all from public open data.',
   },
+
+  // Récupérés de la branche `lovable-sync` le 17 septembre 2026 : les libellés dont les
+  // cinq composants sauvés avaient besoin, et rien d'autre. Ils entrent ici plutôt que dans
+  // leur composant parce que c'est cette table que `npm.cmd run servi` dérive — une chaîne
+  // écrite en dur dans un composant est invisible à ce bras, et c'est précisément le trou
+  // que `w1-servi-contenu` (#217) attaque.
+  'aria.collapse': { fr: 'Réduire', en: 'Collapse' },
+  'aria.expand': { fr: 'Agrandir', en: 'Expand' },
+  'home.exploreMap': { fr: 'Explorer la carte', en: 'Explore the map' },
+  'home.howItWorks': { fr: 'Comment ça marche', en: 'How it works' },
+  'home.pillar1Title': { fr: 'Données ouvertes', en: 'Open data' },
+  'home.pillar2Title': { fr: 'Scores locales', en: 'Local scores' },
+  'home.pillar3Title': { fr: 'Gratuit et transparent', en: 'Free and transparent' },
+  'home.searchCta': { fr: 'Rechercher', en: 'Search' },
+  'home.skipHero': { fr: 'Passer l’introduction', en: 'Skip introduction' },
+  'home.welcome': { fr: 'Bienvenue sur Compass', en: 'Welcome to Compass' },
+  'progress.mergedAt': { fr: 'fusionné le', en: 'merged on' },
+  'progress.metaTitle': { fr: 'Travail en cours — Compass', en: 'Work in progress — Compass' },
+  'progress.openedAt': { fr: 'ouvert le', en: 'opened on' },
+  'progress.plannedTitle': { fr: 'Prochaines étapes', en: 'Next steps' },
+  'progress.recentTitle': { fr: 'Dernières avancées', en: 'Recent improvements' },
+  'progress.seeOnGithub': { fr: 'Voir sur GitHub', en: 'See on GitHub' },
+  'progress.title': { fr: 'Travail en cours', en: 'Work in progress' },
+
+  // Récupérés de la branche `lovable-sync` le 17 septembre 2026 : les libellés dont les
+  // cinq composants sauvés avaient besoin, et rien d'autre. Ils entrent ici plutôt que dans
+  // leur composant parce que c'est cette table que `npm.cmd run servi` dérive — une chaîne
+  // écrite en dur dans un composant est invisible à ce bras, et c'est précisément le trou
+  // que `w1-servi-contenu` (#217) attaque.
+  'home.headline': {
+    fr: 'Trouvez un local commercial à Paris en regardant autour, pas seulement dedans.',
+    en: 'Find a commercial space in Paris by looking around it, not just inside.',
+  },
+  'home.pillar1Body': {
+    fr: 'Sources publiques : Etalab, Ville de Paris, OpenStreetMap, INSEE, Géorisques, Copernicus.',
+    en: 'Public sources: Etalab, City of Paris, OpenStreetMap, INSEE, Géorisques, Copernicus.',
+  },
+  'home.pillar2Body': {
+    fr: 'Marchabilité, flux piéton estimé, accès aux transports et exposition aux nuisances.',
+    en: 'Walkability, estimated footfall, transport access and exposure to nuisances.',
+  },
+  'home.pillar3Body': {
+    fr: 'Aucune donnée de démonstration : chaque indicateur est documenté et vérifiable.',
+    en: 'No demo data: every indicator is documented and verifiable.',
+  },
+  'home.subheadline': {
+    fr: 'Compass croise les données publiques ouvertes — commerces, transports, écoles, qualité de l’air, bruit, loyers de référence — pour scorer l’environnement de chaque local.',
+    en: 'Compass cross-references open public data — shops, transport, schools, air quality, noise, reference rents — to score the surroundings of every space.',
+  },
+  'progress.empty': {
+    fr: 'Aucune activité récente accessible pour le moment.',
+    en: 'No recent activity is available right now.',
+  },
+  'progress.error': {
+    fr: 'Impossible de charger l’activité GitHub. Revenez plus tard.',
+    en: 'Could not load GitHub activity. Please come back later.',
+  },
+  'progress.intro': {
+    fr: 'Compass est construit en public. Cette page résume les dernières améliorations livrées et celles en préparation.',
+    en: 'Compass is built in public. This page summarises the latest improvements shipped and the ones being prepared.',
+  },
+  'progress.metaDescription': {
+    fr: 'Dernières avancées et travail prévu sur Compass : évolutions récentes et prochaines étapes.',
+    en: 'Latest progress and upcoming work on Compass: recent changes and next steps.',
+  },
+  'progress.plannedBody': {
+    fr: 'Intégration de nouvelles sources ouvertes, amélioration des scores d’environnement et première version des alertes de nouveaux locaux.',
+    en: 'Integration of new open data sources, improvement of environmental scores and first version of new-space alerts.',
+  },
+  'progress.repoMissing': {
+    fr: 'Le dépôt GitHub public n’est pas encore configuré ici.',
+    en: 'The public GitHub repository is not configured yet.',
+  },
 } as const;
 
 export type UiKey = keyof typeof UI;
