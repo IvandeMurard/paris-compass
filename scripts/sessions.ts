@@ -135,6 +135,33 @@ const ORDER = [
   // est un témoin joué en test — `scripts/porte/servi-temoin-2026-09-17.json`.
   "w1-servi-contenu",
   "w2-rythme",
+  // Les quatre suivants sont la Phase 1 du handoff du 27 septembre, ouverts le 5 octobre 2026 sur
+  // la décision d'Ivan : « ces écrans-là, sur les vraies données, dans ce dépôt, c'était bien mon
+  // objectif. Un travail important, long et fastidieux a été réalisé, il faut maintenant le
+  // valoriser. » Le handoff l'écrit aussi : « Phase 1 — showable, all real. The portfolio
+  // screenshots come from here. » La démo Lovable tranche l'APPARENCE sur un jeu figé ; ces
+  // tickets la posent sur le corpus, ici, sans crédit.
+  //
+  // L'accueil d'abord parce qu'il fait les deux à la fois : il porte l'écran que la démo a déjà
+  // tranché, ET il branche `compass_bodacc_within`, qui a zéro lecteur — la démo montre du BODACC
+  // figé pendant que le dépôt sait servir le vrai.
+  "w6-accueil-reel",
+  // Juste derrière, et c'est délibéré : le recensement dit ce que les écrans suivants peuvent
+  // montrer. Mesuré le 5 octobre, sept fonctions `compass_*` n'ont aucun lecteur. #209 a été
+  // écrit en disant « Compass mesure en cercles » sans savoir que `compass_street_rotation`
+  // existait déjà en base — un ticket écrit dans l'ignorance de son propre corpus. Celui-ci
+  // rend cette ignorance impossible, et il est petit.
+  "w6-corpus-non-lu",
+  // Petit, parce que le handoff § 1.3 dit que les hubs COMPOSENT les pages existantes au lieu de
+  // les remplacer. La seule vraie contrainte est que la page Méthode ne perde rien de ce qu'elle
+  // publie : elle porte 121 jetons mesurés, et chacun est une chose qu'un lecteur peut vérifier.
+  "w6-hubs-reels",
+  // EN ATTENTE D'UNE DÉCISION DE DESIGN, pas d'un ticket. Mesuré le 5 octobre : la démo couvre
+  // l'accueil, Méthode, Apprendre et Kit, et PAS la fiche — `page` obtient « Adresse absente de
+  // cette démo ». Or la fiche est le produit. C'est le seul écran sur lequel il reste à dépenser
+  // des crédits Lovable, et le lancer avant que son apparence soit tranchée coûterait deux
+  // sessions au lieu d'une.
+  "w6-fiche-reelle",
   "w5-explain-metier",
   // Demandé par Ivan le 17 septembre 2026, en mesurant pourquoi l'agent et l'écran ne nommaient
   // pas les mêmes axes : « une école à cent mètres, c'est une clientèle du midi ; un parc, c'est
