@@ -32,12 +32,34 @@
     "monter tout de suite, pas pour ce qu'on prefere ne pas monter."
   ],
 
-  "juges": {},
+  "juges": {
+    "GHSA-vfj7-8cjw-p6xm": {
+      "paquet": "braces (via tailwindcss 3 : chokidar, micromatch, fast-glob)",
+      "severite": "high",
+      "atteignable": false,
+      "raison": "Debordement de pile sur un motif d'accolades profondement imbrique, qui tue le processus Node. Aucun correctif publie (braces <= 3.0.3, first_patched_version null). braces n'arrive que par tailwindcss 3.4.19, en devDependencies : il ne tourne qu'au build et en dev, et ne lit que les globs de `content` de tailwind.config.ts, ecrits dans ce depot. Aucun motif tiers n'y entre, et rien de braces ne part dans le bundle servi. Le serveur MCP, seul processus qui recoit une entree exterieure, ne le porte pas : 0 occurrence de tailwind, postcss ou braces dans mcp-server/package-lock.json, mesure le 6 octobre 2026. Montee possible seulement par tailwindcss 4, une majeure.",
+      "redeviendraitAtteignableSi": "un processus qui recoit une entree exterieure — le serveur MCP, une Edge Function, un service — compile du CSS ou evalue des globs avec tailwindcss, micromatch ou braces ; ou un glob de `content` vient d'une source qu'on n'ecrit pas.",
+      "mesureLe": "2026-10-06",
+      "invalideSi": { "motif": "tailwindcss|postcss|micromatch|braces", "dans": ["mcp-server/package.json"] }
+    },
+    "GHSA-rj75-hqrm-r3gf": {
+      "paquet": "postcss-selector-parser (via tailwindcss 3 et @tailwindcss/typography)",
+      "severite": "moderate",
+      "atteignable": false,
+      "raison": "Analyse quadratique d'un selecteur plat geant (`.a.a.a...`) : du temps CPU, pas une fuite. L'avis le dit lui-meme : seuls sont exposes ceux qui analysent des selecteurs NON FIABLES dans un chemin de requete ; l'usage au build sur des sources fiables ne l'est pas. Ici, tailwindcss et @tailwindcss/typography sont en devDependencies et n'analysent que le CSS et les classes de ce depot, au build. Rien n'en part dans le bundle servi, et le serveur MCP ne les porte pas (0 occurrence dans mcp-server/package-lock.json, mesure le 6 octobre 2026). Le correctif est 7.1.6, hors de portee de tailwindcss 3 et de @tailwindcss/typography 0.5 : la seule voie est tailwindcss 4.",
+      "redeviendraitAtteignableSi": "un processus qui recoit une entree exterieure analyse des selecteurs CSS — un assainisseur de CSS, un rendu cote serveur qui compile du CSS fourni par un tiers, le serveur MCP qui accepterait du CSS.",
+      "mesureLe": "2026-10-06",
+      "invalideSi": { "motif": "tailwindcss|postcss", "dans": ["mcp-server/package.json"] }
+    }
+  },
 
   "_lisez-moi-juges": [
-    "`juges` est vide, et c'est un resultat, pas un oubli : au 9 septembre 2026, `npm audit` rend",
-    "0 vulnerabilite sur les deux manifestes. Les six alertes du jour ont ete FERMEES par montee",
-    "— js-yaml 4.3.2, hono 4.13.7, vitest 4.1.11 — et non rangees ici. C'est le bon ordre.",
+    "Au 9 septembre 2026, `juges` etait vide : les six alertes du jour avaient ete FERMEES par",
+    "montee — js-yaml 4.3.2, hono 4.13.7, vitest 4.1.11 — et non rangees ici. C'est le bon ordre.",
+    "Le 6 octobre 2026, meme ordre : douze avis, dix fermes par `npm audit fix` SANS --force (le",
+    "verrou seul, dans les plages declarees, sur les deux manifestes). Les deux juges ci-dessus",
+    "sont ceux qu'aucune montee dans la plage ne ferme : ils tiennent a tailwindcss 3, et la",
+    "seule voie est la majeure 4 — un chantier, pas un correctif.",
     "La note se tient hors de `juges` : une cle rangee dedans serait lue comme le verdict d'un",
     "avis qu'aucun manifeste ne porte, donc comme de la prose morte, donc un rouge."
   ],
