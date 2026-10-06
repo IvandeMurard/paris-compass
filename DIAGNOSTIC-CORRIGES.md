@@ -3237,7 +3237,7 @@ millésime** fait monter `last_seen_vintage_id` sur la plupart des locaux et ré
 `premise_location` (~40 Mo) en plus de ses relevés (~15 Mo), soit un pic vers 500 Mo au tableau
 de bord — ajouter un millésime à `LAYERS` oblige à rechiffrer le bloc `bdcom` de `disque.json`
 dans la même PR ; et une source corrigée, ou une montée de PostGIS/PROJ qui déplacerait les points
-au binaire près, réécrirait autant pour ~15 Mo de marge. `bdcom.ts --dry-run` compte les lignes
+au binaire près, réécrirait ~40 Mo pour ~15 Mo de marge. `bdcom.ts --dry-run` compte les lignes
 qui changeraient avant qu'elles ne soient écrites.
 
 **Ce que le découpage ne rattrape pas** — relevé par la revue de suivi de #243, le 6 octobre :
