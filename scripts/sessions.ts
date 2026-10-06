@@ -91,6 +91,10 @@ const ORDER = [
   // pas payer de plan : le disque se tient par les chargeurs ou ne se tient pas. Avant #243,
   // BODACC regonflait chaque nuit ; depuis, il reste la mesure au premier passage.
   "w1-chargeurs-gonflement",
+  // Les suites de la revue de #243, ouvertes le 6 octobre 2026. Placées juste derrière le
+  // ticket qu'elles prolongent : l'une d'elles — découper BDCom — a la même échéance de fait,
+  // le passage trimestriel du 5 janvier 2027 que `npm run disque` signale déjà.
+  "w1-suites-243",
   "w1-overpass-ordre",
   // Trouvé le 15 septembre en vérifiant que l'agent recevait bien le verdict que l'écran
   // compose : deux passages de verify:mcp, un refus puis un verdict, et le bras vert sur les
