@@ -106,7 +106,7 @@
       ],
       "facteur": 1,
       "ajout_mo": 0,
-      "raison": "filosofi_grid_200m (4 Mo) et les rattachements des 85 410 locaux. Depuis #244 (6 octobre 2026), le referentiel est mis a jour en upsert, les rattachements calcules a part et premise_location n'est ecrit que pour les locaux dont le rattachement change : 0 sur 85 418 sur la base du 6 octobre, mesure dans une transaction annulee. Le bloc compte le PIRE cas, un millesime qui deplacerait tous les rattachements : premise_location une fois, plus jamais deux."
+      "raison": "filosofi_grid_200m (4 Mo) et les rattachements des 85 410 locaux. Depuis #244 (6 octobre 2026), le referentiel est mis a jour en upsert, les rattachements calcules a part et premise_location n'est ecrit que pour les locaux dont le rattachement change : 0 sur 85 418 sur la base du 6 octobre, mesure dans une transaction annulee. Le bloc compte le PIRE cas, un millesime qui deplacerait tous les rattachements : premise_location une fois, plus jamais deux. Tables temporaires de la transaction : tmp_cells (les ~7 800 carreaux candidats, quelques Mo) et tmp_filo (un identifiant par local), rendues au commit, dans la marge."
     },
     {
       "nom": "idfm",
@@ -118,7 +118,7 @@
       ],
       "facteur": 1,
       "ajout_mo": 0,
-      "raison": "Stations en upsert, profils (3 Mo) recharges en entier — ils ne sont references par aucun local —, et les rattachements des 85 410 locaux. Depuis #244 (6 octobre 2026), le referentiel est mis a jour en upsert, les rattachements calcules a part et premise_location n'est ecrit que pour les locaux dont le rattachement change : 0 sur 85 418 sur la base du 6 octobre, mesure dans une transaction annulee. Le bloc compte le PIRE cas, un millesime qui deplacerait tous les rattachements : premise_location une fois, plus jamais deux. Les stations retirees le sont apres le rattachement, donc la cle ON DELETE SET NULL ne reecrit plus rien."
+      "raison": "Stations en upsert, profils (3 Mo) recharges en entier — ils ne sont references par aucun local —, et les rattachements des 85 410 locaux. Depuis #244 (6 octobre 2026), le referentiel est mis a jour en upsert, les rattachements calcules a part et premise_location n'est ecrit que pour les locaux dont le rattachement change : 0 sur 85 418 sur la base du 6 octobre, mesure dans une transaction annulee. Le bloc compte le PIRE cas, un millesime qui deplacerait tous les rattachements : premise_location une fois, plus jamais deux. Les stations retirees le sont apres le rattachement, donc la cle ON DELETE SET NULL ne reecrit plus rien. Table temporaire de la transaction : tmp_nearest (un identifiant et une distance par local, quelques Mo), rendue au commit, dans la marge."
     },
     {
       "nom": "plu",

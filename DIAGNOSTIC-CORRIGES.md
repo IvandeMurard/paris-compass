@@ -3229,9 +3229,14 @@ pour l'un et l'autre, mesuré dans une transaction annulée ; `npm run disque` l
 un export BODACC vide pour une année est gardé tel quel, jamais lu comme un retrait ; une année
 sortie de la plage chargée (avant `DEFAULT_SINCE`) n'est jamais purgée ; et un rechargement du
 stock SIRENE interrompu laisse en base deux millésimes mêlés, code postal par code postal, jusqu'au
-passage suivant — chaque code postal reste entier, la table ne l'est plus. Et cinq petits
-chargeurs (terrasses, filosofi, idfm, plu, chantiers) réécrivent encore `premise_location` en se
-rattachant : ils sont comptés comme blocs dans `disque.json`, pas corrigés.
+passage suivant — chaque code postal reste entier, la table ne l'est plus. Et trois petits
+chargeurs (terrasses, plu, chantiers) réécrivent encore `premise_location` en se rattachant : ils
+sont comptés comme blocs dans `disque.json`, pas corrigés — filosofi et idfm l'ont été par #244.
+Le correctif de ces trois-là reprendra la méthode corrigée par la revue de #245 : rattacher
+**uniquement** aux lignes du lot, jamais à toute la table de référence, puisque les lignes
+retirées ensuite y sont encore. `geography.ts` a la même forme, mais ses clés n'ont pas de
+`on delete` : un tronçon retiré encore le plus proche d'un local fait échouer et annuler le
+passage, bruyamment — voulu pour un quartier, pas encore écrit pour un tronçon (#244).
 
 ### Une fausse piste, consignée pour qu'elle ne soit pas reprise
 

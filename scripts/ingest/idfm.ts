@@ -17,9 +17,9 @@
 //
 // Run after geography.ts — not because this file reads street_key or quartier_id (it does
 // not), but because it writes premise_location.nearest_idfm_station_id/idfm_station_distance_m
-// on the same table geography.ts populates the geometry of. Re-running is safe: both
-// reference tables are rebuilt from scratch and the attachment recomputed, exactly like
-// chantiers.ts and terrasses.ts.
+// on the same table geography.ts populates the geometry of. Re-running is safe: since #244 the
+// stations are upserted, the profiles rebuilt, and a premise written only when its nearest
+// station changes.
 
 import type { Client } from "pg"
 
@@ -305,21 +305,31 @@ export async function loadProfiles(
  * anything at its own radius. KNN (`<->`) against the small station table (order of 300 rows
  * in Paris) rather than an ST_DWithin threshold join, because there is no threshold to give it.
  */
-export async function attach(client: Client): Promise<{ attached: number; changed: number }> {
+export async function attach(client: Client, kept: number[]): Promise<{ attached: number; changed: number }> {
   // Computed first, then one UPDATE of the premises whose station or distance differs — #244.
   // A premise with no geometry appears on the left side only, and is nulled only if it held one.
-  await client.query(`
+  //
+  // Only among the stations this load KEEPS: the table still holds the ones about to be removed
+  // by dropStaleStations. Searched there, a premise whose nearest station left the source would
+  // keep pointing at it, then lose it to `on delete set null` while its distance stayed — and the
+  // load would record a success. Found by the review of #245, proved by removing one station
+  // from the batch in a rolled-back transaction.
+  await client.query(
+    `
     create temporary table tmp_nearest on commit drop as
     select l.id, s.id_zdc, ST_Distance(l.geom, s.geom) as distance_m
       from public.premise_location l
       cross join lateral (
         select st.id_zdc, st.geom
           from public.idfm_station st
+         where st.id_zdc = any($1::bigint[])
          order by st.geom <-> l.geom
          limit 1
       ) s
      where l.geom is not null
-  `)
+  `,
+    [kept],
+  )
   const attached = await client.query<{ n: string }>("select count(*)::text as n from tmp_nearest")
   const changed = await client.query(`
     update public.premise_location l
@@ -371,10 +381,11 @@ async function main(): Promise<void> {
     await inTransaction(client, async () => {
       stationCount = await loadStations(client, stationsWithProfile)
       profileCount = await loadProfiles(client, aggregated)
-      attached = await attach(client)
-      // After attach(): no premise points at a station about to go, so `on delete set null`
-      // rewrites nothing.
-      stale = await dropStaleStations(client, [...stationsWithProfile.keys()])
+      const kept = [...stationsWithProfile.keys()]
+      attached = await attach(client, kept)
+      // After attach(), which searched the kept stations only: no premise points at a station
+      // about to go, so `on delete set null` rewrites nothing.
+      stale = await dropStaleStations(client, kept)
     })
 
     log("terminé")

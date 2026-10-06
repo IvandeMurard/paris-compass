@@ -92,8 +92,8 @@ interface GridCell {
 /**
  * A generous EPSG:3035 candidate envelope around Paris — wider than the city on every side, on
  * purpose: this is only the CHEAP first filter (four comparisons, no geometry parsing), and the
- * precise cut against the 80 quartiers' actual outline happens afterwards, in
- * `restrictToQuartiers`. Measured 8 September 2026 against the real Paris bbox transformed to
+ * precise cut against the 80 quartiers' actual outline happens afterwards, on the staging table
+ * in `loadGrid` (it was `restrictToQuartiers` until #244). Measured 8 September 2026 against the real Paris bbox transformed to
  * EPSG:3035 (3 750 800 / 2 884 000 to 3 770 000 / 2 895 600): this envelope pads roughly 2 km on
  * every side, comfortably wider than one 200 m cell's worth of edge error.
  */
@@ -198,8 +198,11 @@ export async function loadGrid(
     await client.query(
       `insert into tmp_cells
          (idcar_200m, annee, individus, menages, menages_pauvres, niveau_vie_somme_winsorisee_eur, geom)
-       values ${tuples.join(", ")}
-       on conflict (idcar_200m) do nothing`,
+       values ${tuples.join(", ")}`,
+      // No `on conflict do nothing`: a repeated idcar violates the primary key and fails the
+      // load loudly, as it did before #244 — letting the first copy win in silence would hide a
+      // source defect and overcount `loaded`. Measured 6 October 2026: 7 783 candidates, all
+      // distinct.
       values,
     )
   }
@@ -215,6 +218,10 @@ export async function loadGrid(
     delete from tmp_cells c
      where not exists (select 1 from public.quartier q where ST_Intersects(q.geom, c.geom))
   `)
+  // The empty-batch guard, again AFTER the trim: a non-empty batch the trim empties — a
+  // projection gone wrong, the quartiers missing — would make dropStaleCells remove every cell
+  // and record a success. Found by the review of #245.
+  refuseLotVide("filosofi_grid_200m après recoupement par les quartiers", rows.length - (trimmed.rowCount ?? 0))
 
   await client.query(`
     insert into public.filosofi_grid_200m as g
@@ -272,7 +279,10 @@ export interface Attachment {
  * against EVERY cell in the table for EVERY premise. Measured 8 September 2026 against the
  * hosted project: ~700 s for the real population, against a 2 min `statement_timeout`. Split in
  * two, each half uses the gist index — pass one a plain indexed spatial join, pass two a pure
- * KNN order-by: ~15 s in all (84 824 covered, 586 by fallback, 0,69 %).
+ * KNN order-by: ~15 s in all for the two UPDATEs of the time (84 824 covered, 586 by fallback,
+ * 0,69 %). The version below, computed into a table, measured by the review of #245 on
+ * 6 October 2026: 1,3 s for the covering join (gist index premise_location_geom_idx), 0,3 s for
+ * the fallback.
  *
  * ── WHY COMPUTED FIRST, THEN ONE UPDATE — #244 ─────────────────────────────────────────────
  *
@@ -284,6 +294,14 @@ export interface Attachment {
  *
  * A point covered by two cells at once takes the lowest id. Measured 8 September 2026: ZERO
  * premises are covered by more than one cell, INSEE's squares tiling without overlap.
+ *
+ * ── ONLY AGAINST THE CELLS OF THIS LOAD ────────────────────────────────────────────────────
+ *
+ * Both passes search tmp_cells' cells, never the whole table: the table still holds the cells
+ * this vintage dropped, which dropStaleCells removes right after. Searched there, a premise
+ * whose only covering cell left the vintage would keep pointing at it, then lose it to
+ * `on delete set null` with no fallback — and the load would record a success. Found by the
+ * review of #245, proved by removing one cell from the batch in a rolled-back transaction.
  */
 export async function attach(client: Client): Promise<Attachment> {
   await client.query(`
@@ -292,6 +310,7 @@ export async function attach(client: Client): Promise<Attachment> {
       from public.premise_location l
       join public.filosofi_grid_200m g on ST_Covers(g.geom, l.geom)
      where l.geom is not null
+       and exists (select 1 from tmp_cells c where c.idcar_200m = g.idcar_200m)
      order by l.id, g.idcar_200m
   `)
   const covered = await client.query<{ n: string }>("select count(*)::text as n from tmp_filo")
@@ -303,6 +322,7 @@ export async function attach(client: Client): Promise<Attachment> {
       cross join lateral (
         select g.idcar_200m
           from public.filosofi_grid_200m g
+         where exists (select 1 from tmp_cells c where c.idcar_200m = g.idcar_200m)
          order by g.geom <-> l.geom
          limit 1
       ) g
