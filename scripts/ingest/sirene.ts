@@ -5,8 +5,9 @@
 //   npx.cmd tsx scripts/ingest/sirene.ts --confirm-only  # replay confirmation, no INSEE read
 //
 // Run after bodacc.ts: the SIREN to load are read from the notices already
-// stored, and the confirmation step needs their addresses. A BODACC reload destroys the
-// confirmations, which is why the daily job chains --confirm-only behind it.
+// stored, and the confirmation step needs their addresses. Since #239 bodacc.ts confirms each
+// year inside its own transaction (lib/confirm.ts); the daily job still chains --confirm-only
+// behind it as a safety net, which writes nothing on an ordinary night.
 //
 // --dry-run exists because a change of vintage moves the confirmations, and the confirmations
 // decide the `corrobore` level — the project's headline quality metric. Measuring the delta

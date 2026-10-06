@@ -13,8 +13,9 @@ Suites de la revue de #243 (`w1-chargeurs-gonflement`, #239), non bloquantes. Ch
 3. **Vérifier que le secret `DATABASE_URL` des Actions vise le port 5432** (pooler en mode session). En mode transaction (6543), la table temporaire de session et le `VACUUM` entre deux transactions de `bodacc.ts` et `sirene-stock.ts` ne tiennent pas. `.env.local` est bien sur 5432.
 4. **Découper BDCom avant décembre 2026.** `npm run disque` estime son passage du 5 janvier 2027 à ~520 Mo au tableau de bord, même staging vidé.
 5. **Poser la géométrie des établissements BODACC à l'insertion** plutôt que par `UPDATE` dans la transaction de l'année (proposition de la revue). Aujourd'hui, chaque partition est écrite jusqu'à trois fois avant son `VACUUM`. C'est compté dans `disque.json`, mais évitable.
+6. **N'écrire que ce qui change dans le rattachement des petits chargeurs**, relevé par la revue de suivi de #243 : `attach()` de filosofi (85 410 locaux réécrits deux fois), idfm (85 410, une fois), plu (29 338, deux fois), terrasses (23 610, deux fois) et chantiers réécrit `premise_location` à chaque passage. Ils sont comptés comme blocs dans `disque.json` depuis #243. **Filosofi d'abord** : `npm run disque` le signale à ~478 Mo pour mars 2027, même staging vidé. Même méthode que `geography.ts` : calculer à part, un seul `UPDATE … where … is distinct from`.
 
 ## Fait quand
 
-1. Chacun des cinq points est fait, ou écarté avec sa raison écrite ici.
-2. `npm run disque` ne signale plus BDCom pour le prochain passage trimestriel.
+1. Chacun des six points est fait, ou écarté avec sa raison écrite ici.
+2. `npm run disque` ne signale plus ni BDCom ni filosofi pour leur prochain passage.

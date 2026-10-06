@@ -31,25 +31,23 @@
     "suivant. Et la projection ne suit que BODACC : une table qui grossirait par une autre voie se",
     "verrait au seuil, pas avant."
   ],
-
   "plafond_mo_tableau_de_bord": 500,
   "part_du_plafond": 0.9,
-
   "rapport_tableau_de_bord": {
     "valeur": 1.1018,
     "_mesure": "433 Mo lus par Ivan sur le tableau de bord (Database Size) le 6 octobre 2026, contre 393 Mo rendus le meme jour par pg_size_pretty(pg_database_size()) — 433 / 393. Ecart non explique : garde comme marge plutot que suppose nul."
   },
-
   "horizon_rouge_jours": 30,
   "horizon_signal_jours": 120,
   "ratio_gonflement": 2,
   "table_minimale_mo": 10,
-
   "blocs": [
     {
       "nom": "sirene_stock",
       "source": "sirene_stock",
-      "tables": ["sirene_etablissement_stock"],
+      "tables": [
+        "sirene_etablissement_stock"
+      ],
       "partition": "code_postal",
       "facteur": 1,
       "ajout_mo": 0,
@@ -58,7 +56,9 @@
     {
       "nom": "sirene",
       "source": "sirene",
-      "tables": ["sirene_establishment"],
+      "tables": [
+        "sirene_establishment"
+      ],
       "facteur": 2,
       "ajout_mo": 0,
       "raison": "TRUNCATE, plus une table temporaire de staging (stg_sirene) de la taille des donnees : deux fois la table avant le commit."
@@ -66,7 +66,10 @@
     {
       "nom": "bdcom",
       "source": "bdcom",
-      "tables": ["premise_location", "premise_observation"],
+      "tables": [
+        "premise_location",
+        "premise_observation"
+      ],
       "facteur": 1,
       "ajout_mo": 44,
       "raison": "Le recensement se recharge dans UNE transaction, staging compris. `ajout_mo` est le staging mesure plein le 6 octobre 2026 (stg_bdcom_od 34 Mo + stg_bdcom_2023 10 Mo), vide au repos depuis #239. Les tables promues comptent une fois : elles sont reecrites, pas doublees, sous l'hypothese la plus favorable — a remesurer au premier chargement BDCom apres #239."
@@ -74,31 +77,84 @@
     {
       "nom": "bodacc",
       "source": "bodacc",
-      "tables": ["bodacc_announcement", "bodacc_establishment", "bodacc_judgment"],
+      "tables": [
+        "bodacc_announcement",
+        "bodacc_establishment",
+        "bodacc_judgment"
+      ],
       "partition": "family, extract(year from published_on)",
       "facteur": 3,
       "ajout_mo": 0,
       "raison": "Une annee d'une famille a la fois depuis #239 : DELETE puis reinsertion, puis rattachement des etablissements de l'annee, puis leur confirmation SIRENE, dans la meme transaction — chaque etape reecrit une partie des etablissements. Trois fois la plus grosse partition, majorant, rendues par le VACUUM qui suit. La revue de #243 avait trouve la confirmation hors du compte : elle reecrivait 85 005 lignes sur 158 285 chaque nuit, sans VACUUM derriere."
+    },
+    {
+      "nom": "terrasses",
+      "source": "terrasses",
+      "tables": [
+        "terrasse_autorisation"
+      ],
+      "facteur": 1,
+      "ajout_mo": 21,
+      "raison": "terrasse_autorisation (12 Mo) rechargee, et 23 610 locaux reecrits deux fois (detachement puis rattachement). Releve par la revue de suivi de #243, le 6 octobre 2026 : son attach() reecrit premise_location (38 Mo) dans la meme transaction, et les colonnes touchees sont indexees — chaque ligne reecrite ajoute une version de tas et une entree par index. Ticket pour n'ecrire que ce qui change : #244. Compte en `ajout_mo` : 23610 locaux sur 85 410, deux fois, sur les 38,31 Mo de premise_location mesures le 6 octobre 2026 = 21 Mo. A remesurer si la part de locaux concernes change."
+    },
+    {
+      "nom": "filosofi",
+      "source": "filosofi",
+      "tables": [
+        "filosofi_grid_200m",
+        "premise_location"
+      ],
+      "facteur": 2,
+      "ajout_mo": 0,
+      "raison": "filosofi_grid_200m (4 Mo) rechargee, et 85 410 locaux reecrits deux fois. Releve par la revue de suivi de #243, le 6 octobre 2026 : son attach() reecrit premise_location (38 Mo) dans la meme transaction, et les colonnes touchees sont indexees — chaque ligne reecrite ajoute une version de tas et une entree par index. Ticket pour n'ecrire que ce qui change : #244."
+    },
+    {
+      "nom": "idfm",
+      "source": "idfm",
+      "tables": [
+        "idfm_station",
+        "idfm_validation_profile",
+        "premise_location"
+      ],
+      "facteur": 1,
+      "ajout_mo": 0,
+      "raison": "Stations et profils (3 Mo) recharges, et 85 410 locaux reecrits une fois. Releve par la revue de suivi de #243, le 6 octobre 2026 : son attach() reecrit premise_location (38 Mo) dans la meme transaction, et les colonnes touchees sont indexees — chaque ligne reecrite ajoute une version de tas et une entree par index. Ticket pour n'ecrire que ce qui change : #244."
+    },
+    {
+      "nom": "plu",
+      "source": "plu",
+      "tables": [
+        "plu_linear_protection"
+      ],
+      "facteur": 1,
+      "ajout_mo": 26,
+      "raison": "plu_linear_protection (2 Mo) rechargee, et 29 338 locaux reecrits deux fois. Facteur 2 sur toute la table : majorant. Releve par la revue de suivi de #243, le 6 octobre 2026 : son attach() reecrit premise_location (38 Mo) dans la meme transaction, et les colonnes touchees sont indexees — chaque ligne reecrite ajoute une version de tas et une entree par index. Ticket pour n'ecrire que ce qui change : #244. Compte en `ajout_mo` : 29338 locaux sur 85 410, deux fois, sur les 38,31 Mo de premise_location mesures le 6 octobre 2026 = 26 Mo. A remesurer si la part de locaux concernes change."
+    },
+    {
+      "nom": "chantiers",
+      "source": "chantiers",
+      "tables": [
+        "chantier_perturbant"
+      ],
+      "facteur": 1,
+      "ajout_mo": 4,
+      "raison": "Quelques centaines de lignes, chaque semaine ; mais son attach() reecrit les locaux proches d'un chantier — environ 2 Mo de premise_location selon la revue de suivi de #243, compte double en `ajout_mo` (detachement puis rattachement)."
     }
   ],
-
   "hors_blocs": {
     "_lisez-moi": "Toute source planifiee dans .github/workflows est soit un bloc ci-dessus, soit nommee ici avec sa raison — scripts/porte/disque.test.ts le verifie dans les deux sens, comme cadence.json pour les scripts. Tailles relevees le 6 octobre 2026 (pg_total_relation_size, apres VACUUM FULL).",
     "geography": "Ne reecrit plus que ce qui change depuis #239 : 0 ligne de premise_location sur la base du 6 octobre. Quartiers et troncons (7 Mo) en upsert.",
-    "terrasses": "terrasse_autorisation, 12 Mo, rechargee deux fois par an : un pic de 12 Mo, un tiers de la marge restante. A promouvoir en bloc si elle grossit.",
-    "filosofi": "filosofi_grid_200m, 4 Mo, deux fois par an.",
-    "idfm": "idfm_station et idfm_validation_profile, 3 Mo, deux fois par an.",
-    "plu": "plu_linear_protection, 2 Mo, deux fois par an.",
-    "chantiers": "chantier_perturbant, quelques centaines de lignes, chaque semaine : moins d'un Mo.",
-    "meubles": "meuble_autorisation, quelques centaines de lignes, une fois par an : moins d'un Mo."
+    "meubles": "meuble_autorisation, quelques centaines de lignes, une fois par an : moins d'un Mo, et pas de rattachement aux locaux (une densite autour d'un point)."
   },
-
   "_partition": "Un bloc qui porte `partition` se recharge morceau par morceau : son pic est la part du plus gros morceau — comptee sur la premiere table de `tables`, groupee par cette expression — appliquee a la taille de toutes ses tables. Sans `partition`, le bloc entier compte.",
-
   "croissance": {
     "table": "bodacc_announcement",
     "date": "published_on",
-    "tables": ["bodacc_announcement", "bodacc_establishment", "bodacc_judgment"],
+    "tables": [
+      "bodacc_announcement",
+      "bodacc_establishment",
+      "bodacc_judgment"
+    ],
     "jours": 28
   }
 }

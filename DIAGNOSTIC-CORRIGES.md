@@ -3218,7 +3218,16 @@ Et le bras qui manquait : **`npm run disque`**, planifié chaque matin. Il rougi
 mesuré sur le distant, ce qui ne se démontre qu'après la fusion, aux premiers passages planifiés.
 Et BDCom : son prochain passage (5 janvier 2027) monterait la base à environ 520 Mo au tableau
 de bord même staging vidé — le bras le signale depuis le premier jour, et c'est à traiter avant
-décembre.
+décembre. Filosofi aussi (mars 2027, ~478 Mo staging vidé) : son rattachement réécrit deux fois
+les 85 410 locaux. Tous deux sont dans #244.
+
+**Ce que le découpage ne rattrape pas** — relevé par la revue de suivi de #243, le 6 octobre :
+un export BODACC vide pour une année est gardé tel quel, jamais lu comme un retrait ; une année
+sortie de la plage chargée (avant `DEFAULT_SINCE`) n'est jamais purgée ; et un rechargement du
+stock SIRENE interrompu laisse en base deux millésimes mêlés, code postal par code postal, jusqu'au
+passage suivant — chaque code postal reste entier, la table ne l'est plus. Et cinq petits
+chargeurs (terrasses, filosofi, idfm, plu, chantiers) réécrivent encore `premise_location` en se
+rattachant : ils sont comptés comme blocs dans `disque.json`, pas corrigés.
 
 ### Une fausse piste, consignée pour qu'elle ne soit pas reprise
 
