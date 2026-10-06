@@ -97,7 +97,7 @@ ajoute des tranches. Ce qui ferait parler l'alerte, c'est le coût **par local**
 | **I5** | Un code d'activité affiché qui n'est pas dans la nomenclature | Un libellé inventé est pire qu'un libellé absent |
 | **I6** | Un rattachement à une rue sans méthode enregistrée | Nom ou proximité : la différence doit rester lisible |
 | **I7** | Un avis BODACC `etabli` alors que l'adresse est un siège social ou partagée | La faute d'inférence du 9 août 2026, rendue impossible |
-| **I8** | Un relevé promu sans ligne de staging correspondante | Un recensement à moitié chargé est indiscernable d'un recensement incomplet |
+| **I8** | Un millésime dont les relevés promus ne font pas le compte chargé (`bdcom_vintage.record_count`) — la correspondance ligne à ligne avec le staging se vérifie au chargement, dans `bdcom.ts`, depuis que le staging est vidé à chaque commit (#239) | Un recensement à moitié chargé est indiscernable d'un recensement incomplet |
 | **I9** | Un appelant **anonyme** voit quoi que ce soit d'un millésime non redistribuable — contenu, absence, ou simple existence | La licence de 2017 et 2020 n'est pas lue. Trois migrations ont été nécessaires : retenir le contenu laissait fuiter l'absence, ce qui révélait l'existence |
 | **I10** | Un millésime redistribuable revient retenu par erreur | Le miroir de I9. **Sur-restreindre est aussi une faute** : retenir de l'ODbL prive sans raison et masque un défaut de logique |
 

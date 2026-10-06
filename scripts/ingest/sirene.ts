@@ -5,8 +5,9 @@
 //   npx.cmd tsx scripts/ingest/sirene.ts --confirm-only  # replay confirmation, no INSEE read
 //
 // Run after bodacc.ts: the SIREN to load are read from the notices already
-// stored, and the confirmation step needs their addresses. A BODACC reload destroys the
-// confirmations, which is why the daily job chains --confirm-only behind it.
+// stored, and the confirmation step needs their addresses. Since #239 bodacc.ts confirms each
+// year inside its own transaction (lib/confirm.ts); the daily job still chains --confirm-only
+// behind it as a safety net, which writes nothing on an ordinary night.
 //
 // --dry-run exists because a change of vintage moves the confirmations, and the confirmations
 // decide the `corrobore` level — the project's headline quality metric. Measuring the delta
@@ -24,6 +25,7 @@ import { join } from "path"
 import { DuckDBInstance } from "@duckdb/node-api"
 import type { Client } from "pg"
 
+import { confirmOperators } from "./lib/confirm"
 import { assertPrivileged, connect, inTransaction, insertRows, log, recordRun } from "./lib/db"
 
 /**
@@ -104,13 +106,6 @@ const PARIS_COMMUNE_PREFIX = "751"
  */
 const EXACT_GEOCODING = "11"
 
-/**
- * How close a SIRENE point must be to count as "the same address". The BODACC
- * point is borrowed from the BDCom premises at that number, and both sides are
- * geocoded to the number, so the gap is geocoding noise rather than distance.
- */
-const SAME_ADDRESS_M = 50
-
 async function sirenToResolve(client: Client): Promise<string[]> {
   const result = await client.query<{ siren: string }>(`
     select distinct a.siren
@@ -163,31 +158,9 @@ async function readFromInsee(parquetUrl: string, siren: string[]): Promise<[stri
   return rows
 }
 
-/**
- * Marks a notice as operator-confirmed when its company has an establishment
- * within reach. False is a real finding — the company files here but operates
- * elsewhere — while null stays null: absence from the slice we loaded is not
- * evidence of absence from Paris.
- */
+/** Every notice, against the SIRENE just loaded. The rule lives in lib/confirm.ts. */
 async function confirm(client: Client): Promise<void> {
-  const result = await client.query(
-    `
-    update public.bodacc_establishment e
-       set operator_confirmed = exists (
-             select 1 from public.sirene_establishment s
-             where s.siren = a.siren
-               and ST_DWithin(s.geom, e.geom, $1)
-           )
-      from public.bodacc_announcement a
-     where a.id = e.announcement_id
-       and e.address_source = 'siege_social'
-       and e.geom is not null
-       and a.siren is not null
-       and exists (select 1 from public.sirene_establishment s where s.siren = a.siren)
-    `,
-    [SAME_ADDRESS_M],
-  )
-  log("  confirmation", `${result.rowCount} avis évalués`)
+  log("  confirmation", `${await confirmOperators(client)} verdicts changés`)
 }
 
 /**
@@ -199,7 +172,10 @@ async function confirm(client: Client): Promise<void> {
  * evaluation gate fell from 3 147 `corrobore` levels to zero — 5.92 points of the
  * established+corroborated composition, which is the project's headline quality metric.
  *
- * That is why the daily BODACC job chains this step. Confirmation reads only
+ * Since #239 (6 October 2026) bodacc.ts confirms each year inside the transaction that writes
+ * it, so a reload no longer leaves verdicts behind, and this step, still chained after it, is a
+ * safety net that writes nothing on an ordinary day — it only rewrites verdicts that changed.
+ * It remains the way to replay confirmation by hand. Confirmation reads only
  * sirene_establishment, which a BODACC reload does not touch, so there is no reason to re-read
  * the several hundred megabytes of INSEE parquet to rebuild it — which is fortunate, since the
  * pinned URL now answers 404 (#56) and the confirmations would otherwise be unrecoverable.
@@ -285,7 +261,11 @@ async function main(): Promise<void> {
     const before = await countConfirmations()
 
     await inTransaction(client, async () => {
-      await client.query("delete from public.sirene_establishment")
+      // TRUNCATE, not DELETE: it gives the old file back at commit instead of leaving its
+      // space behind — #239, DIAGNOSTIC-CORRIGES.md §62. It locks readers until commit, which
+      // is why the INSEE read above happens before the transaction, and why this load runs in
+      // the Friday-night window (ingestion.yml).
+      await client.query("truncate public.sirene_establishment")
       // Written through a staging select so the geography cast happens once, in
       // SQL, rather than per row in the client.
       await client.query(`

@@ -245,6 +245,21 @@ jobs:
           cat "$PORTE/ledger.log"
           printf 'ledger\t%s\t%s\n' "$code" "$PORTE/ledger.log" >> "$PORTE/bras.tsv"
 
+      # Le bras du disque — w1-chargeurs-gonflement (#239). Du 3 au 5 octobre 2026 la base est
+      # passée en lecture seule, plafond de 500 Mo de l'offre gratuite, et trois chargements y
+      # ont échoué sans qu'aucun bras l'annonce : ils l'ont appris en échouant. Celui-ci regarde
+      # DEVANT — le pic de chaque chargement en bloc à sa prochaine date, la croissance de
+      # BODACC, le gonflement par table — et rougit trente jours avant, pas le jour même.
+      # Lecture seule, une connexion ; il porte DATABASE_URL parce que pg_database_size et
+      # pg_stats ne sont pas servis à la clé publiable.
+      - name: disque
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          npm run disque > "$PORTE/disque.log" 2>&1 && code=0 || code=$?
+          cat "$PORTE/disque.log"
+          printf 'disque\t%s\t%s\n' "$code" "$PORTE/disque.log" >> "$PORTE/bras.tsv"
+
       # Le treizième bras, et le seul qui juge une chose que ni le dépôt ni le distant ne
       # portent : l'ATTEIGNABILITÉ d'un avis de sécurité. Le 9 septembre 2026, six alertes
       # Dependabot sont tombées à la même minute, une notée High, aucune atteignable — et

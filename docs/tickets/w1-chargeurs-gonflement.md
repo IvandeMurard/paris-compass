@@ -46,3 +46,26 @@ plan payant.** Le disque se tient donc par les chargeurs, ou ne se tient pas.
 
 Une source qui grandit vraiment finira par toucher le plafond sans aucun gonflement. Le bras le
 dira ; la décision — réduire une source, ou payer — restera à Ivan.
+
+## Où il en est — 6 octobre 2026, session de la proposition
+
+**Le « Comment » s'est révélé faux sur un point, et la session l'a dit avant de coder.** Un
+`TRUNCATE` dans une transaction rend l'ancien fichier au commit, mais la nouvelle version s'écrit
+avant : le PIC d'un rechargement en bloc reste « ancien + nouveau ». Et il verrouille les lecteurs
+jusqu'au commit — 4 min 30 chaque jour pour BODACC, en pleine journée. Ivan a validé le
+6 octobre : BODACC et le stock SIRENE se rechargent **par morceaux** (une année d'une famille,
+un code postal), SIRENE géolocalisé par `TRUNCATE` la nuit du vendredi, `geography.ts` n'écrit
+que ce qui change, le staging BDCom est vidé. Le détail par chargeur : `DIAGNOSTIC-CORRIGES.md`
+§62. En passant : `geography.ts` échouait depuis le 25 août — §65.
+
+| « Fait quand » | État |
+| --- | --- |
+| 1. Rechargement mesuré sous ×1,3, sur le distant | **Pas encore démontré.** Ne se mesure qu'après fusion, aux premiers passages planifiés (BODACC le lendemain, SIRENE le vendredi). Démontré à blanc : `geography.ts` reproduit les 85 418 rattachements à l'identique (0 écriture), le stock SIRENE ses 375 629 établissements et 286 058 rattachements. |
+| 2. Bras planifié, qui prouve son rouge | **Fait.** `npm run disque`, planifié dans `porte.yml` (pas besoin d'une raison dans `cadence.json` : il est joué) ; `disque.test.ts` joue la vraie règle sur le cas réel du 6 octobre (SIRENE stock en bloc : 514 Mo, rouge). |
+| 3. Sauvegarde refaite avant le premier rechargement | **Fait.** `~/Backups/paris-compass/compass-20261006T1604Z.dump`, même procédure. |
+
+**À faire juste après la fusion, dans cet ordre** : vider le staging BDCom
+(`truncate stg_bdcom_od, stg_bdcom_2023`, −44 Mo, accord d'Ivan) — sans quoi `npm run disque`
+reste rouge sur les pics SIRENE et BODACC ; puis mesurer chaque table après son premier passage.
+**BDCom** reste signalé pour le 5 janvier 2027 (~520 Mo au tableau de bord) : à traiter avant
+décembre, par le même découpage.

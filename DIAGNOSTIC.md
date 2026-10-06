@@ -1,7 +1,7 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte 64 au 6 octobre 2026**, et la
+« quatre défauts, par ordre de gravité » : il en porte 65 au 6 octobre 2026**, et la
 phrase est restée fausse trois semaines. Le nombre est désormais dérivé du tableau
 ci-dessous par `scripts/porte/documents.test.ts` : le recopier faux fait rougir `test`.
 
@@ -85,9 +85,10 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 59 | `servi` ne lisait que les morceaux que l'ENTRÉE nomme : 1 sur 29, et 424 003 octets servis jamais demandés | clos le 17 septembre 2026 par `w1-servi-contenu` | ici |
 | 60 | La production sert un bundle antérieur à `#119` : `/carte` et `/contexte/` ne sont pas déclarés, la fiche rend une 404 | clos le 17 septembre 2026 par une republication d'Ivan — `servi` sortie 0, 1 168 jetons sur 1 168 | ici |
 | 61 | Le bundle publié vise `nwnhhvogwrzstslxtxca`, l'ANCIEN projet Supabase : la fiche rend un refus sur les quatre axes | **ouvert** — mesuré le 17 septembre 2026, appartient au déploiement ; la démo Lovable l'a remplacé le 6 octobre, voir sa fin | ici |
-| 62 | La base passait en lecture seule pendant les gros chargements : tables gonflées ×2 à ×3,7 par les rechargements | clos le 6 octobre 2026 par `VACUUM FULL` (964 → 393 Mo, sauvegarde vérifiée avant) — **les chargeurs restent à corriger : `#239`** | corrigés |
+| 62 | La base passait en lecture seule pendant les gros chargements : tables gonflées ×2 à ×3,7 par les rechargements | clos le 6 octobre 2026 par `VACUUM FULL` (964 → 393 Mo, sauvegarde vérifiée avant) ; chargeurs corrigés et bras `disque` posés par `#239`, **mesure au premier rechargement encore due** | corrigés |
 | 63 | Le bras B d'`eval` rougissait sur la croissance normale de BODACC | clos le 6 octobre 2026 : comptages bornés au gel, `borne.test.ts` | corrigés |
 | 64 | Le bras E compte 27 à 81 % de pages de plus que ses plafonds sur cinq fonctions, pendant que les temps baissent | **ouvert** — mesuré le 6 octobre 2026, `#240` | ici |
+| 65 | `geography.ts` échouait à chaque passage depuis le 25 août : `delete from quartier` contre la clé du stock SIRENE | clos le 6 octobre 2026 par `#239` | corrigés |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |

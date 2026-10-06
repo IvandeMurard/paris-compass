@@ -35,7 +35,14 @@ on:
     # on the hour — does not make two loads collide. The `concurrency` lock below is the real
     # guarantee; this only avoids queueing behind it every day.
     - cron: "17 3 * * *"      # BODACC — daily, the only source that ages in days
-    - cron: "43 4 3 * *"      # SIRENE géolocalisé — monthly, on the 3rd, after INSEE republishes
+    # SIRENE géolocalisé — every Friday night, in the window decided by Ivan on 6 October 2026
+    # (#239). INSEE republishes monthly; the load is weekly because its TRUNCATE locks readers
+    # until commit, and that lock belongs in the night, not on whatever weekday the 3rd falls.
+    # 21:43 UTC is 23:43 in Paris: GitHub's scheduling lag — more than seven hours, measured on
+    # the BODACC runs 37297466279 (7 h 17, 5 October 2026) and 37449828184 (7 h 09, 6 October)
+    # — still lands inside the night from there. Re-reading an unchanged month
+    # is harmless — the loader is idempotent and TRUNCATE leaves no space behind.
+    - cron: "43 21 * * 5"
     - cron: "11 5 5 1,4,7,10 *"  # BDCom — quarterly: we verify, we do not rejuvenate
     - cron: "37 6 7 1,7 *"    # Geography — twice a year, never next to BDCom
     # ── #70 ──────────────────────────────────────────────────────────────────────────────
@@ -43,11 +50,13 @@ on:
     # Monday: the city's own update lands over the start of the week, and a load that runs
     # before it would spend a week presenting last week's worksites as current.
     - cron: "7 2 * * 2"
-    # SIRENE stock — monthly, on the 2nd. INSEE republishes the stock on the 1st and REPLACES
-    # the resource rather than archiving it, which is what made a pinned URL 404 on
-    # 25 August 2026 (#56). One day of margin, and the loader resolves the vintage from the
-    # data.gouv.fr API rather than pinning it.
-    - cron: "53 2 2 * *"
+    # SIRENE stock — every Friday night, same window and same reason as SIRENE géolocalisé
+    # above (#239), fifty minutes before it so the two never queue on the lock. INSEE
+    # republishes the stock on the 1st and REPLACES the resource rather than archiving it,
+    # which is what made a pinned URL 404 on 25 August 2026 (#56): the loader resolves the
+    # vintage from the data.gouv.fr API rather than pinning it, so a weekly run picks up the
+    # new month within a week of its publication.
+    - cron: "53 20 * * 5"
     # PLU — twice a year, and this one is a verification. The Conseil de Paris votes without
     # an announced calendar, so there is no rhythm to follow; what this catches is the day the
     # published layer stops being the one loaded here, and `source_as_of` will not have moved.
@@ -116,11 +125,11 @@ jobs:
           set -euo pipefail
           case "${SCHEDULE:-}" in
             "17 3 * * *")           source=bodacc ;;
-            "43 4 3 * *")           source=sirene ;;
+            "43 21 * * 5")          source=sirene ;;
             "11 5 5 1,4,7,10 *")    source=bdcom ;;
             "37 6 7 1,7 *")         source=geography ;;
             "7 2 * * 2")            source=chantiers ;;
-            "53 2 2 * *")           source=sirene_stock ;;
+            "53 20 * * 5")          source=sirene_stock ;;
             "21 5 9 3,9 *")         source=plu ;;
             "9 5 8 4,11 *")         source=terrasses ;;
             "33 6 5 3,9 *")         source=idfm ;;
@@ -154,16 +163,15 @@ jobs:
           set -euo pipefail
           case "${{ steps.which.outputs.source }}" in
             bodacc)
-              # Chained, and this one is not optional. bodacc.ts rebuilds bodacc_announcement
-              # wholesale, which cascades to bodacc_establishment and takes `operator_confirmed`
-              # with it — every SIRENE confirmation, destroyed by a reload. Measured 25 August:
-              # the evaluation gate fell from 3 147 `corrobore` levels to zero, 5.92 points of
-              # the established+corroborated composition, and nothing said so.
-              #
-              # Without this line a daily BODACC cron would wipe the confirmations every night
-              # while SIRENE only runs monthly. The confirmation step reads sirene_establishment
-              # alone, which a BODACC reload does not touch, so it costs seconds and no INSEE
-              # download. DIAGNOSTIC.md §17, issue #56.
+              # Chained as a safety net. Until #239 bodacc.ts rebuilt bodacc_announcement
+              # wholesale, which cascades to bodacc_establishment and took `operator_confirmed`
+              # with it — measured 25 August: the evaluation gate fell from 3 147 `corrobore`
+              # levels to zero, and nothing said so. Since #239 (6 October 2026) bodacc.ts
+              # replaces a year at a time and confirms each year inside its own transaction, so
+              # this step finds nothing to change on an ordinary night: it rewrites only the
+              # verdicts that differ, and it reads sirene_establishment alone, no INSEE
+              # download. It stays because it is what catches a confirmation left behind by
+              # anything else. DIAGNOSTIC.md §17, issue #56, DIAGNOSTIC-CORRIGES.md §62.
               npx tsx scripts/ingest/bodacc.ts
               npx tsx scripts/ingest/sirene.ts --confirm-only ;;
             sirene)    npx tsx scripts/ingest/sirene.ts ;;

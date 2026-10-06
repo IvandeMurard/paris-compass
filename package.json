@@ -26,6 +26,7 @@
     "porte:publie": "tsx scripts/porte/publie.ts",
     "catalogue": "tsx scripts/porte/catalogue-verify.ts",
     "ledger": "tsx scripts/porte/ledger-verify.ts",
+    "disque": "tsx scripts/porte/disque-verify.ts",
     "avis": "tsx scripts/porte/avis-verify.ts",
     "servi": "tsx scripts/porte/servi-verify.ts",
     "page": "tsx scripts/porte/page-verify.ts",

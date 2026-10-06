@@ -8,6 +8,7 @@
 
 import type { Client } from "pg"
 
+import { confirmOperators } from "./lib/confirm"
 import { assertPrivileged, connect, inTransaction, insertRows, log, recordRun } from "./lib/db"
 
 const PORTAL =
@@ -143,120 +144,155 @@ interface Person {
   adresseSiegeSocial?: Address
 }
 
-async function loadFamily(client: Client, family: Family, since: number): Promise<number> {
-  const thisYear = new Date().getFullYear()
-  let total = 0
+/**
+ * Replaces ONE year of ONE family, in its own short transaction. The notices are fetched
+ * before it opens, so the transaction holds nothing but writes.
+ *
+ * Why a year at a time — #239, DIAGNOSTIC-CORRIGES.md §62. The load used to delete every
+ * notice and rewrite 165 000 rows in one transaction of four and a half minutes, then UPDATE
+ * every establishment to give it a position. Each daily run left the three tables at twice
+ * their size, and the reload itself needed room for the old rows and the new ones at once:
+ * +128 MB at the peak, measured 6 October 2026, on a project that turns read-only at 500 MB.
+ * One year is about a twelfth of that, and the plain VACUUM the caller runs between two years
+ * hands the space back for the next one to reuse. Readers are never blocked: DELETE, not
+ * TRUNCATE, so they keep seeing the previous version of a year until its transaction commits.
+ *
+ * Everything is still re-read every day, so a correction or a withdrawal by DILA reaches the
+ * base as it did before.
+ */
+async function loadYear(client: Client, family: Family, year: number): Promise<number | null> {
+  const fetched = await exportYear(family, year)
+  // An empty answer for a year that holds notices is a portal hiccup, not a withdrawal of a
+  // whole year: keep what is held rather than wipe it.
+  if (fetched.length === 0) return null
 
-  for (let year = since; year <= thisYear; year += 1) {
-    const notices = await exportYear(family, year)
-    if (notices.length === 0) continue
+  // One row per notice id, whatever the export repeats: the establishments and the judgment
+  // are written per notice, so a repeated id would duplicate them.
+  const notices = [...new Map(fetched.map((n) => [n.id, n])).values()]
 
-    const announcements = notices.map((n) => [
-      n.id,
-      family,
-      text(n.typeavis) ?? "annonce",
-      n.dateparution,
-      // `registre` repeats the SIREN spaced and unspaced; keep the digits only.
-      text(asArray(n.registre).map((r) => String(r).replace(/\s/g, ""))[0]),
-      text(n.commercant),
-      text(n.tribunal),
-      text(n.url_complete),
-    ])
-
-    await insertRows(
-      client,
-      "public.bodacc_announcement",
-      ["id", "family", "notice_type", "published_on", "siren", "trader_name", "tribunal", "url"],
-      announcements,
-      "on conflict (id) do nothing",
+  return inTransaction(client, async () => {
+    // The year's previous version, then any notice of this export that sits under another
+    // date — a re-dated notice would otherwise survive in its old year, twice. Cascades to
+    // bodacc_establishment and bodacc_judgment.
+    await client.query(
+      `delete from public.bodacc_announcement
+        where (family = $1 and published_on >= make_date($2, 1, 1) and published_on < make_date($2 + 1, 1, 1))
+           or id = any($3::text[])`,
+      [family, year, notices.map((n) => n.id)],
     )
+    await writeNotices(client, family, notices)
+    return notices.length
+  })
+}
 
-    const establishments: unknown[][] = []
-    const judgments: unknown[][] = []
+async function writeNotices(client: Client, family: Family, notices: Announcement[]): Promise<void> {
+  const announcements = notices.map((n) => [
+    n.id,
+    family,
+    text(n.typeavis) ?? "annonce",
+    n.dateparution,
+    // `registre` repeats the SIREN spaced and unspaced; keep the digits only.
+    text(asArray(n.registre).map((r) => String(r).replace(/\s/g, ""))[0]),
+    text(n.commercant),
+    text(n.tribunal),
+    text(n.url_complete),
+  ])
 
-    const row = (
-      noticeId: string,
-      address: Address,
-      activity: string | null,
-      origin: string | null,
-      source: "etablissement" | "siege_social",
-    ): unknown[] => {
-      const postcode = text(address.codePostal)
-      const price = parsePrice(origin)
-      return [
-        noticeId,
-        text(address.numeroVoie),
-        text(address.typeVoie),
-        text(address.nomVoie),
-        postcode,
-        arrondissementOf(postcode),
-        activity,
-        origin,
-        price,
-        price === null ? null : "origine_fonds",
-        source,
-      ]
+  await insertRows(
+    client,
+    "public.bodacc_announcement",
+    ["id", "family", "notice_type", "published_on", "siren", "trader_name", "tribunal", "url"],
+    announcements,
+    "on conflict (id) do nothing",
+  )
+
+  const establishments: unknown[][] = []
+  const judgments: unknown[][] = []
+
+  const row = (
+    noticeId: string,
+    address: Address,
+    activity: string | null,
+    origin: string | null,
+    source: "etablissement" | "siege_social",
+  ): unknown[] => {
+    const postcode = text(address.codePostal)
+    const price = parsePrice(origin)
+    return [
+      noticeId,
+      text(address.numeroVoie),
+      text(address.typeVoie),
+      text(address.nomVoie),
+      postcode,
+      arrondissementOf(postcode),
+      activity,
+      origin,
+      price,
+      price === null ? null : "origine_fonds",
+      source,
+    ]
+  }
+
+  for (const notice of notices) {
+    const list = parseJson<{ etablissement?: Establishment | Establishment[] }>(
+      notice.listeetablissements,
+    )
+    const sold = asArray(list?.etablissement).filter(Boolean)
+    for (const e of sold) {
+      establishments.push(
+        row(notice.id, e.adresse ?? {}, text(e.activite), text(e.origineFonds), "etablissement"),
+      )
     }
 
-    for (const notice of notices) {
-      const list = parseJson<{ etablissement?: Establishment | Establishment[] }>(
-        notice.listeetablissements,
-      )
-      const sold = asArray(list?.etablissement).filter(Boolean)
-      for (const e of sold) {
+    // Only when the notice publishes no establishment of its own — otherwise
+    // the registered office would duplicate an address we already know
+    // precisely, and weaken it.
+    if (sold.length === 0) {
+      const people = parseJson<{ personne?: Person | Person[] }>(notice.listepersonnes)
+      for (const p of asArray(people?.personne)) {
+        if (!p?.adresseSiegeSocial?.nomVoie) continue
         establishments.push(
-          row(notice.id, e.adresse ?? {}, text(e.activite), text(e.origineFonds), "etablissement"),
+          row(notice.id, p.adresseSiegeSocial, text(p.activite), null, "siege_social"),
         )
       }
-
-      // Only when the notice publishes no establishment of its own — otherwise
-      // the registered office would duplicate an address we already know
-      // precisely, and weaken it.
-      if (sold.length === 0) {
-        const people = parseJson<{ personne?: Person | Person[] }>(notice.listepersonnes)
-        for (const p of asArray(people?.personne)) {
-          if (!p?.adresseSiegeSocial?.nomVoie) continue
-          establishments.push(
-            row(notice.id, p.adresseSiegeSocial, text(p.activite), null, "siege_social"),
-          )
-        }
-      }
-
-      const judgment = parseJson<{ famille?: string; nature?: string; date?: string }>(
-        notice.jugement,
-      )
-      if (judgment) {
-        judgments.push([
-          notice.id,
-          text(judgment.famille),
-          text(judgment.nature),
-          // Some notices carry no date, or a partial one; a bad date must not
-          // fail the batch, so anything unparseable becomes null.
-          /^\d{4}-\d{2}-\d{2}$/.test(String(judgment.date ?? "")) ? judgment.date : null,
-        ])
-      }
     }
 
-    await insertRows(
-      client,
-      "public.bodacc_establishment",
-      ["announcement_id", "house_number", "way_type", "way_name", "postcode",
-        "arrondissement", "activity", "origin_raw", "price_eur", "price_source",
-        "address_source"],
-      establishments,
+    const judgment = parseJson<{ famille?: string; nature?: string; date?: string }>(
+      notice.jugement,
     )
-    await insertRows(
-      client,
-      "public.bodacc_judgment",
-      ["announcement_id", "family", "nature", "judged_on"],
-      judgments,
-      "on conflict (announcement_id) do nothing",
-    )
-
-    total += notices.length
-    log(`  ${family} ${year}`, `${notices.length} annonces, ${establishments.length} établissements`)
+    if (judgment) {
+      judgments.push([
+        notice.id,
+        text(judgment.famille),
+        text(judgment.nature),
+        // Some notices carry no date, or a partial one; a bad date must not
+        // fail the batch, so anything unparseable becomes null.
+        /^\d{4}-\d{2}-\d{2}$/.test(String(judgment.date ?? "")) ? judgment.date : null,
+      ])
+    }
   }
-  return total
+
+  await insertRows(
+    client,
+    "public.bodacc_establishment",
+    ["announcement_id", "house_number", "way_type", "way_name", "postcode",
+      "arrondissement", "activity", "origin_raw", "price_eur", "price_source",
+      "address_source"],
+    establishments,
+  )
+  await insertRows(
+    client,
+    "public.bodacc_judgment",
+    ["announcement_id", "family", "nature", "judged_on"],
+    judgments,
+    "on conflict (announcement_id) do nothing",
+  )
+  const ids = notices.map((n) => n.id)
+  await attach(client, ids)
+  // In the year's own transaction: the year commits WITH its SIRENE verdicts. Left to the
+  // chained `sirene.ts --confirm-only`, every reloaded row stood unconfirmed until that step ran,
+  // and a run broken halfway left the finished years without them — the review of #243.
+  await confirmOperators(client, ids)
 }
 
 /**
@@ -264,21 +300,21 @@ async function loadFamily(client: Client, family: Family, since: number): Promis
  * premises at the same address. Matching is on the shared street key plus the
  * house number — never on the address string, whose casing and punctuation
  * differ between the two sources.
+ *
+ * Scoped to the notices just written. It used to update every establishment of every year
+ * on every run, which rewrote the whole table daily — #239. The positions themselves come from
+ * tmp_address_geom, built once per run by main().
  */
-async function attach(client: Client): Promise<void> {
-  const attached = await client.query(`
-    update public.bodacc_establishment e
-       set geom = p.geom
-      from (
-        select l.street_key, l.num, ST_Centroid(ST_Collect(l.geom::geometry))::geography as geom
-        from public.premise_location l
-        where l.street_key is not null and l.num is not null
-        group by l.street_key, l.num
-      ) p
-     where e.street_key = p.street_key
-       and e.house_number_int = p.num
-  `)
-  log("  rattachement à une adresse BDCom", `${attached.rowCount} établissements`)
+async function attach(client: Client, noticeIds: string[]): Promise<void> {
+  await client.query(
+    `update public.bodacc_establishment e
+        set geom = p.geom
+       from tmp_address_geom p
+      where e.announcement_id = any($1::text[])
+        and e.street_key = p.street_key
+        and e.house_number_int = p.num`,
+    [noticeIds],
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -293,17 +329,38 @@ async function main(): Promise<void> {
   const startedAt = Date.now()
   const client = await connect()
   try {
-    await inTransaction(client, async () => {
-      // Rebuilt wholesale: BODACC republishes corrections as new notices, so a
-      // partial refresh would leave superseded rows behind with nothing marking
-      // them as stale.
-      await client.query("delete from public.bodacc_announcement")
-      for (const family of FAMILIES) {
-        log(`famille ${family}`, `depuis ${since}`)
-        await loadFamily(client, family, since)
+    // One address -> position map for the whole run, held by this session and dropped with it.
+    await client.query(`
+      create temporary table tmp_address_geom as
+      select l.street_key, l.num, ST_Centroid(ST_Collect(l.geom::geometry))::geography as geom
+        from public.premise_location l
+       where l.street_key is not null and l.num is not null
+       group by l.street_key, l.num
+    `)
+    await client.query("create index on tmp_address_geom (street_key, num)")
+
+    // Every year is still re-read, so a correction or a withdrawal by DILA reaches the base —
+    // the reason the load was rebuilt wholesale. What changed is the unit of replacement: a
+    // year, in its own transaction, with a plain VACUUM after it so the next year reuses the
+    // space instead of growing the files. See loadYear.
+    const thisYear = new Date().getFullYear()
+    let skipped = 0
+    for (const family of FAMILIES) {
+      log(`famille ${family}`, `depuis ${since}`)
+      for (let year = since; year <= thisYear; year += 1) {
+        const written = await loadYear(client, family, year)
+        if (written === null) {
+          skipped += 1
+          log(`  ${family} ${year}`, "aucune annonce rendue — l'année en base est gardée telle quelle")
+          continue
+        }
+        await client.query(
+          "vacuum public.bodacc_announcement, public.bodacc_establishment, public.bodacc_judgment",
+        )
+        log(`  ${family} ${year}`, `${written} annonces`)
       }
-      await attach(client)
-    })
+    }
+    if (skipped > 0) log("années non rendues par le portail", String(skipped))
 
     const summary = await client.query<{ label: string; n: string }>(`
       select 'cessions'                as label, count(*)::text as n from public.bodacc_announcement where family = 'vente'
