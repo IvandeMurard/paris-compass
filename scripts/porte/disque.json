@@ -66,13 +66,10 @@
     {
       "nom": "bdcom",
       "source": "bdcom",
-      "tables": [
-        "premise_location",
-        "premise_observation"
-      ],
+      "tables": [],
       "facteur": 1,
       "ajout_mo": 44,
-      "raison": "Le recensement se recharge dans UNE transaction, staging compris. `ajout_mo` est le staging mesure plein le 6 octobre 2026 (stg_bdcom_od 34 Mo + stg_bdcom_2023 10 Mo), vide au repos depuis #239. Les tables promues comptent une fois : elles sont reecrites, pas doublees, sous l'hypothese la plus favorable — a remesurer au premier chargement BDCom apres #239."
+      "raison": "Le staging, rempli dans la transaction (stg_bdcom_od 34 Mo + stg_bdcom_2023 10 Mo, mesures le 6 octobre 2026) et vide au commit depuis #239. Rien d'autre depuis #244 : les quatre upserts de promotion ne reecrivent plus une ligne que si une de ses valeurs change. Mesure par `bdcom.ts --dry-run` le 6 octobre 2026, sur le vrai chargeur et les vraies donnees APUR, transaction annulee : 0 local et 0 releve ecrits pour les trois millesimes (84 031, 83 399, 60 845 releves promus a l'identique). Avant, chaque rechargement reecrivait les 85 418 locaux jusqu'a trois fois et les 228 275 releves une fois : ~520 Mo au tableau de bord pour le 5 janvier 2027. Un NOUVEAU millesime ajoutera ses lignes : c'est de la croissance reelle, que ce bloc ne compte pas — `npm run disque` la verra au chargement suivant."
     },
     {
       "nom": "bodacc",
