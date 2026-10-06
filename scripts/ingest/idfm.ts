@@ -209,9 +209,11 @@ export function aggregateProfiles(
 
 /**
  * A DELETE THAT IS NEVER FOLLOWED BY AN INSERT IS THE FAILURE MODE THIS GUARD REFUSES — found
- * by the review of #97. Both loaders below rebuild their table wholesale (`delete` then
- * reinsert), and on an empty batch the `delete` still ran while the insert loop did not turn
- * once: the table emptied, `premise_location.nearest_idfm_station_id` lost its 85 410 pointers
+ * by the review of #97. Both loaders below used to rebuild their table wholesale (`delete`
+ * then reinsert); since #244 the stations are upserted and the stale ones removed after the
+ * attachment, which on an empty batch would remove them ALL — the same danger, the same guard.
+ * What #97 measured: on an empty batch the `delete` still ran while the insert loop did not
+ * turn once: the table emptied, `premise_location.nearest_idfm_station_id` lost its 85 410 pointers
  * to `on delete set null`, and `recordRun` wrote a SUCCESS. The state is reachable without any
  * network error — a field renamed upstream (`zdcid`, `zdapostalregion`, `pourcentage_
  * validations`) sends every row through the `continue` of `buildParisStations` or
@@ -228,16 +230,25 @@ export function aggregateProfiles(
 function refuseLotVide(quoi: string, count: number): void {
   if (count > 0) return
   throw new Error(
-    `${quoi} : lot vide, chargement refusé avant le delete. Les tables IDFM sont ` +
-      `reconstruites en entier à chaque passage, donc vider sans réécrire effacerait aussi ` +
-      `les rattachements de premise_location en enregistrant un succès. Vérifier d'abord que ` +
-      `le jeu source porte encore les champs que scripts/ingest/idfm.ts lit.`,
+    `${quoi} : lot vide, chargement refusé avant tout écrit. Les profils sont reconstruits ` +
+      `en entier et les stations absentes du lot sont retirées, donc un lot vide effacerait ` +
+      `aussi les rattachements de premise_location en enregistrant un succès. Vérifier d'abord ` +
+      `que le jeu source porte encore les champs que scripts/ingest/idfm.ts lit.`,
   )
 }
 
+/**
+ * Upserts the stations, writing only those that changed — #244, DIAGNOSTIC-CORRIGES.md §62.
+ *
+ * It used to `delete from idfm_station` and reinsert. Every premise points at its nearest
+ * station through `on delete set null`, so that delete rewrote all 85 410 premises once and
+ * attach() rewrote them again — measured by the second follow-up review of #243 on 6 October
+ * 2026; `npm run disque` priced the March 2027 reload at ~476 MB against a 450 MB threshold.
+ * Stations the source no longer lists are removed by dropStaleStations, AFTER attach() has
+ * moved every premise off them.
+ */
 export async function loadStations(client: Client, stations: Map<number, StationAgg>): Promise<number> {
   refuseLotVide("idfm_station", stations.size)
-  await client.query("delete from public.idfm_station")
   const chunk = 500
   const rows = [...stations.values()]
   for (let start = 0; start < rows.length; start += chunk) {
@@ -253,12 +264,22 @@ export async function loadStations(client: Client, stations: Map<number, Station
       )
     })
     await client.query(
-      `insert into public.idfm_station (id_zdc, libelle, arrondissement, geom)
-       values ${tuples.join(", ")}`,
+      `insert into public.idfm_station as s (id_zdc, libelle, arrondissement, geom)
+       values ${tuples.join(", ")}
+       on conflict (id_zdc) do update
+          set libelle = excluded.libelle, arrondissement = excluded.arrondissement, geom = excluded.geom
+        where (s.libelle, s.arrondissement, ST_AsBinary(s.geom))
+              is distinct from (excluded.libelle, excluded.arrondissement, ST_AsBinary(excluded.geom))`,
       values,
     )
   }
   return rows.length
+}
+
+/** Stations this load no longer has. Their profiles go with them (`on delete cascade`). */
+export async function dropStaleStations(client: Client, kept: number[]): Promise<number> {
+  const result = await client.query("delete from public.idfm_station where id_zdc <> all($1::bigint[])", [kept])
+  return result.rowCount ?? 0
 }
 
 export async function loadProfiles(
@@ -284,26 +305,34 @@ export async function loadProfiles(
  * anything at its own radius. KNN (`<->`) against the small station table (order of 300 rows
  * in Paris) rather than an ST_DWithin threshold join, because there is no threshold to give it.
  */
-export async function attach(client: Client): Promise<number> {
-  const result = await client.query(`
-    with nearest as (
-      select l.id as location_id, s.id_zdc, ST_Distance(l.geom, s.geom) as distance_m
+export async function attach(client: Client): Promise<{ attached: number; changed: number }> {
+  // Computed first, then one UPDATE of the premises whose station or distance differs — #244.
+  // A premise with no geometry appears on the left side only, and is nulled only if it held one.
+  await client.query(`
+    create temporary table tmp_nearest on commit drop as
+    select l.id, s.id_zdc, ST_Distance(l.geom, s.geom) as distance_m
       from public.premise_location l
       cross join lateral (
         select st.id_zdc, st.geom
-        from public.idfm_station st
-        order by st.geom <-> l.geom
-        limit 1
+          from public.idfm_station st
+         order by st.geom <-> l.geom
+         limit 1
       ) s
-      where l.geom is not null
-    )
-    update public.premise_location l
-       set nearest_idfm_station_id = n.id_zdc,
-           idfm_station_distance_m = n.distance_m
-      from nearest n
-     where l.id = n.location_id
+     where l.geom is not null
   `)
-  return result.rowCount ?? 0
+  const attached = await client.query<{ n: string }>("select count(*)::text as n from tmp_nearest")
+  const changed = await client.query(`
+    update public.premise_location l
+       set nearest_idfm_station_id = t.id_zdc,
+           idfm_station_distance_m = t.distance_m
+      from (select p.id, n.id_zdc, n.distance_m
+              from public.premise_location p
+              left join tmp_nearest n on n.id = p.id) t
+     where t.id = l.id
+       and (l.nearest_idfm_station_id, l.idfm_station_distance_m)
+           is distinct from (t.id_zdc, t.distance_m)
+  `)
+  return { attached: Number(attached.rows[0]?.n ?? 0), changed: changed.rowCount ?? 0 }
 }
 
 async function main(): Promise<void> {
@@ -337,17 +366,23 @@ async function main(): Promise<void> {
 
     let stationCount = 0
     let profileCount = 0
-    let attached = 0
+    let stale = 0
+    let attached = { attached: 0, changed: 0 }
     await inTransaction(client, async () => {
       stationCount = await loadStations(client, stationsWithProfile)
       profileCount = await loadProfiles(client, aggregated)
       attached = await attach(client)
+      // After attach(): no premise points at a station about to go, so `on delete set null`
+      // rewrites nothing.
+      stale = await dropStaleStations(client, [...stationsWithProfile.keys()])
     })
 
     log("terminé")
     log("  stations chargées", String(stationCount))
+    log("  stations retirées (absentes de la source)", String(stale))
     log("  lignes de profil chargées", String(profileCount))
-    log("  locaux rattachés", String(attached))
+    log("  locaux rattachés", String(attached.attached))
+    log("  locaux dont la station a changé (écrits)", String(attached.changed))
 
     await recordRun(client, "idfm", {
       rowCount: profileCount,

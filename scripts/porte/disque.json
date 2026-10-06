@@ -104,9 +104,9 @@
         "filosofi_grid_200m",
         "premise_location"
       ],
-      "facteur": 2,
+      "facteur": 1,
       "ajout_mo": 0,
-      "raison": "filosofi_grid_200m (4 Mo) rechargee, et 85 410 locaux reecrits deux fois. Releve par la revue de suivi de #243, le 6 octobre 2026 : son attach() reecrit premise_location (38 Mo) dans la meme transaction, et les colonnes touchees sont indexees — chaque ligne reecrite ajoute une version de tas et une entree par index. Ticket pour n'ecrire que ce qui change : #244."
+      "raison": "filosofi_grid_200m (4 Mo) et les rattachements des 85 410 locaux. Depuis #244 (6 octobre 2026), le referentiel est mis a jour en upsert, les rattachements calcules a part et premise_location n'est ecrit que pour les locaux dont le rattachement change : 0 sur 85 418 sur la base du 6 octobre, mesure dans une transaction annulee. Le bloc compte le PIRE cas, un millesime qui deplacerait tous les rattachements : premise_location une fois, plus jamais deux."
     },
     {
       "nom": "idfm",
@@ -116,9 +116,9 @@
         "idfm_validation_profile",
         "premise_location"
       ],
-      "facteur": 2,
+      "facteur": 1,
       "ajout_mo": 0,
-      "raison": "Stations et profils (3 Mo) recharges, et 85 410 locaux reecrits DEUX fois : `delete from idfm_station` met leur station la plus proche a null par la cle `ON DELETE SET NULL`, puis attach() la repose — idfm.ts le dit lui-meme. Releve par la deuxieme revue de suivi de #243, le 6 octobre 2026 ; la premiere n'avait regarde que attach(). Colonne indexee, donc aucune ecriture HOT. Ticket pour n'ecrire que ce qui change : #244."
+      "raison": "Stations en upsert, profils (3 Mo) recharges en entier — ils ne sont references par aucun local —, et les rattachements des 85 410 locaux. Depuis #244 (6 octobre 2026), le referentiel est mis a jour en upsert, les rattachements calcules a part et premise_location n'est ecrit que pour les locaux dont le rattachement change : 0 sur 85 418 sur la base du 6 octobre, mesure dans une transaction annulee. Le bloc compte le PIRE cas, un millesime qui deplacerait tous les rattachements : premise_location une fois, plus jamais deux. Les stations retirees le sont apres le rattachement, donc la cle ON DELETE SET NULL ne reecrit plus rien."
     },
     {
       "nom": "plu",

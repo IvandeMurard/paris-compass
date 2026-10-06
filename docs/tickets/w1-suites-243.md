@@ -19,3 +19,11 @@ Suites de la revue de #243 (`w1-chargeurs-gonflement`, #239), non bloquantes. Ch
 
 1. Chacun des six points est fait, ou écarté avec sa raison écrite ici.
 2. `npm run disque` ne signale plus ni BDCom, ni filosofi, ni idfm pour leur prochain passage.
+
+## Où il en est
+
+| Point | État |
+| --- | --- |
+| 6 — filosofi, idfm | **Fait le 6 octobre 2026.** Référentiel en *upsert*, rattachements calculés à part, un seul `UPDATE` des locaux qui changent, retrait des carreaux et stations disparus après le rattachement. Mesuré dans une transaction annulée : 0 rattachement différent sur 85 418, pour l'un et l'autre, distances IDFM comprises. `npm run disque` : filosofi 478 → 431 Mo, idfm 476 → 430 Mo. |
+| 6 — plu, terrasses, chantiers | À faire, même méthode. Sous le seuil aujourd'hui (415, 421, 389 Mo). |
+| 1 à 5 | À faire. **BDCom (4)** est le seul signal restant de `npm run disque` : 520 Mo le 5 janvier 2027. |
