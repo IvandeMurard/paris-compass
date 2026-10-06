@@ -31,6 +31,10 @@ const SERVICE = "https://carto2.apur.org/apur/rest/services"
  * older layers use free text. That is why staging is split in two rather than
  * normalised on the way in.
  */
+// ADDING A VINTAGE HERE MEANS RE-PRICING THE `bdcom` BLOCK OF scripts/porte/disque.json IN THE
+// SAME CHANGE. A new vintage raises last_seen_vintage_id on most premises, so its first load
+// rewrites premise_location (~40 MB) on top of its own observations — a peak the block, which
+// counts the staging only, does not include. Review of #246.
 const LAYERS = {
   2017: { url: `${SERVICE}/OPENDATA/BDCOM_OD/MapServer/0`, shape: "od", pageSize: 2000 },
   2020: { url: `${SERVICE}/OPENDATA/BDCOM_OD/MapServer/1`, shape: "od", pageSize: 2000 },
@@ -76,11 +80,8 @@ async function loadStaging(client: Client, vintage: Vintage): Promise<number> {
   const layer = LAYERS[vintage]
   const table = layer.shape === "od" ? "public.stg_bdcom_od" : "public.stg_bdcom_2023"
 
-  if (layer.shape === "od") {
-    await client.query("delete from public.stg_bdcom_od where vintage_id = $1", [vintage])
-  } else {
-    await client.query("truncate public.stg_bdcom_2023")
-  }
+  // No clearing here any more: main() truncates both staging tables once, inside the
+  // transaction, before the first vintage — see the comment there.
 
   let written = 0
   for await (const page of queryPages<Record<string, unknown>>(layer.url, {
@@ -458,15 +459,24 @@ async function assertComplete(client: Client, vintage: Vintage): Promise<void> {
  * Sentinel for --dry-run: the whole load runs — download, staging, promotions, the row-level
  * check — and is rolled back. Added by #244 to MEASURE what a reload writes on the real loader,
  * not on a copy of its SQL. Its own cost: the staging fills inside the transaction, ~44 MB until
- * the rollback.
+ * the rollback — and nothing after it, because the staging is emptied by TRUNCATE at the head of
+ * the transaction (see main), whose rollback discards the new files whole. If it finds rows to
+ * write, the counts say how many; it does not say how much room they would take.
  *
  *   npx.cmd tsx scripts/ingest/bdcom.ts --dry-run
  */
 class DryRunComplete extends Error {}
 
 async function main(): Promise<void> {
-  const dryRun = process.argv.includes("--dry-run")
-  const requested = process.argv.slice(2).filter((a) => !a.startsWith("--")).map(Number).filter(Boolean) as Vintage[]
+  // An unknown option is refused, never ignored: a mistyped `--dryrun` would otherwise run a
+  // REAL load against the remote. Review of #246.
+  const options = process.argv.slice(2).filter((a) => a.startsWith("-"))
+  const unknown = options.filter((a) => a !== "--dry-run")
+  if (unknown.length > 0) {
+    throw new Error(`option inconnue : ${unknown.join(", ")} (seule --dry-run existe)`)
+  }
+  const dryRun = options.includes("--dry-run")
+  const requested = process.argv.slice(2).filter((a) => !a.startsWith("-")).map(Number).filter(Boolean) as Vintage[]
   const vintages = (requested.length ? requested : [2017, 2020, 2023]) as Vintage[]
   for (const v of vintages) {
     if (!(v in LAYERS)) throw new Error(`millésime inconnu : ${v} (connus : 2017, 2020, 2023)`)
@@ -479,103 +489,98 @@ async function main(): Promise<void> {
     // One transaction for the whole run: a half-loaded census is worse than none,
     // because nothing downstream can tell the difference between "not there" and
     // "not loaded yet".
-    try {
-      await inTransaction(client, async () => {
-        for (const vintage of vintages) {
-          log(`millésime ${vintage}`)
-          const rows = await loadStaging(client, vintage)
-          await client.query(
-            `update public.bdcom_vintage
-               set record_count = $2, ingested_at = now()
-             where id = $1`,
-            [vintage, rows],
-          )
-        }
-  
-        log("nomenclature")
-        await loadNomenclature(client)
-  
-        // Chronological, so `match_method = 'new'` means "first census this premise
-        // appears in" rather than "first one we happened to load".
-        for (const vintage of [...vintages].sort()) {
-          log(`promotion ${vintage}`)
-          const written = vintage === 2023 ? await promote2023(client) : await promoteOd(client, vintage)
-          log(`  ${vintage} écrits`, `${written.locations} locaux, ${written.observations} relevés (insérés ou changés)`)
-          await assertComplete(client, vintage)
-        }
-  
-        // The conflict flag is set here, after all three promotions, and not during them.
-        //
-        // Each promotion used to compute it against the *current* state of premise_location, so
-        // against a corpus still being built: on a first load the 2017 pass could not yet see
-        // the duplicate `ordre` that 2020 and 2023 were about to create, and only the last
-        // vintage ended up flagged. On a reload the table is already full, so all three were —
-        // 74 observations flagged on 15 August, 220 on the 25th.
-        //
-        // The count of reattributed *identifiers* never moved: it is 74 either way. What
-        // differed was how many observations carried the flag, and that depended on load order.
-        // Reloading the same source must yield the same database, so the pass is global,
-        // idempotent and order-independent. DIAGNOSTIC.md §17.
-        const flagged = await client.query(`
-          update public.premise_observation o
-             set match_method = 'ordre_address_conflict'
-            from public.premise_location l
-           where l.id = o.location_id
-             and l.ordre in (
-               select ordre from public.premise_location group by ordre having count(*) > 1
-             )
-             and o.match_method is distinct from 'ordre_address_conflict'
-        `)
-        if ((flagged.rowCount ?? 0) > 0) {
-          log("conflits d'identifiant", `${flagged.rowCount} relevés marqués`)
-        }
-  
-        // The row-level half of invariant I8, played here because the staging tables are emptied
-        // just below. assertComplete compares counts; this proves that every promoted row has the
-        // staging row it came from. At rest, I8 can only compare counts with
-        // bdcom_vintage.record_count — eval/invariants.sql says why.
-        // Scoped to the vintages loaded by this run: the others' staging was emptied by the run
-        // that loaded them.
-        const orphans = await client.query<{ n: string }>(
-          `select count(*)::text as n
-             from public.premise_observation o
-            where o.vintage_id = any($1::int[])
-              and ((o.vintage_id in (2017, 2020) and not exists (
-                     select 1 from public.stg_bdcom_od s
-                      where s.vintage_id = o.vintage_id and s.ordre = o.source_ordre))
-                or (o.vintage_id = 2023 and not exists (
-                     select 1 from public.stg_bdcom_2023 s where s.c_ord = o.source_ordre)))`,
-          [vintages],
+    await inTransaction(client, async () => {
+      // Both staging tables emptied ONCE, inside the transaction, before the first vintage.
+      // TRUNCATE rather than DELETE, for what a rollback leaves behind: a DELETE then INSERT
+      // that rolls back leaves every inserted row as a dead tuple — measured 6 October 2026,
+      // a rolled-back dry run left 36 MB in stg_bdcom_od and took the base from 348 to 384 MB.
+      // A rolled-back TRUNCATE discards the new file whole, so a failed load or a dry run costs
+      // nothing once it is over. The staging is empty at rest since #239, so emptying it here
+      // loses nothing, even on a partial run that loads one vintage. Review of #246.
+      await client.query("truncate public.stg_bdcom_od, public.stg_bdcom_2023")
+
+      for (const vintage of vintages) {
+        log(`millésime ${vintage}`)
+        const rows = await loadStaging(client, vintage)
+        await client.query(
+          `update public.bdcom_vintage
+             set record_count = $2, ingested_at = now()
+           where id = $1`,
+          [vintage, rows],
         )
-        const orphanCount = Number(orphans.rows[0]?.n ?? 0)
-        if (orphanCount > 0) {
-          throw new Error(
-            `${orphanCount} relevés promus sans ligne de staging — chargement incomplet, rien n'est validé.`,
-          )
-        }
-  
-        // Emptied at commit, decided by Ivan on 6 October 2026 — #239, DIAGNOSTIC-CORRIGES.md §62.
-        // The staging tables only serve the promotion above, and held 44 MB at rest on a project
-        // that turns read-only at 500 MB. TRUNCATE gives the files back at commit.
-        await client.query("truncate public.stg_bdcom_od, public.stg_bdcom_2023")
-  
-        // Thrown from inside, so inTransaction rolls the whole load back: the real loader ran,
-        // every count above is what it would have written, and nothing is kept.
-        if (dryRun) throw new DryRunComplete()
-      })
-    } catch (error) {
-      // A rolled-back load is not free: the staging rows it inserted stay behind as dead
-      // tuples. Measured on 6 October 2026, the first dry run left 36 MB in stg_bdcom_od and
-      // took the base from 348 to 384 MB — enough to turn two of `npm run disque`'s findings
-      // red. The tables were empty before the run, so a plain VACUUM gives the heap back and a
-      // REINDEX the index pages; neither touches a row anyone can read.
-      if (error instanceof DryRunComplete) {
-        await client.query("vacuum public.stg_bdcom_od, public.stg_bdcom_2023")
-        await client.query("reindex table public.stg_bdcom_od")
-        await client.query("reindex table public.stg_bdcom_2023")
       }
-      throw error
-    }
+
+      log("nomenclature")
+      await loadNomenclature(client)
+
+      // Chronological, so `match_method = 'new'` means "first census this premise
+      // appears in" rather than "first one we happened to load".
+      for (const vintage of [...vintages].sort()) {
+        log(`promotion ${vintage}`)
+        const written = vintage === 2023 ? await promote2023(client) : await promoteOd(client, vintage)
+        log(`  ${vintage} écrits`, `${written.locations} locaux, ${written.observations} relevés (insérés ou changés)`)
+        await assertComplete(client, vintage)
+      }
+
+      // The conflict flag is set here, after all three promotions, and not during them.
+      //
+      // Each promotion used to compute it against the *current* state of premise_location, so
+      // against a corpus still being built: on a first load the 2017 pass could not yet see
+      // the duplicate `ordre` that 2020 and 2023 were about to create, and only the last
+      // vintage ended up flagged. On a reload the table is already full, so all three were —
+      // 74 observations flagged on 15 August, 220 on the 25th.
+      //
+      // The count of reattributed *identifiers* never moved: it is 74 either way. What
+      // differed was how many observations carried the flag, and that depended on load order.
+      // Reloading the same source must yield the same database, so the pass is global,
+      // idempotent and order-independent. DIAGNOSTIC.md §17.
+      const flagged = await client.query(`
+        update public.premise_observation o
+           set match_method = 'ordre_address_conflict'
+          from public.premise_location l
+         where l.id = o.location_id
+           and l.ordre in (
+             select ordre from public.premise_location group by ordre having count(*) > 1
+           )
+           and o.match_method is distinct from 'ordre_address_conflict'
+      `)
+      if ((flagged.rowCount ?? 0) > 0) {
+        log("conflits d'identifiant", `${flagged.rowCount} relevés marqués`)
+      }
+
+      // The row-level half of invariant I8, played here because the staging tables are emptied
+      // just below. assertComplete compares counts; this proves that every promoted row has the
+      // staging row it came from. At rest, I8 can only compare counts with
+      // bdcom_vintage.record_count — eval/invariants.sql says why.
+      // Scoped to the vintages loaded by this run: the others' staging was emptied by the run
+      // that loaded them.
+      const orphans = await client.query<{ n: string }>(
+        `select count(*)::text as n
+           from public.premise_observation o
+          where o.vintage_id = any($1::int[])
+            and ((o.vintage_id in (2017, 2020) and not exists (
+                   select 1 from public.stg_bdcom_od s
+                    where s.vintage_id = o.vintage_id and s.ordre = o.source_ordre))
+              or (o.vintage_id = 2023 and not exists (
+                   select 1 from public.stg_bdcom_2023 s where s.c_ord = o.source_ordre)))`,
+        [vintages],
+      )
+      const orphanCount = Number(orphans.rows[0]?.n ?? 0)
+      if (orphanCount > 0) {
+        throw new Error(
+          `${orphanCount} relevés promus sans ligne de staging — chargement incomplet, rien n'est validé.`,
+        )
+      }
+
+      // Emptied at commit, decided by Ivan on 6 October 2026 — #239, DIAGNOSTIC-CORRIGES.md §62.
+      // The staging tables only serve the promotion above, and held 44 MB at rest on a project
+      // that turns read-only at 500 MB. TRUNCATE gives the files back at commit.
+      await client.query("truncate public.stg_bdcom_od, public.stg_bdcom_2023")
+
+      // Thrown from inside, so inTransaction rolls the whole load back: the real loader ran,
+      // every count above is what it would have written, and nothing is kept.
+      if (dryRun) throw new DryRunComplete()
+    })
 
     const summary = await client.query<{ year: number; locations: string; observations: string }>(`
       select v.year,

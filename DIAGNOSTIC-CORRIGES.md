@@ -3229,8 +3229,16 @@ réécrivent plus qu'une ligne qui change. `bdcom.ts --dry-run`, sur le vrai cha
 données APUR, transaction annulée : 0 local et 0 relevé écrits. Le pic se réduit au staging
 (44 Mo). **Piège consigné** : une transaction annulée n'est pas gratuite — le premier essai à
 blanc a laissé 36 Mo de lignes mortes dans le staging et monté la base de 348 à 384 Mo, assez
-pour faire rougir deux pics de `npm run disque` ; le mode `--dry-run` fait désormais `VACUUM` et
-`REINDEX` du staging après l'annulation.
+pour faire rougir deux pics de `npm run disque`. Corrigé à la racine, sur relecture de #246 : le
+staging est vidé par un seul `TRUNCATE` en tête de transaction, dont l'annulation jette les
+nouveaux fichiers entiers — un essai à blanc comme un vrai chargement qui échoue ne laissent plus
+rien. **Ce que le correctif de BDCom ne couvre pas** (estimations non mesurées) : un **nouveau
+millésime** fait monter `last_seen_vintage_id` sur la plupart des locaux et réécrit donc
+`premise_location` (~40 Mo) en plus de ses relevés (~15 Mo), soit un pic vers 500 Mo au tableau
+de bord — ajouter un millésime à `LAYERS` oblige à rechiffrer le bloc `bdcom` de `disque.json`
+dans la même PR ; et une source corrigée, ou une montée de PostGIS/PROJ qui déplacerait les points
+au binaire près, réécrirait autant pour ~15 Mo de marge. `bdcom.ts --dry-run` compte les lignes
+qui changeraient avant qu'elles ne soient écrites.
 
 **Ce que le découpage ne rattrape pas** — relevé par la revue de suivi de #243, le 6 octobre :
 un export BODACC vide pour une année est gardé tel quel, jamais lu comme un retrait ; une année
