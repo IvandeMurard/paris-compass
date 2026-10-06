@@ -3220,15 +3220,23 @@ Et BDCom : son prochain passage (5 janvier 2027) monterait la base à environ 52
 de bord même staging vidé — le bras le signale depuis le premier jour, et c'est à traiter avant
 décembre. Filosofi et idfm aussi (mars 2027, ~478 et ~476 Mo staging vidé) : chacun réécrit deux
 fois les 85 410 locaux — idfm par la clé `ON DELETE SET NULL` puis son rattachement. Tous trois
-sont dans #244.
+sont dans #244. **Filosofi et idfm corrigés par #244 le 6 octobre 2026** : référentiel en
+*upsert*, rattachements calculés à part, un seul `UPDATE` des locaux qui changent — 0 sur 85 418
+pour l'un et l'autre, mesuré dans une transaction annulée ; `npm run disque` les remet à 431 et
+430 Mo, sous le seuil. Reste BDCom.
 
 **Ce que le découpage ne rattrape pas** — relevé par la revue de suivi de #243, le 6 octobre :
 un export BODACC vide pour une année est gardé tel quel, jamais lu comme un retrait ; une année
 sortie de la plage chargée (avant `DEFAULT_SINCE`) n'est jamais purgée ; et un rechargement du
 stock SIRENE interrompu laisse en base deux millésimes mêlés, code postal par code postal, jusqu'au
-passage suivant — chaque code postal reste entier, la table ne l'est plus. Et cinq petits
-chargeurs (terrasses, filosofi, idfm, plu, chantiers) réécrivent encore `premise_location` en se
-rattachant : ils sont comptés comme blocs dans `disque.json`, pas corrigés.
+passage suivant — chaque code postal reste entier, la table ne l'est plus. Et trois petits
+chargeurs (terrasses, plu, chantiers) réécrivent encore `premise_location` en se rattachant : ils
+sont comptés comme blocs dans `disque.json`, pas corrigés — filosofi et idfm l'ont été par #244.
+Le correctif de ces trois-là reprendra la méthode corrigée par la revue de #245 : rattacher
+**uniquement** aux lignes du lot, jamais à toute la table de référence, puisque les lignes
+retirées ensuite y sont encore. `geography.ts` a la même forme, mais ses clés n'ont pas de
+`on delete` : un tronçon retiré encore le plus proche d'un local fait échouer et annuler le
+passage, bruyamment — voulu pour un quartier, pas encore écrit pour un tronçon (#244).
 
 ### Une fausse piste, consignée pour qu'elle ne soit pas reprise
 

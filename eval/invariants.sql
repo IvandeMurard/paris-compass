@@ -1951,8 +1951,9 @@ limit 20;
 -- IDFM la plus proche : ST_Covers doit trouver un carreau pour tout point
 -- réellement à l'intérieur de l'emprise chargée. Le repli sur le plus proche par
 -- centroïde ne sert qu'un local dont le carreau réel a été écarté par
--- restrictToQuartiers (un carreau à cheval sur la frontière des 80 quartiers,
--- tombé du mauvais côté) — voir l'en-tête de scripts/ingest/filosofi.ts.
+-- le recoupement par quartiers de loadGrid (`restrictToQuartiers` jusqu'à #244 :
+-- un carreau à cheval sur la frontière des 80 quartiers, tombé du mauvais côté)
+-- — voir l'en-tête de scripts/ingest/filosofi.ts.
 --
 -- CE QUE I51 NE RATTRAPE PAS : il compare le point stocké (premise_location.geom)
 -- à son carreau recalculé, jamais le CONTENU du carreau — c'est I53 qui garde la
@@ -2011,8 +2012,9 @@ limit 20;
 -- le cas qui compte.
 --
 -- L'ÉTAT VIDE EST ATTEIGNABLE SANS QUE LE CHARGEMENT ÉCHOUE, même mécanisme que
--- I49 pour IDFM : loadGrid fait `delete from filosofi_grid_200m` puis boucle sur
--- les lignes lues ; un champ renommé en amont (`idcar_200m`, `ind`, `ind_snv`,
+-- I49 pour IDFM : loadGrid faisait `delete from filosofi_grid_200m` puis bouclait
+-- sur les lignes lues — depuis #244 il fait un upsert puis retire les carreaux
+-- absents du lot, ce qui sur un lot vide videait tout de la même façon ; un champ renommé en amont (`idcar_200m`, `ind`, `ind_snv`,
 -- ou la structure `bbox` elle-même) ferait échouer readParisCandidates avant le
 -- delete OU rendrait un tableau vide que refuseLotVide attrape avant le delete —
 -- mais un DELETE fait à la main sur le distant (psql, la console Supabase) ne
