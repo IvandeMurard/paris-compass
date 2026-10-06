@@ -3218,8 +3218,9 @@ Et le bras qui manquait : **`npm run disque`**, planifié chaque matin. Il rougi
 mesuré sur le distant, ce qui ne se démontre qu'après la fusion, aux premiers passages planifiés.
 Et BDCom : son prochain passage (5 janvier 2027) monterait la base à environ 520 Mo au tableau
 de bord même staging vidé — le bras le signale depuis le premier jour, et c'est à traiter avant
-décembre. Filosofi aussi (mars 2027, ~478 Mo staging vidé) : son rattachement réécrit deux fois
-les 85 410 locaux. Tous deux sont dans #244.
+décembre. Filosofi et idfm aussi (mars 2027, ~478 et ~476 Mo staging vidé) : chacun réécrit deux
+fois les 85 410 locaux — idfm par la clé `ON DELETE SET NULL` puis son rattachement. Tous trois
+sont dans #244.
 
 **Ce que le découpage ne rattrape pas** — relevé par la revue de suivi de #243, le 6 octobre :
 un export BODACC vide pour une année est gardé tel quel, jamais lu comme un retrait ; une année
