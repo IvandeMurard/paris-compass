@@ -94,6 +94,8 @@ That 37.0% is structural, not laziness: BODACC names an *address*, BDCom names a
 
 A gate runs the whole corpus against **56 invariants, 24 frozen baselines and 8 hand-verified chronologies** before anything ships, and again every day on a schedule — invariants counted 6 October 2026 with `grep -c '^-- @invariant ' eval/invariants.sql`. Most of them check what the functions return; one checks what they *are* — a function exposing an `observed` column must be `SECURITY DEFINER`, because row-level security silently turns a withheld row into "never surveyed".
 
+The gate is not green today. As of 6 October 2026, 9 of its 15 scheduled arms pass and four do not, per the day's report on [issue #227](https://github.com/IvandeMurard/paris-compass/issues/227): `eval`, where five functions read more pages than their frozen ceiling (+27 % to +81 %) while every timing stays under 540 ms for a ceiling of 1 020 ms, and three arms that compare the published demo to `main`, which it does not serve yet. The badge above counts invariants; it does not say the gate passes.
+
 ---
 
 ## Two founding constraints
