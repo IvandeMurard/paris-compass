@@ -31,17 +31,46 @@
     "elle se prend, et l'entree n'a pas lieu d'etre. Ce registre est pour ce qui ne peut pas se",
     "monter tout de suite, pas pour ce qu'on prefere ne pas monter."
   ],
-
-  "juges": {},
-
+  "juges": {
+    "GHSA-vfj7-8cjw-p6xm": {
+      "paquet": "braces (via tailwindcss 3, tire en production par tailwindcss-animate)",
+      "severite": "high",
+      "atteignable": false,
+      "raison": "Debordement de pile sur un motif d'accolades profondement imbrique, qui tue le processus Node. Aucun correctif publie (braces <= 3.0.3, first_patched_version null). braces arrive par tailwindcss 3.4.19 (chokidar, micromatch, fast-glob). tailwindcss est bien dans l'arbre de PRODUCTION — tailwindcss-animate, en dependencies, le tire comme pair, et `avis` le classe en execution — mais il n'est APPELE qu'au build : seuls tailwind.config.ts et postcss.config.js le nomment, et il n'y lit que les globs de `content` ecrits dans ce depot. Aucun motif tiers n'y entre, et rien de braces ne part dans le bundle servi. Le serveur MCP, seul processus qui recoit une entree exterieure, ne le porte pas : 0 occurrence de tailwind, postcss ou braces dans mcp-server/package-lock.json, mesure le 6 octobre 2026. Une montee ne fermerait rien aujourd'hui, faute de version corrigee ; tailwindcss 4 abandonne chokidar et micromatch, mais c'est une hypothese a mesurer, pas un constat.",
+      "redeviendraitAtteignableSi": "un processus qui recoit une entree exterieure — le serveur MCP, une Edge Function, un service — compile du CSS ou evalue des globs avec tailwindcss, micromatch ou braces ; ou un glob de `content` vient d'une source qu'on n'ecrit pas.",
+      "mesureLe": "2026-10-06",
+      "invalideSi": {
+        "motif": "tailwindcss|postcss|micromatch|braces",
+        "dans": [
+          "mcp-server/package.json"
+        ]
+      }
+    },
+    "GHSA-rj75-hqrm-r3gf": {
+      "paquet": "postcss-selector-parser (via tailwindcss 3, tire en production par tailwindcss-animate, et @tailwindcss/typography)",
+      "severite": "moderate",
+      "atteignable": false,
+      "raison": "Analyse quadratique d'un selecteur plat geant (`.a.a.a...`) : du temps CPU, pas une fuite. L'avis le dit lui-meme : seuls sont exposes ceux qui analysent des selecteurs NON FIABLES dans un chemin de requete ; l'usage au build sur des sources fiables ne l'est pas. tailwindcss est dans l'arbre de PRODUCTION (pair de tailwindcss-animate, en dependencies), mais n'est appele qu'au build, par tailwind.config.ts et postcss.config.js, sur le CSS et les classes de ce depot ; @tailwindcss/typography est en devDependencies. Rien n'en part dans le bundle servi, et le serveur MCP ne les porte pas (0 occurrence dans mcp-server/package-lock.json, mesure le 6 octobre 2026). Le correctif est 7.1.6, hors de portee : tailwindcss 3 demande ^6.1.2 et @tailwindcss/typography epingle 6.0.10.",
+      "redeviendraitAtteignableSi": "un processus qui recoit une entree exterieure analyse des selecteurs CSS — un assainisseur de CSS, un rendu cote serveur qui compile du CSS fourni par un tiers, le serveur MCP qui accepterait du CSS.",
+      "mesureLe": "2026-10-06",
+      "invalideSi": {
+        "motif": "tailwindcss|postcss",
+        "dans": [
+          "mcp-server/package.json"
+        ]
+      }
+    }
+  },
   "_lisez-moi-juges": [
-    "`juges` est vide, et c'est un resultat, pas un oubli : au 9 septembre 2026, `npm audit` rend",
-    "0 vulnerabilite sur les deux manifestes. Les six alertes du jour ont ete FERMEES par montee",
-    "— js-yaml 4.3.2, hono 4.13.7, vitest 4.1.11 — et non rangees ici. C'est le bon ordre.",
+    "Au 9 septembre 2026, `juges` etait vide : les six alertes du jour avaient ete FERMEES par",
+    "montee — js-yaml 4.3.2, hono 4.13.7, vitest 4.1.11 — et non rangees ici. C'est le bon ordre.",
+    "Le 6 octobre 2026, meme ordre : douze avis, dix fermes par `npm audit fix` SANS --force (le",
+    "verrou seul, dans les plages declarees, sur les deux manifestes). Les deux juges ci-dessus",
+    "sont ceux qu'aucune montee dans la plage ne ferme : ils tiennent a tailwindcss 3, et la",
+    "seule voie est la majeure 4 — un chantier, pas un correctif.",
     "La note se tient hors de `juges` : une cle rangee dedans serait lue comme le verdict d'un",
     "avis qu'aucun manifeste ne porte, donc comme de la prose morte, donc un rouge."
   ],
-
   "_clos": {
     "_lisez-moi": [
       "Les avis fermes par montee, gardes pour leur raisonnement date. Cette section n'est PAS lue",

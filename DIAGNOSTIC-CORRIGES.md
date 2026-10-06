@@ -3122,3 +3122,143 @@ l'écriture**, pas signalée le lendemain matin.
    fonction ne les *nomme* encore à l'appelant : `compass_premises_within` ne sait toujours pas
    dire « ce local existe, sans coordonnée », et n'en a pas l'occasion puisqu'elle filtre par
    rayon. C'est le voisinage de §36, et ce n'est pas traité ici.
+
+---
+
+## 62. La base passait en lecture seule pendant les gros chargements — tables gonflées ×2 à ×3,7 — le 6 octobre 2026
+
+**Fichiers :** aucun. La base, et `scripts/ingest/` comme cause. **Clos le 6 octobre 2026 par
+une opération de maintenance, pas par un correctif** — voir « Ce qui reste ouvert ».
+
+### Ce qui était faux
+
+Trois chargements planifiés ont échoué sur la même ligne, `cannot execute DELETE in a read-only
+transaction` : SIRENE deux fois le 3 octobre, BDCom le 5 octobre (second déclenchement, le
+premier de 10 h 34 UTC était passé). BODACC passait — il reconstruit pourtant
+`bodacc_announcement` en entier chaque nuit (`bodacc.ts`, `delete` puis rechargement). Mesuré sur
+`dbefhvmyfmmhjeetdddu` le 5 octobre à 16 h UTC : `default_transaction_read_only = on`, posé par
+`postgresql.auto.conf`, base de **963 Mo**. À 18 h 04 le drapeau était levé, sans qu'on sache
+par qui — Supabase, vraisemblablement, quand le disque est redescendu.
+
+**Écarté** : le WAL (528 Mo pour un `max_wal_size` de 1 Go, aucun slot de réplication), les
+lignes mortes (moins de vingt par table), les tables de staging `stg_bdcom_*` (rechargées à
+chaque passage de `bdcom.ts`, donc les vider ne rend rien de durable).
+
+### La cause
+
+Les tables étaient **gonflées**. Estimation par `pg_stats` (somme des `avg_width` + en-tête de
+ligne) contre `pg_relation_size`, le 6 octobre :
+
+| Table | Utile | Sur disque | Ratio |
+| --- | ---: | ---: | ---: |
+| `premise_location` | 19 Mo | 69 Mo | ×3,7 |
+| `street_segment` | 4 Mo | 11 Mo | ×3,0 |
+| `sirene_etablissement_stock` | 51 Mo | 137 Mo | ×2,7 |
+| `bodacc_establishment` | 55 Mo | 119 Mo | ×2,2 |
+| `bodacc_announcement` | 32 Mo | 68 Mo | ×2,1 |
+
+Les chargeurs rechargent par `DELETE` puis `INSERT`, et `geography.ts` réécrit chaque ligne de
+`premise_location` pour la rattacher. L'autovacuum rend la place **réutilisable**, jamais au
+système : le fichier garde la taille du pic. Chaque gros chargement double donc, au moins le
+temps de la transaction, le volume de la table qu'il recharge — et c'est ce pic qui touchait le
+plafond du projet.
+
+### Ce qui a été fait
+
+1. **Sauvegarde d'abord**, vérifiée avant toute écriture : `pg_dump -Fc` des schémas `public` et
+   `supabase_migrations`, par `docker run --rm postgres:17` (pas de `pg_dump` natif sur ce
+   poste ; le serveur est en 17.6). Fichier `C:\Users\ivand\Backups\paris-compass\compass-20261006T1230Z.dump`,
+   44,5 Mo. **Vérifiée** : 30 tables sur 30, et pour chacune le compte du fichier égal au
+   `count(*)` du distant. Restaurer une table : `pg_restore -a -t <table>` depuis la même image.
+2. **`VACUUM (FULL, ANALYZE)`** sur dix tables, de la plus petite à la plus grande, en
+   s'arrêtant à la première anomalie. Le compte de lignes est mesuré avant et après chaque table :
+   **identique sur les dix**. Verrou de 2 à 13 s par table.
+
+| | Avant | Après |
+| --- | ---: | ---: |
+| Base | 964 Mo | **393 Mo** |
+| `premise_location` (table + index) | 141 Mo | 38 Mo |
+| `sirene_etablissement_stock` | 225 Mo | 74 Mo |
+| `bodacc_establishment` | 202 Mo | 67 Mo |
+
+### Les deux questions de la règle
+
+- **Est-ce que ça survit à un rechargement ? Non.** Chaque rechargement regonfle ce qu'il
+  recharge, et le calendrier de `ingestion.yml` les rapproche : BODACC **chaque nuit** (dès le
+  7 octobre), `sirene_stock` — la plus grosse table — le **2 novembre** (cron `53 2 2 * *`),
+  SIRENE le 3, BDCom en janvier. C'est pour ça que ce n'est pas le correctif.
+- **Est-ce que ça protège un consommateur qui n'existe pas encore ?** Sans objet : le défaut est
+  dans la maintenance, pas dans la donnée servie.
+
+### Ce qui reste ouvert
+
+Le correctif est dans les chargeurs : `TRUNCATE` à la place des `DELETE` de rechargement complet
+(il rend la place au système, dans la même transaction), et un `geography.ts` qui ne réécrit que
+les lignes dont le rattachement change. Puis un bras qui mesure le gonflement et rougit **avant**
+le plafond, pas après : [`#239`](https://github.com/IvandeMurard/paris-compass/issues/239), `w1-chargeurs-gonflement`, P0, avant le 2 novembre. **Décision d'Ivan le 6 octobre 2026 : pas de plan payant**
+— le disque se tient par la maintenance, ce qui rend ce ticket nécessaire et non optionnel.
+
+### Une fausse piste, consignée pour qu'elle ne soit pas reprise
+
+Le gonflement **n'explique pas** les rouges de budget de pages du bras E d'`eval`. Hypothèse
+avancée le 6 octobre avant le `VACUUM`, réfutée après : les pages lues ont *augmenté* —
+`compass_street_rotation` de +19 % à +81 % au-dessus de son plafond — pendant que les temps
+baissaient. Le bras compte les pages *touchées*, une page relue comptant à chaque fois : c'est
+la signature d'un changement de plan, pas d'un volume. Voir `DIAGNOSTIC.md` §64.
+
+---
+
+## 63. Le bras B d'`eval` rougissait sur la croissance normale de BODACC — le 6 octobre 2026
+
+**Fichiers :** `eval/baselines/ingestion.json`, `scripts/eval/run.ts`, et le test neuf
+`scripts/eval/borne.test.ts`. **Clos le 6 octobre 2026**, sans migration, sans regel, sans seuil
+touché.
+
+### Ce qui était faux
+
+`eval` du 6 octobre : `confiance_probable` 19 911 contre 19 689 gelé (+1,13 %),
+`confiance_corrobore` +1,05 %, et six autres comptes BODACC ou SIRENE entre +0,86 et +0,97 %.
+La porte en parlait depuis le 3 octobre (#227).
+
+Mesuré sur le distant : l'écart de +222 se décompose en **237** lignes portant sur des avis
+BODACC publiés après le gel, moins 15 sur la population d'avant. Les 237 sont toutes BODACC, dont
+235 sous la règle `shared_address` de
+`compass_address_timeline` — un avis publié à une adresse que partagent plusieurs locaux sort en
+`probable`. Sur la population d'avant le gel, l'écart est de **−0,08 %**.
+
+### La cause
+
+La prémisse du bras B, écrite dans la `note` du fichier : « un comptage ne bouge que si des
+lignes entrent ou sortent », donc au-delà de 1 % le pipeline a changé. Elle est vraie pour
+BDCom et pour SIRENE, que chaque chargement **remplace**. Elle est fausse pour BODACC, où des
+lignes entrent chaque nuit **par construction**. Non bornés, ces comptes devaient franchir le
+seuil un jour, quelle que soit la santé du pipeline — et une porte qui crie sur ce qui est
+normal apprend à être ignorée.
+
+### Ce qui a été fait
+
+Les neuf comptes qui lisent BODACC ne comptent plus que les avis publiés jusqu'au **14 août
+2026** : `a.published_on`, ou `t.occurred_on` des lignes BODACC de la frise. La date est celle
+qui **reproduit le gel**, mesurée sur huit coupures candidates : 0,00 % sur
+`bodacc_cessions_avec_prix`, `bodacc_etablissements_localises` et `cessions_local_identifiable`,
+au plus 0,32 % ailleurs. Aucune valeur n'a donc été regelée.
+
+L'historique B bis cesse de recopier les comptes bornés : il mesure seul, sans borne, pour
+continuer de suivre la composition sur les données servies. `borne.test.ts` rougit sur toute
+baseline qui lit BODACC sans la borne, et sabote un compte neuf pour le prouver.
+
+**Mesuré après** : bras B sans échec, BODACC entre 0 et 0,32 % ; B bis à 19 911 `probable`.
+
+### Les deux questions de la règle
+
+- **Survit à un rechargement ? Oui** : la borne est dans la mesure, aucun chargement ne la défait.
+- **Protège un consommateur futur ? Oui** pour la porte : une baseline BODACC neuve écrite sans
+  la borne fait rougir `test`.
+
+### Ce que ça ne rattrape pas
+
+Un défaut qui ne toucherait que les avis publiés **après** le 14 août — un parseur cassé par un
+format DILA nouveau — échappe à ces neuf comptes. Le jeu doré, les invariants et la tendance
+B bis restent les gardes de ce cas. Et `borne.test.ts` lit le texte du SQL : une vue neuve qui
+lirait BODACC sous un autre nom lui échappe. `prix_median_local_identifiable` n'est pas borné, à
+dessein : il est jugé sur la tranche publiée, qui doit suivre les données servies.
