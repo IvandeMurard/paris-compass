@@ -117,7 +117,14 @@ async function main(): Promise<void> {
   try {
     const client = await connect()
     try {
-      mesure = await mesurer(client, maintenant)
+      // Read-only by construction, not by intent: the server refuses any write in this
+      // transaction, whatever a later edit of mesurer() might add.
+      await client.query("begin transaction read only")
+      try {
+        mesure = await mesurer(client, maintenant)
+      } finally {
+        await client.query("rollback")
+      }
     } finally {
       await client.end()
     }

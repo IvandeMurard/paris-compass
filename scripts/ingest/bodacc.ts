@@ -8,6 +8,7 @@
 
 import type { Client } from "pg"
 
+import { confirmOperators } from "./lib/confirm"
 import { assertPrivileged, connect, inTransaction, insertRows, log, recordRun } from "./lib/db"
 
 const PORTAL =
@@ -286,7 +287,12 @@ async function writeNotices(client: Client, family: Family, notices: Announcemen
     judgments,
     "on conflict (announcement_id) do nothing",
   )
-  await attach(client, notices.map((n) => n.id))
+  const ids = notices.map((n) => n.id)
+  await attach(client, ids)
+  // In the year's own transaction: the year commits WITH its SIRENE verdicts. Left to the
+  // chained `sirene.ts --confirm-only`, every reloaded row stood unconfirmed until that step ran,
+  // and a run broken halfway left the finished years without them — the review of #243.
+  await confirmOperators(client, ids)
 }
 
 /**

@@ -86,7 +86,7 @@ async function loadStreetSegments(client: Client): Promise<number[]> {
 
   const collection = await exportJson<{ features: Feature[] }>("troncon_voie", "geojson")
   let skipped = 0
-  const rows: unknown[][] = []
+  let rows: unknown[][] = []
 
   for (const f of collection.features) {
     if (f.geometry?.type !== "LineString") {
@@ -113,8 +113,7 @@ async function loadStreetSegments(client: Client): Promise<number[]> {
     seen.add(id)
     return true
   })
-  rows.length = 0
-  rows.push(...unique)
+  rows = unique
 
   const chunk = 500
   let changed = 0

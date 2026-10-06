@@ -38,6 +38,8 @@ export interface Config {
   ratio_gonflement: number
   table_minimale_mo: number
   blocs: Bloc[]
+  /** Scheduled sources the arm does not watch, each with its reason. Keys starting `_` are notes. */
+  hors_blocs: Record<string, string>
   croissance: { table: string; date: string; tables: string[]; jours: number }
 }
 

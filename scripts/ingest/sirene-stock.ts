@@ -203,8 +203,9 @@ const TYPES = [
  *
  * Why a postcode at a time, and a join rather than an UPDATE — #239, DIAGNOSTIC-CORRIGES.md
  * §62. The load used to delete the whole table and reinsert it in one transaction, then UPDATE
- * every row it had just written: measured 6 October 2026, the table stood at 225 MB for 74 MB
- * of data, on a project that turns read-only at 500 MB. A single TRUNCATE would have cured the
+ * every row it had just written: measured 6 October 2026, the table and its indexes stood at
+ * 225 MB, 74 MB once rewritten by VACUUM FULL (heap 137 MB for about 51 MB of rows), on a
+ * project that turns read-only at 500 MB. A single TRUNCATE would have cured the
  * bloat but not the peak — the old file is kept until commit, and `npm run disque` measured
  * that peak at 514 MB on the dashboard's scale. One postcode is about a twentieth of the table;
  * the plain VACUUM after each one hands its space to the next. Readers are never blocked, and a
@@ -331,6 +332,11 @@ async function main(): Promise<void> {
       return
     }
 
+    // An empty read is a failed read, never "INSEE lists nothing": load() ends by removing every
+    // postcode the read did not return, so nothing would survive it — the review of #243.
+    if (rows.length === 0) {
+      throw new Error("lecture INSEE vide : rien n'est remplacé, le stock en base est gardé tel quel")
+    }
     const attached = await load(client, rows)
 
     const summary = await client.query<{ label: string; n: string }>(`

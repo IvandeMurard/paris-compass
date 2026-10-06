@@ -76,11 +76,22 @@
       "source": "bodacc",
       "tables": ["bodacc_announcement", "bodacc_establishment", "bodacc_judgment"],
       "partition": "family, extract(year from published_on)",
-      "facteur": 2,
+      "facteur": 3,
       "ajout_mo": 0,
-      "raison": "Une annee d'une famille a la fois depuis #239 : DELETE puis reinsertion, puis rattachement des etablissements de l'annee, qui les reecrit une fois. Deux fois la plus grosse partition, rendues par le VACUUM qui suit."
+      "raison": "Une annee d'une famille a la fois depuis #239 : DELETE puis reinsertion, puis rattachement des etablissements de l'annee, puis leur confirmation SIRENE, dans la meme transaction — chaque etape reecrit une partie des etablissements. Trois fois la plus grosse partition, majorant, rendues par le VACUUM qui suit. La revue de #243 avait trouve la confirmation hors du compte : elle reecrivait 85 005 lignes sur 158 285 chaque nuit, sans VACUUM derriere."
     }
   ],
+
+  "hors_blocs": {
+    "_lisez-moi": "Toute source planifiee dans .github/workflows est soit un bloc ci-dessus, soit nommee ici avec sa raison — scripts/porte/disque.test.ts le verifie dans les deux sens, comme cadence.json pour les scripts. Tailles relevees le 6 octobre 2026 (pg_total_relation_size, apres VACUUM FULL).",
+    "geography": "Ne reecrit plus que ce qui change depuis #239 : 0 ligne de premise_location sur la base du 6 octobre. Quartiers et troncons (7 Mo) en upsert.",
+    "terrasses": "terrasse_autorisation, 12 Mo, rechargee deux fois par an : un pic de 12 Mo, un tiers de la marge restante. A promouvoir en bloc si elle grossit.",
+    "filosofi": "filosofi_grid_200m, 4 Mo, deux fois par an.",
+    "idfm": "idfm_station et idfm_validation_profile, 3 Mo, deux fois par an.",
+    "plu": "plu_linear_protection, 2 Mo, deux fois par an.",
+    "chantiers": "chantier_perturbant, quelques centaines de lignes, chaque semaine : moins d'un Mo.",
+    "meubles": "meuble_autorisation, quelques centaines de lignes, une fois par an : moins d'un Mo."
+  },
 
   "_partition": "Un bloc qui porte `partition` se recharge morceau par morceau : son pic est la part du plus gros morceau — comptee sur la premiere table de `tables`, groupee par cette expression — appliquee a la taille de toutes ses tables. Sans `partition`, le bloc entier compte.",
 

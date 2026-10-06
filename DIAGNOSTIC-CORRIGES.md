@@ -3204,7 +3204,7 @@ stock en bloc aurait monté la base à 514 Mo au tableau de bord, BODACC à envi
 
 | Chargeur | Avant | Depuis #239 |
 | --- | --- | --- |
-| `bodacc.ts` | tout l'historique supprimé et réécrit en une transaction de 4 min 30, puis `UPDATE` de toutes les positions | **une année d'une famille à la fois**, transaction courte, téléchargement hors transaction, positions de l'année seule, `VACUUM` entre deux ; reste quotidien, ne bloque aucun lecteur |
+| `bodacc.ts` | tout l’historique supprimé et réécrit en une transaction de 4 min 30, puis `UPDATE` de toutes les positions ; confirmations SIRENE perdues jusqu’à l’étape enchaînée | **une année d’une famille à la fois**, transaction courte, téléchargement hors transaction ; positions ET confirmations SIRENE de l’année posées dans sa transaction ; `VACUUM` entre deux ; reste quotidien, ne bloque aucun lecteur |
 | `sirene-stock.ts` | `DELETE` puis `UPDATE` de chaque ligne insérée (quartier) | **un code postal à la fois**, quartier posé à l'insertion par jointure, `VACUUM` entre deux |
 | `sirene.ts` | `DELETE` ; la confirmation réécrivait chaque avis évalué | `TRUNCATE`, la nuit du vendredi (verrou court) ; la confirmation n'écrit que les verdicts qui changent |
 | `geography.ts` | référentiels vidés, recensement détaché puis rattaché : trois réécritures de `premise_location` | référentiels en *upsert*, rattachements calculés à part puis **un seul `UPDATE` des lignes qui changent** — 0 sur 85 418 mesuré sur la base du 6 octobre |

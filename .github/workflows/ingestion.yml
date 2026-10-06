@@ -38,8 +38,9 @@ on:
     # SIRENE géolocalisé — every Friday night, in the window decided by Ivan on 6 October 2026
     # (#239). INSEE republishes monthly; the load is weekly because its TRUNCATE locks readers
     # until commit, and that lock belongs in the night, not on whatever weekday the 3rd falls.
-    # 21:43 UTC is 23:43 in Paris: GitHub's scheduling lag, measured at up to seven hours on
-    # 5 October 2026, still lands inside the night from there. Re-reading an unchanged month
+    # 21:43 UTC is 23:43 in Paris: GitHub's scheduling lag — more than seven hours, measured on
+    # the BODACC runs 37297466279 (7 h 17, 5 October 2026) and 37449828184 (7 h 09, 6 October)
+    # — still lands inside the night from there. Re-reading an unchanged month
     # is harmless — the loader is idempotent and TRUNCATE leaves no space behind.
     - cron: "43 21 * * 5"
     - cron: "11 5 5 1,4,7,10 *"  # BDCom — quarterly: we verify, we do not rejuvenate
@@ -162,16 +163,15 @@ jobs:
           set -euo pipefail
           case "${{ steps.which.outputs.source }}" in
             bodacc)
-              # Chained, and this one is not optional. bodacc.ts rebuilds bodacc_announcement
-              # wholesale, which cascades to bodacc_establishment and takes `operator_confirmed`
-              # with it — every SIRENE confirmation, destroyed by a reload. Measured 25 August:
-              # the evaluation gate fell from 3 147 `corrobore` levels to zero, 5.92 points of
-              # the established+corroborated composition, and nothing said so.
-              #
-              # Without this line a daily BODACC cron would wipe the confirmations every night
-              # while SIRENE only runs monthly. The confirmation step reads sirene_establishment
-              # alone, which a BODACC reload does not touch, so it costs seconds and no INSEE
-              # download. DIAGNOSTIC.md §17, issue #56.
+              # Chained as a safety net. Until #239 bodacc.ts rebuilt bodacc_announcement
+              # wholesale, which cascades to bodacc_establishment and took `operator_confirmed`
+              # with it — measured 25 August: the evaluation gate fell from 3 147 `corrobore`
+              # levels to zero, and nothing said so. Since #239 (6 October 2026) bodacc.ts
+              # replaces a year at a time and confirms each year inside its own transaction, so
+              # this step finds nothing to change on an ordinary night: it rewrites only the
+              # verdicts that differ, and it reads sirene_establishment alone, no INSEE
+              # download. It stays because it is what catches a confirmation left behind by
+              # anything else. DIAGNOSTIC.md §17, issue #56, DIAGNOSTIC-CORRIGES.md §62.
               npx tsx scripts/ingest/bodacc.ts
               npx tsx scripts/ingest/sirene.ts --confirm-only ;;
             sirene)    npx tsx scripts/ingest/sirene.ts ;;

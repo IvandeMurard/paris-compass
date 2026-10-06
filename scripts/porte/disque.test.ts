@@ -62,6 +62,24 @@ describe("prochaineExecution lit les crons des workflows comme GitHub", () => {
     const sources = scheduledSources(readWorkflows())
     for (const bloc of config.blocs) expect(sources.has(bloc.source), bloc.source).toBe(true)
   })
+
+  it("rend compte de chaque source planifiée : un bloc, ou une raison de n'en pas être", () => {
+    // Derived from the workflows, never listed: the review of #243 found seven scheduled sources
+    // the arm neither watched nor excused. A new source scheduled tomorrow fails here until it
+    // is one or the other.
+    const raisons = Object.fromEntries(
+      Object.entries(config.hors_blocs).filter(([k]) => !k.startsWith("_")),
+    ) as Record<string, string>
+    const blocs = new Set(config.blocs.map((b) => b.source))
+    const planifiees = [...scheduledSources(readWorkflows()).keys()]
+    const muettes = planifiees.filter((s) => !blocs.has(s) && !raisons[s]?.trim())
+    expect(muettes, "sources planifiées sans bloc ni raison dans disque.json").toEqual([])
+    // And the other way: a reason kept for a source no longer scheduled is prose about nothing.
+    const orphelines = Object.keys(raisons).filter((s) => !planifiees.includes(s))
+    expect(orphelines, "raisons de disque.json pour des sources qui ne sont plus planifiées").toEqual([])
+    // A source cannot be both watched and excused.
+    expect(Object.keys(raisons).filter((s) => blocs.has(s))).toEqual([])
+  })
 })
 
 describe("le bras juge avant le plafond, pas au plafond", () => {

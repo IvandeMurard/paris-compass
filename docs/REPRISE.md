@@ -374,7 +374,7 @@ projet cible — une commande SQL, pas un changement de fichier versionné. À
 refaire sur tout nouveau projet avant `supabase db push`.
 
 **Disque, 6 octobre 2026 — `DIAGNOSTIC-CORRIGES.md` §62.** Plafond 500 Mo, pas de plan payant
-(Ivan). Les chargeurs ne regonflent plus (#239) ; `npm.cmd run disque` prévient 30 jours avant.
+(Ivan). Chargeurs corrigés (#239), mesure au premier passage encore due ; `npm.cmd run disque` prévient 30 jours avant.
 Sauvegarde avant toute opération lourde : `~/Backups/paris-compass/`, par
 `docker run postgres:17 pg_dump -Fc`.
 

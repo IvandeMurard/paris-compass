@@ -24,6 +24,7 @@ import { join } from "path"
 import { DuckDBInstance } from "@duckdb/node-api"
 import type { Client } from "pg"
 
+import { confirmOperators } from "./lib/confirm"
 import { assertPrivileged, connect, inTransaction, insertRows, log, recordRun } from "./lib/db"
 
 /**
@@ -104,13 +105,6 @@ const PARIS_COMMUNE_PREFIX = "751"
  */
 const EXACT_GEOCODING = "11"
 
-/**
- * How close a SIRENE point must be to count as "the same address". The BODACC
- * point is borrowed from the BDCom premises at that number, and both sides are
- * geocoded to the number, so the gap is geocoding noise rather than distance.
- */
-const SAME_ADDRESS_M = 50
-
 async function sirenToResolve(client: Client): Promise<string[]> {
   const result = await client.query<{ siren: string }>(`
     select distinct a.siren
@@ -163,41 +157,9 @@ async function readFromInsee(parquetUrl: string, siren: string[]): Promise<[stri
   return rows
 }
 
-/**
- * Marks a notice as operator-confirmed when its company has an establishment
- * within reach. False is a real finding — the company files here but operates
- * elsewhere — while null stays null: absence from the slice we loaded is not
- * evidence of absence from Paris.
- */
+/** Every notice, against the SIRENE just loaded. The rule lives in lib/confirm.ts. */
 async function confirm(client: Client): Promise<void> {
-  // Only rows whose verdict CHANGES are written. Every row this touches is otherwise rewritten
-  // each day — BODACC's daily load chains --confirm-only — and an unchanged rewrite is pure
-  // disk churn under a 500 MB ceiling: #239, DIAGNOSTIC-CORRIGES.md §62.
-  const result = await client.query(
-    `
-    with verdict as (
-      select e.id,
-             exists (
-               select 1 from public.sirene_establishment s
-               where s.siren = a.siren
-                 and ST_DWithin(s.geom, e.geom, $1)
-             ) as confirmed
-        from public.bodacc_establishment e
-        join public.bodacc_announcement a on a.id = e.announcement_id
-       where e.address_source = 'siege_social'
-         and e.geom is not null
-         and a.siren is not null
-         and exists (select 1 from public.sirene_establishment s where s.siren = a.siren)
-    )
-    update public.bodacc_establishment e
-       set operator_confirmed = v.confirmed
-      from verdict v
-     where v.id = e.id
-       and e.operator_confirmed is distinct from v.confirmed
-    `,
-    [SAME_ADDRESS_M],
-  )
-  log("  confirmation", `${result.rowCount} verdicts changés`)
+  log("  confirmation", `${await confirmOperators(client)} verdicts changés`)
 }
 
 /**
@@ -209,7 +171,10 @@ async function confirm(client: Client): Promise<void> {
  * evaluation gate fell from 3 147 `corrobore` levels to zero — 5.92 points of the
  * established+corroborated composition, which is the project's headline quality metric.
  *
- * That is why the daily BODACC job chains this step. Confirmation reads only
+ * Since #239 (6 October 2026) bodacc.ts confirms each year inside the transaction that writes
+ * it, so a reload no longer leaves verdicts behind, and this step, still chained after it, is a
+ * safety net that writes nothing on an ordinary day — it only rewrites verdicts that changed.
+ * It remains the way to replay confirmation by hand. Confirmation reads only
  * sirene_establishment, which a BODACC reload does not touch, so there is no reason to re-read
  * the several hundred megabytes of INSEE parquet to rebuild it — which is fortunate, since the
  * pinned URL now answers 404 (#56) and the confirmations would otherwise be unrecoverable.
