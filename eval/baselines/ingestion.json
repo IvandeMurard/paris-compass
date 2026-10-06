@@ -66,27 +66,27 @@
     },
     "bodacc_cessions_avec_prix": {
       "value": 25531,
-      "sql": "select count(*) n from public.bodacc_establishment where price_eur is not null"
+      "sql": "select count(*) n from public.bodacc_establishment e join public.bodacc_announcement a on a.id = e.announcement_id where e.price_eur is not null and a.published_on <= date '2026-08-14'"
     },
     "bodacc_etablissements_localises": {
       "value": 107736,
-      "sql": "select count(*) n from public.bodacc_establishment where geom is not null"
+      "sql": "select count(*) n from public.bodacc_establishment e join public.bodacc_announcement a on a.id = e.announcement_id where e.geom is not null and a.published_on <= date '2026-08-14'"
     },
     "confiance_etabli": {
       "value": 27581,
-      "sql": "with ech as (select id from public.premise_location order by id limit 10000) select count(*) n from ech l cross join lateral public.compass_address_timeline(l.id) t where t.confidence = 'etabli'"
+      "sql": "with ech as (select id from public.premise_location order by id limit 10000) select count(*) n from ech l cross join lateral public.compass_address_timeline(l.id) t where t.confidence = 'etabli' and (t.source not like 'BODACC%' or t.occurred_on <= date '2026-08-14')"
     },
     "confiance_corrobore": {
       "value": 3147,
-      "sql": "with ech as (select id from public.premise_location order by id limit 10000) select count(*) n from ech l cross join lateral public.compass_address_timeline(l.id) t where t.confidence = 'corrobore'"
+      "sql": "with ech as (select id from public.premise_location order by id limit 10000) select count(*) n from ech l cross join lateral public.compass_address_timeline(l.id) t where t.confidence = 'corrobore' and (t.source not like 'BODACC%' or t.occurred_on <= date '2026-08-14')"
     },
     "confiance_probable": {
       "value": 19689,
-      "sql": "with ech as (select id from public.premise_location order by id limit 10000) select count(*) n from ech l cross join lateral public.compass_address_timeline(l.id) t where t.confidence = 'probable'"
+      "sql": "with ech as (select id from public.premise_location order by id limit 10000) select count(*) n from ech l cross join lateral public.compass_address_timeline(l.id) t where t.confidence = 'probable' and (t.source not like 'BODACC%' or t.occurred_on <= date '2026-08-14')"
     },
     "confiance_indetermine": {
       "value": 3198,
-      "sql": "with ech as (select id from public.premise_location order by id limit 10000) select count(*) n from ech l cross join lateral public.compass_address_timeline(l.id) t where t.confidence = 'indetermine'"
+      "sql": "with ech as (select id from public.premise_location order by id limit 10000) select count(*) n from ech l cross join lateral public.compass_address_timeline(l.id) t where t.confidence = 'indetermine' and (t.source not like 'BODACC%' or t.occurred_on <= date '2026-08-14')"
     },
     "sirene_etablissements": {
       "value": 68770,
@@ -94,11 +94,11 @@
     },
     "bodacc_avis_confirmes_sur_place": {
       "value": 82347,
-      "sql": "select count(*) n from public.bodacc_establishment where operator_confirmed"
+      "sql": "select count(*) n from public.bodacc_establishment e join public.bodacc_announcement a on a.id = e.announcement_id where e.operator_confirmed and a.published_on <= date '2026-08-14'"
     },
     "bodacc_avis_infirmes": {
       "value": 1884,
-      "sql": "select count(*) n from public.bodacc_establishment where operator_confirmed = false"
+      "sql": "select count(*) n from public.bodacc_establishment e join public.bodacc_announcement a on a.id = e.announcement_id where e.operator_confirmed = false and a.published_on <= date '2026-08-14'"
     },
     "prix_median_local_identifiable": {
       "value": 165000,
@@ -113,9 +113,10 @@
     },
     "cessions_local_identifiable": {
       "value": 5942,
-      "sql": "select count(*) n from public.bodacc_establishment e join public.bodacc_announcement a on a.id = e.announcement_id join public.premise_location l on l.street_key = e.street_key and l.num = e.house_number_int where e.price_eur is not null and e.geom is not null and a.family = 'vente' and (select count(*) from public.premise_location q where q.street_key = l.street_key and q.num = l.num) = 1"
+      "sql": "select count(*) n from public.bodacc_establishment e join public.bodacc_announcement a on a.id = e.announcement_id join public.premise_location l on l.street_key = e.street_key and l.num = e.house_number_int where e.price_eur is not null and e.geom is not null and a.family = 'vente' and (select count(*) from public.premise_location q where q.street_key = l.street_key and q.num = l.num) = 1 and a.published_on <= date '2026-08-14'"
     }
   },
+  "note_borne_bodacc": "BORNE AU 14 AOUT 2026, et pourquoi — #227, mesure le 6 octobre 2026. Les neuf comptages qui lisent BODACC ne comptent que les avis publies jusqu'au 14 aout 2026 inclus (`a.published_on`, ou `t.occurred_on` des lignes BODACC de la frise). La raison est la premisse de `note` : « un comptage ne bouge que si des lignes entrent ou sortent », donc 1 % d'ecart signale un changement de pipeline. Elle est vraie pour BDCom et pour SIRENE, que chaque chargement REMPLACE ; elle est fausse pour BODACC, ou des lignes entrent chaque nuit PAR CONSTRUCTION. Non bornes, ces comptes rougissaient sur la seule croissance de la source : le 6 octobre, `confiance_probable` mesurait 19 911 contre 19 689 gele, et les 237 lignes de plus etaient TOUTES des avis publies apres le gel (235 sous la regle shared_address) — la population d'avant mesurait -0,08 %. Pourquoi le 14 aout : c'est la coupure qui REPRODUIT le gel, mesuree sur huit dates candidates — 0,00 % sur bodacc_cessions_avec_prix, bodacc_etablissements_localises et cessions_local_identifiable, au plus 0,32 % ailleurs. Aucune valeur n'a donc ete regelee. CE QUE LA BORNE NE CHANGE PAS : l'ingestion, le produit et le serveur MCP lisent toujours BODACC jusqu'a la veille ; la fraicheur reste gardee par `freshness`, et la composition sur les donnees qui arrivent par l'historique B bis, qui mesure SANS borne (scripts/eval/run.ts). CE QU'ELLE NE RATTRAPE PAS : un defaut qui ne toucherait que les avis publies APRES le 14 aout echappe a ces neuf comptes — un parseur casse sur un format DILA nouveau, par exemple. Le jeu dore, les invariants et la tendance B bis restent les gardes de ce cas. Un avis ANCIEN republie ou corrige par la DILA bouge toujours ces comptes, et c'est voulu. `prix_median_local_identifiable` n'est PAS borne : il est juge sur la tranche publiee, qui doit suivre les donnees servies. La regle est mecanique : scripts/eval/borne.test.ts rougit sur tout comptage qui lit BODACC sans la borne.",
   "note_confiance": "La composition de fiabilité est la métrique de qualité du produit : « s'améliorer » veut dire déplacer ces quatre nombres vers etabli. Mesurée sur une cohorte FIXE de 10 000 locaux (les 10 000 plus petits identifiants), choisie pour être comparable d'une exécution à l'autre — pas pour être représentative. Son rôle est de détecter un déplacement, pas de décrire la base.",
   "note_prix": "Les prix publies dans le README sortent de ces deux mesures, A UNE EXCEPTION PRES, constatee le 13 septembre 2026 : le tableau des medianes PAR METIER (250 000 / 220 000 / 86 000 / 50 000 EUR) n'est garde par aucune baseline, donc rien ne rougit s'il vieillit. Issue ouverte le meme jour. La phrase qui suit decrit la methode de ce tableau, pas sa surveillance. Ils sont groupes sur le code d'activite BDCom du local, jamais sur le champ texte libre de BODACC ou « Restauration rapide » et « Restauration rapide. » sont deux categories distinctes. Et ils sont restreints aux cessions dont le local est seul a son numero : ailleurs on ignore laquelle des vitrines a ete vendue, donc a quel metier rattacher le prix.",
   "target": "dbefhvmyfmmhjeetdddu via aws-1-eu-west-1.pooler.supabase.com",
