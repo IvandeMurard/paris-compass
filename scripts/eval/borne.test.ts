@@ -50,7 +50,9 @@ describe("un comptage qui lit BODACC porte la borne du gel", () => {
     expect(sansBorne(fichier.counts)).toEqual([])
   })
 
-  it("compte bien les neuf qu'elle concerne, pour qu'un retrait ne passe pas en silence", () => {
+  // A hand-written list, on purpose: it fixes the population the cutoff applies to, so a count
+  // that leaves the file fails here loudly. Guarding the cutoff itself is the test above.
+  it("porte la borne sur exactement les neuf comptages concernés", () => {
     const bornes = Object.entries(fichier.counts).filter(([, c]) => estBorne(c.sql))
     expect(bornes.map(([nom]) => nom).sort()).toEqual([
       "bodacc_avis_confirmes_sur_place",
@@ -77,6 +79,13 @@ describe("un comptage qui lit BODACC porte la borne du gel", () => {
       bodacc_neuf: { value: 1, sql: "select count(*) n from public.bodacc_judgment" },
     }
     expect(sansBorne(sabote)).toEqual(["bodacc_neuf"])
+  })
+
+  it("rougit aussi sur un comptage de la frise écrit sans la borne", () => {
+    // The other branch of litBodacc: the timeline reaches BODACC without naming its tables.
+    const sql = fichier.counts.confiance_probable.sql.replace(/ and \(t\.source not like.*\)$/, "")
+    expect(estBorne(sql)).toBe(false)
+    expect(sansBorne({ ...fichier.counts, confiance_probable: { value: 1, sql } })).toEqual(["confiance_probable"])
   })
 
   it("ne réclame rien d'une source que chaque chargement remplace", () => {

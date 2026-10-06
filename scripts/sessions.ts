@@ -85,6 +85,12 @@ const ORDER = [
   // défauts encore visibles à l'écran, et ils passent donc devant les instruments.
   "w6-fiche-delai",
   "w6-langue-absences",
+  // Ouvert le 6 octobre 2026 par la session de #227, en tête des tickets ouverts parce qu'il a
+  // une échéance que les autres n'ont pas. Les rechargements gonflent les tables jusqu'à la
+  // lecture seule du projet (DIAGNOSTIC-CORRIGES.md §62), et Ivan a décidé le même jour de ne
+  // pas payer de plan : le disque se tient par les chargeurs ou ne se tient pas. BODACC
+  // regonfle chaque nuit, `sirene_stock` le 2 novembre.
+  "w1-chargeurs-gonflement",
   "w1-overpass-ordre",
   // Trouvé le 15 septembre en vérifiant que l'agent recevait bien le verdict que l'écran
   // compose : deux passages de verify:mcp, un refus puis un verdict, et le bras vert sur les
@@ -112,6 +118,11 @@ const ORDER = [
   // surface agent et personne ne le relit. C'est le seul instrument du depot qui dirait ce que
   // le produit ne sait PAS repondre — les quinze autres disent seulement s'il ment.
   "w1-questions-lues",
+  // Ouvert le 6 octobre 2026 par la session de #227 : le dernier rouge d'`eval`, cinq plafonds
+  // de pages dépassés pendant que les temps baissent (DIAGNOSTIC.md §64). Rangé avec les
+  // instruments, derrière ce qui se voit : aucun visiteur ne le sent, mais un bras qui reste
+  // rouge apprend à être ignoré.
+  "w1-budget-plans",
   // Remonté de la 58ᵉ place et de P2 à P1 le 16 septembre 2026, décidé par Ivan. La raison
   // n'est pas que le ticket a grandi : c'est que `w6-modes` (#36) vient de donner trois modes
   // métier à l'écran et aucun à l'agent. « La même réponse pour un agent » est la promesse

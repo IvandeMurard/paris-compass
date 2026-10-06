@@ -85,9 +85,9 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 59 | `servi` ne lisait que les morceaux que l'ENTRÉE nomme : 1 sur 29, et 424 003 octets servis jamais demandés | clos le 17 septembre 2026 par `w1-servi-contenu` | ici |
 | 60 | La production sert un bundle antérieur à `#119` : `/carte` et `/contexte/` ne sont pas déclarés, la fiche rend une 404 | clos le 17 septembre 2026 par une republication d'Ivan — `servi` sortie 0, 1 168 jetons sur 1 168 | ici |
 | 61 | Le bundle publié vise `nwnhhvogwrzstslxtxca`, l'ANCIEN projet Supabase : la fiche rend un refus sur les quatre axes | **ouvert** — mesuré le 17 septembre 2026, appartient au déploiement ; la démo Lovable l'a remplacé le 6 octobre, voir sa fin | ici |
-| 62 | La base passait en lecture seule pendant les gros chargements : tables gonflées ×2 à ×3,7 par les rechargements | clos le 6 octobre 2026 par `VACUUM FULL` (964 → 393 Mo, sauvegarde vérifiée avant) — **les chargeurs restent à corriger** | corrigés |
+| 62 | La base passait en lecture seule pendant les gros chargements : tables gonflées ×2 à ×3,7 par les rechargements | clos le 6 octobre 2026 par `VACUUM FULL` (964 → 393 Mo, sauvegarde vérifiée avant) — **les chargeurs restent à corriger : `#239`** | corrigés |
 | 63 | Le bras B d'`eval` rougissait sur la croissance normale de BODACC | clos le 6 octobre 2026 : comptages bornés au gel, `borne.test.ts` | corrigés |
-| 64 | Le bras E compte 19 à 81 % de pages de plus que ses plafonds sur cinq fonctions, pendant que les temps baissent | **ouvert** — mesuré le 6 octobre 2026 | ici |
+| 64 | Le bras E compte 27 à 81 % de pages de plus que ses plafonds sur cinq fonctions, pendant que les temps baissent | **ouvert** — mesuré le 6 octobre 2026, `#240` | ici |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -1712,5 +1712,5 @@ statistiques neuves et des tables plus petites. `scripts/eval/budget.ts` prévoi
 
 **À faire** : comparer les plans (`EXPLAIN (ANALYZE, BUFFERS)`) des cinq fonctions, et décider
 pour chacune si le nouveau plan est meilleur — alors regeler son plafond avec cette preuve — ou
-s'il faut le contraindre. **Jamais** remonter un plafond sans le plan qui le justifie. Ticket à
-ouvrir.
+s'il faut le contraindre. **Jamais** remonter un plafond sans le plan qui le justifie. Ticket :
+[`#240`](https://github.com/IvandeMurard/paris-compass/issues/240), `w1-budget-plans`.

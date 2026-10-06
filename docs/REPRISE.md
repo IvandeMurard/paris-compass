@@ -373,10 +373,10 @@ installée dans le schéma `extensions`. Corrigé par
 projet cible — une commande SQL, pas un changement de fichier versionné. À
 refaire sur tout nouveau projet avant `supabase db push`.
 
-**Disque, 6 octobre 2026 — `DIAGNOSTIC.md` §62.** Pas de plan payant (Ivan). Les
+**Disque, 6 octobre 2026 — `DIAGNOSTIC-CORRIGES.md` §62.** Pas de plan payant (Ivan). Les
 rechargements gonflent les tables jusqu'à la lecture seule ; `VACUUM FULL` l'a ramenée à
-393 Mo. Prochain risque : SIRENE le 3 novembre. Sauvegarde dans `~/Backups/paris-compass/`,
-par `docker run postgres:17 pg_dump -Fc`.
+393 Mo. BODACC regonfle chaque nuit, `sirene_stock` le 2 novembre. Sauvegarde dans
+`~/Backups/paris-compass/`, par `docker run postgres:17 pg_dump -Fc`.
 
 ---
 

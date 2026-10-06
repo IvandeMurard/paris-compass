@@ -3134,7 +3134,8 @@ une opération de maintenance, pas par un correctif** — voir « Ce qui reste o
 
 Trois chargements planifiés ont échoué sur la même ligne, `cannot execute DELETE in a read-only
 transaction` : SIRENE deux fois le 3 octobre, BDCom le 5 octobre (second déclenchement, le
-premier de 10 h 34 UTC était passé). BODACC, quotidien et petit, passait. Mesuré sur
+premier de 10 h 34 UTC était passé). BODACC passait — il reconstruit pourtant
+`bodacc_announcement` en entier chaque nuit (`bodacc.ts`, `delete` puis rechargement). Mesuré sur
 `dbefhvmyfmmhjeetdddu` le 5 octobre à 16 h UTC : `default_transaction_read_only = on`, posé par
 `postgresql.auto.conf`, base de **963 Mo**. À 18 h 04 le drapeau était levé, sans qu'on sache
 par qui — Supabase, vraisemblablement, quand le disque est redescendu.
@@ -3182,9 +3183,10 @@ plafond du projet.
 
 ### Les deux questions de la règle
 
-- **Est-ce que ça survit à un rechargement ? Non.** Le prochain gros chargement — SIRENE, le
-  3 novembre ; BDCom, en janvier — regonflera ce qu'il recharge. C'est pour ça que ce n'est pas
-  le correctif.
+- **Est-ce que ça survit à un rechargement ? Non.** Chaque rechargement regonfle ce qu'il
+  recharge, et le calendrier de `ingestion.yml` les rapproche : BODACC **chaque nuit** (dès le
+  7 octobre), `sirene_stock` — la plus grosse table — le **2 novembre** (cron `53 2 2 * *`),
+  SIRENE le 3, BDCom en janvier. C'est pour ça que ce n'est pas le correctif.
 - **Est-ce que ça protège un consommateur qui n'existe pas encore ?** Sans objet : le défaut est
   dans la maintenance, pas dans la donnée servie.
 
@@ -3193,7 +3195,7 @@ plafond du projet.
 Le correctif est dans les chargeurs : `TRUNCATE` à la place des `DELETE` de rechargement complet
 (il rend la place au système, dans la même transaction), et un `geography.ts` qui ne réécrit que
 les lignes dont le rattachement change. Puis un bras qui mesure le gonflement et rougit **avant**
-le plafond, pas après. Ticket à ouvrir. **Décision d'Ivan le 6 octobre 2026 : pas de plan payant**
+le plafond, pas après : [`#239`](https://github.com/IvandeMurard/paris-compass/issues/239), `w1-chargeurs-gonflement`, P0, avant le 2 novembre. **Décision d'Ivan le 6 octobre 2026 : pas de plan payant**
 — le disque se tient par la maintenance, ce qui rend ce ticket nécessaire et non optionnel.
 
 ### Une fausse piste, consignée pour qu'elle ne soit pas reprise
@@ -3218,8 +3220,9 @@ touché.
 `confiance_corrobore` +1,05 %, et six autres comptes BODACC ou SIRENE entre +0,86 et +0,97 %.
 La porte en parlait depuis le 3 octobre (#227).
 
-Mesuré sur le distant : les 237 lignes de plus de `confiance_probable` sont **toutes** des avis
-BODACC publiés après le gel, dont 235 sous la règle `shared_address` de
+Mesuré sur le distant : l'écart de +222 se décompose en **237** lignes portant sur des avis
+BODACC publiés après le gel, moins 15 sur la population d'avant. Les 237 sont toutes BODACC, dont
+235 sous la règle `shared_address` de
 `compass_address_timeline` — un avis publié à une adresse que partagent plusieurs locaux sort en
 `probable`. Sur la population d'avant le gel, l'écart est de **−0,08 %**.
 
