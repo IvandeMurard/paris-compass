@@ -170,24 +170,34 @@ async function readFromInsee(parquetUrl: string, siren: string[]): Promise<[stri
  * evidence of absence from Paris.
  */
 async function confirm(client: Client): Promise<void> {
+  // Only rows whose verdict CHANGES are written. Every row this touches is otherwise rewritten
+  // each day — BODACC's daily load chains --confirm-only — and an unchanged rewrite is pure
+  // disk churn under a 500 MB ceiling: #239, DIAGNOSTIC-CORRIGES.md §62.
   const result = await client.query(
     `
+    with verdict as (
+      select e.id,
+             exists (
+               select 1 from public.sirene_establishment s
+               where s.siren = a.siren
+                 and ST_DWithin(s.geom, e.geom, $1)
+             ) as confirmed
+        from public.bodacc_establishment e
+        join public.bodacc_announcement a on a.id = e.announcement_id
+       where e.address_source = 'siege_social'
+         and e.geom is not null
+         and a.siren is not null
+         and exists (select 1 from public.sirene_establishment s where s.siren = a.siren)
+    )
     update public.bodacc_establishment e
-       set operator_confirmed = exists (
-             select 1 from public.sirene_establishment s
-             where s.siren = a.siren
-               and ST_DWithin(s.geom, e.geom, $1)
-           )
-      from public.bodacc_announcement a
-     where a.id = e.announcement_id
-       and e.address_source = 'siege_social'
-       and e.geom is not null
-       and a.siren is not null
-       and exists (select 1 from public.sirene_establishment s where s.siren = a.siren)
+       set operator_confirmed = v.confirmed
+      from verdict v
+     where v.id = e.id
+       and e.operator_confirmed is distinct from v.confirmed
     `,
     [SAME_ADDRESS_M],
   )
-  log("  confirmation", `${result.rowCount} avis évalués`)
+  log("  confirmation", `${result.rowCount} verdicts changés`)
 }
 
 /**
@@ -285,7 +295,11 @@ async function main(): Promise<void> {
     const before = await countConfirmations()
 
     await inTransaction(client, async () => {
-      await client.query("delete from public.sirene_establishment")
+      // TRUNCATE, not DELETE: it gives the old file back at commit instead of leaving its
+      // space behind — #239, DIAGNOSTIC-CORRIGES.md §62. It locks readers until commit, which
+      // is why the INSEE read above happens before the transaction, and why this load runs in
+      // the Friday-night window (ingestion.yml).
+      await client.query("truncate public.sirene_establishment")
       // Written through a staging select so the geography cast happens once, in
       // SQL, rather than per row in the client.
       await client.query(`

@@ -75,8 +75,9 @@ export const TOLERANCE_DAYS: Record<Cadence, number | null> = {
   continuous: 3,
   // The weekly cron plus three days. One missed week shows on the tenth day.
   weekly: 10,
-  // INSEE republishes monthly, the crons run on the 2nd and the 3rd: 45 days is one missed
-  // month and a half, and cannot be reached by a cron that fires.
+  // INSEE republishes monthly, and since #239 (6 October 2026) both SIRENE loads run every
+  // Friday night: 45 days is one missed month and a half, and cannot be reached by a cron that
+  // fires.
   monthly: 45,
   // No threshold. Same decision, and the same reason, as `rare` below: BDCom is surveyed every
   // three years and the quarterly cron only verifies, so any threshold worth having would sit

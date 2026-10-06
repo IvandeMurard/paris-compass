@@ -14,7 +14,7 @@
 import { DuckDBInstance } from "@duckdb/node-api"
 import type { Client } from "pg"
 
-import { assertPrivileged, connect, inTransaction, insertRows, log, recordRun } from "./lib/db"
+import { assertPrivileged, connect, inTransaction, insertRowsVia, log, recordRun } from "./lib/db"
 
 const DATASET =
   "https://www.data.gouv.fr/api/1/datasets/base-sirene-des-entreprises-et-de-leurs-etablissements-siren-siret/"
@@ -184,33 +184,120 @@ async function readFromInsee(parquetUrl: string): Promise<StockRow[]> {
   )
 }
 
+const COLUMNS = [
+  "siret", "siren", "date_creation", "etat_administratif", "date_debut", "activite_naf",
+  "enseigne", "denomination", "house_number", "way_type", "way_name", "code_postal",
+]
+const TYPES = [
+  "text", "text", "date", "text", "date", "text", "text", "text", "integer", "text", "text", "text",
+]
+
 /**
- * Attaches each establishment to the quartier of its address.
+ * Replaces the stock one postcode at a time, attaching each establishment to the quartier of
+ * its address AS it is inserted.
  *
  * By address, never by distance, and never to a premise. The full reasoning is in the
  * migration header (20260825000011): an address determines its quartier however many premises
  * stand at it, so this is a fact; a location_id would be a guess, and 69 % of BDCom premises
  * share their street number.
+ *
+ * Why a postcode at a time, and a join rather than an UPDATE — #239, DIAGNOSTIC-CORRIGES.md
+ * §62. The load used to delete the whole table and reinsert it in one transaction, then UPDATE
+ * every row it had just written: measured 6 October 2026, the table stood at 225 MB for 74 MB
+ * of data, on a project that turns read-only at 500 MB. A single TRUNCATE would have cured the
+ * bloat but not the peak — the old file is kept until commit, and `npm run disque` measured
+ * that peak at 514 MB on the dashboard's scale. One postcode is about a twentieth of the table;
+ * the plain VACUUM after each one hands its space to the next. Readers are never blocked, and a
+ * failure leaves every postcode either fully old or fully new, never half-written.
  */
-async function attach(client: Client): Promise<{ attached: number; total: number }> {
-  const result = await client.query(`
-    update public.sirene_etablissement_stock s
-       set quartier_id = q.quartier_id
-      from (
-        select street_key, num, min(quartier_id) as quartier_id
-          from public.premise_location
-         where street_key is not null and num is not null and quartier_id is not null
-         group by street_key, num
-      ) q
-     where q.street_key = s.street_key and q.num = s.house_number
+async function load(client: Client, rows: unknown[][]): Promise<{ attached: number; total: number }> {
+  // One row per numbered address: the address -> quartier map, read once for the whole run and
+  // dropped with the session.
+  await client.query(`
+    create temporary table tmp_quartier as
+    select street_key, num, min(quartier_id) as quartier_id
+      from public.premise_location
+     where street_key is not null and num is not null and quartier_id is not null
+     group by street_key, num
   `)
-  const total = await client.query<{ n: string }>(
-    "select count(*)::text as n from public.sirene_etablissement_stock",
+  await client.query("create index on tmp_quartier (street_key, num)")
+
+  const POSTCODE = COLUMNS.indexOf("code_postal")
+  const SIRET = COLUMNS.indexOf("siret")
+  const byPostcode = new Map<string, unknown[][]>()
+  for (const row of rows) {
+    const key = String(row[POSTCODE] ?? "")
+    if (!byPostcode.has(key)) byPostcode.set(key, [])
+    byPostcode.get(key)!.push(row)
+  }
+
+  for (const [postcode, part] of [...byPostcode].sort(([a], [b]) => a.localeCompare(b))) {
+    await inTransaction(client, async () => {
+      // This postcode's previous version, and any of these establishments filed under another
+      // postcode last time — a move would otherwise leave the old row behind, and the insert
+      // below would skip the new one on its primary key.
+      await client.query(
+        `delete from public.sirene_etablissement_stock
+          where code_postal is not distinct from nullif($1, '') or siret = any($2::text[])`,
+        [postcode, part.map((r) => String(r[SIRET]))],
+      )
+      await insertRowsVia(client, COLUMNS, TYPES, part, (values) => `
+        insert into public.sirene_etablissement_stock (${COLUMNS.join(", ")}, quartier_id)
+        select v.*, q.quartier_id
+          from ${values}
+          left join tmp_quartier q
+            on q.street_key = public.compass_bodacc_street_key(v.way_type, v.way_name)
+           and q.num = v.house_number
+        on conflict (siret) do nothing
+      `)
+    })
+    await client.query("vacuum public.sirene_etablissement_stock")
+  }
+
+  // Postcodes INSEE no longer lists for these trades: nothing above replaced them.
+  const gone = await client.query(
+    "delete from public.sirene_etablissement_stock where coalesce(code_postal, '') <> all($1::text[])",
+    [[...byPostcode.keys()]],
   )
-  return { attached: result.rowCount ?? 0, total: Number(total.rows[0]?.n ?? 0) }
+  if ((gone.rowCount ?? 0) > 0) log("  codes postaux disparus", `${gone.rowCount} établissements retirés`)
+
+  const counts = await client.query<{ total: string; attached: string }>(`
+    select count(*)::text as total, count(quartier_id)::text as attached
+      from public.sirene_etablissement_stock
+  `)
+  return {
+    attached: Number(counts.rows[0]?.attached ?? 0),
+    total: Number(counts.rows[0]?.total ?? 0),
+  }
 }
 
-/** Sentinel: rolls the trial transaction back through inTransaction's catch, then exits 0. */
+/**
+ * What a load WOULD do, without writing: how many establishments, and how many would find their
+ * quartier. Rolling back a full load is no longer a dry run worth having — it would raise the
+ * very peak #239 removed — so this reads the same join and writes nothing.
+ */
+async function dryRunCounts(client: Client, rows: unknown[][]): Promise<{ attached: number; total: number }> {
+  await client.query(`
+    create temporary table tmp_quartier as
+    select street_key, num, min(quartier_id) as quartier_id
+      from public.premise_location
+     where street_key is not null and num is not null and quartier_id is not null
+     group by street_key, num
+  `)
+  const unique = [...new Map(rows.map((r) => [String(r[COLUMNS.indexOf("siret")]), r])).values()]
+  // insertRowsVia only batches a VALUES list into the statement it is given and sums the row
+  // counts: a SELECT that returns the matched rows counts them.
+  const attached = await insertRowsVia(client, COLUMNS, TYPES, unique, (values) => `
+    select 1
+      from ${values}
+      join tmp_quartier q
+        on q.street_key = public.compass_bodacc_street_key(v.way_type, v.way_name)
+       and q.num = v.house_number
+  `)
+  return { attached, total: unique.length }
+}
+
+/** Sentinel kept for the import surface; the dry run no longer throws to roll back. */
 class DryRunComplete extends Error {}
 
 async function main(): Promise<void> {
@@ -235,41 +322,16 @@ async function main(): Promise<void> {
     const rows = await readFromInsee(parquet.url)
     log("  lu", `${rows.length} établissements en ${((Date.now() - started) / 1000).toFixed(0)}s`)
 
-    let attached = { attached: 0, total: 0 }
-    await inTransaction(client, async () => {
-      await client.query("delete from public.sirene_etablissement_stock")
-      await insertRows(
-        client,
-        "public.sirene_etablissement_stock",
-        [
-          "siret",
-          "siren",
-          "date_creation",
-          "etat_administratif",
-          "date_debut",
-          "activite_naf",
-          "enseigne",
-          "denomination",
-          "house_number",
-          "way_type",
-          "way_name",
-          "code_postal",
-        ],
-        rows,
-        "on conflict (siret) do nothing",
-      )
-      attached = await attach(client)
+    if (dryRun) {
+      const counts = await dryRunCounts(client, rows)
+      log("ESSAI — rien n'est écrit")
+      log("  établissements", `${counts.total}`)
+      log("  rattachés à un quartier", `${counts.attached}`)
+      log("  millésime", `${held ?? "aucun"} -> ${parquet.asOf}`)
+      return
+    }
 
-      // Measured inside the transaction, like sirene.ts --dry-run: inTransaction commits when
-      // its callback returns, so throwing from within is what rolls the work back.
-      if (dryRun) {
-        log("ESSAI — rien ne sera commis")
-        log("  établissements", `${attached.total}`)
-        log("  rattachés à un quartier", `${attached.attached}`)
-        log("  millésime", `${held ?? "aucun"} -> ${parquet.asOf}`)
-        throw new DryRunComplete()
-      }
-    })
+    const attached = await load(client, rows)
 
     const summary = await client.query<{ label: string; n: string }>(`
       select 'établissements chargés'        as label, count(*)::text as n

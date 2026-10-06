@@ -91,6 +91,48 @@ export async function insertRows(
   return written
 }
 
+/**
+ * Like insertRows, but the batch reaches the table through a SELECT the caller writes, so a
+ * column can be derived by a join AT insertion instead of by an UPDATE afterwards. The
+ * distinction is disk, not style: an UPDATE of every row just inserted writes each row twice
+ * inside one transaction, and the project sits under a 500 MB ceiling that turns the base
+ * read-only when crossed — DIAGNOSTIC-CORRIGES.md §62, #239.
+ *
+ * `types` casts each placeholder: a VALUES list in a subquery types its columns as text, and
+ * text has no assignment cast to date or integer. `select(values)` receives the aliased VALUES
+ * clause, `v(col1, col2, …)`, and returns the full INSERT statement.
+ */
+export async function insertRowsVia(
+  client: Client,
+  columns: string[],
+  types: string[],
+  rows: unknown[][],
+  select: (values: string) => string,
+): Promise<number> {
+  if (rows.length === 0) return 0
+  if (types.length !== columns.length) throw new Error("insertRowsVia : un type par colonne")
+
+  const perRow = columns.length
+  const maxRows = Math.max(1, Math.floor(60000 / perRow))
+  const alias = `v(${columns.map((c) => `"${c}"`).join(", ")})`
+  let written = 0
+
+  for (let start = 0; start < rows.length; start += maxRows) {
+    const chunk = rows.slice(start, start + maxRows)
+    const values: unknown[] = []
+    const tuples = chunk.map((row, rowIndex) => {
+      const placeholders = row.map((value, columnIndex) => {
+        values.push(value)
+        return `$${rowIndex * perRow + columnIndex + 1}::${types[columnIndex]}`
+      })
+      return `(${placeholders.join(", ")})`
+    })
+    const result = await client.query(select(`(values ${tuples.join(", ")}) as ${alias}`), values)
+    written += result.rowCount ?? 0
+  }
+  return written
+}
+
 /** Runs `work` in a transaction, rolling back on any throw. */
 export async function inTransaction<T>(
   client: Client,

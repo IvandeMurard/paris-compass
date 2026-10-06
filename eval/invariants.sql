@@ -139,20 +139,20 @@ where t.kind in ('sale', 'proceeding')
   )
 limit 20;
 
--- @invariant I8 :: un relevé promu sans ligne de staging correspondante
+-- @invariant I8 :: un millésime dont les relevés promus ne font pas le compte chargé
 -- A half-loaded census is indistinguishable from an incomplete one.
-select o.id, o.vintage_id, o.source_ordre
-from public.premise_observation o
-where o.vintage_id in (2017, 2020)
-  and not exists (
-    select 1 from public.stg_bdcom_od s
-    where s.vintage_id = o.vintage_id and s.ordre = o.source_ordre)
-union all
-select o.id, o.vintage_id, o.source_ordre
-from public.premise_observation o
-where o.vintage_id = 2023
-  and not exists (
-    select 1 from public.stg_bdcom_2023 s where s.c_ord = o.source_ordre)
+-- Counts at rest, rows at load time — since 6 October 2026 (#239). The staging tables are
+-- emptied when a BDCom load commits, to hold the project under its 500 MB ceiling
+-- (DIAGNOSTIC-CORRIGES.md §62), so the row-by-row match this invariant used to make now runs
+-- INSIDE scripts/ingest/bdcom.ts, before the staging is emptied, and fails the load. What is
+-- left to check at rest is the trace the load writes: bdcom_vintage.record_count, the staging
+-- row count of that vintage. What this no longer catches at rest: a promoted row swapped for
+-- another with the same count — the load-time half is the only guard of that.
+select v.id as vintage_id, v.record_count,
+       (select count(*) from public.premise_observation o where o.vintage_id = v.id) as promoted
+from public.bdcom_vintage v
+where v.record_count is distinct from
+      (select count(*) from public.premise_observation o where o.vintage_id = v.id)
 limit 20;
 
 -- @invariant I9 :: un appelant anonyme voit le contenu d'un millésime non redistribuable

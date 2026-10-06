@@ -3133,8 +3133,12 @@ une opération de maintenance, pas par un correctif** — voir « Ce qui reste o
 ### Ce qui était faux
 
 Trois chargements planifiés ont échoué sur la même ligne, `cannot execute DELETE in a read-only
-transaction` : SIRENE deux fois le 3 octobre, BDCom le 5 octobre (second déclenchement, le
-premier de 10 h 34 UTC était passé). BODACC passait — il reconstruit pourtant
+transaction` : BODACC et SIRENE le 3 octobre — deux sources planifiées le même jour, pas un
+doublon —, puis la relance par Ivan, à 16 h 14 le 5, du passage BDCom de 12 h 13. *Corrigé le
+6 octobre 2026 par la session de #239, journaux des passages relus : ce paragraphe disait
+« SIRENE deux fois » et « second déclenchement », ce qui était faux.* Le passage BDCom de 12 h 13
+avait chargé le recensement à 12 h 18, puis échoué dans `geography.ts` sur une tout autre
+cause — §65. BODACC passait les autres jours — il reconstruit pourtant
 `bodacc_announcement` en entier chaque nuit (`bodacc.ts`, `delete` puis rechargement). Mesuré sur
 `dbefhvmyfmmhjeetdddu` le 5 octobre à 16 h UTC : `default_transaction_read_only = on`, posé par
 `postgresql.auto.conf`, base de **963 Mo**. À 18 h 04 le drapeau était levé, sans qu'on sache
@@ -3190,13 +3194,31 @@ plafond du projet.
 - **Est-ce que ça protège un consommateur qui n'existe pas encore ?** Sans objet : le défaut est
   dans la maintenance, pas dans la donnée servie.
 
-### Ce qui reste ouvert
+### Le correctif — #239, livré le 6 octobre 2026
 
-Le correctif est dans les chargeurs : `TRUNCATE` à la place des `DELETE` de rechargement complet
-(il rend la place au système, dans la même transaction), et un `geography.ts` qui ne réécrit que
-les lignes dont le rattachement change. Puis un bras qui mesure le gonflement et rougit **avant**
-le plafond, pas après : [`#239`](https://github.com/IvandeMurard/paris-compass/issues/239), `w1-chargeurs-gonflement`, P0, avant le 2 novembre. **Décision d'Ivan le 6 octobre 2026 : pas de plan payant**
-— le disque se tient par la maintenance, ce qui rend ce ticket nécessaire et non optionnel.
+**Décision d'Ivan le 6 octobre 2026 : pas de plan payant**, et un plafond de 500 Mo lu au
+tableau de bord. Le disque se tient donc par les chargeurs, et un `TRUNCATE` ne suffisait pas :
+il rend l'ancien fichier au commit, mais la nouvelle version s'écrit **avant** — le pic d'un
+rechargement en bloc reste « ancien + nouveau ». Mesuré par le bras neuf le même jour : SIRENE
+stock en bloc aurait monté la base à 514 Mo au tableau de bord, BODACC à environ 574.
+
+| Chargeur | Avant | Depuis #239 |
+| --- | --- | --- |
+| `bodacc.ts` | tout l'historique supprimé et réécrit en une transaction de 4 min 30, puis `UPDATE` de toutes les positions | **une année d'une famille à la fois**, transaction courte, téléchargement hors transaction, positions de l'année seule, `VACUUM` entre deux ; reste quotidien, ne bloque aucun lecteur |
+| `sirene-stock.ts` | `DELETE` puis `UPDATE` de chaque ligne insérée (quartier) | **un code postal à la fois**, quartier posé à l'insertion par jointure, `VACUUM` entre deux |
+| `sirene.ts` | `DELETE` ; la confirmation réécrivait chaque avis évalué | `TRUNCATE`, la nuit du vendredi (verrou court) ; la confirmation n'écrit que les verdicts qui changent |
+| `geography.ts` | référentiels vidés, recensement détaché puis rattaché : trois réécritures de `premise_location` | référentiels en *upsert*, rattachements calculés à part puis **un seul `UPDATE` des lignes qui changent** — 0 sur 85 418 mesuré sur la base du 6 octobre |
+| `bdcom.ts` | staging laissé plein au repos (44 Mo) | staging vidé au commit, accord d'Ivan ; la correspondance ligne à ligne d'I8 se joue désormais au chargement |
+
+Et le bras qui manquait : **`npm run disque`**, planifié chaque matin. Il rougit trente jours
+**avant** qu'un chargement ou la croissance n'atteigne 90 % du plafond, et signale à 120 jours —
+`scripts/porte/disque.json` dit tout ce qu'il mesure et ce qu'il ne rattrape pas.
+
+**Ce qui reste ouvert** : le « Fait quand » de #239 exige un rechargement de chaque source
+mesuré sur le distant, ce qui ne se démontre qu'après la fusion, aux premiers passages planifiés.
+Et BDCom : son prochain passage (5 janvier 2027) monterait la base à environ 520 Mo au tableau
+de bord même staging vidé — le bras le signale depuis le premier jour, et c'est à traiter avant
+décembre.
 
 ### Une fausse piste, consignée pour qu'elle ne soit pas reprise
 
@@ -3262,3 +3284,49 @@ format DILA nouveau — échappe à ces neuf comptes. Le jeu doré, les invarian
 B bis restent les gardes de ce cas. Et `borne.test.ts` lit le texte du SQL : une vue neuve qui
 lirait BODACC sous un autre nom lui échappe. `prix_median_local_identifiable` n'est pas borné, à
 dessein : il est jugé sur la tranche publiée, qui doit suivre les données servies.
+
+---
+
+## 65. `geography.ts` échouait à chaque passage depuis le 25 août — une clé étrangère arrivée avec le stock SIRENE — le 6 octobre 2026
+
+**Fichiers :** `scripts/ingest/geography.ts`. **Clos le 6 octobre 2026 par #239**, qui l'a trouvé
+en relisant les journaux du 5 octobre et l'a fermé en passant, sans l'avoir cherché.
+
+### Ce qui était faux
+
+`geography.ts` commençait par vider ses deux référentiels, `delete from public.quartier` puis
+`delete from public.street_segment`, après avoir détaché le recensement. Mais depuis la migration
+`20260825000011_sirene_stock.sql`, **`sirene_etablissement_stock.quartier_id` référence aussi
+`quartier`** — et rien ne l'en détachait. Journal du passage BDCom du 5 octobre 2026 (run
+`37307994184`, tentative 1) : le recensement est chargé à 12 h 18, puis
+
+```
+[12:19:04] ÉCHEC — update or delete on table "quartier" violates foreign key constraint "sirene_etablissement_stock_quartier_id_fkey"
+```
+
+La géographie n'a donc réussi aucun passage depuis le 25 août (`ingestion_run.last_success_at`
+du 25 août 2026, relu le 6 octobre). Personne ne l'a vu parce que `geography` est une source
+**sans seuil de retard**, par décision (`scripts/ingest/lib/cadence.ts`) : son échec ne vieillit
+rien que `freshness` sache dire. Seul le rouge d'ingestion du 5 octobre l'a porté, et il a été lu
+comme une panne de lecture seule — il en était une aussi, mais à la relance de 16 h 14.
+
+### Ce que le défaut n'a pas cassé
+
+Les rattachements en place sont justes : le calcul de #239, joué sur la base du 6 octobre dans
+une transaction annulée, les reproduit **à l'identique sur 85 418 locaux**. Le recensement
+rechargé le 5 octobre a gardé ses quartiers et ses tronçons, et un passage réussi n'aurait rien
+changé.
+
+### Le correctif, et les deux questions de la règle
+
+`geography.ts` ne vide plus rien : les référentiels sont mis à jour par *upsert*, les
+rattachements recalculés, et seuls les quartiers ou tronçons que la source ne publie plus sont
+supprimés, **après** le rattachement. Un quartier disparu encore référencé par le stock SIRENE
+fait échouer le passage et l'annule — la bonne réponse à un quartier que Paris aurait supprimé.
+
+- **Survit à un rechargement ?** Oui : c'est le chargeur qui a changé.
+- **Protège un consommateur futur ?** En partie. La prochaine table qui référencera `quartier`
+  ne cassera plus ce chargeur — il ne supprime plus que ce qui a disparu à la source. **Ce que ça
+  ne rattrape pas** : un chargeur qui échoue en silence sur une source sans seuil. `freshness` ne
+  voit pas un échec, seulement un âge ; c'est le rouge d'ingestion du jour qui le porte, et il ne
+  dit pas quelle étape enchaînée a cassé.

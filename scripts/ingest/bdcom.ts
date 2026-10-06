@@ -497,6 +497,35 @@ async function main(): Promise<void> {
       if ((flagged.rowCount ?? 0) > 0) {
         log("conflits d'identifiant", `${flagged.rowCount} relevés marqués`)
       }
+
+      // The row-level half of invariant I8, played here because the staging tables are emptied
+      // just below. assertComplete compares counts; this proves that every promoted row has the
+      // staging row it came from. At rest, I8 can only compare counts with
+      // bdcom_vintage.record_count — eval/invariants.sql says why.
+      // Scoped to the vintages loaded by this run: the others' staging was emptied by the run
+      // that loaded them.
+      const orphans = await client.query<{ n: string }>(
+        `select count(*)::text as n
+           from public.premise_observation o
+          where o.vintage_id = any($1::int[])
+            and ((o.vintage_id in (2017, 2020) and not exists (
+                   select 1 from public.stg_bdcom_od s
+                    where s.vintage_id = o.vintage_id and s.ordre = o.source_ordre))
+              or (o.vintage_id = 2023 and not exists (
+                   select 1 from public.stg_bdcom_2023 s where s.c_ord = o.source_ordre)))`,
+        [vintages],
+      )
+      const orphanCount = Number(orphans.rows[0]?.n ?? 0)
+      if (orphanCount > 0) {
+        throw new Error(
+          `${orphanCount} relevés promus sans ligne de staging — chargement incomplet, rien n'est validé.`,
+        )
+      }
+
+      // Emptied at commit, decided by Ivan on 6 October 2026 — #239, DIAGNOSTIC-CORRIGES.md §62.
+      // The staging tables only serve the promotion above, and held 44 MB at rest on a project
+      // that turns read-only at 500 MB. TRUNCATE gives the files back at commit.
+      await client.query("truncate public.stg_bdcom_od, public.stg_bdcom_2023")
     })
 
     const summary = await client.query<{ year: number; locations: string; observations: string }>(`

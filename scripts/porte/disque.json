@@ -1,0 +1,93 @@
+{
+  "_lisez-moi": [
+    "Le bras du disque — w1-chargeurs-gonflement (#239), 6 octobre 2026. DIAGNOSTIC-CORRIGES.md §62.",
+    "",
+    "Le projet Supabase passe en LECTURE SEULE quand sa base depasse 500 Mo (offre gratuite, chiffre",
+    "donne par Ivan le 6 octobre 2026 depuis le tableau de bord). Du 3 au 5 octobre, trois chargements",
+    "y ont echoue. Ivan a decide le meme jour de ne pas payer de plan : le disque se tient par les",
+    "chargeurs et par ce bras, ou ne se tient pas.",
+    "",
+    "CE QUE LE BRAS ANTICIPE, parce qu'Ivan a demande « le temps de se retourner » : un rouge le",
+    "jour ou la base passe en lecture seule arrive trop tard. Le bras juge donc trois choses avant",
+    "le plafond. (1) Le PIC de chaque chargement en bloc : la base actuelle, plus ce que ce chargement",
+    "ecrit avant de rendre l'ancienne version a son commit, date par la PROCHAINE execution de son",
+    "cron. (2) La CROISSANCE : BODACC est la seule source qui s'ajoute chaque jour ; le bras mesure",
+    "son debit sur 28 jours et en deduit la date ou la base atteindra le seuil. (3) Le GONFLEMENT",
+    "par table : un ratio disque / utile au-dessus de `ratio_gonflement` dit qu'un chargeur a",
+    "regresse vers le DELETE ou l'UPDATE de tout — la cause du §62 — avant que le disque ne le dise.",
+    "",
+    "ROUGE (decision requise) : la base au-dela du seuil ; un chargement qui le franchira dans",
+    "`horizon_rouge_jours`, ou a une date inconnue ; la croissance qui l'atteint dans le meme delai.",
+    "SIGNAL (3, change sans decision) : un chargement qui le franchira plus loin — toujours, quelle",
+    "que soit la date, parce qu'un chargement qui franchira est une nouvelle ; la croissance qui",
+    "l'atteint dans `horizon_signal_jours` ; une table gonflee.",
+    "Le seuil est `part_du_plafond` du plafond, pas le plafond : les pics sont des estimations, et",
+    "le rapport entre la mesure Postgres et le tableau de bord n'est connu que par un releve.",
+    "",
+    "CE QUE CA NE RATTRAPE PAS. Le rapport Postgres / tableau de bord est un releve unique, pas une",
+    "loi : s'il derive, tous les chiffres derivent avec lui — le remesurer quand Ivan relit le",
+    "tableau de bord. Les pics sont estimes depuis la taille actuelle des tables, donc une source",
+    "qui GRANDIT entre deux chargements (un millesime SIRENE plus gros) n'apparait qu'au chargement",
+    "suivant. Et la projection ne suit que BODACC : une table qui grossirait par une autre voie se",
+    "verrait au seuil, pas avant."
+  ],
+
+  "plafond_mo_tableau_de_bord": 500,
+  "part_du_plafond": 0.9,
+
+  "rapport_tableau_de_bord": {
+    "valeur": 1.1018,
+    "_mesure": "433 Mo lus par Ivan sur le tableau de bord (Database Size) le 6 octobre 2026, contre 393 Mo rendus le meme jour par pg_size_pretty(pg_database_size()) — 433 / 393. Ecart non explique : garde comme marge plutot que suppose nul."
+  },
+
+  "horizon_rouge_jours": 30,
+  "horizon_signal_jours": 120,
+  "ratio_gonflement": 2,
+  "table_minimale_mo": 10,
+
+  "blocs": [
+    {
+      "nom": "sirene_stock",
+      "source": "sirene_stock",
+      "tables": ["sirene_etablissement_stock"],
+      "partition": "code_postal",
+      "facteur": 1,
+      "ajout_mo": 0,
+      "raison": "Un code postal a la fois depuis #239 : DELETE puis reinsertion du code postal, quartier pose a l'insertion, VACUUM avant le suivant. Une fois le plus gros code postal. Ce bras l'a impose : en bloc (TRUNCATE dans une transaction), il mesurait le pic a 514 Mo au tableau de bord le 6 octobre 2026, au-dela du plafond."
+    },
+    {
+      "nom": "sirene",
+      "source": "sirene",
+      "tables": ["sirene_establishment"],
+      "facteur": 2,
+      "ajout_mo": 0,
+      "raison": "TRUNCATE, plus une table temporaire de staging (stg_sirene) de la taille des donnees : deux fois la table avant le commit."
+    },
+    {
+      "nom": "bdcom",
+      "source": "bdcom",
+      "tables": ["premise_location", "premise_observation"],
+      "facteur": 1,
+      "ajout_mo": 44,
+      "raison": "Le recensement se recharge dans UNE transaction, staging compris. `ajout_mo` est le staging mesure plein le 6 octobre 2026 (stg_bdcom_od 34 Mo + stg_bdcom_2023 10 Mo), vide au repos depuis #239. Les tables promues comptent une fois : elles sont reecrites, pas doublees, sous l'hypothese la plus favorable — a remesurer au premier chargement BDCom apres #239."
+    },
+    {
+      "nom": "bodacc",
+      "source": "bodacc",
+      "tables": ["bodacc_announcement", "bodacc_establishment", "bodacc_judgment"],
+      "partition": "family, extract(year from published_on)",
+      "facteur": 2,
+      "ajout_mo": 0,
+      "raison": "Une annee d'une famille a la fois depuis #239 : DELETE puis reinsertion, puis rattachement des etablissements de l'annee, qui les reecrit une fois. Deux fois la plus grosse partition, rendues par le VACUUM qui suit."
+    }
+  ],
+
+  "_partition": "Un bloc qui porte `partition` se recharge morceau par morceau : son pic est la part du plus gros morceau — comptee sur la premiere table de `tables`, groupee par cette expression — appliquee a la taille de toutes ses tables. Sans `partition`, le bloc entier compte.",
+
+  "croissance": {
+    "table": "bodacc_announcement",
+    "date": "published_on",
+    "tables": ["bodacc_announcement", "bodacc_establishment", "bodacc_judgment"],
+    "jours": 28
+  }
+}
