@@ -3223,7 +3223,14 @@ fois les 85 410 locaux — idfm par la clé `ON DELETE SET NULL` puis son rattac
 sont dans #244. **Filosofi et idfm corrigés par #244 le 6 octobre 2026** : référentiel en
 *upsert*, rattachements calculés à part, un seul `UPDATE` des locaux qui changent — 0 sur 85 418
 pour l'un et l'autre, mesuré dans une transaction annulée ; `npm run disque` les remet à 431 et
-430 Mo, sous le seuil. Reste BDCom.
+430 Mo, sous le seuil. **BDCom corrigé par #244 le même jour**, sans découpage : ses quatre
+*upserts* de promotion réécrivaient sans condition tout le recensement à chaque passage ; ils ne
+réécrivent plus qu'une ligne qui change. `bdcom.ts --dry-run`, sur le vrai chargeur et les vraies
+données APUR, transaction annulée : 0 local et 0 relevé écrits. Le pic se réduit au staging
+(44 Mo). **Piège consigné** : une transaction annulée n'est pas gratuite — le premier essai à
+blanc a laissé 36 Mo de lignes mortes dans le staging et monté la base de 348 à 384 Mo, assez
+pour faire rougir deux pics de `npm run disque` ; le mode `--dry-run` fait désormais `VACUUM` et
+`REINDEX` du staging après l'annulation.
 
 **Ce que le découpage ne rattrape pas** — relevé par la revue de suivi de #243, le 6 octobre :
 un export BODACC vide pour une année est gardé tel quel, jamais lu comme un retrait ; une année

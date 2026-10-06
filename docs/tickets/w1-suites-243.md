@@ -26,4 +26,5 @@ Suites de la revue de #243 (`w1-chargeurs-gonflement`, #239), non bloquantes. Ch
 | --- | --- |
 | 6 — filosofi, idfm | **Fait le 6 octobre 2026.** Référentiel en *upsert*, rattachements calculés à part, un seul `UPDATE` des locaux qui changent, retrait des carreaux et stations disparus après le rattachement. Mesuré dans une transaction annulée : 0 rattachement différent sur 85 418, pour l'un et l'autre, distances IDFM comprises. `npm run disque` : filosofi 478 → 431 Mo, idfm 476 → 430 Mo. |
 | 6 — plu, terrasses, chantiers | À faire, même méthode. Sous le seuil aujourd'hui (415, 421, 389 Mo). |
-| 1 à 5 | À faire. **BDCom (4)** est le seul signal restant de `npm run disque` : 520 Mo le 5 janvier 2027. |
+| 4 — BDCom | **Fait le 6 octobre 2026, autrement que par découpage.** Le pic ne venait pas de la taille du recensement mais de ses quatre *upserts* de promotion, qui réécrivaient sans condition les 85 418 locaux (jusqu'à trois fois) et les 228 275 relevés. Chacun porte désormais un `where … is distinct from` sur exactement ce qu'il écrirait. Démontré sur le vrai chargeur par le nouveau `bdcom.ts --dry-run` (transaction annulée, nettoyage du staging ensuite) : 0 local et 0 relevé écrits pour les trois millésimes. Pic restant : le staging, 44 Mo. |
+| 1 à 3, 5 | À faire. |
