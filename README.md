@@ -30,8 +30,8 @@ Compass answers on six axes at once.
 
 | | |
 | --- | --- |
-| **What was here** | florist 2017 → florist 2020 → gone by 2023 |
-| **How the street behaves** | half the units turned over in three years — and the empty ones refilled |
+| **What was here** | 10 rue Mandar, 2e: an Asian restaurant in the 2023 census, and six goodwill sales at that street number since 2017 |
+| **How the street behaves** | turnover and survival by trade, measured across three censuses — withheld until the 2017 and 2020 licences are cleared |
 | **What it costs** | median *fonds* between 160 000 and 170 000 €, 220 000 € for a café |
 | **What is moving now** | an insolvency filed here is public months before any listing |
 | **What is around it** | schools, healthcare, food, parks and transit counted within **800 m**, aggregated into walkability |
@@ -49,7 +49,9 @@ Note the wording, because the product keeps it too: air quality is *measured*, n
 If a restaurant occupied the unit, the extraction, grease trap and power are probably already in. If not, creating them runs into tens of thousands and needs the building's agreement. The most expensive question this data answers — before you travel.
 
 **Is this a graveyard or a good street?**
-Rue d'Argout turned over half its shops in three years — but it also filled its three empty units. Churning upward, not dying. And turnover only means something against its own trade: of the cafés trading in 2017, **77% were still trading six years later around Les Halles, 56% in the quartier du Mail**. Same city, same trade, a different bet.
+A street that churns is not a street that dies: units can turn over and refill. And turnover only means something against its own trade, and against its own quartier — the same trade does not hold equally from one neighbourhood to the next. Compass measures both across three censuses.
+
+**Those figures are not printed here.** They rest on the 2017 and 2020 vintages, whose licence has not been cleared, and the server withholds them from an anonymous caller. This page follows the same rule as the product: a rate derived from a withheld vintage is withheld too.
 
 **What did people actually pay?**
 25 661 goodwill sales published with their price since 2015. For the 5 971 tied to a single shopfront, the median Paris *fonds* changes hands **between 160 000 and 170 000 €** — a range, not a point, because goodwill prices are declared in round numbers: the median sits on a step and moves in jumps, so a single figure would be precise about something the source is not. The trade decides almost everything.
@@ -57,6 +59,8 @@ Rue d'Argout turned over half its shops in three years — but it also filled it
 | Food shop | Café / restaurant | Clothing | Personal services |
 | --- | --- | --- | --- |
 | 250 000 € | 220 000 € | 86 000 € | 50 000 € |
+
+One address makes the point. At 10 rue Mandar, `trace_premise` returns six goodwill sales between 2017 and 2024, from 87 500 to 450 000 € — retrieved 7 October 2026. Each one is `probable`, not `established`: two shopfronts share that street number, and the notice does not say which was sold. The 2017 and 2020 census rows come back `withheld`, the 2023 one `established`.
 
 ---
 
