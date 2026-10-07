@@ -31,6 +31,10 @@ const SERVICE = "https://carto2.apur.org/apur/rest/services"
  * older layers use free text. That is why staging is split in two rather than
  * normalised on the way in.
  */
+// ADDING A VINTAGE HERE MEANS RE-PRICING THE `bdcom` BLOCK OF scripts/porte/disque.json IN THE
+// SAME CHANGE. A new vintage raises last_seen_vintage_id on most premises, so its first load
+// rewrites premise_location (~40 MB) on top of its own observations — a peak the block, which
+// counts the staging only, does not include. Review of #246.
 const LAYERS = {
   2017: { url: `${SERVICE}/OPENDATA/BDCOM_OD/MapServer/0`, shape: "od", pageSize: 2000 },
   2020: { url: `${SERVICE}/OPENDATA/BDCOM_OD/MapServer/1`, shape: "od", pageSize: 2000 },
@@ -76,11 +80,8 @@ async function loadStaging(client: Client, vintage: Vintage): Promise<number> {
   const layer = LAYERS[vintage]
   const table = layer.shape === "od" ? "public.stg_bdcom_od" : "public.stg_bdcom_2023"
 
-  if (layer.shape === "od") {
-    await client.query("delete from public.stg_bdcom_od where vintage_id = $1", [vintage])
-  } else {
-    await client.query("truncate public.stg_bdcom_2023")
-  }
+  // No clearing here any more: main() truncates both staging tables once, inside the
+  // transaction, before the first vintage — see the comment there.
 
   let written = 0
   for await (const page of queryPages<Record<string, unknown>>(layer.url, {
@@ -268,10 +269,51 @@ const GEOM_WINS = `excluded.geom is not null
         and (excluded.geom_vintage_id = ${CANONICAL_GEOM_VINTAGE}
              or public.premise_location.geom is null)`
 
-async function promoteOd(client: Client, vintage: 2017 | 2020): Promise<void> {
+/**
+ * What a promotion writes on a premise that already exists — and the WHERE that writes it only
+ * when one of those values actually changes. #244, DIAGNOSTIC-CORRIGES.md §62.
+ *
+ * The four upserts below used to `do update` unconditionally: a reload rewrote every premise
+ * once per vintage loaded — up to three times — and every observation once, for a census that
+ * had not changed. `npm run disque` priced the 5 January 2027 reload at ~520 MB against a
+ * 450 MB threshold. Postgres skips the row entirely when the WHERE is false: no new version,
+ * no index entry. The expressions are written once here so the comparison is, by construction,
+ * against exactly what would be written.
+ */
+const LOCATION_NEW = {
+  first: "least(public.premise_location.first_seen_vintage_id, excluded.first_seen_vintage_id)",
+  last: "greatest(public.premise_location.last_seen_vintage_id, excluded.last_seen_vintage_id)",
+  geom: `case when ${GEOM_WINS} then excluded.geom else public.premise_location.geom end`,
+  geomVintage: `case when ${GEOM_WINS} then excluded.geom_vintage_id else public.premise_location.geom_vintage_id end`,
+}
+const LOCATION_UPDATE = `
+      first_seen_vintage_id = ${LOCATION_NEW.first},
+      last_seen_vintage_id  = ${LOCATION_NEW.last},
+      geom                  = ${LOCATION_NEW.geom},
+      geom_vintage_id       = ${LOCATION_NEW.geomVintage}
+    where (public.premise_location.first_seen_vintage_id, public.premise_location.last_seen_vintage_id,
+           ST_AsBinary(public.premise_location.geom), public.premise_location.geom_vintage_id)
+          is distinct from
+          (${LOCATION_NEW.first}, ${LOCATION_NEW.last},
+           ST_AsBinary(${LOCATION_NEW.geom}), ${LOCATION_NEW.geomVintage})`
+
+/** The same rule for an observation: rewritten only when a column it carries differs. */
+const observationUpdate = (columns: string[]): string => `
+      ${columns.map((c) => `${c} = excluded.${c}`).join(",\n      ")}
+    where (${columns.map((c) => `public.premise_observation.${c}`).join(", ")})
+          is distinct from
+          (${columns.map((c) => `excluded.${c}`).join(", ")})`
+
+/** Rows an upsert actually wrote — inserted or changed. A row its WHERE skipped is not counted. */
+interface Written {
+  locations: number
+  observations: number
+}
+
+async function promoteOd(client: Client, vintage: 2017 | 2020): Promise<Written> {
   const key = ADDRESS_KEY("s.arrondissement", "s.num", "s.let", "s.type_voie", "s.libelle_voie")
 
-  await client.query(
+  const locations = await client.query(
     `
     insert into public.premise_location
       (ordre, geom, geom_vintage_id, arrondissement, num, let, typ_voie, lib_voie,
@@ -285,18 +327,12 @@ async function promoteOd(client: Client, vintage: 2017 | 2020): Promise<void> {
            nullif(s.cc_id, '0')::integer, $1, $1
     from public.stg_bdcom_od s
     where s.vintage_id = $1
-    on conflict (ordre, address_key) do update set
-      first_seen_vintage_id = least(public.premise_location.first_seen_vintage_id, excluded.first_seen_vintage_id),
-      last_seen_vintage_id  = greatest(public.premise_location.last_seen_vintage_id, excluded.last_seen_vintage_id),
-      geom = case when ${GEOM_WINS}
-                  then excluded.geom else public.premise_location.geom end,
-      geom_vintage_id = case when ${GEOM_WINS}
-                  then excluded.geom_vintage_id else public.premise_location.geom_vintage_id end
+    on conflict (ordre, address_key) do update set ${LOCATION_UPDATE}
     `,
     [vintage, SOURCE_SRID],
   )
 
-  await client.query(
+  const observations = await client.query(
     `
     insert into public.premise_observation
       (location_id, vintage_id, source_ordre, activity_code, size_band,
@@ -322,26 +358,22 @@ async function promoteOd(client: Client, vintage: 2017 | 2020): Promise<void> {
     left join public.bdcom_size_band sb on sb.label_source = s.surface
     left join public.bdcom_situation st on st.label_source = s.situation
     where s.vintage_id = $1
-    on conflict (vintage_id, source_ordre) do update set
-      location_id    = excluded.location_id,
-      activity_code  = excluded.activity_code,
-      size_band      = excluded.size_band,
-      situation_code = excluded.situation_code,
-      is_bio         = excluded.is_bio,
-      cc_id          = excluded.cc_id,
-      cc_level       = excluded.cc_level,
-      -- Recomputed, not preserved: on a partial reload the earlier value was
-      -- derived from whichever vintages happened to be loaded at the time.
-      match_method   = excluded.match_method
+    -- match_method is recomputed, not preserved: on a partial reload the earlier value was
+    -- derived from whichever vintages happened to be loaded at the time.
+    on conflict (vintage_id, source_ordre) do update set ${observationUpdate([
+      "location_id", "activity_code", "size_band", "situation_code", "is_bio", "cc_id", "cc_level",
+      "match_method",
+    ])}
     `,
     [vintage],
   )
+  return { locations: locations.rowCount ?? 0, observations: observations.rowCount ?? 0 }
 }
 
-async function promote2023(client: Client): Promise<void> {
+async function promote2023(client: Client): Promise<Written> {
   const key = ADDRESS_KEY("s.arro", "s.num", "s.let", "s.typ_voie", "s.lib_voie")
 
-  await client.query(
+  const locations = await client.query(
     `
     insert into public.premise_location
       (ordre, geom, geom_vintage_id, arrondissement, num, let, typ_voie, lib_voie,
@@ -354,21 +386,15 @@ async function promote2023(client: Client): Promise<void> {
            nullif(trim(s.let), ''), nullif(trim(s.typ_voie), ''), nullif(trim(s.lib_voie), ''),
            nullif(s.cc_id, 0), 2023, 2023
     from public.stg_bdcom_2023 s
-    on conflict (ordre, address_key) do update set
-      first_seen_vintage_id = least(public.premise_location.first_seen_vintage_id, excluded.first_seen_vintage_id),
-      last_seen_vintage_id  = greatest(public.premise_location.last_seen_vintage_id, excluded.last_seen_vintage_id),
-      -- Same rule as promoteOd, and it is the half 2023 never had: this branch
-      -- used to leave geom alone unconditionally, which is right against a
-      -- canonical point and wrong against no point at all (#68).
-      geom = case when ${GEOM_WINS}
-                  then excluded.geom else public.premise_location.geom end,
-      geom_vintage_id = case when ${GEOM_WINS}
-                  then excluded.geom_vintage_id else public.premise_location.geom_vintage_id end
+    -- Same rule as promoteOd, and it is the half 2023 never had: this branch used to leave
+    -- geom alone unconditionally, which is right against a canonical point and wrong against
+    -- no point at all (#68).
+    on conflict (ordre, address_key) do update set ${LOCATION_UPDATE}
     `,
     [SOURCE_SRID],
   )
 
-  await client.query(`
+  const observations = await client.query(`
     insert into public.premise_observation
       (location_id, vintage_id, source_ordre, activity_code, size_band,
        situation_code, sign_name, is_bio, cc_id, cc_level, match_method)
@@ -386,17 +412,12 @@ async function promote2023(client: Client): Promise<void> {
     join public.premise_location l
       on l.ordre = s.c_ord and l.address_key = (${key})
     left join public.bdcom_activity a on a.code = upper(trim(s.codact))
-    on conflict (vintage_id, source_ordre) do update set
-      location_id    = excluded.location_id,
-      activity_code  = excluded.activity_code,
-      size_band      = excluded.size_band,
-      situation_code = excluded.situation_code,
-      sign_name      = excluded.sign_name,
-      is_bio         = excluded.is_bio,
-      cc_id          = excluded.cc_id,
-      cc_level       = excluded.cc_level,
-      match_method   = excluded.match_method
+    on conflict (vintage_id, source_ordre) do update set ${observationUpdate([
+      "location_id", "activity_code", "size_band", "situation_code", "sign_name", "is_bio", "cc_id",
+      "cc_level", "match_method",
+    ])}
   `)
+  return { locations: locations.rowCount ?? 0, observations: observations.rowCount ?? 0 }
 }
 
 /**
@@ -434,8 +455,28 @@ async function assertComplete(client: Client, vintage: Vintage): Promise<void> {
 
 // ---------------------------------------------------------------------------
 
+/**
+ * Sentinel for --dry-run: the whole load runs — download, staging, promotions, the row-level
+ * check — and is rolled back. Added by #244 to MEASURE what a reload writes on the real loader,
+ * not on a copy of its SQL. Its own cost: the staging fills inside the transaction, ~44 MB until
+ * the rollback — and nothing after it, because the staging is emptied by TRUNCATE at the head of
+ * the transaction (see main), whose rollback discards the new files whole. If it finds rows to
+ * write, the counts say how many; it does not say how much room they would take.
+ *
+ *   npx.cmd tsx scripts/ingest/bdcom.ts --dry-run
+ */
+class DryRunComplete extends Error {}
+
 async function main(): Promise<void> {
-  const requested = process.argv.slice(2).map(Number).filter(Boolean) as Vintage[]
+  // An unknown option is refused, never ignored: a mistyped `--dryrun` would otherwise run a
+  // REAL load against the remote. Review of #246.
+  const options = process.argv.slice(2).filter((a) => a.startsWith("-"))
+  const unknown = options.filter((a) => a !== "--dry-run")
+  if (unknown.length > 0) {
+    throw new Error(`option inconnue : ${unknown.join(", ")} (seule --dry-run existe)`)
+  }
+  const dryRun = options.includes("--dry-run")
+  const requested = process.argv.slice(2).filter((a) => !a.startsWith("-")).map(Number).filter(Boolean) as Vintage[]
   const vintages = (requested.length ? requested : [2017, 2020, 2023]) as Vintage[]
   for (const v of vintages) {
     if (!(v in LAYERS)) throw new Error(`millésime inconnu : ${v} (connus : 2017, 2020, 2023)`)
@@ -449,6 +490,15 @@ async function main(): Promise<void> {
     // because nothing downstream can tell the difference between "not there" and
     // "not loaded yet".
     await inTransaction(client, async () => {
+      // Both staging tables emptied ONCE, inside the transaction, before the first vintage.
+      // TRUNCATE rather than DELETE, for what a rollback leaves behind: a DELETE then INSERT
+      // that rolls back leaves every inserted row as a dead tuple — measured 6 October 2026,
+      // a rolled-back dry run left 36 MB in stg_bdcom_od and took the base from 348 to 384 MB.
+      // A rolled-back TRUNCATE discards the new file whole, so a failed load or a dry run costs
+      // nothing once it is over. The staging is empty at rest since #239, so emptying it here
+      // loses nothing, even on a partial run that loads one vintage. Review of #246.
+      await client.query("truncate public.stg_bdcom_od, public.stg_bdcom_2023")
+
       for (const vintage of vintages) {
         log(`millésime ${vintage}`)
         const rows = await loadStaging(client, vintage)
@@ -467,8 +517,8 @@ async function main(): Promise<void> {
       // appears in" rather than "first one we happened to load".
       for (const vintage of [...vintages].sort()) {
         log(`promotion ${vintage}`)
-        if (vintage === 2023) await promote2023(client)
-        else await promoteOd(client, vintage)
+        const written = vintage === 2023 ? await promote2023(client) : await promoteOd(client, vintage)
+        log(`  ${vintage} écrits`, `${written.locations} locaux, ${written.observations} relevés (insérés ou changés)`)
         await assertComplete(client, vintage)
       }
 
@@ -526,6 +576,10 @@ async function main(): Promise<void> {
       // The staging tables only serve the promotion above, and held 44 MB at rest on a project
       // that turns read-only at 500 MB. TRUNCATE gives the files back at commit.
       await client.query("truncate public.stg_bdcom_od, public.stg_bdcom_2023")
+
+      // Thrown from inside, so inTransaction rolls the whole load back: the real loader ran,
+      // every count above is what it would have written, and nothing is kept.
+      if (dryRun) throw new DryRunComplete()
     })
 
     const summary = await client.query<{ year: number; locations: string; observations: string }>(`
@@ -558,6 +612,10 @@ async function main(): Promise<void> {
 }
 
 main().catch((error) => {
+  if (error instanceof DryRunComplete) {
+    log("ESSAI — tout est annulé, rien n'est écrit")
+    return
+  }
   log("ÉCHEC", error instanceof Error ? error.message : String(error))
   process.exitCode = 1
 })

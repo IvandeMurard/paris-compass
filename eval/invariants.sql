@@ -2014,10 +2014,12 @@ limit 20;
 -- L'ÉTAT VIDE EST ATTEIGNABLE SANS QUE LE CHARGEMENT ÉCHOUE, même mécanisme que
 -- I49 pour IDFM : loadGrid faisait `delete from filosofi_grid_200m` puis bouclait
 -- sur les lignes lues — depuis #244 il fait un upsert puis retire les carreaux
--- absents du lot, ce qui sur un lot vide videait tout de la même façon ; un champ renommé en amont (`idcar_200m`, `ind`, `ind_snv`,
--- ou la structure `bbox` elle-même) ferait échouer readParisCandidates avant le
--- delete OU rendrait un tableau vide que refuseLotVide attrape avant le delete —
--- mais un DELETE fait à la main sur le distant (psql, la console Supabase) ne
+-- absents du lot, ce qui sur un lot vide viderait tout de la même façon. Un
+-- champ renommé en amont (`idcar_200m`, `ind`, `ind_snv`, ou la structure `bbox`
+-- elle-même) ferait échouer readParisCandidates avant tout écrit, OU rendrait
+-- un lot vide que refuseLotVide refuse — avant tout écrit, et une seconde fois
+-- après le recoupement par quartiers, qui pourrait vider un lot non vide
+-- (revue de #245). Mais un DELETE fait à la main sur le distant (psql, la console Supabase) ne
 -- passe par aucun des deux, vide la table, efface tous les rattachements via
 -- `on delete set null`, et rien dans scripts/ingest/filosofi.ts ne le voit
 -- passer. C'est CET invariant qui rougit alors, quel que soit le chemin.
