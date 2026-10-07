@@ -178,7 +178,7 @@ Honest labels, in the sense that *built* means the code runs and the gate passes
 | Deployed to the hosted database | **Live since 15 August 2026** — read anonymously with the publishable key |
 | Premise history in the browser — BDCom ×3 and BODACC on one timeline | **Built** — demonstrated against the hosted database in a dev browser, not in the demo. [`docs/tickets/w0-fiche.md`](docs/tickets/w0-fiche.md) |
 | Exportable one-address file | **Design, next up** |
-| MCP server for agents | **Published and listed** — `npx -y paris-compass-mcp` ([npm](https://www.npmjs.com/package/paris-compass-mcp), [MCP registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.IvandeMurard/paris-compass-mcp)), six tools, anonymous read-only, nothing to configure. Published version is `0.1.2`; `main` is ahead of it |
+| MCP server for agents | **Published and listed** — `npx -y paris-compass-mcp` ([npm](https://www.npmjs.com/package/paris-compass-mcp), [MCP registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.IvandeMurard/paris-compass-mcp)), six tools, anonymous read-only, nothing to configure. |
 | Agent self-assessment of its own confidence | Research |
 
 ---
