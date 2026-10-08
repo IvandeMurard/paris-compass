@@ -79,10 +79,10 @@
         "bodacc_establishment",
         "bodacc_judgment"
       ],
-      "partition": "family, extract(year from published_on)",
+      "partition": "family, date_trunc('month', published_on)",
       "facteur": 3,
       "ajout_mo": 0,
-      "raison": "Une annee d'une famille a la fois depuis #239 : DELETE puis reinsertion, puis rattachement des etablissements de l'annee, puis leur confirmation SIRENE, dans la meme transaction — chaque etape reecrit une partie des etablissements. Trois fois la plus grosse partition, majorant, rendues par le VACUUM qui suit. La revue de #243 avait trouve la confirmation hors du compte : elle reecrivait 85 005 lignes sur 158 285 chaque nuit, sans VACUUM derriere."
+      "raison": "Un mois d'une famille a la fois depuis le 8 octobre 2026 (l'annee depuis #239) : DELETE puis reinsertion, rattachement des etablissements du mois, puis leur confirmation SIRENE, dans la meme transaction — trois ecritures par partition, majorant, rendues par le VACUUM qui suit. Pourquoi le mois : par annee, la place de travail restait dans les fichiers — mesure des deux premiers vrais passages, base 351 -> 394 Mo le 7 octobre puis 392 le 8, ~40 Mo permanents dans les trois tables BODACC (#239). Cette place est REUTILISABLE par BODACC, donc ce pic la surestime en regime etabli ; elle ne l'est pas par les autres chargements, d'ou le mois. La revue de #243 avait trouve la confirmation hors du compte : elle reecrivait 85 005 lignes sur 158 285 chaque nuit, sans VACUUM derriere."
     },
     {
       "nom": "terrasses",
