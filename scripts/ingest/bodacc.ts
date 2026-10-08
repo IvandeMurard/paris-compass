@@ -192,11 +192,11 @@ async function loadYear(client: Client, family: Family, year: number): Promise<n
   // and its old notices must go, exactly as the year-wide delete removed them before.
   for (let month = 1; month <= 12; month += 1) {
     const part = byMonth.get(month) ?? []
-    await inTransaction(client, async () => {
+    const removed = await inTransaction(client, async () => {
       // The month's previous version, then any notice of this month that sits under another
       // date — a re-dated notice would otherwise survive in its old month, twice. Cascades to
       // bodacc_establishment and bodacc_judgment.
-      await client.query(
+      const deleted = await client.query(
         `delete from public.bodacc_announcement
           where (family = $1 and published_on >= make_date($2, $3, 1)
                              and published_on < make_date($2, $3, 1) + interval '1 month')
@@ -204,8 +204,17 @@ async function loadYear(client: Client, family: Family, year: number): Promise<n
         [family, year, month, part.map((n) => n.id)],
       )
       if (part.length > 0) await writeNotices(client, family, part)
+      return deleted.rowCount ?? 0
     })
-    await client.query("vacuum public.bodacc_announcement, public.bodacc_establishment, public.bodacc_judgment")
+    // Only after a month that actually removed rows: there is nothing to hand back otherwise —
+    // the months still to come in the current year, the months DILA published nothing in. Every
+    // past month with notices is re-replaced daily, so this still means ~250 VACUUMs a run
+    // instead of the year loader's 22. Each scans the indexes that hold dead entries, so the run
+    // is expected to take longer than its 7 minutes of 8 October 2026 — measured at the first
+    // run after this change, and the reason to batch months (a quarter, say) if it costs too much.
+    if (removed > 0) {
+      await client.query("vacuum public.bodacc_announcement, public.bodacc_establishment, public.bodacc_judgment")
+    }
   }
   return notices.length
 }
