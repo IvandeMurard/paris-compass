@@ -3245,11 +3245,21 @@ la base passe de 351 à 394 Mo, tous dans les trois tables BODACC (+16 Mo de tas
 d'index) ; le 8, elle reste à 392 Mo. Ce n'est donc pas un gonflement qui s'accumule, mais la
 place de travail du plus gros morceau remplacé — une année —, rendue réutilisable par le `VACUUM`
 mais gardée dans les fichiers : ~40 Mo permanents. BODACC la réutilise ; SIRENE, rechargé par
-`TRUNCATE` dans un nouveau fichier, ne le peut pas, et son pic du 9 octobre passait le seuil de
-`npm run disque` (465 Mo). **Corrigé le 8 octobre** : BODACC se remplace par **mois** (le
-téléchargement reste par année), et un `VACUUM FULL` unique des trois tables, accordé par Ivan
-après sauvegarde, rend la place gardée. Un `VACUUM FULL` périodique a été écarté : la place
-revient dès le passage suivant, et lui-même écrit une copie complète de la table.
+`TRUNCATE` dans un nouveau fichier, ne le peut pas : pour son passage du 9 octobre,
+`npm run disque` projette 465 Mo au tableau de bord (une projection du modèle, pas une mesure),
+au-delà de son seuil de 450. Passages mesurés : runs 37606875095 (7 octobre) et 37765146737
+(8 octobre). **Correctif du 8 octobre** : BODACC se remplace par **mois** (le téléchargement reste
+par année). Un `VACUUM FULL` unique des trois tables, accordé par Ivan le même jour, doit rendre
+la place gardée — **suspendu au 8 octobre** : la sauvegarde préalable n'a pas abouti (Docker
+Desktop bloqué). Tant qu'il n'est pas fait, les ~40 Mo restent dans les fichiers et le rouge
+SIRENE de `disque` reste réel. Un `VACUUM FULL` périodique a été écarté : la place revient dès le
+passage suivant, et lui-même écrit une copie complète de la table. **Limites relevées par la
+revue de #253** : un mois passé absent d'un export non vide est vidé jusqu'au lendemain (aucun
+mois vide depuis 2015 au 8 octobre : ce serait une panne du portail) ; un avis re-daté vers un mois
+plus tardif est absent entre deux commits ; et la `partition` du bloc `bodacc` de `disque.json`
+recopie à la main l'unité du chargeur, sans que rien ne les lie (#244). Le régime établi est
+démontré pour le tas, pas encore pour les index (l'index géographique est passé de 19 à 21 Mo
+entre les passages du 7 et du 8).
 
 **Ce que le découpage ne rattrape pas** — relevé par la revue de suivi de #243, le 6 octobre :
 un export BODACC vide pour une année est gardé tel quel, jamais lu comme un retrait ; une année

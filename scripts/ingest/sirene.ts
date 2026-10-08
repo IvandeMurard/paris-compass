@@ -6,7 +6,7 @@
 //
 // Run after bodacc.ts: the SIREN to load are read from the notices already
 // stored, and the confirmation step needs their addresses. Since #239 bodacc.ts confirms each
-// year inside its own transaction (lib/confirm.ts); the daily job still chains --confirm-only
+// month inside its own transaction (lib/confirm.ts); the daily job still chains --confirm-only
 // behind it as a safety net, which writes nothing on an ordinary night.
 //
 // --dry-run exists because a change of vintage moves the confirmations, and the confirmations
@@ -172,8 +172,8 @@ async function confirm(client: Client): Promise<void> {
  * evaluation gate fell from 3 147 `corrobore` levels to zero — 5.92 points of the
  * established+corroborated composition, which is the project's headline quality metric.
  *
- * Since #239 (6 October 2026) bodacc.ts confirms each year inside the transaction that writes
- * it, so a reload no longer leaves verdicts behind, and this step, still chained after it, is a
+ * Since #239 (6 October 2026) bodacc.ts confirms each piece it replaces — a month since
+ * 8 October — inside the transaction that writes it, so a reload no longer leaves verdicts behind, and this step, still chained after it, is a
  * safety net that writes nothing on an ordinary day — it only rewrites verdicts that changed.
  * It remains the way to replay confirmation by hand. Confirmation reads only
  * sirene_establishment, which a BODACC reload does not touch, so there is no reason to re-read

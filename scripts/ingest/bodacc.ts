@@ -190,6 +190,12 @@ async function loadYear(client: Client, family: Family, year: number): Promise<n
   // EVERY month of the year, including those this export returns empty: the year is not empty
   // (checked above), so an empty month is DILA having nothing — or having withdrawn what it had —
   // and its old notices must go, exactly as the year-wide delete removed them before.
+  //
+  // What this does NOT catch, from the review of #253. (1) A PAST month missing from a non-empty
+  // export is emptied until the next run — measured 8 October 2026, no family-month since 2015
+  // is empty, so a missing one is a portal fault, not a withdrawal; the year-wide delete had the
+  // same effect. (2) A notice re-dated into a LATER month is absent between the two commits, and
+  // until the next run if the run breaks in between — the year-wide replacement was atomic.
   for (let month = 1; month <= 12; month += 1) {
     const part = byMonth.get(month) ?? []
     const removed = await inTransaction(client, async () => {
@@ -208,10 +214,12 @@ async function loadYear(client: Client, family: Family, year: number): Promise<n
     })
     // Only after a month that actually removed rows: there is nothing to hand back otherwise —
     // the months still to come in the current year, the months DILA published nothing in. Every
-    // past month with notices is re-replaced daily, so this still means ~250 VACUUMs a run
-    // instead of the year loader's 22. Each scans the indexes that hold dead entries, so the run
-    // is expected to take longer than its 7 minutes of 8 October 2026 — measured at the first
-    // run after this change, and the reason to batch months (a quarter, say) if it costs too much.
+    // past month with notices is re-replaced daily, so this still means 284 VACUUMs a run (2 ×
+    // 142 non-empty family-months, 2015 to October 2026, none empty — measured 8 October 2026)
+    // instead of the year loader's 24. Each scans the indexes that hold dead entries: the review
+    // of #253 read 0,75 to 2 s per table on the 8 October run, so the run should grow by 5 to
+    // 14 minutes from its 6 min 51 — far from the job's 60 min timeout. To be measured at the
+    // first run, and the reason to batch months (a quarter, say) if it costs too much.
     if (removed > 0) {
       await client.query("vacuum public.bodacc_announcement, public.bodacc_establishment, public.bodacc_judgment")
     }
@@ -323,9 +331,9 @@ async function writeNotices(client: Client, family: Family, notices: Announcemen
   )
   const ids = notices.map((n) => n.id)
   await attach(client, ids)
-  // In the year's own transaction: the year commits WITH its SIRENE verdicts. Left to the
+  // In the month's own transaction: the month commits WITH its SIRENE verdicts. Left to the
   // chained `sirene.ts --confirm-only`, every reloaded row stood unconfirmed until that step ran,
-  // and a run broken halfway left the finished years without them — the review of #243.
+  // and a run broken halfway left the finished months without them — the review of #243.
   await confirmOperators(client, ids)
 }
 
