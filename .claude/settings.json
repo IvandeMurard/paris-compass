@@ -1,4 +1,7 @@
 {
+  "env": {
+    "TZ": "Europe/Paris"
+  },
   "hooks": {
     "PreToolUse": [
       {
