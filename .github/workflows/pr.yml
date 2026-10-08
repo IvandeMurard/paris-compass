@@ -61,7 +61,7 @@ jobs:
       # Ce que ça ne rattrape pas : le contrôle compare les épingles ENTRE ELLES, jamais à ce
       # qu'un coureur installe vraiment, ni à ce que le champ `engines` d'une dépendance exige —
       # c'est pourtant `engines` de jsdom qui avait révélé le problème une première fois.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
