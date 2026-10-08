@@ -3240,6 +3240,17 @@ dans la même PR ; et une source corrigée, ou une montée de PostGIS/PROJ qui d
 au binaire près, réécrirait ~40 Mo pour ~15 Mo de marge. `bdcom.ts --dry-run` compte les lignes
 qui changeraient avant qu'elles ne soient écrites.
 
+**Le régime établi, mesuré sur les deux premiers vrais passages BODACC** (#239). Le 7 octobre,
+la base passe de 351 à 394 Mo, tous dans les trois tables BODACC (+16 Mo de tas, +27 Mo
+d'index) ; le 8, elle reste à 392 Mo. Ce n'est donc pas un gonflement qui s'accumule, mais la
+place de travail du plus gros morceau remplacé — une année —, rendue réutilisable par le `VACUUM`
+mais gardée dans les fichiers : ~40 Mo permanents. BODACC la réutilise ; SIRENE, rechargé par
+`TRUNCATE` dans un nouveau fichier, ne le peut pas, et son pic du 9 octobre passait le seuil de
+`npm run disque` (465 Mo). **Corrigé le 8 octobre** : BODACC se remplace par **mois** (le
+téléchargement reste par année), et un `VACUUM FULL` unique des trois tables, accordé par Ivan
+après sauvegarde, rend la place gardée. Un `VACUUM FULL` périodique a été écarté : la place
+revient dès le passage suivant, et lui-même écrit une copie complète de la table.
+
 **Ce que le découpage ne rattrape pas** — relevé par la revue de suivi de #243, le 6 octobre :
 un export BODACC vide pour une année est gardé tel quel, jamais lu comme un retrait ; une année
 sortie de la plage chargée (avant `DEFAULT_SINCE`) n'est jamais purgée ; et un rechargement du

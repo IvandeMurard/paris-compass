@@ -145,17 +145,26 @@ interface Person {
 }
 
 /**
- * Replaces ONE year of ONE family, in its own short transaction. The notices are fetched
- * before it opens, so the transaction holds nothing but writes.
+ * Replaces ONE year of ONE family, a MONTH at a time: the year is fetched once, before any
+ * transaction opens, then each month is replaced in its own short transaction and followed by a
+ * plain VACUUM — so the transactions hold nothing but writes.
  *
- * Why a year at a time — #239, DIAGNOSTIC-CORRIGES.md §62. The load used to delete every
+ * Why a month and not the year — #239, measured on the two first real runs. Replacing a year at a
+ * time held the peak, but left its working room in the files for good: the 7 October run took
+ * the base from 351 to 394 MB, the 8 October run left it at 392 — a steady ~40 MB of reusable
+ * space in the three BODACC tables (heap and indexes), about the size of the largest year. Under
+ * a 500 MB ceiling that space is not free: it pushed SIRENE's Friday reload, which cannot reuse
+ * it, past the 450 MB threshold of `npm run disque`. The working room is the largest piece
+ * replaced; a month is about a twelfth of a year.
+ *
+ * Why piece by piece at all — #239, DIAGNOSTIC-CORRIGES.md §62. The load used to delete every
  * notice and rewrite 165 000 rows in one transaction of four and a half minutes, then UPDATE
  * every establishment to give it a position. Each daily run left the three tables at twice
  * their size, and the reload itself needed room for the old rows and the new ones at once:
  * +128 MB at the peak, measured 6 October 2026, on a project that turns read-only at 500 MB.
- * One year is about a twelfth of that, and the plain VACUUM the caller runs between two years
- * hands the space back for the next one to reuse. Readers are never blocked: DELETE, not
- * TRUNCATE, so they keep seeing the previous version of a year until its transaction commits.
+ * The plain VACUUM after each month hands the space back for the next one to reuse. Readers
+ * are never blocked: DELETE, not TRUNCATE, so they keep seeing the previous version of a month
+ * until its transaction commits.
  *
  * Everything is still re-read every day, so a correction or a withdrawal by DILA reaches the
  * base as it did before.
@@ -170,19 +179,35 @@ async function loadYear(client: Client, family: Family, year: number): Promise<n
   // are written per notice, so a repeated id would duplicate them.
   const notices = [...new Map(fetched.map((n) => [n.id, n])).values()]
 
-  return inTransaction(client, async () => {
-    // The year's previous version, then any notice of this export that sits under another
-    // date — a re-dated notice would otherwise survive in its old year, twice. Cascades to
-    // bodacc_establishment and bodacc_judgment.
-    await client.query(
-      `delete from public.bodacc_announcement
-        where (family = $1 and published_on >= make_date($2, 1, 1) and published_on < make_date($2 + 1, 1, 1))
-           or id = any($3::text[])`,
-      [family, year, notices.map((n) => n.id)],
-    )
-    await writeNotices(client, family, notices)
-    return notices.length
-  })
+  const byMonth = new Map<number, Announcement[]>()
+  for (const n of notices) {
+    const month = Number(String(n.dateparution).slice(5, 7))
+    if (!(month >= 1 && month <= 12)) throw new Error(`BODACC ${family} ${year} : date illisible « ${n.dateparution} »`)
+    if (!byMonth.has(month)) byMonth.set(month, [])
+    byMonth.get(month)!.push(n)
+  }
+
+  // EVERY month of the year, including those this export returns empty: the year is not empty
+  // (checked above), so an empty month is DILA having nothing — or having withdrawn what it had —
+  // and its old notices must go, exactly as the year-wide delete removed them before.
+  for (let month = 1; month <= 12; month += 1) {
+    const part = byMonth.get(month) ?? []
+    await inTransaction(client, async () => {
+      // The month's previous version, then any notice of this month that sits under another
+      // date — a re-dated notice would otherwise survive in its old month, twice. Cascades to
+      // bodacc_establishment and bodacc_judgment.
+      await client.query(
+        `delete from public.bodacc_announcement
+          where (family = $1 and published_on >= make_date($2, $3, 1)
+                             and published_on < make_date($2, $3, 1) + interval '1 month')
+             or id = any($4::text[])`,
+        [family, year, month, part.map((n) => n.id)],
+      )
+      if (part.length > 0) await writeNotices(client, family, part)
+    })
+    await client.query("vacuum public.bodacc_announcement, public.bodacc_establishment, public.bodacc_judgment")
+  }
+  return notices.length
 }
 
 async function writeNotices(client: Client, family: Family, notices: Announcement[]): Promise<void> {
@@ -341,7 +366,7 @@ async function main(): Promise<void> {
 
     // Every year is still re-read, so a correction or a withdrawal by DILA reaches the base —
     // the reason the load was rebuilt wholesale. What changed is the unit of replacement: a
-    // year, in its own transaction, with a plain VACUUM after it so the next year reuses the
+    // month, in its own transaction, with a plain VACUUM after it so the next month reuses the
     // space instead of growing the files. See loadYear.
     const thisYear = new Date().getFullYear()
     let skipped = 0
@@ -354,10 +379,7 @@ async function main(): Promise<void> {
           log(`  ${family} ${year}`, "aucune annonce rendue — l'année en base est gardée telle quelle")
           continue
         }
-        await client.query(
-          "vacuum public.bodacc_announcement, public.bodacc_establishment, public.bodacc_judgment",
-        )
-        log(`  ${family} ${year}`, `${written} annonces`)
+        log(`  ${family} ${year}`, `${written} annonces, remplacées mois par mois`)
       }
     }
     if (skipped > 0) log("années non rendues par le portail", String(skipped))
