@@ -1,0 +1,106 @@
+# Publie au registre MCP les métadonnées de mcp-server/server.json, à la main et seulement là.
+#
+# Pourquoi sur GitHub et pas sur le poste : le 9 octobre 2026, Smart App Control a bloqué
+# `mcp-publisher.exe` v1.8.1 (« une stratégie de contrôle d'application a bloqué ce fichier »),
+# le même binaire qui avait publié les versions 0.1.2 et 0.1.3. Ce verdict change sans préavis,
+# et il n'y a pas d'exception par fichier à accorder : voir docs/REPRISE-PIEGES.md pour SWC. Ce
+# coureur-ci n'a pas Smart App Control, et l'authentification passe par OIDC, sans secret à
+# stocker ni jeton à manipuler.
+#
+# Ce qu'il ne fait PAS, et c'est voulu : publier sur npm. Cette publication reste manuelle
+# (mcp-server/PUBLISHING.md §3), parce qu'elle exige le second facteur du compte npm et qu'un
+# jeton npm en secret de dépôt public serait une chose de plus à protéger. Le registre ne fait
+# que pointer vers npm : ce workflow refuse donc de partir si npm ne sert pas encore la version
+# que server.json annonce.
+#
+# Pas de `push`, pas de `pull_request`, pas de `schedule` : seul quelqu'un qui a les droits
+# d'écriture sur le dépôt peut lancer `workflow_dispatch`, et ce jeton OIDC ne peut publier que
+# sous l'espace de noms io.github.IvandeMurard.
+
+name: Publier au registre MCP
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: registre-mcp
+  cancel-in-progress: false
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      # Épinglé avec son empreinte, recopiée de registry_1.8.1_checksums.txt de la publication
+      # v1.8.1 le 9 octobre 2026. Un « latest » téléchargé dans un job qui détient un jeton de
+      # publication exécuterait ce que la publication du jour contient. Une montée se fait ici,
+      # empreinte comprise. « invalid audience » à la connexion peut la signaler (le registre a
+      # déjà changé d'audience en avril 2026), mais aussi un réglage changé côté registre.
+      # L'empreinte vient de la même publication que le binaire : elle protège d'un remplacement
+      # ultérieur, pas d'une publication compromise dès le départ.
+      PUBLISHER_VERSION: v1.8.1
+      PUBLISHER_SHA256: a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc
+    steps:
+      # Épinglé par SHA (v4, résolu le 9 octobre 2026), et sans laisser le jeton du dépôt sur le
+      # disque : c'est le seul workflow du dépôt qui détient `id-token: write`, et chaque étape
+      # du job peut demander un jeton OIDC.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      # Chaque paquet à SA version : c'est ainsi que le registre les revalide, pas à la version
+      # du serveur. Un type de registre autre que npm n'est pas prévu ici, donc refusé.
+      - name: Chaque paquet annoncé est-il servi ?
+        working-directory: mcp-server
+        run: |
+          autres=$(jq -r '[.packages[] | select(.registryType != "npm")] | length' server.json)
+          if [ "$autres" != "0" ]; then
+            echo "::error::server.json annonce un paquet hors de npm, que ce workflow ne sait pas vérifier."
+            exit 1
+          fi
+          for ref in $(jq -r '.packages[] | "\(.identifier)@\(.version)"' server.json); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "https://registry.npmjs.org/${ref%@*}/${ref##*@}")
+            echo "$ref : HTTP $code"
+            if [ "$code" != "200" ]; then
+              echo "::error::registry.npmjs.org ne sert pas $ref (HTTP $code). Publier d'abord le paquet : mcp-server/PUBLISHING.md §3."
+              exit 1
+            fi
+          done
+
+      - name: Installer mcp-publisher
+        run: |
+          curl -sSfL -o publisher.tar.gz \
+            "https://github.com/modelcontextprotocol/registry/releases/download/$PUBLISHER_VERSION/mcp-publisher_linux_amd64.tar.gz"
+          echo "$PUBLISHER_SHA256  publisher.tar.gz" | sha256sum -c -
+          tar xzf publisher.tar.gz mcp-publisher
+          rm publisher.tar.gz
+
+      - name: Publier
+        working-directory: mcp-server
+        run: |
+          ../mcp-publisher login github-oidc
+          ../mcp-publisher publish
+
+      # Ce que le registre sert, et non ce que `publish` a dit : le run échoue si la version de
+      # server.json n'y est pas la dernière, active. Quelques essais, le temps que l'index suive.
+      - name: Le registre sert-il cette version comme la dernière ?
+        working-directory: mcp-server
+        run: |
+          nom=$(jq -r .name server.json)
+          version=$(jq -r .version server.json)
+          for essai in 1 2 3 4 5 6; do
+            reponse=$(curl -sS "https://registry.modelcontextprotocol.io/v0.1/servers?search=$nom")
+            echo "$reponse" | jq -r '.servers[] | "\(.server.version)  latest=\(._meta["io.modelcontextprotocol.registry/official"].isLatest)  \(._meta["io.modelcontextprotocol.registry/official"].status)"'
+            derniere=$(echo "$reponse" | jq -r --arg n "$nom" '.servers[] | select(.server.name == $n and ._meta["io.modelcontextprotocol.registry/official"].isLatest == true and ._meta["io.modelcontextprotocol.registry/official"].status == "active") | .server.version')
+            if [ "$derniere" = "$version" ]; then
+              echo "Le registre sert $nom@$version comme dernière version."
+              exit 0
+            fi
+            echo "essai $essai : dernière servie « $derniere », attendue $version"
+            sleep 10
+          done
+          echo "::error::Le registre ne sert pas $nom@$version comme dernière version active."
+          exit 1
