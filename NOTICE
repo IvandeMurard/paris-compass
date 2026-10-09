@@ -1,0 +1,22 @@
+Compass (Paris Compass)
+Copyright 2025-2026 Ivan de Murard
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Official sources, maintained by the author:
+  - Source code:  https://github.com/IvandeMurard/paris-compass
+  - MCP server:   https://www.npmjs.com/package/paris-compass-mcp
+                  (registry name io.github.IvandeMurard/paris-compass-mcp)
+  - Website:      https://paris-compass.lovable.app
+
+A listing, mirror or hosted copy found elsewhere is not operated by the
+author unless one of the sources above says so.
+
+The Apache License does not grant permission to use the name "Compass" or
+"Paris Compass" to suggest that a derived or redistributed work, or a
+service built on it, is endorsed or operated by the author (section 6).
+
+The data served by Compass is not covered by this license. Each dataset
+keeps its own terms (ODbL, Licence Ouverte 2.0, CC BY 4.0), and the 2017
+and 2020 BDCom vintages are not redistributable at all. See README.md,
+"Licence and attribution".
