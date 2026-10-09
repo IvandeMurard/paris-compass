@@ -8,7 +8,8 @@
 // repository from both, the website from the README's demo link — and never listed here.
 //
 // **What this does not catch.** It compares texts with each other, never with the world: it will
-// not say that a URL still answers, nor what a directory such as mcprush actually displays. And
+// not say that a URL still answers, nor what a directory such as mcprush actually displays. It
+// sees URLs with a scheme, not a bare domain written as plain text. And
 // whether the published package carries LICENSE and NOTICE is checked by `mcp:paquet` on the
 // installed archive, not here.
 
@@ -18,7 +19,9 @@ import { resolve } from "path"
 import { describe, expect, it } from "vitest"
 
 const ROOT = resolve(__dirname, "..", "..")
-const read = (path: string) => readFileSync(resolve(ROOT, path), "utf8")
+// Line endings normalised: this checkout extracts CRLF, the runner LF, and the block boundaries
+// below must not move with them (review of #257).
+const read = (path: string) => readFileSync(resolve(ROOT, path), "utf8").replace(/\r\n/g, "\n")
 
 const pkg = JSON.parse(read("mcp-server/package.json"))
 const server = JSON.parse(read("mcp-server/server.json"))
@@ -51,10 +54,11 @@ function noticeSources(): string {
   return notice.slice(start, end < 0 ? undefined : end)
 }
 
+// The banner only counts where a directory copying the README will show it: right under the title.
 function packageBanner(): string {
-  const lines = packageReadme.split(/\r?\n/)
-  const start = lines.findIndex((l) => l.startsWith("> **Official sources**"))
-  if (start < 0) return ""
+  const lines = packageReadme.split("\n")
+  const start = lines.findIndex((l, i) => i > 0 && l.trim() !== "")
+  if (start < 0 || !lines[start].startsWith("> **Official sources**")) return ""
   const block: string[] = []
   for (const line of lines.slice(start)) {
     if (!line.startsWith(">")) break
@@ -64,7 +68,7 @@ function packageBanner(): string {
 }
 
 const urlsIn = (text: string) =>
-  new Set([...text.matchAll(/https:\/\/[^\s)>\]]+/g)].map((m) => m[0].replace(/[.,]$/, "")))
+  new Set([...text.matchAll(/https?:\/\/[^\s)>\]]+/g)].map((m) => m[0].replace(/[.,]$/, "")))
 
 describe("the sources that decide the references agree with each other", () => {
   it("names one registry entry in package.json and server.json", () => {
@@ -102,7 +106,7 @@ describe("NOTICE names what the repository publishes", () => {
 describe("the MCP package README carries the same references as NOTICE", () => {
   const banner = packageBanner()
 
-  it("still opens with the « Official sources » banner", () => {
+  it("still opens with the « Official sources » banner, right under the title", () => {
     expect(banner).not.toBe("")
   })
 

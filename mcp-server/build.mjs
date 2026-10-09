@@ -22,6 +22,8 @@ const OUT = join(HERE, "dist", "server.mjs")
 const PACKAGED_FROM_ROOT = ["LICENSE", "NOTICE"]
 
 rmSync(join(HERE, "dist"), { recursive: true, force: true })
+// Cleared with `dist`, so that a build which fails before copying leaves no stale copy to pack.
+for (const name of PACKAGED_FROM_ROOT) rmSync(join(HERE, name), { force: true })
 
 const { command, args } = esbuildInvocation(join(ROOT, "node_modules", "esbuild", "bin", "esbuild"))
 
