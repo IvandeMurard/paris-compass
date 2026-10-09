@@ -16,7 +16,7 @@
 //   3 npm ou le registre n'ont pas répondu : panne amont, rien n'a été jugé · 2 le reste.
 
 import { spawn, spawnSync } from "node:child_process"
-import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs"
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -175,6 +175,23 @@ async function main() {
     : []
   out(`  dist/server.mjs ${existsSync(serveur) ? "présent" : "ABSENT"} · bin : ${shims.join(", ") || "aucun"}`)
   if (!existsSync(serveur)) echecs.push("dist/server.mjs absent du paquet installé")
+  // 0.1.3 went out without LICENSE or NOTICE and nothing noticed (#255): Apache-2.0 asks a
+  // redistributor to pass both on, and a package that omits them is the one breaking that.
+  // Presence is not enough: a copy left on disk by an earlier build, or packed with
+  // `--ignore-scripts`, ships silently stale. So the installed text must equal the root's,
+  // line endings aside — this checkout writes CRLF, the runner LF.
+  const contenu = (path) => readFileSync(path, "utf8").replace(/\r\n/g, "\n")
+  for (const name of ["LICENSE", "NOTICE"]) {
+    const chemin = join(installe, name)
+    const etat = !existsSync(chemin)
+      ? "ABSENT"
+      : contenu(chemin) === contenu(join(ROOT, name))
+        ? "présent, identique à la racine"
+        : "PÉRIMÉ — diffère de la racine"
+    out(`  ${name} ${etat}`)
+    if (etat === "ABSENT") echecs.push(`${name} absent du paquet installé`)
+    else if (etat.startsWith("PÉRIMÉ")) echecs.push(`${name} du paquet installé diffère de celui de la racine`)
+  }
   if (shims.length === 0) {
     echecs.push("`bin` n'a posé aucun exécutable — `npx paris-compass-mcp` ne marcherait pas")
   }

@@ -1,6 +1,6 @@
 {
   "name": "paris-compass-mcp",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "mcpName": "io.github.IvandeMurard/paris-compass-mcp",
   "type": "module",
   "description": "MCP server for Compass: address-level context on Paris commercial premises, from open data — what traded on a shopfront before, how the street turns over, what sources say and how sure they are. Anonymous read-only access, the same trust boundary as a visitor of the site.",
@@ -28,7 +28,9 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "NOTICE"
   ],
   "engines": {
     "node": ">=20.12"
