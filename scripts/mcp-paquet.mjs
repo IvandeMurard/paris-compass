@@ -175,6 +175,13 @@ async function main() {
     : []
   out(`  dist/server.mjs ${existsSync(serveur) ? "présent" : "ABSENT"} · bin : ${shims.join(", ") || "aucun"}`)
   if (!existsSync(serveur)) echecs.push("dist/server.mjs absent du paquet installé")
+  // 0.1.3 went out without LICENSE or NOTICE and nothing noticed (#255): Apache-2.0 asks a
+  // redistributor to pass both on, and a package that omits them is the one breaking that.
+  for (const name of ["LICENSE", "NOTICE"]) {
+    const present = existsSync(join(installe, name))
+    out(`  ${name} ${present ? "présent" : "ABSENT"}`)
+    if (!present) echecs.push(`${name} absent du paquet installé`)
+  }
   if (shims.length === 0) {
     echecs.push("`bin` n'a posé aucun exécutable — `npx paris-compass-mcp` ne marcherait pas")
   }
