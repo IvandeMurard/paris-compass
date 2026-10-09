@@ -69,6 +69,22 @@ locale prouve que l'empaquetage est juste, jamais que la publication l'est.
 
 ## 4. Publier au registre MCP
 
+**Le chemin par défaut est GitHub, depuis le 9 octobre 2026.** Ce jour-là, Smart App Control a
+bloqué `mcp-publisher.exe` v1.8.1 sur ce poste (« une stratégie de contrôle d'application a
+bloqué ce fichier »), alors que ce même binaire avait publié les versions 0.1.2 et 0.1.3. Il n'y a
+pas d'exception par fichier à accorder, et désactiver Smart App Control ne se défait pas sans
+réinstaller Windows. Le workflow `.github/workflows/registre-mcp.yml` joue donc la même
+publication sur un coureur GitHub, authentifié par OIDC. Une fois la version servie par npm :
+
+```powershell
+gh workflow run registre-mcp.yml
+gh run watch
+```
+
+Il refuse de partir si npm ne sert pas encore la version de `server.json`, et il imprime à la fin
+ce que le registre sert vraiment. Le chemin local ci-dessous reste valable le jour où Smart App
+Control laisse passer le binaire.
+
 Une seule fois, installer l'outil — **hors du dépôt**, pour ne pas déposer un binaire dans un
 arbre de sources. Vérifié le 3 septembre 2026 : la version `v1.8.1` publie bien un
 `mcp-publisher_windows_arm64.tar.gz`, donc ce poste n'a pas besoin d'émulation.

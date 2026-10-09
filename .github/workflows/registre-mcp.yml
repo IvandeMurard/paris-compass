@@ -1,0 +1,74 @@
+# Publie au registre MCP les métadonnées de mcp-server/server.json, à la main et seulement là.
+#
+# Pourquoi sur GitHub et pas sur le poste : le 9 octobre 2026, Smart App Control a bloqué
+# `mcp-publisher.exe` v1.8.1 (« une stratégie de contrôle d'application a bloqué ce fichier »),
+# le même binaire qui avait publié les versions 0.1.2 et 0.1.3. Ce verdict change sans préavis,
+# et il n'y a pas d'exception par fichier à accorder : voir docs/REPRISE-PIEGES.md pour SWC. Ce
+# coureur-ci n'a pas Smart App Control, et l'authentification passe par OIDC, sans secret à
+# stocker ni jeton à manipuler.
+#
+# Ce qu'il ne fait PAS, et c'est voulu : publier sur npm. Cette publication reste manuelle
+# (mcp-server/PUBLISHING.md §3), parce qu'elle exige le second facteur du compte npm et qu'un
+# jeton npm en secret de dépôt public serait une chose de plus à protéger. Le registre ne fait
+# que pointer vers npm : ce workflow refuse donc de partir si npm ne sert pas encore la version
+# que server.json annonce.
+#
+# Pas de `push`, pas de `pull_request`, pas de `schedule` : seul quelqu'un qui a les droits
+# d'écriture sur le dépôt peut lancer `workflow_dispatch`, et ce jeton OIDC ne peut publier que
+# sous l'espace de noms io.github.IvandeMurard.
+
+name: Publier au registre MCP
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: registre-mcp
+  cancel-in-progress: false
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      # Épinglé avec son empreinte, recopiée de registry_1.8.1_checksums.txt de la publication
+      # v1.8.1 le 9 octobre 2026. Un « latest » téléchargé dans un job qui détient un jeton de
+      # publication exécuterait ce que la publication du jour contient. Une montée se fait ici,
+      # empreinte comprise ; « invalid audience » à la connexion est le signe qu'elle est due.
+      PUBLISHER_VERSION: v1.8.1
+      PUBLISHER_SHA256: a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Le paquet de cette version est-il servi ?
+        working-directory: mcp-server
+        run: |
+          version=$(jq -r .version server.json)
+          paquet=$(jq -r '.packages[0].identifier' server.json)
+          echo "server.json annonce $paquet@$version"
+          code=$(curl -s -o /dev/null -w '%{http_code}' "https://registry.npmjs.org/$paquet/$version")
+          if [ "$code" != "200" ]; then
+            echo "::error::registry.npmjs.org ne sert pas $paquet@$version (HTTP $code). Publier d'abord le paquet : mcp-server/PUBLISHING.md §3."
+            exit 1
+          fi
+
+      - name: Installer mcp-publisher
+        run: |
+          curl -sSfL -o publisher.tar.gz \
+            "https://github.com/modelcontextprotocol/registry/releases/download/$PUBLISHER_VERSION/mcp-publisher_linux_amd64.tar.gz"
+          echo "$PUBLISHER_SHA256  publisher.tar.gz" | sha256sum -c -
+          tar xzf publisher.tar.gz mcp-publisher
+          rm publisher.tar.gz
+
+      - name: Publier
+        working-directory: mcp-server
+        run: |
+          ../mcp-publisher login github-oidc
+          ../mcp-publisher publish
+
+      - name: Ce que le registre sert vraiment
+        run: |
+          curl -sS "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.IvandeMurard/paris-compass-mcp" \
+            | jq -r '.servers[] | "\(.server.version)  latest=\(._meta["io.modelcontextprotocol.registry/official"].isLatest)  \(._meta["io.modelcontextprotocol.registry/official"].status)"'
