@@ -9,12 +9,16 @@ Official sources, maintained by the author:
                   (registry name io.github.IvandeMurard/paris-compass-mcp)
   - Website:      https://paris-compass.lovable.app
 
+This list is kept by hand and was last checked on 2026-10-09.
+
 A listing, mirror or hosted copy found elsewhere is not operated by the
 author unless one of the sources above says so.
 
-The Apache License does not grant permission to use the name "Compass" or
-"Paris Compass" to suggest that a derived or redistributed work, or a
-service built on it, is endorsed or operated by the author (section 6).
+The Apache License does not grant permission to use the names "Compass" or
+"Paris Compass", except as its section 6 allows: to describe the origin of
+the work and to reproduce this file. In particular, it does not permit
+suggesting that a derived or redistributed work, or a service built on it,
+is endorsed or operated by the author.
 
 The data served by Compass is not covered by this license. Each dataset
 keeps its own terms (ODbL, Licence Ouverte 2.0, CC BY 4.0), and the 2017
