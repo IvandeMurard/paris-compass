@@ -124,8 +124,8 @@
         "plu_linear_protection"
       ],
       "facteur": 1,
-      "ajout_mo": 26,
-      "raison": "plu_linear_protection (2 Mo) rechargee, et 29 338 locaux reecrits deux fois. Releve par la revue de suivi de #243, le 6 octobre 2026 : son attach() reecrit premise_location (38 Mo) dans la meme transaction, et les colonnes touchees sont indexees — chaque ligne reecrite ajoute une version de tas et une entree par index. Ticket pour n'ecrire que ce qui change : #244. Compte en `ajout_mo` : 29338 locaux sur 85 410, deux fois, sur les 38,31 Mo de premise_location mesures le 6 octobre 2026 = 26 Mo. A remesurer si la part de locaux concernes change."
+      "ajout_mo": 14,
+      "raison": "Depuis #244 (10 octobre 2026), plu_linear_protection est mise a jour en upsert par l'identifiant du lineaire, les lineaires absents du lot sont retires, et un local n'est ecrit que si l'un de ses trois drapeaux change. Le rattachement au troncon le plus proche est departage par l'identifiant du troncon : 2 519 lineaires sur 5 107 sont a egalite a 0 m avec plusieurs troncons, et c'etait l'ordre physique des lignes qui decidait. Mesure par `plu.ts --dry-run` le 10 octobre 2026 : 0 lineaire a ecrire, 0 a retirer, mais 13 116 locaux a ecrire UNE fois au prochain passage, le temps que ce departage remplace celui de l'ordre physique (~6 Mo). Le bloc compte le PIRE cas : tous les locaux proteges reecrits une fois, plus jamais deux — 29 481 / 85 418 sur les 40,6 Mo de premise_location mesures le 10 octobre 2026 = 14 Mo. Avant #244, 29 338 locaux etaient reecrits deux fois : 26 Mo. A remesurer si la part de locaux proteges change, ou si la regle de rattachement change."
     },
     {
       "nom": "chantiers",
@@ -134,8 +134,8 @@
         "chantier_perturbant"
       ],
       "facteur": 1,
-      "ajout_mo": 4,
-      "raison": "Quelques centaines de lignes, chaque semaine ; mais son attach() reecrit les locaux proches d'un chantier — environ 2 Mo de premise_location selon la revue de suivi de #243, compte double en `ajout_mo` (detachement puis rattachement)."
+      "ajout_mo": 1,
+      "raison": "Depuis #244 (10 octobre 2026), chantier_perturbant est mise a jour en upsert, un local n'est ecrit que si son chantier le plus proche ou sa distance change, et les chantiers disparus sont retires APRES le rattachement : la cle ON DELETE SET NULL ne reecrit donc plus rien. Mesure par `chantiers.ts --dry-run` le 10 octobre 2026 : 8 chantiers a ecrire, 5 a retirer, 358 locaux a ecrire sur 1 906 exposes. Le bloc compte le PIRE cas : les 1 906 locaux exposes reecrits une fois — 1 906 / 85 418 sur les 40,6 Mo de premise_location mesures le 10 octobre 2026 = 0,9 Mo, arrondi a 1. Avant #244 : ~2 Mo comptes double (detachement puis rattachement), soit 4 Mo. A remesurer si le nombre de locaux exposes change."
     }
   ],
   "hors_blocs": {

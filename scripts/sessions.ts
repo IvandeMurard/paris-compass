@@ -101,6 +101,11 @@ const ORDER = [
   // ticket qu'elles prolongent : l'une d'elles — découper BDCom — a la même échéance de fait,
   // le passage trimestriel du 5 janvier 2027 que `npm run disque` signale déjà.
   "w1-suites-243",
+  // Ouvert le 10 octobre 2026 par la PR plu/chantiers de #244 : la moitié des linéaires PLU
+  // sont à égalité avec plusieurs tronçons, et le départage par identifiant rend le choix
+  // reproductible sans le rendre juste — ~20 % d'écart sur les locaux protégés affichés.
+  // Derrière les suites de #243, qu'il prolonge ; échéance le passage PLU de mars 2027.
+  "w1-plu-rattachement",
   "w1-overpass-ordre",
   // Trouvé le 15 septembre en vérifiant que l'agent recevait bien le verdict que l'écran
   // compose : deux passages de verify:mcp, un refus puis un verdict, et le bras vert sur les
