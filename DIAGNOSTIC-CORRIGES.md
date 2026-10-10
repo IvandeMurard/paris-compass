@@ -3250,13 +3250,17 @@ mais gardée dans les fichiers : ~40 Mo permanents. BODACC la réutilise ; SIREN
 au-delà de son seuil de 450. Passages mesurés : runs 37606875095 (7 octobre) et 37765146737
 (8 octobre). **Correctif du 8 octobre** : BODACC se remplace par **mois** (le téléchargement reste
 par année). Un `VACUUM FULL` unique des trois tables, accordé par Ivan le même jour, doit rendre
-la place gardée — **suspendu au 8 octobre** : la sauvegarde préalable n'a pas abouti (Docker
-Desktop bloqué). Tant qu'il n'est pas fait, les ~40 Mo restent dans les fichiers et le rouge
-SIRENE de `disque` reste réel. Un `VACUUM FULL` périodique a été écarté : la place revient dès le
+la place gardée — **jamais fait** : la sauvegarde `pg_dump` n'a pas abouti (Docker Desktop
+bloqué), remplacée par un export NDJSON des trois tables, et le `VACUUM FULL` par un `REINDEX
+CONCURRENTLY` des huit index BODACC, sans pic propre : base 391,7 → 368,7 Mo le 8 octobre. **Ce
+gain ne tient pas** : au premier passage par mois (9 octobre, 10 min 45 s, 0 ligne morte), le tas
+BODACC est descendu de 103,1 à 94,9 Mo mais les index ont repris 19 Mo, et la base est remontée
+à 379,6 Mo — un `REINDEX` ne se refait donc pas. Un `VACUUM FULL` périodique a été écarté : la place revient dès le
 passage suivant, et lui-même écrit une copie complète de la table. **Limites relevées par la
 revue de #253** : un mois passé absent d'un export non vide est vidé jusqu'au lendemain (aucun
 mois vide depuis 2015 au 8 octobre : ce serait une panne du portail) ; un avis re-daté vers un mois
-plus tardif est absent entre deux commits ; et la `partition` du bloc `bodacc` de `disque.json`
+plus tardif est absent entre deux commits, et jusqu'au passage suivant si le passage casse entre
+les deux ; et la `partition` du bloc `bodacc` de `disque.json`
 recopie à la main l'unité du chargeur, sans que rien ne les lie (#244). Le régime établi est
 démontré pour le tas, pas encore pour les index (l'index géographique est passé de 19 à 21 Mo
 entre les passages du 7 et du 8).

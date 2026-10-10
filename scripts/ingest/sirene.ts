@@ -173,8 +173,8 @@ async function confirm(client: Client): Promise<void> {
  * established+corroborated composition, which is the project's headline quality metric.
  *
  * Since #239 (6 October 2026) bodacc.ts confirms each piece it replaces — a month since
- * 8 October — inside the transaction that writes it, so a reload no longer leaves verdicts behind, and this step, still chained after it, is a
- * safety net that writes nothing on an ordinary day — it only rewrites verdicts that changed.
+ * 8 October — inside the transaction that writes it, so a reload no longer leaves verdicts
+ * behind, and this step, still chained after it, is a safety net that writes nothing on an ordinary day — it only rewrites verdicts that changed.
  * It remains the way to replay confirmation by hand. Confirmation reads only
  * sirene_establishment, which a BODACC reload does not touch, so there is no reason to re-read
  * the several hundred megabytes of INSEE parquet to rebuild it — which is fortunate, since the
