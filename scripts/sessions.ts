@@ -91,6 +91,11 @@ const ORDER = [
   // pas payer de plan : le disque se tient par les chargeurs ou ne se tient pas. Avant #243,
   // BODACC regonflait chaque nuit ; depuis, il reste la mesure au premier passage.
   "w1-chargeurs-gonflement",
+  // Ouvert le 10 octobre 2026 en fermant #239 : les chargeurs ne gonflent plus, mais les index
+  // regonflés après la compaction laissent la base à 440 Mo sur 500, et `npm run disque` rougit
+  // sur SIRENE chaque vendredi. Devant les suites de #243 pour la même raison que #239 : une
+  // échéance, la lecture seule, que rien d'autre dans la file n'a.
+  "w1-marge-disque",
   // Les suites de la revue de #243, ouvertes le 6 octobre 2026. Placées juste derrière le
   // ticket qu'elles prolongent : l'une d'elles — découper BDCom — a la même échéance de fait,
   // le passage trimestriel du 5 janvier 2027 que `npm run disque` signale déjà.
