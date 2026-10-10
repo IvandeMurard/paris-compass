@@ -10,7 +10,7 @@
 
 Mesures du 10 octobre 2026, sur le distant et en lecture seule :
 
-- **Base** : 399,8 Mo Postgres, soit 440 Mo au tableau de bord (rapport 1,1018), pour un plafond de 500. Elle était à 368,7 Mo le 8 octobre.
+- **Base** : 399,8 Mo Postgres (`pg_database_size`). Cela fait environ 440 Mo au tableau de bord, une valeur **calculée et non lue** : 399,8 × 1,1018, un rapport relevé le 6 octobre 2026 (`rapport_tableau_de_bord` de `disque.json`). Le plafond est de 500. À relire sur le tableau de bord à la prochaine mesure. Elle était à 368,7 Mo le 8 octobre.
 - **Pics de `npm run disque`** :
   - rouges : SIRENE à 475 Mo le 16 octobre (puis chaque vendredi), terrasses à 466 Mo le 8 novembre (après #259), SIRENE stock à 453 Mo ;
   - signaux : BDCom à 489 Mo le 5 janvier 2027, filosofi à 490 et idfm à 489 en mars, plu à 472.

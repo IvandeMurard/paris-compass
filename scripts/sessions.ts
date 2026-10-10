@@ -92,7 +92,8 @@ const ORDER = [
   // BODACC regonflait chaque nuit ; depuis, il reste la mesure au premier passage.
   "w1-chargeurs-gonflement",
   // Ouvert le 10 octobre 2026 en fermant #239 : les chargeurs ne gonflent plus, mais les index
-  // regonflés après la compaction laissent la base à 440 Mo sur 500, et `npm run disque` rougit
+  // regonflés après la compaction laissent la base à 399,8 Mo Postgres (~440 estimés sur les
+  // 500 du tableau de bord, par le rapport du 6 octobre), et `npm run disque` rougit
   // sur SIRENE chaque vendredi. Devant les suites de #243 pour la même raison que #239 : une
   // échéance, la lecture seule, que rien d'autre dans la file n'a.
   "w1-marge-disque",
