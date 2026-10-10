@@ -91,8 +91,8 @@
         "terrasse_autorisation"
       ],
       "facteur": 1,
-      "ajout_mo": 21,
-      "raison": "terrasse_autorisation (12 Mo) rechargee, et 23 610 locaux reecrits deux fois (detachement puis rattachement). Releve par la revue de suivi de #243, le 6 octobre 2026 : son attach() reecrit premise_location (38 Mo) dans la meme transaction, et les colonnes touchees sont indexees — chaque ligne reecrite ajoute une version de tas et une entree par index. Ticket pour n'ecrire que ce qui change : #244. Compte en `ajout_mo` : 23610 locaux sur 85 410, deux fois, sur les 38,31 Mo de premise_location mesures le 6 octobre 2026 = 21 Mo. A remesurer si la part de locaux concernes change."
+      "ajout_mo": 11,
+      "raison": "Depuis #244 (10 octobre 2026), terrasse_autorisation est synchronisee au lot — retire les lignes que le lot n'a plus, ajoute celles qu'il n'avait pas, comparees sur tout leur contenu faute d'identifiant a la source — et un local n'est ecrit que si son statut change. Mesure par `terrasses.ts --dry-run` le 10 octobre 2026, sur un jeu en retard de six semaines (dernier chargement le 26 aout) : 342 lignes retirees, 1 411 ajoutees sur 25 258, et 437 locaux a ecrire, soit ~1 Mo. Le bloc compte le PIRE cas : une source reecrite en entier, la table une fois (facteur 1), plus les 23 610 locaux portant une autorisation reecrits UNE fois, plus jamais deux — 23 610 / 85 418 sur les 40,6 Mo de premise_location mesures le 10 octobre 2026 = 11 Mo. Avant #244, le chargeur videait la table, la reinserait, remettait ces 23 610 locaux a 'non' puis les rattachait : 21 Mo de premise_location, pic a 455 Mo pour le 8 novembre 2026 contre un seuil de 450. A remesurer si la part de locaux concernes change."
     },
     {
       "nom": "filosofi",
