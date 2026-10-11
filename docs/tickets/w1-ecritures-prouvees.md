@@ -38,6 +38,7 @@ La revue de #264 a rendu son verdict : fusionnable, mais à suivre. Elle a relev
 1. **plu** : passage réel puis essai à blanc à 0 / 0 / 0. Son prochain passage planifié est le 9 mars 2027 ; un passage à la main avant est possible, mais il réécrira une fois les 13 116 locaux du départage (#263).
 2. **Les écritures réelles sur une base locale**, deux passages, le second à 0. Faute de Docker fiable sur le poste, un coureur CI fera l'affaire.
 3. **Les tables temporaires des autres chargeurs** (filosofi, idfm, BDCom, BODACC, SIRENE) : leurs blocs ne les comptent pas non plus, ou les disent « dans la marge » sans mesure. À mesurer de la même façon.
+4. **Tenir `checkColumns` par un test durable** (revue de #266). Sa seule preuve est la mesure du 11 octobre 2026 contre le catalogue distant. Il faut un test qui épingle le filtre « hors générées et identité » sur une vraie table, et l'égalité de `rowKey(COLUMNS)` avec l'ancienne `ROW_KEY` de terrasses. Option : jouer `checkColumns` des trois chargeurs dans une porte planifiée, pour qu'une migration rougisse le lendemain plutôt qu'au chargement suivant.
 
 ## Critère de sortie
 

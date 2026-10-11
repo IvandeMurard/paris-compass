@@ -32,4 +32,8 @@ La garde compare des **noms**, pas un sens. Elle laisse passer :
 - une colonne renommée à la fois dans la migration et dans la liste ;
 - une valeur mal rangée par `stage` : la correspondance entre un champ de la source et une colonne reste écrite à la main dans chaque chargeur.
 
+Deux limites relevées par la revue de #266 :
+- **Une colonne à `DEFAULT`** (`created_at default now()`) n'est pas exclue, alors que la base la remplit seule. Elle fait refuser le chargement tant qu'on ne l'ajoute pas à la liste. C'est le bon sens de l'erreur, bruyant et avant tout écrit, mais il faudra l'ajouter à la liste.
+- **La garde joue au chargement suivant, pas à la migration.** Pour plu, c'est le 9 mars 2027. La jouer aussi dans une porte planifiée ferait rougir une migration le lendemain : c'est noté dans #265.
+
 Les autres chargeurs (filosofi, idfm, BDCom, BODACC, SIRENE) ne passent pas encore par cette garde.
