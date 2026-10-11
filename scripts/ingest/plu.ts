@@ -18,6 +18,7 @@
 
 import type { Client } from "pg"
 
+import { checkColumns, differs, type Columns } from "./lib/columns"
 import { assertPrivileged, connect, inTransaction, log, recordRun } from "./lib/db"
 import { exportJson } from "./lib/parisOpendata"
 
@@ -67,6 +68,16 @@ function refuseLotVide(count: number): void {
   )
 }
 
+/**
+ * Every column of plu_linear_protection, in the order `stage` binds them. The only copy:
+ * `checkColumns` holds it to the table before the load, and the upsert and its comparison
+ * are built from it (#265).
+ */
+const COLUMNS = [
+  "id", "arrondissement_min", "arrondissement_max", "commerce_artisanat", "commerce_proximite",
+  "commerce_culturel", "length_m", "geom",
+]
+
 /** Downloaded before the transaction opens: a slow mirror must not hold it open. */
 async function fetchLinears(): Promise<{ rows: Feature[]; skipped: number }> {
   const collection = await exportJson<{ features: Feature[] }>(DATASET, "geojson")
@@ -86,7 +97,7 @@ async function fetchLinears(): Promise<{ rows: Feature[]; skipped: number }> {
  * the primary key and fails the load loudly — the first copy winning in silence, as it did
  * before #244, would hide a source defect. Same choice as filosofi.ts (review of #245).
  */
-async function stage(client: Client, rows: Feature[]): Promise<void> {
+async function stage(client: Client, columns: Columns, rows: Feature[]): Promise<void> {
   await client.query(`
     create temporary table tmp_plu (
       id integer primary key, arrondissement_min smallint, arrondissement_max smallint,
@@ -114,53 +125,36 @@ async function stage(client: Client, rows: Feature[]): Promise<void> {
       return `($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5}, $${b + 6}, $${b + 7}, ST_GeomFromGeoJSON($${b + 8})::geography)`
     })
     await client.query(
-      `insert into tmp_plu
-         (id, arrondissement_min, arrondissement_max, commerce_artisanat, commerce_proximite, commerce_culturel, length_m, geom)
-       values ${tuples.join(", ")}`,
+      `insert into tmp_plu (${columns.names.join(", ")}) values ${tuples.join(", ")}`,
       values,
     )
   }
 }
 
-/** The table brought to the batch: changed or new linears upserted, absent ones removed. */
-async function syncTable(client: Client, dryRun: boolean): Promise<{ written: number; removed: number }> {
-  const differs = `(p.arrondissement_min, p.arrondissement_max, p.commerce_artisanat,
-            p.commerce_proximite, p.commerce_culturel, p.length_m, ST_AsBinary(p.geom))
-           is distinct from
-           (t.arrondissement_min, t.arrondissement_max, t.commerce_artisanat,
-            t.commerce_proximite, t.commerce_culturel, t.length_m, ST_AsBinary(t.geom))`
+/**
+ * The table brought to the batch: changed or new linears upserted, absent ones removed. The
+ * dry-run count and the upsert compare through the same `differs` (#265): two copies of that
+ * clause, as before, could drift apart, and a column missing from the upsert's would never be
+ * rewritten again, without a word.
+ */
+async function syncTable(client: Client, columns: Columns, dryRun: boolean): Promise<{ written: number; removed: number }> {
   const gone = `from public.plu_linear_protection p
      where not exists (select 1 from tmp_plu t where t.id = p.id)`
   if (dryRun) {
     const r = await client.query<{ written: string; removed: string }>(`
       select (select count(*) from tmp_plu t
                 left join public.plu_linear_protection p on p.id = t.id
-               where p.id is null or ${differs})::text as written,
+               where p.id is null or ${differs(columns, "p", "t")})::text as written,
              (select count(*) ${gone})::text as removed
     `)
     return { written: Number(r.rows[0].written), removed: Number(r.rows[0].removed) }
   }
   const written = await client.query(`
-    insert into public.plu_linear_protection as p
-      (id, arrondissement_min, arrondissement_max, commerce_artisanat, commerce_proximite,
-       commerce_culturel, length_m, geom)
-    select id, arrondissement_min, arrondissement_max, commerce_artisanat, commerce_proximite,
-           commerce_culturel, length_m, geom
-      from tmp_plu
+    insert into public.plu_linear_protection as p (${columns.names.join(", ")})
+    select ${columns.names.join(", ")} from tmp_plu
     on conflict (id) do update
-       set arrondissement_min = excluded.arrondissement_min,
-           arrondissement_max = excluded.arrondissement_max,
-           commerce_artisanat = excluded.commerce_artisanat,
-           commerce_proximite = excluded.commerce_proximite,
-           commerce_culturel  = excluded.commerce_culturel,
-           length_m = excluded.length_m,
-           geom = excluded.geom
-     where (p.arrondissement_min, p.arrondissement_max, p.commerce_artisanat,
-            p.commerce_proximite, p.commerce_culturel, p.length_m, ST_AsBinary(p.geom))
-           is distinct from
-           (excluded.arrondissement_min, excluded.arrondissement_max, excluded.commerce_artisanat,
-            excluded.commerce_proximite, excluded.commerce_culturel, excluded.length_m,
-            ST_AsBinary(excluded.geom))
+       set ${columns.names.filter((c) => c !== "id").map((c) => `${c} = excluded.${c}`).join(", ")}
+     where ${differs(columns, "p", "excluded")}
   `)
   const removed = await client.query(`delete ${gone}`)
   return { written: written.rowCount ?? 0, removed: removed.rowCount ?? 0 }
@@ -231,13 +225,13 @@ async function attach(client: Client, dryRun: boolean): Promise<Attachment> {
              where commerce_artisanat or commerce_proximite or commerce_culturel)::text as premises
   `)
 
-  const differs = `l.id = t.id
+  const flagsDiffer = `l.id = t.id
        and (l.plu_commerce_artisanat, l.plu_commerce_proximite, l.plu_commerce_culturel)
            is distinct from (t.commerce_artisanat, t.commerce_proximite, t.commerce_culturel)`
   const changed = dryRun
     ? Number(
         (await client.query<{ n: string }>(
-          `select count(*)::text as n from public.premise_location l, tmp_plu_attach t where ${differs}`,
+          `select count(*)::text as n from public.premise_location l, tmp_plu_attach t where ${flagsDiffer}`,
         )).rows[0].n,
       )
     : ((await client.query(`
@@ -246,7 +240,7 @@ async function attach(client: Client, dryRun: boolean): Promise<Attachment> {
                plu_commerce_proximite = t.commerce_proximite,
                plu_commerce_culturel  = t.commerce_culturel
           from tmp_plu_attach t
-         where ${differs}
+         where ${flagsDiffer}
       `)).rowCount ?? 0)
 
   return {
@@ -260,6 +254,12 @@ async function attach(client: Client, dryRun: boolean): Promise<Attachment> {
  * Sentinel for --dry-run, as in terrasses.ts: the whole load runs inside the transaction and
  * is rolled back, every write to a real table replaced by the count it would have made — so
  * it leaves no dead row behind, whatever it finds.
+ *
+ * CE QUE ÇA NE RATTRAPE PAS : the real-table statements themselves never run in a dry run. It
+ * proves what a load would change, not that the upsert, `delete` and `update` that would change
+ * it are correct; a fault in one of them shows at the first real run, which rolls back and
+ * turns the gate red. Proved on the remote only by a real run followed by a dry run at
+ * 0 / 0 / 0 (#265).
  */
 class DryRunComplete extends Error {}
 
@@ -285,10 +285,11 @@ async function main(): Promise<void> {
       "linéaires PLU",
       `${rows.length} lus${skipped ? `, ${skipped} ignorés (géométrie non linéaire)` : ""}`,
     )
+    const columns = await checkColumns(client, "plu_linear_protection", COLUMNS)
 
     await inTransaction(client, async () => {
-      await stage(client, rows)
-      table = await syncTable(client, dryRun)
+      await stage(client, columns, rows)
+      table = await syncTable(client, columns, dryRun)
       attached = await attach(client, dryRun)
       if (dryRun) throw new DryRunComplete()
     })

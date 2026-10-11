@@ -106,6 +106,12 @@ const ORDER = [
   // reproductible sans le rendre juste — ~20 % d'écart sur les locaux protégés affichés.
   // Derrière les suites de #243, qu'il prolonge ; échéance le passage PLU de mars 2027.
   "w1-plu-rattachement",
+  // Les deux suites de revue de #259 et #264, ouvertes les 10 et 11 octobre 2026 et rangées
+  // au format le 11 : colonnes tenues à la table, écritures réelles prouvées et tables
+  // temporaires comptées dans `disque.json`. Derrière #263, qu'elles ne bloquent pas ; la
+  // seconde reste ouverte jusqu'au passage plu de mars 2027.
+  "w1-colonnes-derivees",
+  "w1-ecritures-prouvees",
   "w1-overpass-ordre",
   // Trouvé le 15 septembre en vérifiant que l'agent recevait bien le verdict que l'écran
   // compose : deux passages de verify:mcp, un refus puis un verdict, et le bras vert sur les
