@@ -1,5 +1,5 @@
 // The SIRENE confirmation of BODACC registered offices, shared by the two loaders that need it:
-// sirene.ts after it reloads SIRENE, and bodacc.ts inside each year it replaces — #239.
+// sirene.ts after it reloads SIRENE, and bodacc.ts inside each month it replaces — #239.
 
 import type { Client } from "pg"
 
@@ -18,8 +18,8 @@ export const SAME_ADDRESS_M = 50
  *
  * Only rows whose verdict CHANGES are written: an unchanged rewrite is pure disk churn under a
  * 500 MB ceiling (DIAGNOSTIC-CORRIGES.md §62). `noticeIds` scopes it to the notices bodacc.ts
- * has just written, inside the same transaction: a year then commits WITH its verdicts, instead
- * of standing without them until a later step — and a run that breaks halfway leaves no year
+ * has just written, inside the same transaction: a month then commits WITH its verdicts, instead
+ * of standing without them until a later step — and a run that breaks halfway leaves no month
  * stripped of what it had.
  */
 export async function confirmOperators(client: Client, noticeIds?: string[]): Promise<number> {

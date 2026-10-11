@@ -167,7 +167,7 @@ jobs:
               # wholesale, which cascades to bodacc_establishment and took `operator_confirmed`
               # with it — measured 25 August: the evaluation gate fell from 3 147 `corrobore`
               # levels to zero, and nothing said so. Since #239 (6 October 2026) bodacc.ts
-              # replaces a year at a time and confirms each year inside its own transaction, so
+              # replaces a month at a time and confirms each month inside its own transaction, so
               # this step finds nothing to change on an ordinary night: it rewrites only the
               # verdicts that differ, and it reads sirene_establishment alone, no INSEE
               # download. It stays because it is what catches a confirmation left behind by
