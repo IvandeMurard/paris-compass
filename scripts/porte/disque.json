@@ -50,8 +50,8 @@
       ],
       "partition": "code_postal",
       "facteur": 1,
-      "ajout_mo": 0,
-      "raison": "Un code postal a la fois depuis #239 : DELETE puis reinsertion du code postal, quartier pose a l'insertion, VACUUM avant le suivant. Une fois le plus gros code postal. Ce bras l'a impose : en bloc (TRUNCATE dans une transaction), il mesurait le pic a 514 Mo au tableau de bord le 6 octobre 2026, au-dela du plafond."
+      "ajout_mo": 5,
+      "raison": "Un code postal a la fois depuis #239 : DELETE puis reinsertion du code postal, quartier pose a l'insertion, VACUUM avant le suivant. Une fois le plus gros code postal. Ce bras l'a impose : en bloc (TRUNCATE dans une transaction), il mesurait le pic a 514 Mo au tableau de bord le 6 octobre 2026, au-dela du plafond. S'y ajoute tmp_quartier (l'adresse -> quartier, une ligne par numero), creee pour toute la session et donc presente a chaque code postal : 49 588 lignes, 4,84 Mo index compris, mesuree le 11 octobre 2026 en la reconstruisant depuis premise_location dans une transaction annulee (base 400,03 -> 404,87 -> 400,03 au rollback), arrondi a 5 (#265). Plus gros code postal le meme jour : 75003, 9 902 lignes sur 375 629."
     },
     {
       "nom": "sirene",
@@ -60,8 +60,8 @@
         "sirene_establishment"
       ],
       "facteur": 2,
-      "ajout_mo": 0,
-      "raison": "TRUNCATE, plus une table temporaire de staging (stg_sirene) de la taille des donnees : deux fois la table avant le commit."
+      "ajout_mo": 6,
+      "raison": "TRUNCATE puis reinsertion dans une transaction : l'ancien fichier d'une table qui existait avant la transaction est garde jusqu'au commit, donc l'ancienne table et la nouvelle coexistent, deux fois la table (index compris : sirene_establishment 15,5 Mo pour 69 424 lignes le 11 octobre 2026). Le staging stg_sirene s'y AJOUTE — le bloc le comptait jusqu'ici dans le facteur 2, a la place de l'ancien fichier : 6,01 Mo, mesure le 11 octobre 2026 en le reconstruisant depuis sirene_establishment dans une transaction annulee (base 400,03 -> 406,03), arrondi a 6 (#265). La confirmation (lib/confirm.ts), dans la meme transaction, ne reecrit dans bodacc_establishment que les verdicts qui changent : 0 a millesime egal, et 30 au changement de millesime du 25 aout 2026 (+24 confirmes, -6 infirmes, w0-sirene-url.md), negligeable. CE QUE CE BLOC NE COMPTE PAS : une source dont les points bougeraient tous (un regeocodage par l'INSEE) ferait basculer jusqu'aux 85 486 avis en jeu sur 158 604, soit jusqu'a ~45 Mo de bodacc_establishment (83,7 Mo index compris le 11 octobre 2026), et un pic au-dela du plafond. `sirene.ts --dry-run` ne previent pas ce cas : il passe par le meme pic avant d'annuler. Le signe avant-coureur est la ligne CHANGEMENT DE MILLESIME du chargeur."
     },
     {
       "nom": "bdcom",
@@ -81,8 +81,8 @@
       ],
       "partition": "family, date_trunc('month', published_on)",
       "facteur": 3,
-      "ajout_mo": 0,
-      "raison": "Un mois d'une famille a la fois depuis le 8 octobre 2026 (l'annee depuis #239) : DELETE puis reinsertion, rattachement des etablissements du mois, puis leur confirmation SIRENE, dans la meme transaction — trois ecritures par partition, majorant, rendues par le VACUUM qui suit. Pourquoi le mois : par annee, la place de travail restait dans les fichiers — mesure des deux premiers vrais passages, base 351 -> 394 Mo le 7 octobre puis 392 le 8, ~40 Mo permanents dans les trois tables BODACC (#239). Cette place est REUTILISABLE par BODACC, donc ce pic la surestime en regime etabli ; elle ne l'est pas par les autres chargements, d'ou le mois. La revue de #243 avait trouve la confirmation hors du compte : elle reecrivait 85 005 lignes sur 158 285 chaque nuit, sans VACUUM derriere."
+      "ajout_mo": 6,
+      "raison": "Un mois d'une famille a la fois depuis le 8 octobre 2026 (l'annee depuis #239) : DELETE puis reinsertion, rattachement des etablissements du mois, puis leur confirmation SIRENE, dans la meme transaction — trois ecritures par partition, majorant, rendues par le VACUUM qui suit. Pourquoi le mois : par annee, la place de travail restait dans les fichiers — mesure des deux premiers vrais passages, base 351 -> 394 Mo le 7 octobre puis 392 le 8, ~40 Mo permanents dans les trois tables BODACC (#239). Cette place est REUTILISABLE par BODACC, donc ce pic la surestime en regime etabli ; elle ne l'est pas par les autres chargements, d'ou le mois. La revue de #243 avait trouve la confirmation hors du compte : elle reecrivait 85 005 lignes sur 158 285 chaque nuit, sans VACUUM derriere. S'y ajoute tmp_address_geom (l'adresse -> position, avec son index), creee une fois pour toute la session et donc presente a chaque mois : 49 593 lignes, 5,84 Mo, mesuree le 11 octobre 2026 en la reconstruisant depuis premise_location dans une transaction annulee, arrondi a 6 (#265)."
     },
     {
       "nom": "terrasses",
@@ -102,8 +102,8 @@
         "premise_location"
       ],
       "facteur": 1,
-      "ajout_mo": 0,
-      "raison": "filosofi_grid_200m (4 Mo) et les rattachements des 85 410 locaux. Depuis #244 (6 octobre 2026), le referentiel est mis a jour en upsert, les rattachements calcules a part et premise_location n'est ecrit que pour les locaux dont le rattachement change : 0 sur 85 418 sur la base du 6 octobre, mesure dans une transaction annulee. Le bloc compte le PIRE cas, un millesime qui deplacerait tous les rattachements : premise_location une fois, plus jamais deux. Tables temporaires de la transaction : tmp_cells (les ~7 800 carreaux candidats, quelques Mo) et tmp_filo (un identifiant par local), rendues au commit, dans la marge."
+      "ajout_mo": 7,
+      "raison": "filosofi_grid_200m (4 Mo) et les rattachements des 85 410 locaux. Depuis #244 (6 octobre 2026), le referentiel est mis a jour en upsert, les rattachements calcules a part et premise_location n'est ecrit que pour les locaux dont le rattachement change : 0 sur 85 418 sur la base du 6 octobre, mesure dans une transaction annulee. Le bloc compte le PIRE cas, un millesime qui deplacerait tous les rattachements : premise_location une fois, plus jamais deux. Tables temporaires de la transaction, rendues au commit mais presentes au pic, mesurees le 11 octobre 2026 en les reconstruisant depuis les tables reelles dans une transaction annulee (#265) : tmp_cells 0,66 Mo (2 170 carreaux, cle primaire comprise) et tmp_filo 6,01 Mo (84 824 locaux), arrondi a 7. Elles etaient dites « dans la marge » sans mesure."
     },
     {
       "nom": "idfm",
@@ -114,8 +114,8 @@
         "premise_location"
       ],
       "facteur": 1,
-      "ajout_mo": 0,
-      "raison": "Stations en upsert, profils (3 Mo) recharges en entier — ils ne sont references par aucun local —, et les rattachements des 85 410 locaux. Depuis #244 (6 octobre 2026), le referentiel est mis a jour en upsert, les rattachements calcules a part et premise_location n'est ecrit que pour les locaux dont le rattachement change : 0 sur 85 418 sur la base du 6 octobre, mesure dans une transaction annulee. Le bloc compte le PIRE cas, un millesime qui deplacerait tous les rattachements : premise_location une fois, plus jamais deux. Les stations retirees le sont apres le rattachement, donc la cle ON DELETE SET NULL ne reecrit plus rien. Table temporaire de la transaction : tmp_nearest (un identifiant et une distance par local, quelques Mo), rendue au commit, dans la marge."
+      "ajout_mo": 5,
+      "raison": "Stations en upsert, profils (3 Mo) recharges en entier — ils ne sont references par aucun local —, et les rattachements des 85 410 locaux. Depuis #244 (6 octobre 2026), le referentiel est mis a jour en upsert, les rattachements calcules a part et premise_location n'est ecrit que pour les locaux dont le rattachement change : 0 sur 85 418 sur la base du 6 octobre, mesure dans une transaction annulee. Le bloc compte le PIRE cas, un millesime qui deplacerait tous les rattachements : premise_location une fois, plus jamais deux. Les stations retirees le sont apres le rattachement, donc la cle ON DELETE SET NULL ne reecrit plus rien. Table temporaire de la transaction, rendue au commit mais presente au pic : tmp_nearest (un identifiant et une distance par local), 85 410 lignes, 4,50 Mo, mesuree le 11 octobre 2026 en la reconstruisant depuis premise_location dans une transaction annulee, arrondi a 5 (#265). Elle etait dite « dans la marge » sans mesure."
     },
     {
       "nom": "plu",
