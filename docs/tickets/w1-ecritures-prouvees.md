@@ -39,7 +39,7 @@ La revue de #264 a rendu son verdict : fusionnable, mais à suivre. Elle a relev
   | SIRENE | `stg_sirene` | 6,01 Mo | 0 → 6 | 475 → **482** (16 octobre 2026) |
   | SIRENE stock | `tmp_quartier`, toute la session | 4,84 Mo | 0 → 5 | 453 → **459** (16 octobre 2026) |
   | BODACC | `tmp_address_geom`, toute la session | 5,84 Mo | 0 → 6 | 446 → **453** (chaque nuit) |
-  | filosofi | `tmp_cells` + `tmp_filo` | 0,66 + 6,01 Mo | 0 → 7 | 490 → 498 (6 mars 2027) |
+  | filosofi | `tmp_cells` (à son pic, avant le tri) + `tmp_filo` | 2,38 + 6,05 Mo | 0 → 9 | 490 → 500 (6 mars 2027) |
   | idfm | `tmp_nearest` | 4,50 Mo | 0 → 5 | 489 → 495 (5 mars 2027) |
   | BDCom | aucune : son staging est une vraie table, déjà comptée (44 Mo) | — | 44 | 489 |
 
@@ -53,6 +53,9 @@ La revue de #264 a rendu son verdict : fusionnable, mais à suivre. Elle a relev
 2. **Les écritures réelles sur une base locale**, deux passages, le second à 0. Faute de Docker fiable sur le poste, un coureur CI fera l'affaire.
 3. ~~Les tables temporaires des autres chargeurs~~ : mesurées le 11 octobre 2026, voir plus haut.
 4. **Tenir `checkColumns` par un test durable** (revue de #266). Sa seule preuve est la mesure du 11 octobre 2026 contre le catalogue distant. Il faut un test qui épingle le filtre « hors générées et identité » sur une vraie table, et l'égalité de `rowKey(COLUMNS)` avec l'ancienne `ROW_KEY` de terrasses. Option : jouer `checkColumns` des trois chargeurs dans une porte planifiée, pour qu'une migration rougisse le lendemain plutôt qu'au chargement suivant.
+
+5. **Relier chaque `create temporary table` des chargeurs à la raison de son bloc** (revue de #267). Une septième table temporaire passerait aujourd'hui sans être comptée : un test qui balaie `scripts/ingest/` et exige que chaque nom figure dans la `raison` du bloc de son chargeur. Il ne vérifierait que le nom, pas la taille.
+6. **filosofi à 500 Mo pour le 6 mars 2027** : trier les carreaux à Paris avant de les insérer dans `tmp_cells`, plutôt qu'après, rendrait ~1,7 Mo. Ce n'est pas assez seul : la réduction de #260 reste le levier.
 
 ## Critère de sortie
 
