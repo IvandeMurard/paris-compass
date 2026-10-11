@@ -1,5 +1,11 @@
 # Compass MCP server
 
+> **Official sources** — npm package [`paris-compass-mcp`](https://www.npmjs.com/package/paris-compass-mcp),
+> MCP Registry entry `io.github.IvandeMurard/paris-compass-mcp`, source code
+> [IvandeMurard/paris-compass](https://github.com/IvandeMurard/paris-compass), website
+> [paris-compass.lovable.app](https://paris-compass.lovable.app). Free, no account.
+> A listing found elsewhere is not operated by the author unless one of these sources says so.
+
 PLAN.md §4.1, PERIMETRE.md §8 — the same scoring core the browser uses (`../src/core`),
 reached with the same trust boundary an anonymous visitor has: the Supabase anon key, never
 a service key. `list_sources` describes only what these tools actually call — never a source

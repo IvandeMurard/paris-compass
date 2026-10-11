@@ -91,10 +91,27 @@ const ORDER = [
   // pas payer de plan : le disque se tient par les chargeurs ou ne se tient pas. Avant #243,
   // BODACC regonflait chaque nuit ; depuis, il reste la mesure au premier passage.
   "w1-chargeurs-gonflement",
+  // Ouvert le 10 octobre 2026 en fermant #239 : les chargeurs ne gonflent plus, mais les index
+  // regonflés après la compaction laissent la base à 399,8 Mo Postgres (~440 estimés sur les
+  // 500 du tableau de bord, par le rapport du 6 octobre), et `npm run disque` rougit
+  // sur SIRENE chaque vendredi. Devant les suites de #243 pour la même raison que #239 : une
+  // échéance, la lecture seule, que rien d'autre dans la file n'a.
+  "w1-marge-disque",
   // Les suites de la revue de #243, ouvertes le 6 octobre 2026. Placées juste derrière le
   // ticket qu'elles prolongent : l'une d'elles — découper BDCom — a la même échéance de fait,
   // le passage trimestriel du 5 janvier 2027 que `npm run disque` signale déjà.
   "w1-suites-243",
+  // Ouvert le 10 octobre 2026 par la PR plu/chantiers de #244 : la moitié des linéaires PLU
+  // sont à égalité avec plusieurs tronçons, et le départage par identifiant rend le choix
+  // reproductible sans le rendre juste — ~20 % d'écart sur les locaux protégés affichés.
+  // Derrière les suites de #243, qu'il prolonge ; échéance le passage PLU de mars 2027.
+  "w1-plu-rattachement",
+  // Les deux suites de revue de #259 et #264, ouvertes les 10 et 11 octobre 2026 et rangées
+  // au format le 11 : colonnes tenues à la table, écritures réelles prouvées et tables
+  // temporaires comptées dans `disque.json`. Derrière #263, qu'elles ne bloquent pas ; la
+  // seconde reste ouverte jusqu'au passage plu de mars 2027.
+  "w1-colonnes-derivees",
+  "w1-ecritures-prouvees",
   "w1-overpass-ordre",
   // Trouvé le 15 septembre en vérifiant que l'agent recevait bien le verdict que l'écran
   // compose : deux passages de verify:mcp, un refus puis un verdict, et le bras vert sur les

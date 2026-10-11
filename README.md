@@ -98,6 +98,9 @@ That 37.0% is structural, not laziness: BODACC names an *address*, BDCom names a
 
 A gate runs the whole corpus against **56 invariants, 24 frozen baselines and 8 hand-verified chronologies** before anything ships, and again every day on a schedule — invariants counted 6 October 2026 with `grep -c '^-- @invariant ' eval/invariants.sql`. Most of them check what the functions return; one checks what they *are* — a function exposing an `observed` column must be `SECURITY DEFINER`, because row-level security silently turns a withheld row into "never surveyed".
 
+<!-- TEMPORARY — remove this paragraph and this comment once the scheduled gate runs green on every arm (the `porte-rouge` label has no open issue). -->
+The badge above counts invariants; it does not say the gate passes. The reds currently open are the issues labelled [`porte-rouge`](https://github.com/IvandeMurard/paris-compass/issues?q=is%3Aissue+is%3Aopen+label%3Aporte-rouge).
+
 ---
 
 ## Two founding constraints
@@ -178,7 +181,7 @@ Honest labels, in the sense that *built* means the code runs and the gate passes
 | Deployed to the hosted database | **Live since 15 August 2026** — read anonymously with the publishable key |
 | Premise history in the browser — BDCom ×3 and BODACC on one timeline | **Built** — demonstrated against the hosted database in a dev browser, not in the demo. [`docs/tickets/w0-fiche.md`](docs/tickets/w0-fiche.md) |
 | Exportable one-address file | **Design, next up** |
-| MCP server for agents | **Published and listed** — `npx -y paris-compass-mcp` ([npm](https://www.npmjs.com/package/paris-compass-mcp), [MCP registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.IvandeMurard/paris-compass-mcp)), six tools, anonymous read-only, nothing to configure. Published version is `0.1.2`; `main` is ahead of it |
+| MCP server for agents | **Published and listed** — `npx -y paris-compass-mcp` ([npm](https://www.npmjs.com/package/paris-compass-mcp), [MCP registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.IvandeMurard/paris-compass-mcp)), six tools, anonymous read-only, nothing to configure. |
 | Agent self-assessment of its own confidence | Research |
 
 ---
