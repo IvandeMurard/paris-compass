@@ -58,7 +58,7 @@ import { RESOLUTION_RADIUS_M, type PremiseCandidate } from '@/services/compass/p
 const COPY = {
   fr: {
     title: 'Historique du local',
-    chooseTitle: 'Quel local relevé ?',
+    chooseTitle: 'Quel local relevé ?',
     chooseIntro: (n: number, radius: number) =>
       `${n} ${n > 1 ? 'locaux relevés' : 'local relevé'} par l’APUR en 2023 à moins de ${radius} m de ce point.`,
     chooseRule:

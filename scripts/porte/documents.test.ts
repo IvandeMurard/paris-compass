@@ -120,6 +120,37 @@ describe("le budget des documents lus à chaque session", () => {
     }
   })
 
+  it("le préambule de DIAGNOSTIC.md compte ce que son index porte", () => {
+    // The preamble of DIAGNOSTIC.md is a monument to the failure it now guards against: it
+    // announced "quatre défauts" for three weeks while the table below it held far more. On
+    // 11 September 2026 it still said forty-five while the index carried 49 — the two sections
+    // added that week never moved it. A number retyped by hand is right on the day it is typed.
+    //
+    // So it is derived instead. The population is the index rows, and the claim is read back
+    // out of the sentence: the two cannot drift apart without this going red.
+    const texte = readFileSync(resolve(ROOT, "DIAGNOSTIC.md"), "utf8").replace(/\r\n/g, "\n")
+    const lignes = texte.match(/^\| *\d+ \|/gm) ?? []
+    const annonce = /il en porte (\d+) au /.exec(texte)
+
+    expect(
+      annonce,
+      "le préambule de DIAGNOSTIC.md n'annonce plus de nombre en chiffres — la phrase " +
+        "« il en porte N au <date> » est ce que ce test lit. L'écrire en toutes lettres le " +
+        "rend invérifiable, et c'est exactement comme la phrase d'origine est restée fausse.",
+    ).not.toBeNull()
+
+    expect(
+      Number(annonce?.[1]),
+      `le préambule annonce ${annonce?.[1]} défauts, l'index en porte ${lignes.length}. ` +
+        "Corriger le préambule, pas ce test : le tableau est la population, la phrase n'en " +
+        "est que la déclaration.",
+    ).toBe(lignes.length)
+
+    // A derivation that derives nothing looks green forever — same failure mode as the ceiling
+    // pointing at a renamed file, above.
+    expect(lignes.length, "l'index de DIAGNOSTIC.md ne se lit plus").toBeGreaterThan(20)
+  })
+
   it("garde la preuve déplacée plutôt que de l'avoir perdue", () => {
     // 8 250 octets sont sortis de CLAUDE.md le 7 septembre. Le risque du dégraissage n'est pas
     // la taille, c'est qu'une règle perde ce qui la rendait croyable — donc le fichier qui

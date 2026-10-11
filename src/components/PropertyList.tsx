@@ -52,7 +52,14 @@ const PropertyList = () => {
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {premises.map((premise) => (
-          <PropertyCard key={premise.id} premise={premise} airLabel={environment?.air?.label} />
+          // #145 — la vignette ne porte que le libellé, donc elle n'a rien à dire d'une panne :
+          // seule une lecture aboutie en fournit un. Une source injoignable laisse le badge à son
+          // `n/a` d'origine, et c'est le panneau de la carte qui nomme l'indisponibilité.
+          <PropertyCard
+            key={premise.id}
+            premise={premise}
+            airLabel={environment?.air.state === 'read' ? environment.air.value.label : undefined}
+          />
         ))}
       </div>
     </div>

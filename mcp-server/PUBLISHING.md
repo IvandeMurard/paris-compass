@@ -69,6 +69,22 @@ locale prouve que l'empaquetage est juste, jamais que la publication l'est.
 
 ## 4. Publier au registre MCP
 
+**Le chemin par défaut est GitHub, depuis le 9 octobre 2026.** Ce jour-là, Smart App Control a
+bloqué `mcp-publisher.exe` v1.8.1 sur ce poste (« une stratégie de contrôle d'application a
+bloqué ce fichier »), alors que ce même binaire avait publié les versions 0.1.2 et 0.1.3. Il n'y a
+pas d'exception par fichier à accorder, et désactiver Smart App Control ne se défait pas sans
+réinstaller Windows. Le workflow `.github/workflows/registre-mcp.yml` joue donc la même
+publication sur un coureur GitHub, authentifié par OIDC. Une fois la version servie par npm :
+
+```powershell
+gh workflow run registre-mcp.yml
+gh run watch
+```
+
+Il refuse de partir si npm ne sert pas encore la version de `server.json`, et il imprime à la fin
+ce que le registre sert vraiment. Le chemin local ci-dessous reste valable le jour où Smart App
+Control laisse passer le binaire.
+
 Une seule fois, installer l'outil — **hors du dépôt**, pour ne pas déposer un binaire dans un
 arbre de sources. Vérifié le 3 septembre 2026 : la version `v1.8.1` publie bien un
 `mcp-publisher_windows_arm64.tar.gz`, donc ce poste n'a pas besoin d'émulation.
@@ -110,6 +126,7 @@ curl.exe "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github
 | `You do not have permission to publish this server` | **la casse.** Le registre compare `io.github.<login>/` à la lettre, et la convention DNS pousse aux minuscules : `io.github.ivandemurard` a été refusé face à `io.github.IvandeMurard`. Mesuré le 3 septembre 2026 — et corriger a coûté une republication npm, le `mcpName` vivant dans le paquet. `npm.cmd run test` recoupe désormais l'espace de noms au propriétaire du dépôt |
 | `422 … expected length <= 100` sur `body.description` | la description de `server.json` dépasse 100 caractères. Mesuré le 3 septembre 2026 en s'y cognant ; `npm.cmd run test` le refuse désormais d'avance |
 | `Invalid or expired Registry JWT token` | rejouer `mcp-publisher login github` |
+| `404 Not Found - PUT … paris-compass-mcp` « could not be found or you do not have permission » | **la session npm, pas le paquet.** Le jeton de `~/.npmrc` était périmé : `npm.cmd whoami` répond `401`, alors que `npm.cmd owner ls paris-compass-mcp` (lecture publique) montre le bon propriétaire et `npm.cmd view` sert la version précédente. Reprendre avec `npm.cmd login --auth-type=web`, vérifier `whoami` (compte `compass222`), puis relancer `publish` **dans un vrai terminal interactif** : lancé en arrière-plan, il sort en `EOTP` sans attendre la validation navigateur. Mesuré le 7 octobre 2026. Et `npm.cmd view` peut servir l'ancienne version quelques minutes après un `+ paris-compass-mcp@x.y.z` réussi : l'e-mail de npm fait foi |
 
 ## Ce que rien ici ne garantit
 

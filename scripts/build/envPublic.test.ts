@@ -18,7 +18,7 @@ import { resolve } from "node:path"
 
 import { describe, expect, it } from "vitest"
 
-import { inspect, inspectValue, isClean, parseEnv } from "./envPublic"
+import { EXPECTED_PROJECT_REF, projectRef, inspect, inspectValue, isClean, parseEnv } from "./envPublic"
 
 const ROOT = resolve(__dirname, "..", "..")
 const ENV_PATH = resolve(ROOT, ".env")
@@ -116,5 +116,45 @@ describe("lecture du format dotenv", () => {
 
   it("garde le `=` interne d'une valeur", () => {
     expect(parseEnv("VITE_SUPABASE_PROJECT_ID=a=b\n").get("VITE_SUPABASE_PROJECT_ID")).toBe("a=b")
+  })
+})
+
+describe("le projet que `.env` nomme", () => {
+  // Le 10 septembre 2026, `71e5bf0` a poussé sur `main` un `.env` régénéré par Lovable qui
+  // nommait `nwnhhvogwrzstslxtxca` au lieu de `dbefhvmyfmmhjeetdddu`, avec une autre clé
+  // publiable. Toutes les vérifications existantes sont restées vertes : les clés étaient
+  // autorisées, aucun secret n'était collé, la forme était parfaite. Seule la CIBLE était
+  // fausse — et un build depuis ce fichier interroge un projet qui ne porte aucune des
+  // 63 migrations ni aucune des sources chargées.
+
+  it("extrait la référence d'une URL Supabase, et rend null quand ce n'en est pas une", () => {
+    expect(projectRef("https://dbefhvmyfmmhjeetdddu.supabase.co")).toBe("dbefhvmyfmmhjeetdddu")
+    expect(projectRef("  https://nwnhhvogwrzstslxtxca.supabase.co  ")).toBe("nwnhhvogwrzstslxtxca")
+    expect(projectRef("https://exemple.test")).toBeNull()
+    expect(projectRef("")).toBeNull()
+  })
+
+  it("est celui que le dépôt vise, et pas un autre", () => {
+    // Lu depuis le fichier réel : c'est lui qui part dans le bundle, pas une chaîne de test.
+    const env = parseEnv(readFileSync(ENV_PATH, "utf8"))
+    const url = env.get("VITE_SUPABASE_URL") ?? ""
+    expect(
+      projectRef(url),
+      "`.env` nomme un autre projet Supabase que celui où vivent les migrations et les " +
+        "sources. Une régénération par Lovable l'a déjà fait le 10 septembre 2026 sans qu'aucune " +
+        "autre vérification ne bronche. Corriger `.env` — jamais la constante, sauf si le projet " +
+        "cible a réellement changé, auquel cas DATABASE_URL, docs/REPRISE.md et les baselines " +
+        "changent avec elle.",
+    ).toBe(EXPECTED_PROJECT_REF)
+  })
+
+  it("nomme le même projet dans PROJECT_ID quand cette clé est présente", () => {
+    // Facultative — rien dans `src/` ne la lit — mais si Lovable l'écrit, elle doit être
+    // d'accord avec l'URL. Deux valeurs qui se contredisent dans le même fichier sont pires
+    // qu'une seule fausse : la suivante recopiera celle qui l'arrange.
+    const env = parseEnv(readFileSync(ENV_PATH, "utf8"))
+    const id = env.get("VITE_SUPABASE_PROJECT_ID")
+    if (id === undefined) return
+    expect(id.replace(/^"|"$/g, ""), "PROJECT_ID contredit VITE_SUPABASE_URL").toBe(EXPECTED_PROJECT_REF)
   })
 })

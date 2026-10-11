@@ -93,18 +93,15 @@ interface Baseline {
   counts: Record<string, Attendu & { sql: string }>
 }
 
-/** Actual values measured this run, keyed by baseline name — `confiance_*` feeds runConfidenceHistory. */
-async function runBaselines(client: Client): Promise<Record<string, number>> {
+async function runBaselines(client: Client): Promise<void> {
   const baseline = JSON.parse(
     readFileSync(resolve(ROOT, "eval/baselines/ingestion.json"), "utf8"),
   ) as Baseline
   log("B — baselines", `gelées le ${baseline.measured_on}`)
 
-  const actuals: Record<string, number> = {}
   for (const [name, expected] of Object.entries(baseline.counts)) {
     const result = await client.query<{ n: string }>(expected.sql)
     const actual = Number(result.rows[0]?.n ?? 0)
-    actuals[name] = actual
     if (actual === expected.value) {
       pass(name, `${actual}`)
       continue
@@ -113,7 +110,6 @@ async function runBaselines(client: Client): Promise<Record<string, number>> {
     if (bloquant) fail(name, detail)
     else warn(name, detail)
   }
-  return actuals
 }
 
 // ---------------------------------------------------------------------------
@@ -125,6 +121,25 @@ async function runBaselines(client: Client): Promise<Record<string, number>> {
 // jamais de combien elle a avancé ». Ce bloc journalise un point par (cible,
 // jour) dans eval/confidence_history.jsonl, git-suivi, et rapporte le delta
 // contre le point précédent, quelle que soit sa cible.
+//
+// It measures on its OWN, without the BODACC cutoff the baselines carry since #227
+// (eval/baselines/ingestion.json, `note_borne_bodacc`). The two answer different
+// questions: the baseline asks whether the pipeline changed, on a frozen population;
+// this asks how the composition moves on the data actually served, new notices
+// included. Reusing the bounded counts here would freeze the very trend it exists to
+// report.
+
+/** Same cohort as the `confiance_*` baselines, no cutoff — one pass instead of four. */
+const CONFIDENCE_SQL = `
+  with ech as (select id from public.premise_location order by id limit 10000)
+  select 'confiance_' || t.confidence::text as k, count(*) n
+  from ech l cross join lateral public.compass_address_timeline(l.id) t
+  group by 1`
+
+async function measureConfidence(client: Client): Promise<Record<string, number>> {
+  const { rows } = await client.query<{ k: string; n: string }>(CONFIDENCE_SQL)
+  return Object.fromEntries(rows.map((r) => [r.k, Number(r.n)]))
+}
 
 const CONFIDENCE_KEYS = ["confiance_etabli", "confiance_corrobore", "confiance_probable", "confiance_indetermine"] as const
 type ConfidenceKey = (typeof CONFIDENCE_KEYS)[number]
@@ -346,8 +361,8 @@ async function main(): Promise<void> {
   const client = await connect()
   try {
     await runInvariants(client)
-    const baselineActuals = await runBaselines(client)
-    recordConfidenceHistory(target, baselineActuals)
+    await runBaselines(client)
+    recordConfidenceHistory(target, await measureConfidence(client))
     await runGolden(client)
     await runBudgetArm(client)
   } finally {

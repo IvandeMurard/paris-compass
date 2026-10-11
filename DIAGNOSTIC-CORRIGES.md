@@ -3122,3 +3122,269 @@ l'écriture**, pas signalée le lendemain matin.
    fonction ne les *nomme* encore à l'appelant : `compass_premises_within` ne sait toujours pas
    dire « ce local existe, sans coordonnée », et n'en a pas l'occasion puisqu'elle filtre par
    rayon. C'est le voisinage de §36, et ce n'est pas traité ici.
+
+---
+
+## 62. La base passait en lecture seule pendant les gros chargements — tables gonflées ×2 à ×3,7 — le 6 octobre 2026
+
+**Fichiers :** aucun. La base, et `scripts/ingest/` comme cause. **Clos le 6 octobre 2026 par
+une opération de maintenance, pas par un correctif** — voir « Ce qui reste ouvert ».
+
+### Ce qui était faux
+
+Trois chargements planifiés ont échoué sur la même ligne, `cannot execute DELETE in a read-only
+transaction` : BODACC et SIRENE le 3 octobre — deux sources planifiées le même jour, pas un
+doublon —, puis la relance par Ivan, à 16 h 14 le 5, du passage BDCom de 12 h 13. *Corrigé le
+6 octobre 2026 par la session de #239, journaux des passages relus : ce paragraphe disait
+« SIRENE deux fois » et « second déclenchement », ce qui était faux.* Le passage BDCom de 12 h 13
+avait chargé le recensement à 12 h 18, puis échoué dans `geography.ts` sur une tout autre
+cause — §65. BODACC passait les autres jours — il reconstruit pourtant
+`bodacc_announcement` en entier chaque nuit (`bodacc.ts`, `delete` puis rechargement). Mesuré sur
+`dbefhvmyfmmhjeetdddu` le 5 octobre à 16 h UTC : `default_transaction_read_only = on`, posé par
+`postgresql.auto.conf`, base de **963 Mo**. À 18 h 04 le drapeau était levé, sans qu'on sache
+par qui — Supabase, vraisemblablement, quand le disque est redescendu.
+
+**Écarté** : le WAL (528 Mo pour un `max_wal_size` de 1 Go, aucun slot de réplication), les
+lignes mortes (moins de vingt par table), les tables de staging `stg_bdcom_*` (rechargées à
+chaque passage de `bdcom.ts`, donc les vider ne rend rien de durable).
+
+### La cause
+
+Les tables étaient **gonflées**. Estimation par `pg_stats` (somme des `avg_width` + en-tête de
+ligne) contre `pg_relation_size`, le 6 octobre :
+
+| Table | Utile | Sur disque | Ratio |
+| --- | ---: | ---: | ---: |
+| `premise_location` | 19 Mo | 69 Mo | ×3,7 |
+| `street_segment` | 4 Mo | 11 Mo | ×3,0 |
+| `sirene_etablissement_stock` | 51 Mo | 137 Mo | ×2,7 |
+| `bodacc_establishment` | 55 Mo | 119 Mo | ×2,2 |
+| `bodacc_announcement` | 32 Mo | 68 Mo | ×2,1 |
+
+Les chargeurs rechargent par `DELETE` puis `INSERT`, et `geography.ts` réécrit chaque ligne de
+`premise_location` pour la rattacher. L'autovacuum rend la place **réutilisable**, jamais au
+système : le fichier garde la taille du pic. Chaque gros chargement double donc, au moins le
+temps de la transaction, le volume de la table qu'il recharge — et c'est ce pic qui touchait le
+plafond du projet.
+
+### Ce qui a été fait
+
+1. **Sauvegarde d'abord**, vérifiée avant toute écriture : `pg_dump -Fc` des schémas `public` et
+   `supabase_migrations`, par `docker run --rm postgres:17` (pas de `pg_dump` natif sur ce
+   poste ; le serveur est en 17.6). Fichier `C:\Users\ivand\Backups\paris-compass\compass-20261006T1230Z.dump`,
+   44,5 Mo. **Vérifiée** : 30 tables sur 30, et pour chacune le compte du fichier égal au
+   `count(*)` du distant. Restaurer une table : `pg_restore -a -t <table>` depuis la même image.
+2. **`VACUUM (FULL, ANALYZE)`** sur dix tables, de la plus petite à la plus grande, en
+   s'arrêtant à la première anomalie. Le compte de lignes est mesuré avant et après chaque table :
+   **identique sur les dix**. Verrou de 2 à 13 s par table.
+
+| | Avant | Après |
+| --- | ---: | ---: |
+| Base | 964 Mo | **393 Mo** |
+| `premise_location` (table + index) | 141 Mo | 38 Mo |
+| `sirene_etablissement_stock` | 225 Mo | 74 Mo |
+| `bodacc_establishment` | 202 Mo | 67 Mo |
+
+### Les deux questions de la règle
+
+- **Est-ce que ça survit à un rechargement ? Non.** Chaque rechargement regonfle ce qu'il
+  recharge, et le calendrier de `ingestion.yml` les rapproche : BODACC **chaque nuit** (dès le
+  7 octobre), `sirene_stock` — la plus grosse table — le **2 novembre** (cron `53 2 2 * *`),
+  SIRENE le 3, BDCom en janvier. C'est pour ça que ce n'est pas le correctif.
+- **Est-ce que ça protège un consommateur qui n'existe pas encore ?** Sans objet : le défaut est
+  dans la maintenance, pas dans la donnée servie.
+
+### Le correctif — #239, livré le 6 octobre 2026
+
+**Décision d'Ivan le 6 octobre 2026 : pas de plan payant**, et un plafond de 500 Mo lu au
+tableau de bord. Le disque se tient donc par les chargeurs, et un `TRUNCATE` ne suffisait pas :
+il rend l'ancien fichier au commit, mais la nouvelle version s'écrit **avant** — le pic d'un
+rechargement en bloc reste « ancien + nouveau ». Mesuré par le bras neuf le même jour : SIRENE
+stock en bloc aurait monté la base à 514 Mo au tableau de bord, BODACC à environ 574.
+
+| Chargeur | Avant | Depuis #239 |
+| --- | --- | --- |
+| `bodacc.ts` | tout l’historique supprimé et réécrit en une transaction de 4 min 30, puis `UPDATE` de toutes les positions ; confirmations SIRENE perdues jusqu’à l’étape enchaînée | **une année d’une famille à la fois**, transaction courte, téléchargement hors transaction ; positions ET confirmations SIRENE de l’année posées dans sa transaction ; `VACUUM` entre deux ; reste quotidien, ne bloque aucun lecteur |
+| `sirene-stock.ts` | `DELETE` puis `UPDATE` de chaque ligne insérée (quartier) | **un code postal à la fois**, quartier posé à l'insertion par jointure, `VACUUM` entre deux |
+| `sirene.ts` | `DELETE` ; la confirmation réécrivait chaque avis évalué | `TRUNCATE`, la nuit du vendredi (verrou court) ; la confirmation n'écrit que les verdicts qui changent |
+| `geography.ts` | référentiels vidés, recensement détaché puis rattaché : trois réécritures de `premise_location` | référentiels en *upsert*, rattachements calculés à part puis **un seul `UPDATE` des lignes qui changent** — 0 sur 85 418 mesuré sur la base du 6 octobre |
+| `bdcom.ts` | staging laissé plein au repos (44 Mo) | staging vidé au commit, accord d'Ivan ; la correspondance ligne à ligne d'I8 se joue désormais au chargement |
+
+Et le bras qui manquait : **`npm run disque`**, planifié chaque matin. Il rougit trente jours
+**avant** qu'un chargement ou la croissance n'atteigne 90 % du plafond, et signale à 120 jours —
+`scripts/porte/disque.json` dit tout ce qu'il mesure et ce qu'il ne rattrape pas.
+
+**Ce qui reste ouvert** : le « Fait quand » de #239 exige un rechargement de chaque source
+mesuré sur le distant, ce qui ne se démontre qu'après la fusion, aux premiers passages planifiés.
+Et BDCom : son prochain passage (5 janvier 2027) monterait la base à environ 520 Mo au tableau
+de bord même staging vidé — le bras le signale depuis le premier jour, et c'est à traiter avant
+décembre. Filosofi et idfm aussi (mars 2027, ~478 et ~476 Mo staging vidé) : chacun réécrit deux
+fois les 85 410 locaux — idfm par la clé `ON DELETE SET NULL` puis son rattachement. Tous trois
+sont dans #244. **Filosofi et idfm corrigés par #244 le 6 octobre 2026** : référentiel en
+*upsert*, rattachements calculés à part, un seul `UPDATE` des locaux qui changent — 0 sur 85 418
+pour l'un et l'autre, mesuré dans une transaction annulée ; `npm run disque` les remet à 431 et
+430 Mo, sous le seuil. **BDCom corrigé par #244 le même jour**, sans découpage : ses quatre
+*upserts* de promotion réécrivaient sans condition tout le recensement à chaque passage ; ils ne
+réécrivent plus qu'une ligne qui change. `bdcom.ts --dry-run`, sur le vrai chargeur et les vraies
+données APUR, transaction annulée : 0 local et 0 relevé écrits. Le pic se réduit au staging
+(44 Mo). **Piège consigné** : une transaction annulée n'est pas gratuite — le premier essai à
+blanc a laissé 36 Mo de lignes mortes dans le staging et monté la base de 348 à 384 Mo, assez
+pour faire rougir deux pics de `npm run disque`. Corrigé à la racine, sur relecture de #246 : le
+staging est vidé par un seul `TRUNCATE` en tête de transaction, dont l'annulation jette les
+nouveaux fichiers entiers — un essai à blanc comme un vrai chargement qui échoue ne laissent plus
+rien. **Ce que le correctif de BDCom ne couvre pas** (estimations non mesurées) : un **nouveau
+millésime** fait monter `last_seen_vintage_id` sur la plupart des locaux et réécrit donc
+`premise_location` (~40 Mo) en plus de ses relevés (~15 Mo), soit un pic vers 500 Mo au tableau
+de bord — ajouter un millésime à `LAYERS` oblige à rechiffrer le bloc `bdcom` de `disque.json`
+dans la même PR ; et une source corrigée, ou une montée de PostGIS/PROJ qui déplacerait les points
+au binaire près, réécrirait ~40 Mo pour ~15 Mo de marge. `bdcom.ts --dry-run` compte les lignes
+qui changeraient avant qu'elles ne soient écrites.
+
+**Le régime établi, mesuré sur les deux premiers vrais passages BODACC** (#239). Le 7 octobre,
+la base passe de 351 à 394 Mo, tous dans les trois tables BODACC (+16 Mo de tas, +27 Mo
+d'index) ; le 8, elle reste à 392 Mo. Ce n'est donc pas un gonflement qui s'accumule, mais la
+place de travail du plus gros morceau remplacé — une année —, rendue réutilisable par le `VACUUM`
+mais gardée dans les fichiers : ~40 Mo permanents. BODACC la réutilise ; SIRENE, rechargé par
+`TRUNCATE` dans un nouveau fichier, ne le peut pas : pour son passage du 9 octobre,
+`npm run disque` projette 465 Mo au tableau de bord (une projection du modèle, pas une mesure),
+au-delà de son seuil de 450. Passages mesurés : runs 37606875095 (7 octobre) et 37765146737
+(8 octobre). **Correctif du 8 octobre** : BODACC se remplace par **mois** (le téléchargement reste
+par année). Un `VACUUM FULL` unique des trois tables, accordé par Ivan le même jour, doit rendre
+la place gardée — **jamais fait** : la sauvegarde `pg_dump` n'a pas abouti (Docker Desktop
+bloqué), remplacée par un export NDJSON des trois tables, et le `VACUUM FULL` par un `REINDEX
+CONCURRENTLY` des huit index BODACC, sans pic propre : base 391,7 → 368,7 Mo le 8 octobre. **Ce
+gain ne tient pas** : au premier passage par mois (9 octobre, 10 min 45 s, 0 ligne morte), le tas
+BODACC est descendu de 103,1 à 94,9 Mo mais les index ont repris 19 Mo, et la base est remontée
+à 379,6 Mo — un `REINDEX` ne se refait donc pas. Un `VACUUM FULL` périodique a été écarté : la place revient dès le
+passage suivant, et lui-même écrit une copie complète de la table. **Limites relevées par la
+revue de #253** : un mois passé absent d'un export non vide est vidé jusqu'au lendemain (aucun
+mois vide depuis 2015 au 8 octobre : ce serait une panne du portail) ; un avis re-daté vers un mois
+plus tardif est absent entre deux commits, et jusqu'au passage suivant si le passage casse entre
+les deux ; et la `partition` du bloc `bodacc` de `disque.json`
+recopie à la main l'unité du chargeur, sans que rien ne les lie (#244). Le régime établi est
+démontré pour le tas, pas encore pour les index (l'index géographique est passé de 19 à 21 Mo
+entre les passages du 7 et du 8).
+
+**Ce que le découpage ne rattrape pas** — relevé par la revue de suivi de #243, le 6 octobre :
+un export BODACC vide pour une année est gardé tel quel, jamais lu comme un retrait ; une année
+sortie de la plage chargée (avant `DEFAULT_SINCE`) n'est jamais purgée ; et un rechargement du
+stock SIRENE interrompu laisse en base deux millésimes mêlés, code postal par code postal, jusqu'au
+passage suivant — chaque code postal reste entier, la table ne l'est plus. Et trois petits
+chargeurs (terrasses, plu, chantiers) réécrivent encore `premise_location` en se rattachant : ils
+sont comptés comme blocs dans `disque.json`, pas corrigés — filosofi et idfm l'ont été par #244.
+Le correctif de ces trois-là reprendra la méthode corrigée par la revue de #245 : rattacher
+**uniquement** aux lignes du lot, jamais à toute la table de référence, puisque les lignes
+retirées ensuite y sont encore. `geography.ts` a la même forme, mais ses clés n'ont pas de
+`on delete` : un tronçon retiré encore le plus proche d'un local fait échouer et annuler le
+passage, bruyamment — voulu pour un quartier, pas encore écrit pour un tronçon (#244).
+
+### Une fausse piste, consignée pour qu'elle ne soit pas reprise
+
+Le gonflement **n'explique pas** les rouges de budget de pages du bras E d'`eval`. Hypothèse
+avancée le 6 octobre avant le `VACUUM`, réfutée après : les pages lues ont *augmenté* —
+`compass_street_rotation` de +19 % à +81 % au-dessus de son plafond — pendant que les temps
+baissaient. Le bras compte les pages *touchées*, une page relue comptant à chaque fois : c'est
+la signature d'un changement de plan, pas d'un volume. Voir `DIAGNOSTIC.md` §64.
+
+---
+
+## 63. Le bras B d'`eval` rougissait sur la croissance normale de BODACC — le 6 octobre 2026
+
+**Fichiers :** `eval/baselines/ingestion.json`, `scripts/eval/run.ts`, et le test neuf
+`scripts/eval/borne.test.ts`. **Clos le 6 octobre 2026**, sans migration, sans regel, sans seuil
+touché.
+
+### Ce qui était faux
+
+`eval` du 6 octobre : `confiance_probable` 19 911 contre 19 689 gelé (+1,13 %),
+`confiance_corrobore` +1,05 %, et six autres comptes BODACC ou SIRENE entre +0,86 et +0,97 %.
+La porte en parlait depuis le 3 octobre (#227).
+
+Mesuré sur le distant : l'écart de +222 se décompose en **237** lignes portant sur des avis
+BODACC publiés après le gel, moins 15 sur la population d'avant. Les 237 sont toutes BODACC, dont
+235 sous la règle `shared_address` de
+`compass_address_timeline` — un avis publié à une adresse que partagent plusieurs locaux sort en
+`probable`. Sur la population d'avant le gel, l'écart est de **−0,08 %**.
+
+### La cause
+
+La prémisse du bras B, écrite dans la `note` du fichier : « un comptage ne bouge que si des
+lignes entrent ou sortent », donc au-delà de 1 % le pipeline a changé. Elle est vraie pour
+BDCom et pour SIRENE, que chaque chargement **remplace**. Elle est fausse pour BODACC, où des
+lignes entrent chaque nuit **par construction**. Non bornés, ces comptes devaient franchir le
+seuil un jour, quelle que soit la santé du pipeline — et une porte qui crie sur ce qui est
+normal apprend à être ignorée.
+
+### Ce qui a été fait
+
+Les neuf comptes qui lisent BODACC ne comptent plus que les avis publiés jusqu'au **14 août
+2026** : `a.published_on`, ou `t.occurred_on` des lignes BODACC de la frise. La date est celle
+qui **reproduit le gel**, mesurée sur huit coupures candidates : 0,00 % sur
+`bodacc_cessions_avec_prix`, `bodacc_etablissements_localises` et `cessions_local_identifiable`,
+au plus 0,32 % ailleurs. Aucune valeur n'a donc été regelée.
+
+L'historique B bis cesse de recopier les comptes bornés : il mesure seul, sans borne, pour
+continuer de suivre la composition sur les données servies. `borne.test.ts` rougit sur toute
+baseline qui lit BODACC sans la borne, et sabote un compte neuf pour le prouver.
+
+**Mesuré après** : bras B sans échec, BODACC entre 0 et 0,32 % ; B bis à 19 911 `probable`.
+
+### Les deux questions de la règle
+
+- **Survit à un rechargement ? Oui** : la borne est dans la mesure, aucun chargement ne la défait.
+- **Protège un consommateur futur ? Oui** pour la porte : une baseline BODACC neuve écrite sans
+  la borne fait rougir `test`.
+
+### Ce que ça ne rattrape pas
+
+Un défaut qui ne toucherait que les avis publiés **après** le 14 août — un parseur cassé par un
+format DILA nouveau — échappe à ces neuf comptes. Le jeu doré, les invariants et la tendance
+B bis restent les gardes de ce cas. Et `borne.test.ts` lit le texte du SQL : une vue neuve qui
+lirait BODACC sous un autre nom lui échappe. `prix_median_local_identifiable` n'est pas borné, à
+dessein : il est jugé sur la tranche publiée, qui doit suivre les données servies.
+
+---
+
+## 65. `geography.ts` échouait à chaque passage depuis le 25 août — une clé étrangère arrivée avec le stock SIRENE — le 6 octobre 2026
+
+**Fichiers :** `scripts/ingest/geography.ts`. **Clos le 6 octobre 2026 par #239**, qui l'a trouvé
+en relisant les journaux du 5 octobre et l'a fermé en passant, sans l'avoir cherché.
+
+### Ce qui était faux
+
+`geography.ts` commençait par vider ses deux référentiels, `delete from public.quartier` puis
+`delete from public.street_segment`, après avoir détaché le recensement. Mais depuis la migration
+`20260825000011_sirene_stock.sql`, **`sirene_etablissement_stock.quartier_id` référence aussi
+`quartier`** — et rien ne l'en détachait. Journal du passage BDCom du 5 octobre 2026 (run
+`37307994184`, tentative 1) : le recensement est chargé à 12 h 18, puis
+
+```
+[12:19:04] ÉCHEC — update or delete on table "quartier" violates foreign key constraint "sirene_etablissement_stock_quartier_id_fkey"
+```
+
+La géographie n'a donc réussi aucun passage depuis le 25 août (`ingestion_run.last_success_at`
+du 25 août 2026, relu le 6 octobre). Personne ne l'a vu parce que `geography` est une source
+**sans seuil de retard**, par décision (`scripts/ingest/lib/cadence.ts`) : son échec ne vieillit
+rien que `freshness` sache dire. Seul le rouge d'ingestion du 5 octobre l'a porté, et il a été lu
+comme une panne de lecture seule — il en était une aussi, mais à la relance de 16 h 14.
+
+### Ce que le défaut n'a pas cassé
+
+Les rattachements en place sont justes : le calcul de #239, joué sur la base du 6 octobre dans
+une transaction annulée, les reproduit **à l'identique sur 85 418 locaux**. Le recensement
+rechargé le 5 octobre a gardé ses quartiers et ses tronçons, et un passage réussi n'aurait rien
+changé.
+
+### Le correctif, et les deux questions de la règle
+
+`geography.ts` ne vide plus rien : les référentiels sont mis à jour par *upsert*, les
+rattachements recalculés, et seuls les quartiers ou tronçons que la source ne publie plus sont
+supprimés, **après** le rattachement. Un quartier disparu encore référencé par le stock SIRENE
+fait échouer le passage et l'annule — la bonne réponse à un quartier que Paris aurait supprimé.
+
+- **Survit à un rechargement ?** Oui : c'est le chargeur qui a changé.
+- **Protège un consommateur futur ?** En partie. La prochaine table qui référencera `quartier`
+  ne cassera plus ce chargeur — il ne supprime plus que ce qui a disparu à la source. **Ce que ça
+  ne rattrape pas** : un chargeur qui échoue en silence sur une source sans seuil. `freshness` ne
+  voit pas un échec, seulement un âge ; c'est le rouge d'ingestion du jour qui le porte, et il ne
+  dit pas quelle étape enchaînée a cassé.

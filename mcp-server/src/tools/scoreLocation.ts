@@ -47,7 +47,7 @@ export function registerScoreLocation(server: McpServer): void {
       inputSchema: inputShape,
     },
     async ({ lat, lng, radius_m, vintage_year }) => {
-      const { scores, failures } = await scorePoint(lat, lng, radius_m, vintage_year, "score_location")
+      const { scores, failures, verdict } = await scorePoint(lat, lng, radius_m, vintage_year, "score_location")
       return {
         content: [
           {
@@ -56,6 +56,11 @@ export function registerScoreLocation(server: McpServer): void {
               {
                 point: { lat, lng },
                 radius_m,
+                // The same sentence the context sheet shows, from the same function of
+                // src/core — w6-contexte (#119). It refuses to compose when a bearing finding
+                // is withheld, and then says which one; `scores` below carries every figure it
+                // was built from, so a caller can check the sentence rather than trust it.
+                verdict,
                 scores,
                 context_failures: failures.length > 0 ? failures : undefined,
               },

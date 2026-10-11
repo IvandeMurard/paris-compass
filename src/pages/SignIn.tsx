@@ -40,7 +40,7 @@ const COPY = {
     password: 'Mot de passe',
     signingIn: 'Connexion en cours…',
     signIn: 'Se connecter',
-    noAccount: "Vous n'avez pas de compte ?",
+    noAccount: "Vous n'avez pas de compte ?",
     signUp: 'Créer un compte',
     continueWithGoogle: 'Continuer avec Google',
     or: 'ou',

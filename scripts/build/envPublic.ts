@@ -20,6 +20,39 @@ export const ALLOWED_KEYS = [
 
 export const REQUIRED_KEYS = ["VITE_SUPABASE_URL", "VITE_SUPABASE_PUBLISHABLE_KEY"] as const
 
+/**
+ * The Supabase project this repository targets, and the only one `.env` may name.
+ *
+ * Why a constant rather than a comment. The allowlist above already anticipates that Lovable
+ * regenerates `.env` — it says so. What it cannot see is the regeneration pointing somewhere
+ * ELSE: every key allowed, no secret pasted, shape perfect, wrong project. Measured on
+ * 10 September 2026, commit `71e5bf0` pushed straight to `main` during the twenty minutes the
+ * pull-request requirement was lifted so Lovable could catch up: `.env` came back naming
+ * `nwnhhvogwrzstslxtxca`, with a different publishable key, and every existing check stayed
+ * green.
+ *
+ * The consequence is not subtle — a build from that `.env` queries a project holding none of
+ * the 63 migrations, none of the ingested sources. `docs/REPRISE.md` calls this the trap of the
+ * three Supabase projects, and until now the repository only warned about it in prose.
+ *
+ * **What this does NOT catch.** It compares a string in a file, so it says nothing about which
+ * project the *published bundle* actually carries — that is `npm.cmd run porte:publie`, and on
+ * 8 September that arm was red for two days for exactly this reason while `.env` itself was
+ * still correct. A right `.env` and a wrong deploy is a real state; this only removes one of
+ * the two ways to get there.
+ */
+export const EXPECTED_PROJECT_REF = "dbefhvmyfmmhjeetdddu"
+
+/**
+ * The project ref a Supabase URL names, or null when the URL does not look like one.
+ *
+ * Deliberately tolerant of the shape: what matters is the twenty-character ref, not the rest of
+ * the host, so a `.supabase.in` or a custom domain does not silently pass unread.
+ */
+export function projectRef(url: string): string | null {
+  return /https:\/\/([a-z0-9]{20})\./.exec(url.trim())?.[1] ?? null
+}
+
 export interface Finding {
   key: string
   reason: string

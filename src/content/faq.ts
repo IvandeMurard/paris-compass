@@ -7,7 +7,7 @@ export interface FaqItem {
 
 export const FAQ: FaqItem[] = [
   {
-    question: 'Qu’est-ce que Compass ?',
+    question: 'Qu’est-ce que Compass ?',
     answer:
       'Compass est un outil gratuit qui replace les locaux commerciaux d’Île-de-France dans leur environnement, à partir de données publiques interrogées en direct.',
     details: [
@@ -16,7 +16,7 @@ export const FAQ: FaqItem[] = [
     ],
   },
   {
-    question: 'Comment trouver un local commercial vacant à Paris ?',
+    question: 'Comment trouver un local commercial vacant à Paris ?',
     answer:
       'Sur Compass, les locaux repérés comme vacants proviennent d’OpenStreetMap (attributs de local vide ou de commerce désaffecté) et s’affichent directement sur la carte, dans la zone visible à l’écran.',
     details: [
@@ -26,7 +26,7 @@ export const FAQ: FaqItem[] = [
     ],
   },
   {
-    question: 'Qu’est-ce qu’un score de marchabilité ?',
+    question: 'Qu’est-ce qu’un score de marchabilité ?',
     answer:
       'Le score de marchabilité de Compass note de 0 à 100 la densité de services accessibles à pied dans un rayon de 800 mètres autour du local.',
     details: [
@@ -36,7 +36,7 @@ export const FAQ: FaqItem[] = [
     ],
   },
   {
-    question: 'D’où viennent les données affichées ?',
+    question: 'D’où viennent les données affichées ?',
     answer:
       'Toutes les données proviennent de sources publiques : OpenStreetMap, Base Adresse Nationale, open data de la Ville de Paris, Copernicus/CAMS pour l’air et Géorisques pour les risques.',
     details: [
@@ -45,7 +45,7 @@ export const FAQ: FaqItem[] = [
     ],
   },
   {
-    question: 'Compass est-il gratuit ?',
+    question: 'Compass est-il gratuit ?',
     answer:
       'Oui. La consultation de la carte, des scores et des indicateurs d’environnement est gratuite et ne nécessite pas de compte.',
     details: [
@@ -53,7 +53,7 @@ export const FAQ: FaqItem[] = [
     ],
   },
   {
-    question: 'Comment chercher un local par besoin plutôt que par adresse ?',
+    question: 'Comment chercher un local par besoin plutôt que par adresse ?',
     answer:
       'La barre de recherche accepte une adresse, un quartier ou un besoin exprimé en langage naturel, et les filtres traduisent ce besoin en seuils (surface, loyer, scores minimum).',
     details: [
@@ -62,7 +62,7 @@ export const FAQ: FaqItem[] = [
     ],
   },
   {
-    question: 'Quel loyer au m² afficher pour un quartier parisien ?',
+    question: 'Quel loyer au m² afficher pour un quartier parisien ?',
     answer:
       'Compass affiche le loyer de référence par quartier issu du dispositif d’encadrement des loyers de la Ville de Paris, exprimé en €/m²/mois.',
     details: [
@@ -71,7 +71,7 @@ export const FAQ: FaqItem[] = [
     ],
   },
   {
-    question: 'Comment le flux piéton est-il estimé ?',
+    question: 'Comment le flux piéton est-il estimé ?',
     answer:
       'Le flux piéton est une estimation : Compass combine la densité de commerces actifs dans un rayon de 400 mètres (65 %) et l’accès aux transports (35 %).',
     details: [
@@ -79,7 +79,7 @@ export const FAQ: FaqItem[] = [
     ],
   },
   {
-    question: 'Le niveau de bruit affiché est-il une mesure ?',
+    question: 'Le niveau de bruit affiché est-il une mesure ?',
     answer:
       'Non : le bruit affiché est une estimation calculée à partir de la proximité et de la classe des axes routiers proches, pas une mesure acoustique.',
     details: [
@@ -87,12 +87,12 @@ export const FAQ: FaqItem[] = [
     ],
   },
   {
-    question: 'La qualité de l’air affichée est-elle en temps réel ?',
+    question: 'La qualité de l’air affichée est-elle en temps réel ?',
     answer:
       'Oui : l’indice ATMO européen, les PM2.5 et le NO₂ proviennent du modèle CAMS de Copernicus et sont rafraîchis toutes les heures pour le centre de la carte.',
   },
   {
-    question: 'Quels risques naturels ou technologiques sont signalés ?',
+    question: 'Quels risques naturels ou technologiques sont signalés ?',
     answer:
       'Compass interroge Géorisques dans un rayon de 1 km autour du point observé et signale les risques naturels et technologiques recensés pour la commune.',
     details: [
@@ -100,22 +100,22 @@ export const FAQ: FaqItem[] = [
     ],
   },
   {
-    question: 'Compass couvre-t-il toute l’Île-de-France ?',
+    question: 'Compass couvre-t-il toute l’Île-de-France ?',
     answer:
       'La carte, les aménités et les scores fonctionnent partout en Île-de-France ; les loyers de référence par quartier ne sont disponibles que pour Paris intra-muros.',
   },
   {
-    question: 'Puis-je réutiliser les données affichées ?',
+    question: 'Puis-je réutiliser les données affichées ?',
     answer:
       'Oui, dans le respect de la licence de chaque source : ODbL avec attribution pour OpenStreetMap et l’open data de la Ville de Paris, Licence Ouverte Etalab 2.0 pour la BAN et Géorisques, CC BY 4.0 pour la qualité de l’air.',
   },
   {
-    question: 'À quelle fréquence les données sont-elles mises à jour ?',
+    question: 'À quelle fréquence les données sont-elles mises à jour ?',
     answer:
       'Les données sont lues à chaque déplacement de carte : OpenStreetMap reflète l’état courant de la base, la qualité de l’air est horaire et les loyers de référence sont annuels.',
   },
   {
-    question: 'Qui édite Compass ?',
+    question: 'Qui édite Compass ?',
     answer:
       'Compass est conçu et développé par Ivan de Murard, avec pour parti pris de n’utiliser que des données publiques et de publier la méthode de calcul des scores.',
   },

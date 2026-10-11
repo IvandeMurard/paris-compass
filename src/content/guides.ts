@@ -150,7 +150,7 @@ export const GUIDES: Guide[] = [
       'Pourquoi les loyers commerciaux ne sont pas en open data, quelles références utiliser à la place et comment les interpréter.',
     updated: '2026-08-05',
     intro:
-      'Question fréquente : « quel est le prix au m² d’un local commercial dans ce quartier ? ». La réponse honnête est qu’aucune base publique ne le donne. Voici les repères mobilisables.',
+      'Question fréquente : « quel est le prix au m² d’un local commercial dans ce quartier ? ». La réponse honnête est qu’aucune base publique ne le donne. Voici les repères mobilisables.',
     sections: [
       {
         heading: 'Pourquoi aucune base publique ne donne le loyer commercial',

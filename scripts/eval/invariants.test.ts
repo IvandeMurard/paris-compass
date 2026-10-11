@@ -1,3 +1,6 @@
+import { readFileSync } from "fs"
+import { resolve } from "path"
+
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import type { Invariant } from "./census"
@@ -228,5 +231,30 @@ describe("slicesFor", () => {
     expect(ranges).toHaveLength(Math.ceil(170_836 / ARM_A_CHUNK_ROWS))
     expect(ranges.length).toBeGreaterThan(Math.ceil(85_418 / ARM_A_CHUNK_ROWS))
     expect(asked[0]).toContain("count(*)")
+  })
+})
+
+describe("le catalogue des invariants, tel qu'il est écrit", () => {
+  // Nothing guarded this until 8 September 2026, and two sessions running in parallel walked
+  // straight into it: w2-filosofi (#18) and w4-meubles (#27) each numbered their new
+  // invariants I51 and I52, in isolated worktrees, neither able to see the other. The second
+  // branch to merge would have carried two rules under one number — and an identifier is how
+  // an invariant is cited, in DIAGNOSTIC.md, in the tickets, in a gate report. "I51" meaning
+  // two different things is worse than a missing invariant: it makes every reference to it
+  // ambiguous after the fact, and nothing would have said so.
+  //
+  // The number is not decorative, so it gets the check a primary key would get.
+  //
+  // **What this does not catch**: it reads the file, not the run. An invariant deleted, or one
+  // whose id no longer matches the rule its body carries, passes here — census.ts is what
+  // compares the catalogue to what the database actually holds.
+  it("ne porte pas deux invariants sous le même numéro", () => {
+    const sql = readFileSync(resolve(__dirname, "..", "..", "eval", "invariants.sql"), "utf8")
+    const ids = [...sql.matchAll(/--\s*@invariant\s+(I\d+)\b/g)].map((m) => m[1])
+    const vus = new Map<string, number>()
+    for (const id of ids) vus.set(id, (vus.get(id) ?? 0) + 1)
+    const doublons = [...vus.entries()].filter(([, n]) => n > 1).map(([id, n]) => `${id} (${n} fois)`)
+    expect(doublons, "deux invariants partagent un numéro").toEqual([])
+    expect(ids.length, "plus aucun invariant n'est déclaré : la règle a cessé de mesurer").toBeGreaterThan(40)
   })
 })

@@ -6,6 +6,11 @@
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>https://paris-compass.lovable.app/carte</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
     <loc>https://paris-compass.lovable.app/presentation</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
@@ -164,6 +169,11 @@
     <loc>https://paris-compass.lovable.app/en</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://paris-compass.lovable.app/en/map</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
   </url>
   <url>
     <loc>https://paris-compass.lovable.app/en/presentation</loc>

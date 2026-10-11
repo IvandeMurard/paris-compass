@@ -1,0 +1,10 @@
+{
+  "_lisez-moi": "Les fichiers autorises a porter verbatim une clause de verdict hors de src/core/verdict.ts, chacun avec sa raison et sa date. Une clause recopiee est la maniere dont une seconde implementation nait sans qu'aucun import ne la trahisse, donc une derogation doit dire pourquoi la copie ne peut pas deriver. Voir scripts/porte/verdict.ts pour ce que la regle ne rattrape pas.",
+  "prose-autorisee": [
+    {
+      "path": "src/content/en/guides.ts",
+      "raison": "Coincidence de langue, pas une recopie : le guide ecrit « Healthcare: steady footfall throughout the day, mostly adults. » dans une phrase editoriale, et « steady footfall » se trouve etre aussi la clause anglaise de l'axe footfall en bande forte. Ce texte ne compose aucun verdict, n'est lu par aucun axe et ne se reformulerait pas si la clause du noyau changeait. La condition qui annulerait cette derogation : que ce fichier se mette a rendre une phrase d'axe plutot qu'une phrase de guide.",
+      "date": "2026-09-11"
+    }
+  ]
+}

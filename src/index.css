@@ -125,3 +125,19 @@
   font-weight: 600;
   margin-bottom: 4px;
 }
+
+/* Récupéré de `lovable-sync` le 17 septembre 2026 — une sixième chose au-delà des cinq fichiers,
+   parce qu'elle est un critère de `w6-peinture` (#215) et qu'elle serait perdue avec la branche.
+   Le correctif de hauteur de dialogue qui l'accompagnait n'est PAS repris : il ciblait des classes
+   Tailwind par sous-chaîne (`[class*='backdrop-blur-sm']`) et cesserait de mordre à la première
+   refonte, sans que rien ne le dise. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

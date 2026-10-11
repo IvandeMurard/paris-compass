@@ -10,8 +10,13 @@ import { z } from "zod"
 
 import { LAT_DESCRIPTION, LNG_DESCRIPTION, PARIS_BOUNDS } from "../parisBounds"
 
-import { AMENITY_RADIUS_M, type AreaScores } from "../../../src/core"
-import { scorePoint } from "../scorePoint"
+import {
+  AMENITY_RADIUS_M,
+  compareAddresses,
+  findingsFromScores,
+  type AreaScores,
+} from "../../../src/core"
+import { scorePoint, withheldByLayer } from "../scorePoint"
 
 const point = z.object({
   lat: z.number().min(PARIS_BOUNDS.latMin).max(PARIS_BOUNDS.latMax).describe(LAT_DESCRIPTION),
@@ -67,6 +72,10 @@ export function registerCompareLocations(server: McpServer): void {
         scorePoint(a.lat, a.lng, radius_m, vintage_year, "compare_locations"),
         scorePoint(b.lat, b.lng, radius_m, vintage_year, "compare_locations"),
       ])
+      const comparison = compareAddresses(
+        findingsFromScores(scoredA.scores, withheldByLayer(scoredA.failures)),
+        findingsFromScores(scoredB.scores, withheldByLayer(scoredB.failures)),
+      )
       return {
         content: [
           {
@@ -74,9 +83,16 @@ export function registerCompareLocations(server: McpServer): void {
             text: JSON.stringify(
               {
                 radius_m,
-                a: { point: a, scores: scoredA.scores, context_failures: scoredA.failures.length > 0 ? scoredA.failures : undefined },
-                b: { point: b, scores: scoredB.scores, context_failures: scoredB.failures.length > 0 ? scoredB.failures : undefined },
+                a: { point: a, verdict: scoredA.verdict, scores: scoredA.scores, context_failures: scoredA.failures.length > 0 ? scoredA.failures : undefined },
+                b: { point: b, verdict: scoredB.verdict, scores: scoredB.scores, context_failures: scoredB.failures.length > 0 ? scoredB.failures : undefined },
                 delta_b_minus_a: deltas(scoredA.scores, scoredB.scores),
+                // Which axes can honestly be set beside each other, and which cannot — from
+                // src/core/comparison.ts, the same function the screen's two-address view uses
+                // (w6-contexte #119). An axis only one side carries is named rather than left
+                // for the caller to subtract against a null: `delta_b_minus_a` above reports
+                // null there, and this says WHY it is null.
+                comparable_axes: comparison.comparableAxes,
+                incomparable_axes: comparison.incomparableAxes,
               },
               null,
               2,

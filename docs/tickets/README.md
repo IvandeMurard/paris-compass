@@ -1,8 +1,13 @@
 # Tickets — plan d'action vacance
 
-Un fichier par issue : **8 épics** (`vague-*.md`) et **38 tickets** (`w*-*.md`). Chaque corps
+Un fichier par issue : **8 épics** (`vague-*.md`) et les tickets (`w*-*.md`). Chaque corps
 tient en cinq blocs — Pourquoi, Comment, Doctrine, Fait quand, plus l'en-tête ID / vague /
 horizon / priorité / dépendances / sources.
+
+**Le nombre de tickets n'est volontairement pas écrit ici** — même raison que le nombre de bras
+dans `CLAUDE.md` : le pack d'août en portait 38, les sessions en ajoutent depuis, et un total
+recopié rouille au ticket suivant. `ls docs/tickets/w*-*.md | wc -l` le dit, et lui ne se trompe
+pas.
 
 Doc parente : [`../PLAN-ACTION-VACANCE.md`](../PLAN-ACTION-VACANCE.md).
 
