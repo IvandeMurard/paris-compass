@@ -32,37 +32,66 @@
  * measurement and a repeat: the mini-map cannot throw the page away any more
  * (`src/lib/contextMapFrame.ts`), and the wait before this refusal is bounded by
  * `CONTEXT_BUDGET_MS` rather than by how long three saturated mirrors take to expire.
+ *
+ * **And since w6-fiche-delai (#180) the sheet does not wait for Overpass AT ALL.** One
+ * `allSettled` held both halves together, so the page showed nothing until the mirror had
+ * finished not answering: measured in production on 15 September 2026 at rue de Bretagne,
+ * **10 976 ms** for a verdict whose four bearing axes had landed in one to two seconds. Since
+ * `#169`, `VERDICT_AXES` records that the only layer still read on Overpass — `roads`, behind
+ * the `noise` axis — is NOT bearing: its absence cannot refuse a conclusion, by construction.
+ * A layer that decides nothing therefore no longer holds the page.
+ *
+ * The two halves are now two queries. `fetchCorpusContext` answers alone and the verdict is
+ * composed on it; the Overpass snapshot completes the sheet when it arrives. `noise` is never
+ * removed from the screen — it is named as being measured, then carries its value and its
+ * source, or « source injoignable ». A page that is faster because it says less would not be a
+ * faster page, which is what `w6-fiche-robuste` built and what this ticket must not undo.
  */
 
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   AMENITY_RADIUS_M,
   BDCOM_ORIGIN,
+  IDFM_ORIGIN,
   M_PER_DEG_LAT,
+  SERVICE_RADIUS_M,
   buildIndex,
+  dayShape,
   mPerDegLng,
-  scoreLocation,
+  scoreLocationDetailed,
   OSM_ORIGIN,
   type AreaScores,
+  type DayShape,
+  type Measured,
+  type FigureMotif,
   type Layer,
   type LayerNotes,
   type LayerOrigins,
   type NeighbourhoodContext,
   type Origin,
   type PremisePoint,
+  type ScoringOperands,
+  type ServicePoint,
+  type TradeFacts,
   type Withholding,
 } from '@/core';
 import {
   SHEET_RADIUS_M,
   SHEET_VINTAGE,
+  STATION_RADIUS_M,
   fetchActivityTransitions,
   fetchCorpusPremises,
+  fetchCorpusServices,
+  fetchCorpusStation,
   fetchPremisesOrigin,
+  fetchStationOrigin,
+  fetchTradeOrigins,
   withholdingOf,
   type TransitionsVerdict,
 } from '@/services/compass/addressCorpus';
 import { geocode, type GeocodeResult } from '@/services/opendata/geocoding';
-import { fetchOverpassSnapshot } from '@/services/opendata/overpass';
+import { fetchOverpassSnapshot, type OverpassSnapshot } from '@/services/opendata/overpass';
 import { toNeighbourhoodContext } from '@/services/opendata/scoring';
 import type { BBox } from '@/services/opendata/types';
 
@@ -83,17 +112,27 @@ const UNKNOWN_BDCOM: Origin = BDCOM_ORIGIN(
   'inconnu',
 );
 
+/** The same stand-in for the rail layer, reached only when `ingestion_run` itself is silent. */
+const UNKNOWN_IDFM: Origin = IDFM_ORIGIN('inconnu — ingestion_run n’a pas pu être lu');
+
 /**
- * What the sheet says about a premises count PostgREST capped.
+ * What the sheet says about a count PostgREST capped.
  *
- * French, because it reaches a French reader through `Measured.note`, and the core's own notes
- * are the exception rather than the rule here — they are English and predate the sheet. The
- * numbers are interpolated from what was actually received, never typed: a literal here would
- * be the unmeasured figure this whole page refuses.
+ * **It was a French sentence until w6-langue-absences (#181), and that was the same defect
+ * mirrored.** The core's notes were English on a French page; this one was French, and it
+ * reached `/en/context/` in French. Neither caller was wrong about its own reader and both were
+ * wrong about the other's, which is what a motif removes: the numbers travel structured, and
+ * the sentence is composed once per language by `src/core/motif.ts`.
+ *
+ * The numbers are still what was actually received, never typed: a literal here would be the
+ * unmeasured figure this whole page refuses.
  */
-const truncatedNote = (rendered: number, total: number) =>
-  `Le service a renvoyé ${rendered} locaux sur les ${total} que le rayon contient : le compte ` +
-  `est un plancher, pas un total.`;
+const truncatedNote = (
+  layer: 'premises' | 'services',
+  rendered: number,
+  total: number,
+  radiusM: number,
+): FigureMotif => ({ kind: 'reponse_plafonnee', layer, rendered, total, radiusM });
 
 /**
  * The box fetched around the point.
@@ -115,8 +154,16 @@ export function boxAround(point: { lat: number; lng: number }, radiusM = AMENITY
 }
 
 /**
- * How long this page will wait for a neighbourhood before it answers without one — geste 2 of
- * w6-fiche-robuste (#156).
+ * How long the ROAD layer is given before it declares itself unreachable — geste 2 of
+ * w6-fiche-robuste (#156), narrowed to one non-bearing layer by w6-fiche-delai (#180).
+ *
+ * **What it bounds changed; the number did not.** Until #180 it bounded the page's answer: the
+ * sheet stayed silent until Overpass had finished. It no longer waits, so this budget now
+ * bounds one layer that decides nothing — the one behind `noise`. Keeping it at ten seconds is
+ * not an oversight: the figure was already a statement about the reader, and a reader who has
+ * held a verdict for eight seconds will not still be waiting on a finding that lands at forty.
+ * A second figure to keep true was the price of the other direction, and this ticket declined
+ * to pay it.
  *
  * **The number is about the reader, not about Overpass.** Measured in production on
  * 13 September 2026: three mirrors at seventy seconds each, **2 min 20** of « Lecture du
@@ -126,21 +173,19 @@ export function boxAround(point: { lat: number; lng: number }, radiusM = AMENITY
  * is the widest bound that is still a statement about the human rather than about how long a
  * saturated mirror takes to give up.
  *
- * **What it costs, measured rather than assumed.** On the same day, the one mirror that
- * answered the sheet's real query — `overpass.private.coffee`, 2 188 elements, 685 983 octets
- * — took **10 587 ms**. Under this budget that answer is abandoned 587 ms before it lands, and
- * the sheet refuses on a day when patience would have been repaid. That is the trade the
- * doctrine asks for and it is written here rather than discovered later: the page owes a
- * verdict *or its refusal* in a readable delay, and a refusal it can explain beats a verdict
- * nobody waited for. What fills the sheet when Overpass will not is the corpus —
- * `w6-fiche-corpus` (#157), delivered 14 September 2026: the premises layer no longer passes
- * through this budget at all, so the trade above now costs three axes rather than five.
+ * **What it costs, measured rather than assumed, and #180 does not buy it back.** On the same
+ * day, the one mirror that answered the sheet's real query — `overpass.private.coffee`, 2 188
+ * elements, 685 983 octets — took **10 587 ms**. Under this budget that answer is still
+ * abandoned 587 ms before it lands. What changed is the price of that abandonment: one
+ * non-bearing finding reading « source injoignable », where it used to be the whole page
+ * withheld for nine seconds from every reader.
  *
  * **And the budget is not the corpus's.** It is passed to `fetchOverpassSnapshot` and to
- * nothing else. Bounding a database call that answers in 144 to 735 ms with a ten-second
- * reader-attention limit would be a bound that never fires, and putting the two behind one
- * timer would hand the mirror the power to cancel the corpus — the exact dependency this
- * ticket inverted.
+ * nothing else — now enforced by the query boundary rather than by discipline, since the two
+ * halves no longer share a promise. Bounding a database call that answers in 144 to 735 ms
+ * with a ten-second reader-attention limit would be a bound that never fires, and putting the
+ * two behind one timer would hand the mirror the power to cancel the corpus — the exact
+ * dependency `#157` inverted and `#180` finished.
  *
  * `/carte` keeps the unbounded walk. A visitor there asked for OpenStreetMap data and the map
  * IS the screen, so waiting buys something; here it buys a spinner.
@@ -149,6 +194,16 @@ export const CONTEXT_BUDGET_MS = 10000;
 
 export interface AddressContext {
   scores: AreaScores;
+  /**
+   * What each figure was derived FROM — w6-dossier (#33).
+   *
+   * The counts and the distance, not the 0-100 results. The sheet does not display them; the
+   * dossier publishes them, because « chaque figure est re-dérivable » is not satisfied by a
+   * formula whose operand nobody can see. They come out of the SAME traversal of the index that
+   * produced `scores` — `scoreLocationDetailed` — rather than from a second walk beside it,
+   * which would have been one more pair of numbers to keep equal.
+   */
+  operands: ScoringOperands;
   /** Where each layer was read from — the same object `scoreLocation` was given, so the gaps
    *  block can name the premises source without going through a figure that may be absent. */
   origins: LayerOrigins;
@@ -156,6 +211,16 @@ export interface AddressContext {
   withheldBy: Partial<Record<Layer, Withholding>>;
   /** Layers that actually came back — what the gaps block reads to name what is missing. */
   loaded: readonly Layer[];
+  /**
+   * Layers still in flight — w6-fiche-delai (#180).
+   *
+   * The third state the sheet did not have while both halves shared one promise: a layer that
+   * has neither arrived nor failed. It matters because the two read alike on screen and must
+   * not — « source injoignable » is a hole a reader can act on, an answer still travelling is
+   * not. Empty once every query has settled, and never holding a bearing layer: the sheet is
+   * not rendered at all until the corpus has answered.
+   */
+  pending: readonly Layer[];
   /**
    * The points the scores were computed on — w6-contexte (#119), step 5.
    *
@@ -174,57 +239,112 @@ export interface AddressContext {
    * itself failed — an outage and a licence refusal must not read alike.
    */
   transitions: TransitionsVerdict | null;
+  /**
+   * The near-field facts the trade checklists read — w6-modes (#36). See `CorpusContext.trade`
+   * for why `null` and `{ total: 0 }` are two different answers.
+   */
+  trade: TradeFacts | null;
+  /**
+   * The shape of the nearest station's working day — w2-rythme (#208).
+   *
+   * A `Measured<DayShape>` and not an axis: it never reaches `scores`, never reaches
+   * `composeVerdict`, and `VERDICT_AXES` does not know it exists. It sits beside the six
+   * findings because a day's shape is not a level, and `rythme.test.ts` holds that frontier.
+   * `null` when the whole rail layer was withheld — a licence refusal or an unreachable
+   * database — where a `Measured` whose value is null means the layer ANSWERED and found no
+   * station in range.
+   */
+  rythme: Measured<DayShape> | null;
 }
 
 /** The Overpass layers. `premises` is deliberately absent: it comes from the corpus now. */
 const OVERPASS_LAYERS: readonly Layer[] = ['amenities', 'roads'];
 
 /**
- * Scores for one point, provenance included, with an unreachable source reported as an
- * absence per layer rather than as a thrown query.
+ * What the corpus alone answered — everything the verdict is composed from.
  *
- * **Four independent calls, four independent failures.** A saturated Overpass mirror must not
- * blank a premises count that arrived in 200 ms, and a database hiccup must not blank a road
- * layer that arrived fine. `allSettled` is what makes « un miroir mort dégrade la fiche au lieu
- * de la vider » true rather than intended; a single `try` around the lot is exactly the shape
- * that produced the 13 September outage, one level up.
+ * It is a separate return type rather than a half-filled `AddressContext` on purpose: a shape
+ * that could stand in for the finished one is a shape that will eventually be rendered, and
+ * scoring the sheet over a context whose Overpass half has not been decided yet would put a
+ * measured zero of road noise on screen. `composeContext` is the only way to get an
+ * `AddressContext`, and it cannot be called without saying what became of the mirror.
+ */
+export interface CorpusContext {
+  loaded: Layer[];
+  withheldBy: Partial<Record<Layer, Withholding>>;
+  notes: LayerNotes;
+  origins: LayerOrigins;
+  premises: PremisePoint[];
+  services: ServicePoint[];
+  nearestStationM: number | null;
+  transitions: TransitionsVerdict | null;
+  /**
+   * The near-field facts the trade checklists read — w6-modes (#36).
+   *
+   * `null` when the services layer did not answer, and the distinction is the whole point: a
+   * checklist rendered over `total: 0` says « no premise is surveyed within 25 m of here »,
+   * which is a measurement, while one rendered over a failure must say « the layer did not
+   * answer ». Flattening the second into the first would put a measured absence of terraces on
+   * screen during an outage — `DIAGNOSTIC.md` §16, in a new block.
+   */
+  trade: TradeFacts | null;
+  /** The shape of the nearest station's day — w2-rythme (#208). See `AddressContext.rythme`. */
+  rythme: Measured<DayShape> | null;
+  bbox: BBox;
+}
+
+/**
+ * What became of the Overpass half — w6-fiche-delai (#180).
+ *
+ * Three states and not two. `en_cours` is the one the sheet gained by no longer waiting, and
+ * the reason this is a union rather than `OverpassSnapshot | null`: `null` would have to mean
+ * both « the mirrors refused » and « nobody has answered yet », and the screen owes those two
+ * different sentences.
+ */
+export type OverpassPart =
+  | { etat: 'en_cours' }
+  | { etat: 'arrive'; snapshot: OverpassSnapshot }
+  | { etat: 'injoignable' };
+
+/**
+ * The corpus half: premises, merchant services, rail, and the vintage metadata of each.
+ *
+ * **Six independent calls, six independent failures.** A database hiccup on the rail layer must
+ * not blank a premises count that arrived in 200 ms. `allSettled` is what makes « une couche
+ * morte dégrade la fiche au lieu de la vider » true rather than intended; a single `try` around
+ * the lot is exactly the shape that produced the 13 September outage, one level up.
+ *
+ * **Overpass is no longer among them — w6-fiche-delai (#180).** It used to be the first entry
+ * of this `allSettled`, which meant the six calls below could not be shown until the mirror had
+ * finished not answering. The snapshot is now fetched by its own query, and the only thing this
+ * function knows about it is the box to fetch it over.
  *
  * The vintage metadata is its own call and deliberately not bundled with the rows: a withheld
  * vintage returns no rows while its licence and date stay public, and those are precisely what
  * a reader needs in order to understand the refusal.
  */
-export async function fetchAddressContext(point: {
+export async function fetchCorpusContext(point: {
   lat: number;
   lng: number;
-}): Promise<AddressContext> {
+}): Promise<CorpusContext> {
   const bbox = boxAround(point);
 
-  const [overpass, premises, premisesOrigin, transitions] = await Promise.allSettled([
-    fetchOverpassSnapshot(bbox, { budgetMs: CONTEXT_BUDGET_MS }),
-    fetchCorpusPremises(point.lat, point.lng, SHEET_RADIUS_M),
-    fetchPremisesOrigin(),
-    fetchActivityTransitions(point.lat, point.lng, SHEET_RADIUS_M),
-  ]);
+  // Still SIX calls after w2-rythme (#208): the hourly shares ride in with the station call
+  // that was already being made, and their licence is built from the date this same
+  // `fetchStationOrigin` already reads. The sheet gained a block and paid no round trip.
+  const [premises, premisesOrigin, transitions, services, station, stationOrigin] =
+    await Promise.allSettled([
+      fetchCorpusPremises(point.lat, point.lng, SHEET_RADIUS_M),
+      fetchPremisesOrigin(),
+      fetchActivityTransitions(point.lat, point.lng, SHEET_RADIUS_M),
+      fetchCorpusServices(point.lat, point.lng, SERVICE_RADIUS_M),
+      fetchCorpusStation(point.lat, point.lng, STATION_RADIUS_M),
+      fetchStationOrigin(),
+    ]);
 
   const loaded: Layer[] = [];
   const withheldBy: Partial<Record<Layer, Withholding>> = {};
   const layerNotes: LayerNotes = {};
-
-  // ── Overpass: amenities and roads, and nothing else any more ────────────────────────────
-  // The mirrors refused, the payload was malformed, or the budget ran out before any of them
-  // answered. The three are one outcome here — the layer is unreachable, not empty, and that
-  // difference is the whole point: an empty context declared `loaded` would score a measured
-  // zero. Which of the three it was is not re-read from the message.
-  const snapshot = overpass.status === 'fulfilled' ? overpass.value : null;
-  const osmPoints = snapshot ? toNeighbourhoodContext(snapshot, bbox) : null;
-  if (snapshot && osmPoints) {
-    for (const layer of OVERPASS_LAYERS) {
-      if (snapshot.loaded.includes(layer)) loaded.push(layer);
-      else withheldBy[layer] = 'source_injoignable';
-    }
-  } else {
-    for (const layer of OVERPASS_LAYERS) withheldBy[layer] = 'source_injoignable';
-  }
 
   // ── The corpus: premises, from APUR's survey ────────────────────────────────────────────
   // Rows that arrived but cannot be attributed are rows that must not be scored: a figure
@@ -236,7 +356,12 @@ export async function fetchAddressContext(point: {
   if (premises.status === 'fulfilled' && premisesOrigin.status === 'fulfilled') {
     loaded.push('premises');
     if (premises.value.truncated) {
-      layerNotes.premises = truncatedNote(premises.value.points.length, premises.value.totalMatched);
+      layerNotes.premises = truncatedNote(
+        'premises',
+        premises.value.points.length,
+        premises.value.totalMatched,
+        SHEET_RADIUS_M,
+      );
     }
   } else if (premises.status === 'rejected') {
     withheldBy.premises = withholdingOf(premises.reason);
@@ -246,46 +371,269 @@ export async function fetchAddressContext(point: {
     withheldBy.premises = 'indetermine';
   }
 
-  const points: NeighbourhoodContext = {
-    amenities: osmPoints?.amenities ?? [],
-    roads: osmPoints?.roads ?? [],
-    premises: premisePoints,
-    bounds: bbox,
-    loaded,
-  };
+  // ── Hors du corpus, les DEUX autres couches du corpus tombent avec les locaux ───────────
+  //
+  // **Mesuré à l'écran le 15 septembre 2026, à Massy, et corrigé avant livraison.** Les deux
+  // fonctions que ces couches appellent RÉUSSISSENT hors de Paris : `compass_premises_within`
+  // rend zéro ligne sans marqueur — il n'en a jamais porté, `DIAGNOSTIC.md` §36 — et
+  // `compass_station_profile` rend zéro ligne parce que `idfm_station` est restreinte à Paris
+  // à l'ingestion. Traités isolément, les deux comptent donc comme « chargés et vides », et la
+  // fiche affichait « services marchands à pied 0/100 » et « desserte ferrée 0/100 » sur une
+  // commune qui a des commerces et un RER. C'est exactement le défaut de `DIAGNOSTIC.md` §16,
+  // un cran plus loin : un chiffre calculé sur rien, estampillé d'une source.
+  //
+  // Seule `compass_scoring_context_within` porte `out_of_corpus`, donc elle est la SEULE
+  // autorité sur la frontière, et les deux autres la suivent. Un second test ici serait une
+  // deuxième autorité sur la même question, libre de contredire la première.
+  const horsCorpus =
+    premises.status === 'rejected' && withholdingOf(premises.reason) === 'hors_corpus';
+
+  // ── The corpus: merchant services, from the same survey read by activity code ───────────
+  // Same rule as premises, one level along: rows without their licence are rows that must not
+  // be scored, so the premises metadata failing withdraws this layer too — the two read the
+  // same vintage and `compass_vintages` is the only place that knows its licence.
+  const servicePoints: ServicePoint[] = horsCorpus
+    ? []
+    : services.status === 'fulfilled'
+      ? services.value.points
+      : [];
+  if (horsCorpus) {
+    withheldBy.services = 'hors_corpus';
+  } else if (services.status === 'fulfilled' && premisesOrigin.status === 'fulfilled') {
+    loaded.push('services');
+    if (services.value.truncated) {
+      layerNotes.services = truncatedNote(
+        'services',
+        services.value.rendered,
+        services.value.totalMatched,
+        SERVICE_RADIUS_M,
+      );
+    }
+  } else if (services.status === 'rejected') {
+    withheldBy.services = withholdingOf(services.reason);
+  } else {
+    withheldBy.services = 'indetermine';
+  }
+
+  // ── The corpus: rail stops, from Île-de-France Mobilités ────────────────────────────────
+  // A stop found or not found are both readings of a layer that ANSWERED **inside the
+  // corpus**; only a thrown call, or a point the corpus does not cover, withdraws it.
+  // `nearestStationM` carries the found/not-found distinction into the core, which is why it
+  // is `number | null` and not an array whose emptiness would be ambiguous.
+  const stationLoaded =
+    !horsCorpus && station.status === 'fulfilled' && stationOrigin.status === 'fulfilled';
+  if (horsCorpus) {
+    withheldBy.stations = 'hors_corpus';
+  } else if (stationLoaded) {
+    loaded.push('stations');
+  } else if (station.status === 'rejected') {
+    withheldBy.stations = withholdingOf(station.reason);
+  } else {
+    withheldBy.stations = 'indetermine';
+  }
 
   // Overpass answers with the current state of the map, so the query date is its vintage.
   // BDCom's is not today's date and must never be given it: `as_of` comes from the survey,
-  // read off `compass_vintages` rather than written here.
+  // read off `compass_vintages` rather than written here. The OSM origins are written here
+  // rather than by `composeContext` because they are what `noise` must carry BEFORE its
+  // snapshot lands: a figure that is still travelling still names the dataset it is waiting on.
   const osm = OSM_ORIGIN(today());
-  const origins: LayerOrigins = {
-    amenities: osm,
-    roads: osm,
-    premises: premisesOrigin.status === 'fulfilled' ? premisesOrigin.value : UNKNOWN_BDCOM,
-  };
+  const bdcom = premisesOrigin.status === 'fulfilled' ? premisesOrigin.value : UNKNOWN_BDCOM;
 
   return {
-    scores: scoreLocation(point, buildIndex(points), origins, layerNotes),
-    origins,
-    withheldBy,
     loaded,
-    points,
-    bbox,
+    withheldBy,
+    notes: layerNotes,
+    origins: {
+      amenities: osm,
+      roads: osm,
+      premises: bdcom,
+      // The services layer reads the same survey and the same vintage as the premises layer,
+      // so it carries the same origin by construction rather than by a second lookup that
+      // could answer differently.
+      services: bdcom,
+      stations: stationOrigin.status === 'fulfilled' ? stationOrigin.value : UNKNOWN_IDFM,
+    },
+    premises: premisePoints,
+    services: servicePoints,
+    nearestStationM: !horsCorpus && station.status === 'fulfilled' ? station.value.distanceM : null,
+    // Gated on the SAME condition as the layer itself — the rows arrived AND their licence
+    // arrived with them — for the reason the trade facts are: a shape whose licence is unknown
+    // is a shape that must not be redistributed, and ODbL is the obligation at stake. `null`
+    // when the layer was withheld, which the block renders as a hole; a `Measured` whose value
+    // is null means the layer answered and found no station, which it renders as an answer.
+    rythme:
+      stationLoaded && station.status === 'fulfilled' && stationOrigin.status === 'fulfilled'
+        ? dayShape(
+            station.value.hours,
+            { name: station.value.name, distanceM: station.value.distanceM },
+            // The DATE of the run, never its licence: one run loads both tables, and
+            // `dayShape` stamps the profile's own ODbL on the figure itself.
+            stationOrigin.value.asOf,
+          )
+        : null,
     transitions: transitions.status === 'fulfilled' ? transitions.value : null,
+    // Gated on the SAME two conditions as the `services` layer above — the rows arrived and
+    // their vintage metadata arrived with them — rather than on `services.status` alone. Rows
+    // whose licence is unknown are rows that must not be counted, and a checklist is a place a
+    // count reaches a reader just as surely as an axis is.
+    trade:
+      !horsCorpus && services.status === 'fulfilled' && premisesOrigin.status === 'fulfilled'
+        ? services.value.trade
+        : null,
+    bbox,
   };
 }
 
-/** The neighbourhood around a point. Never disabled by a failure: see the header. */
-export function useAddressContext(point: { lat: number; lng: number } | null) {
-  return useQuery({
-    queryKey: ['address-context', point?.lat.toFixed(5), point?.lng.toFixed(5)],
-    queryFn: () => fetchAddressContext(point as { lat: number; lng: number }),
+/**
+ * The sheet as it stands right now: the corpus, plus whatever became of the Overpass half.
+ *
+ * **Pure, and that is what makes the progressive sheet safe.** It is called again on every
+ * state of the mirror with the same corpus, so the figures cannot drift between the two paints
+ * for any reason other than the snapshot arriving. Composing the second paint by patching the
+ * first would have been the other design, and it is the one where a note or a withholding
+ * written on the first paint quietly survives its cause.
+ *
+ * The three Overpass states map to three different screens and none of them removes `noise`:
+ * still travelling leaves it without a figure and without a cause, arrived gives it its value
+ * and its source, unreachable gives it « source injoignable ».
+ */
+export function composeContext(
+  point: { lat: number; lng: number },
+  corpus: CorpusContext,
+  overpass: OverpassPart,
+): AddressContext {
+  const loaded: Layer[] = [...corpus.loaded];
+  const withheldBy: Partial<Record<Layer, Withholding>> = { ...corpus.withheldBy };
+  const pending: Layer[] = [];
+
+  // The mirrors refused, the payload was malformed, or the budget ran out before any of them
+  // answered. The three are one outcome here — the layer is unreachable, not empty, and that
+  // difference is the whole point: an empty context declared `loaded` would score a measured
+  // zero. Which of the three it was is not re-read from the message.
+  const snapshot = overpass.etat === 'arrive' ? overpass.snapshot : null;
+  const osmPoints = snapshot ? toNeighbourhoodContext(snapshot, corpus.bbox) : null;
+  for (const layer of OVERPASS_LAYERS) {
+    if (overpass.etat === 'en_cours') pending.push(layer);
+    else if (snapshot && osmPoints && snapshot.loaded.includes(layer)) loaded.push(layer);
+    else withheldBy[layer] = 'source_injoignable';
+  }
+
+  const points: NeighbourhoodContext = {
+    amenities: osmPoints?.amenities ?? [],
+    roads: osmPoints?.roads ?? [],
+    premises: corpus.premises,
+    services: corpus.services,
+    nearestStationM: corpus.nearestStationM,
+    bounds: corpus.bbox,
+    loaded,
+  };
+
+  const scored = scoreLocationDetailed(point, buildIndex(points), corpus.origins, corpus.notes);
+
+  return {
+    scores: scored.scores,
+    operands: scored.operands,
+    origins: corpus.origins,
+    withheldBy,
+    loaded,
+    pending,
+    points,
+    bbox: corpus.bbox,
+    transitions: corpus.transitions,
+    trade: corpus.trade,
+    // Carried through untouched, and deliberately not recomputed here: the day's shape depends
+    // on nothing Overpass holds, so composing it a second time on the second paint could only
+    // introduce a way for the two paints to disagree.
+    rythme: corpus.rythme,
+  };
+}
+
+/**
+ * The neighbourhood around a point. Never disabled by a failure: see the header.
+ *
+ * **Two queries, and the split IS the ticket — w6-fiche-delai (#180).** The corpus one decides
+ * when the page renders; the Overpass one decides nothing and completes the sheet when it
+ * lands. A caller sees one object either way, so the page does not have to know there are two.
+ *
+ * The result is not a `UseQueryResult`: it cannot be, since it merges two of them. It carries
+ * the three fields the sheet actually reads, and `isPending` is deliberately the corpus query's
+ * alone — a page that stayed « en cours de lecture » until the mirror answered would be the
+ * defect this ticket exists to remove, rebuilt one level up.
+ */
+export function useAddressContext(point: { lat: number; lng: number } | null): {
+  data: AddressContext | undefined;
+  isPending: boolean;
+  isError: boolean;
+} {
+  const corpus = useQuery({
+    queryKey: ['address-corpus', point?.lat.toFixed(5), point?.lng.toFixed(5)],
+    queryFn: () => fetchCorpusContext(point as { lat: number; lng: number }),
     enabled: point !== null,
     staleTime: 30 * 60 * 1000,
-    // Same reasoning as `usePremises`: the snapshot fetcher already walks the mirrors, and a
-    // further attempt changes nothing. It matters more under a budget, not less — a retry
-    // would spend `CONTEXT_BUDGET_MS` a second time and double the delay this ticket bounded.
+    // Same reasoning as `usePremises`: the corpus fetcher already reports each layer's failure
+    // as an absence rather than throwing, so a second attempt would only repeat the same call.
     retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  const roads = useQuery({
+    queryKey: ['address-overpass', point?.lat.toFixed(5), point?.lng.toFixed(5)],
+    queryFn: () =>
+      fetchOverpassSnapshot(boxAround(point as { lat: number; lng: number }), {
+        budgetMs: CONTEXT_BUDGET_MS,
+      }),
+    enabled: point !== null,
+    staleTime: 30 * 60 * 1000,
+    // A retry here would spend `CONTEXT_BUDGET_MS` a second time, and the fetcher has already
+    // walked all three mirrors. It matters less than it used to — nobody is held up by it now —
+    // which is exactly why it must not be relaxed by inattention.
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
+  // The page rebuilds `point` on every render, so the identity this memo turns on is its two
+  // coordinates — the same key both queries are cached under. Without the memo `ContextMap`
+  // would be handed a new `points` object on every render and redraw the map each time.
+  const lat = point?.lat ?? null;
+  const lng = point?.lng ?? null;
+  const snapshot = roads.isSuccess ? roads.data : null;
+  const injoignable = roads.isError;
+
+  const data = useMemo(() => {
+    if (lat === null || lng === null || !corpus.data) return undefined;
+    const part: OverpassPart = snapshot
+      ? { etat: 'arrive', snapshot }
+      : injoignable
+        ? { etat: 'injoignable' }
+        : { etat: 'en_cours' };
+    return composeContext({ lat, lng }, corpus.data, part);
+  }, [lat, lng, corpus.data, snapshot, injoignable]);
+
+  return { data, isPending: corpus.isPending, isError: corpus.isError };
+}
+
+/**
+ * The provenance of the two datasets the trade checklists cite — w6-modes (#36).
+ *
+ * **Off the critical path, and that is enforced by `enabled` rather than promised.** It does
+ * not run until a visitor has chosen a mode, so the sheet that `#180` brought under one and a
+ * half seconds pays nothing for a block nobody has asked for. Once it has run, the answer is
+ * the same for every address in Paris — a dataset's own date does not depend on where you
+ * stand — so it is cached for an hour under a key that carries no coordinates, and the second,
+ * third and fourth mode a visitor tries cost no network at all.
+ *
+ * An error is not surfaced: `data` stays undefined, `resolveChecks` receives no origin, and the
+ * corpus-backed checks render as an absent layer. A count with an invented date would be worse
+ * than no count.
+ */
+export function useTradeOrigins(enabled: boolean) {
+  return useQuery({
+    queryKey: ['compass', 'trade-origins'],
+    queryFn: fetchTradeOrigins,
+    enabled,
+    staleTime: 60 * 60 * 1000,
+    retry: 1,
     refetchOnWindowFocus: false,
   });
 }

@@ -1,0 +1,157 @@
+{
+  "_lisez-moi": [
+    "Le bras du disque — w1-chargeurs-gonflement (#239), 6 octobre 2026. DIAGNOSTIC-CORRIGES.md §62.",
+    "",
+    "Le projet Supabase passe en LECTURE SEULE quand sa base depasse 500 Mo (offre gratuite, chiffre",
+    "donne par Ivan le 6 octobre 2026 depuis le tableau de bord). Du 3 au 5 octobre, trois chargements",
+    "y ont echoue. Ivan a decide le meme jour de ne pas payer de plan : le disque se tient par les",
+    "chargeurs et par ce bras, ou ne se tient pas.",
+    "",
+    "CE QUE LE BRAS ANTICIPE, parce qu'Ivan a demande « le temps de se retourner » : un rouge le",
+    "jour ou la base passe en lecture seule arrive trop tard. Le bras juge donc trois choses avant",
+    "le plafond. (1) Le PIC de chaque chargement en bloc : la base actuelle, plus ce que ce chargement",
+    "ecrit avant de rendre l'ancienne version a son commit, date par la PROCHAINE execution de son",
+    "cron. (2) La CROISSANCE : BODACC est la seule source qui s'ajoute chaque jour ; le bras mesure",
+    "son debit sur 28 jours et en deduit la date ou la base atteindra le seuil. (3) Le GONFLEMENT",
+    "par table : un ratio disque / utile au-dessus de `ratio_gonflement` dit qu'un chargeur a",
+    "regresse vers le DELETE ou l'UPDATE de tout — la cause du §62 — avant que le disque ne le dise.",
+    "",
+    "ROUGE (decision requise) : la base au-dela du seuil ; un chargement qui le franchira dans",
+    "`horizon_rouge_jours`, ou a une date inconnue ; la croissance qui l'atteint dans le meme delai.",
+    "SIGNAL (3, change sans decision) : un chargement qui le franchira plus loin — toujours, quelle",
+    "que soit la date, parce qu'un chargement qui franchira est une nouvelle ; la croissance qui",
+    "l'atteint dans `horizon_signal_jours` ; une table gonflee.",
+    "Le seuil est `part_du_plafond` du plafond, pas le plafond : les pics sont des estimations, et",
+    "le rapport entre la mesure Postgres et le tableau de bord n'est connu que par un releve.",
+    "",
+    "CE QUE CA NE RATTRAPE PAS. Le rapport Postgres / tableau de bord est un releve unique, pas une",
+    "loi : s'il derive, tous les chiffres derivent avec lui — le remesurer quand Ivan relit le",
+    "tableau de bord. Les pics sont estimes depuis la taille actuelle des tables, donc une source",
+    "qui GRANDIT entre deux chargements (un millesime SIRENE plus gros) n'apparait qu'au chargement",
+    "suivant. Et la projection ne suit que BODACC : une table qui grossirait par une autre voie se",
+    "verrait au seuil, pas avant."
+  ],
+  "plafond_mo_tableau_de_bord": 500,
+  "part_du_plafond": 0.9,
+  "rapport_tableau_de_bord": {
+    "valeur": 1.1018,
+    "_mesure": "433 Mo lus par Ivan sur le tableau de bord (Database Size) le 6 octobre 2026, contre 393 Mo rendus le meme jour par pg_size_pretty(pg_database_size()) — 433 / 393. Ecart non explique : garde comme marge plutot que suppose nul."
+  },
+  "horizon_rouge_jours": 30,
+  "horizon_signal_jours": 120,
+  "ratio_gonflement": 2,
+  "table_minimale_mo": 10,
+  "blocs": [
+    {
+      "nom": "sirene_stock",
+      "source": "sirene_stock",
+      "tables": [
+        "sirene_etablissement_stock"
+      ],
+      "partition": "code_postal",
+      "facteur": 1,
+      "ajout_mo": 0,
+      "raison": "Un code postal a la fois depuis #239 : DELETE puis reinsertion du code postal, quartier pose a l'insertion, VACUUM avant le suivant. Une fois le plus gros code postal. Ce bras l'a impose : en bloc (TRUNCATE dans une transaction), il mesurait le pic a 514 Mo au tableau de bord le 6 octobre 2026, au-dela du plafond."
+    },
+    {
+      "nom": "sirene",
+      "source": "sirene",
+      "tables": [
+        "sirene_establishment"
+      ],
+      "facteur": 2,
+      "ajout_mo": 0,
+      "raison": "TRUNCATE, plus une table temporaire de staging (stg_sirene) de la taille des donnees : deux fois la table avant le commit."
+    },
+    {
+      "nom": "bdcom",
+      "source": "bdcom",
+      "tables": [],
+      "facteur": 1,
+      "ajout_mo": 44,
+      "raison": "Le staging, rempli dans la transaction (stg_bdcom_od 34 Mo + stg_bdcom_2023 10 Mo, mesures le 6 octobre 2026) et vide au commit depuis #239. Rien d'autre depuis #244 : les quatre upserts de promotion ne reecrivent plus une ligne que si une de ses valeurs change. Mesure par `bdcom.ts --dry-run` le 6 octobre 2026, sur le vrai chargeur et les vraies donnees APUR, transaction annulee : 0 local et 0 releve ecrits pour les trois millesimes (84 031, 83 399, 60 845 releves promus a l'identique). Avant, chaque rechargement reecrivait les 85 418 locaux jusqu'a trois fois et les 228 275 releves une fois : ~520 Mo au tableau de bord pour le 5 janvier 2027. CE QUE CE BLOC NE COMPTE PAS (revue de #246, estimations non mesurees) : (1) un NOUVEAU millesime fait monter last_seen_vintage_id sur la plupart des locaux, donc reecrit premise_location (~40 Mo) en plus de ses releves (~15 Mo) — ~+55 a +60 Mo, un pic vers 500 Mo au tableau de bord, au-dela du seuil : ajouter un millesime a LAYERS (bdcom.ts) oblige a rechiffrer ce bloc dans la meme PR ; (2) une source corrigee par l'APUR, ou une montee de PostGIS/PROJ qui deplacerait les points au binaire pres, reecrit de meme ~40 Mo, pour ~15 Mo de marge le 6 octobre 2026. Dans les deux cas, `bdcom.ts --dry-run` dit combien de lignes changeraient avant de les ecrire."
+    },
+    {
+      "nom": "bodacc",
+      "source": "bodacc",
+      "tables": [
+        "bodacc_announcement",
+        "bodacc_establishment",
+        "bodacc_judgment"
+      ],
+      "partition": "family, date_trunc('month', published_on)",
+      "facteur": 3,
+      "ajout_mo": 0,
+      "raison": "Un mois d'une famille a la fois depuis le 8 octobre 2026 (l'annee depuis #239) : DELETE puis reinsertion, rattachement des etablissements du mois, puis leur confirmation SIRENE, dans la meme transaction — trois ecritures par partition, majorant, rendues par le VACUUM qui suit. Pourquoi le mois : par annee, la place de travail restait dans les fichiers — mesure des deux premiers vrais passages, base 351 -> 394 Mo le 7 octobre puis 392 le 8, ~40 Mo permanents dans les trois tables BODACC (#239). Cette place est REUTILISABLE par BODACC, donc ce pic la surestime en regime etabli ; elle ne l'est pas par les autres chargements, d'ou le mois. La revue de #243 avait trouve la confirmation hors du compte : elle reecrivait 85 005 lignes sur 158 285 chaque nuit, sans VACUUM derriere."
+    },
+    {
+      "nom": "terrasses",
+      "source": "terrasses",
+      "tables": [
+        "terrasse_autorisation"
+      ],
+      "facteur": 1,
+      "ajout_mo": 40,
+      "raison": "Depuis #244 (10 octobre 2026), terrasse_autorisation est synchronisee au lot — retire les lignes que le lot n'a plus, ajoute celles qu'il n'avait pas, comparees sur tout leur contenu faute d'identifiant a la source — et un local n'est ecrit que si son statut change. Mesure par `terrasses.ts --dry-run` le 10 octobre 2026, sur un jeu en retard de six semaines (dernier chargement le 26 aout) : 342 lignes retirees, 1 411 ajoutees sur 25 258, et 437 locaux a ecrire, soit ~1 Mo. Le bloc compte le PIRE cas : une source reecrite en entier, la table une fois (facteur 1), plus les locaux. Un local reecrit porte une autorisation avant OU apres, donc au plus 23 610 + 23 610 = 47 220 locaux (ceux qui en portent une le 11 octobre 2026, des deux cotes), une fois chacun, sur les 40,6 Mo de premise_location pour 85 418 locaux = 22,4 Mo. S'y ajoutent les tables temporaires, presentes au pic et que le bloc ignorait jusqu'au 11 octobre 2026 — mesurees ce jour-la en les reconstruisant depuis les tables reelles dans une transaction annulee, et une table temporaire compte bien dans pg_database_size (9,5 Mo de plus, rendus par `truncate`) : tmp_terrasse_new 10,5 Mo, tmp_terrasse_old 2,0, tmp_terrasse_attach 4,5. tmp_terrasse_batch (9,5) est vide par `truncate` des que tmp_terrasse_new est bati, avant toute ecriture de locaux (#265). Total 22,4 + 17,0 = 39,4, arrondi a 40. Borne anciens + nouveaux demandee par la revue de #264 pour chantiers, appliquee ici par coherence ; elle remplace « les 23 610 une fois » (11 Mo), qui ignorait les locaux qui perdent leur autorisation et les 26,5 Mo de tables temporaires. Avant #244, le chargeur videait la table, la reinserait, remettait ces 23 610 locaux a 'non' puis les rattachait. A remesurer si la part de locaux concernes change."
+    },
+    {
+      "nom": "filosofi",
+      "source": "filosofi",
+      "tables": [
+        "filosofi_grid_200m",
+        "premise_location"
+      ],
+      "facteur": 1,
+      "ajout_mo": 0,
+      "raison": "filosofi_grid_200m (4 Mo) et les rattachements des 85 410 locaux. Depuis #244 (6 octobre 2026), le referentiel est mis a jour en upsert, les rattachements calcules a part et premise_location n'est ecrit que pour les locaux dont le rattachement change : 0 sur 85 418 sur la base du 6 octobre, mesure dans une transaction annulee. Le bloc compte le PIRE cas, un millesime qui deplacerait tous les rattachements : premise_location une fois, plus jamais deux. Tables temporaires de la transaction : tmp_cells (les ~7 800 carreaux candidats, quelques Mo) et tmp_filo (un identifiant par local), rendues au commit, dans la marge."
+    },
+    {
+      "nom": "idfm",
+      "source": "idfm",
+      "tables": [
+        "idfm_station",
+        "idfm_validation_profile",
+        "premise_location"
+      ],
+      "facteur": 1,
+      "ajout_mo": 0,
+      "raison": "Stations en upsert, profils (3 Mo) recharges en entier — ils ne sont references par aucun local —, et les rattachements des 85 410 locaux. Depuis #244 (6 octobre 2026), le referentiel est mis a jour en upsert, les rattachements calcules a part et premise_location n'est ecrit que pour les locaux dont le rattachement change : 0 sur 85 418 sur la base du 6 octobre, mesure dans une transaction annulee. Le bloc compte le PIRE cas, un millesime qui deplacerait tous les rattachements : premise_location une fois, plus jamais deux. Les stations retirees le sont apres le rattachement, donc la cle ON DELETE SET NULL ne reecrit plus rien. Table temporaire de la transaction : tmp_nearest (un identifiant et une distance par local, quelques Mo), rendue au commit, dans la marge."
+    },
+    {
+      "nom": "plu",
+      "source": "plu",
+      "tables": [
+        "plu_linear_protection"
+      ],
+      "facteur": 1,
+      "ajout_mo": 33,
+      "raison": "Depuis #244 (10 octobre 2026), plu_linear_protection est mise a jour en upsert par l'identifiant du lineaire, les lineaires absents du lot sont retires, et un local n'est ecrit que si l'un de ses trois drapeaux change. Le rattachement au troncon le plus proche est departage par l'identifiant du troncon : 2 519 lineaires sur 5 107 sont a egalite a 0 m avec plusieurs troncons, et c'etait l'ordre physique des lignes qui decidait. Mesure par `plu.ts --dry-run` le 10 octobre 2026 : 0 lineaire a ecrire, 0 a retirer, mais 13 116 locaux a ecrire UNE fois au prochain passage, le temps que ce departage remplace celui de l'ordre physique (~6 Mo). Le bloc compte le PIRE cas, une revision du PLU qui changerait tout : un local reecrit est protege avant OU apres, donc au plus 29 481 (proteges en base) + 28 374 (proteges par la regle actuelle) = 57 855 locaux, une fois chacun, sur les 40,6 Mo de premise_location pour 85 418 locaux mesures le 11 octobre 2026 = 27,5 Mo. S'y ajoutent les tables temporaires de la transaction, mesurees le 11 octobre 2026 en les reconstruisant depuis les tables reelles dans une transaction annulee : tmp_plu 1,0 Mo, tmp_plu_segment 0,25, tmp_plu_attach 4,0 — 5,3 Mo, rendus au commit mais presents au pic. Total 32,8, arrondi a 33. Borne anciens + nouveaux demandee par la revue de #264 pour chantiers, appliquee ici par coherence (#265) ; elle remplace « les proteges une fois » (14 Mo), qui ignorait les locaux qui perdent leur protection et les tables temporaires. Avant #244, une source inchangee reecrivait deja 29 338 locaux deux fois (26 Mo). A remesurer si la part de locaux proteges change, ou si la regle de rattachement change (#263)."
+    },
+    {
+      "nom": "chantiers",
+      "source": "chantiers",
+      "tables": [
+        "chantier_perturbant"
+      ],
+      "facteur": 1,
+      "ajout_mo": 2,
+      "raison": "Depuis #244 (10 octobre 2026), chantier_perturbant est mise a jour en upsert, un local n'est ecrit que si son chantier le plus proche ou sa distance change, et les chantiers disparus sont retires APRES le rattachement : la cle ON DELETE SET NULL ne reecrit donc plus rien. Mesure par `chantiers.ts --dry-run` le 10 octobre 2026 : 8 chantiers a ecrire, 5 a retirer, 358 locaux a ecrire sur 1 906 exposes ; puis le 11 octobre 2026, passage reel (run 38141609039) aux memes comptes, et dry-run suivant a 0 / 0 / 0. Le bloc compte le PIRE cas : un local reecrit est expose avant OU apres, donc au plus 1 906 + 1 906 = 3 812 locaux (les exposes du 11 octobre 2026, des deux cotes), une fois chacun, sur les 40,6 Mo de premise_location pour 85 418 locaux = 1,8 Mo, arrondi a 2 ; tables temporaires (quelques centaines de chantiers, 1 906 rattachements) negligeables. Borne anciens + nouveaux demandee par la revue de #264 (#265) ; elle remplace « les exposes une fois » (1 Mo). Avant #244 : ~2 Mo comptes double (detachement puis rattachement), soit 4 Mo. A remesurer si le nombre de locaux exposes change."
+    }
+  ],
+  "hors_blocs": {
+    "_lisez-moi": "Toute source planifiee dans .github/workflows est soit un bloc ci-dessus, soit nommee ici avec sa raison — scripts/porte/disque.test.ts le verifie dans les deux sens, comme cadence.json pour les scripts. Tailles relevees le 6 octobre 2026 (pg_total_relation_size, apres VACUUM FULL).",
+    "geography": "Ne reecrit plus que ce qui change depuis #239 : 0 ligne de premise_location sur la base du 6 octobre. Quartiers et troncons (7 Mo) en upsert.",
+    "meubles": "meuble_autorisation, quelques centaines de lignes, une fois par an : moins d'un Mo, et pas de rattachement aux locaux (une densite autour d'un point)."
+  },
+  "_partition": "Un bloc qui porte `partition` se recharge morceau par morceau : son pic est la part du plus gros morceau — comptee sur la premiere table de `tables`, groupee par cette expression — appliquee a la taille de toutes ses tables. Sans `partition`, le bloc entier compte.",
+  "croissance": {
+    "table": "bodacc_announcement",
+    "date": "published_on",
+    "tables": [
+      "bodacc_announcement",
+      "bodacc_establishment",
+      "bodacc_judgment"
+    ],
+    "jours": 28
+  }
+}

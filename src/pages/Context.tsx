@@ -33,8 +33,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ContextAgentCall from '@/components/context/ContextAgentCall';
 import ContextCompare from '@/components/context/ContextCompare';
+import ContextDossier from '@/components/context/ContextDossier';
 import ContextFinding from '@/components/context/ContextFinding';
 import ContextGaps from '@/components/context/ContextGaps';
+import ContextModes from '@/components/context/ContextModes';
+import ContextRythme from '@/components/context/ContextRythme';
 import ContextVerdict from '@/components/context/ContextVerdict';
 import {
   compareAddresses,
@@ -42,11 +45,15 @@ import {
   composeVerdict,
   contextToolCall,
   findingsFromScores,
-  VERDICT_AXIS_ORDER,
+  modeAxisOrder,
+  modeLeadAxes,
+  resolveChecks,
 } from '@/core';
-import { useAddressContext, useAddressFromSlug } from '@/hooks/useAddressContext';
-import { CONTEXT_COPY } from '@/i18n/contextText';
+import { useAddressContext, useAddressFromSlug, useTradeOrigins } from '@/hooks/useAddressContext';
+import { CONTEXT_COPY, dossierLabels } from '@/i18n/contextText';
 import { useLocale } from '@/i18n/locale';
+import { leadReasonText } from '@/i18n/modeText';
+import { rythmeReadingText } from '@/i18n/rythmeText';
 import {
   contextPath,
   fromSlug,
@@ -55,8 +62,10 @@ import {
   secondAddressFromParams,
   withComparison,
 } from '@/lib/addressSlug';
-import { collectGaps } from '@/lib/contextGaps';
-import { geocode } from '@/services/opendata/geocoding';
+import { collectGaps, orderGapsForMode } from '@/lib/contextGaps';
+import { pendingAxes } from '@/lib/contextLayers';
+import { tradeModeFromParams, withTradeMode } from '@/lib/tradeMode';
+import { banSource, geocode } from '@/services/opendata/geocoding';
 
 // Leaflet is loaded only once a sheet has figures to illustrate. Criterion 3 asks that the
 // verdict and the findings be readable without scrolling; a mapping library in the critical
@@ -164,12 +173,37 @@ const Context = () => {
 
   const context = useAddressContext(point);
 
-  const verdict = useMemo(
+  // Derived once and read three times — by the verdict, by the comparison and by the dossier.
+  // The dossier used to be able to take `scores` and re-derive the withholdings on its side;
+  // giving all three the SAME array is what makes it impossible for the exported file and the
+  // sentence above it to disagree about why a figure is missing (w6-dossier, #33).
+  const findings = useMemo(
     () =>
-      context.data
-        ? composeVerdict(findingsFromScores(context.data.scores, context.data.withheldBy), locale)
-        : null,
-    [context.data, locale],
+      context.data ? findingsFromScores(context.data.scores, context.data.withheldBy) : null,
+    [context.data],
+  );
+
+  // The trade mode, and the one reading order everything below derives from — w6-modes (#36).
+  // Read from the URL rather than held in state, so the sheet a visitor shares arrives in the
+  // mode they were reading it in.
+  const mode = tradeModeFromParams(params);
+  const axisOrder = useMemo(() => modeAxisOrder(mode), [mode]);
+
+  const verdict = useMemo(
+    // The order reaches the sentence too. Without it the clauses would read in one sequence and
+    // the cards below them in another, about the same address — and the sentence is the thing a
+    // visitor reads first. `composeVerdict` reorders and cannot select: the axes it composes
+    // from stay `VERDICT_AXES`, so no mode can change what the verdict claims.
+    () => (findings ? composeVerdict(findings, locale, axisOrder) : null),
+    [findings, locale, axisOrder],
+  );
+
+  // Which findings are still travelling rather than missing — w6-fiche-delai (#180). Derived
+  // once here and given to both readers of it, so the card and the gaps block cannot disagree
+  // about whether an absence is a hole.
+  const enCours = useMemo(
+    () => pendingAxes(context.data?.pending ?? []),
+    [context.data?.pending],
   );
 
   const gaps = useMemo(
@@ -186,9 +220,54 @@ const Context = () => {
             context.data.withheldBy,
             // What the corpus holds and may not serve — w6-fiche-corpus (#157).
             context.data.transitions,
+            enCours,
           )
         : [],
-    [context.data, locale],
+    [context.data, locale, enCours],
+  );
+
+  // The same holes, led by the one this trade reads first — w6-modes (#36). A permutation and
+  // never a filter: a mode that could hide a gap would make the page look more complete than it
+  // is, which is the one thing this block exists to prevent.
+  const orderedGaps = useMemo(() => orderGapsForMode(gaps, mode), [gaps, mode]);
+
+  // Why each leading axis leads — w6-mode-raison (#197). The population is `LEAD_AXES`, read
+  // through `modeLeadAxes`: this page cannot name a lead axis, so it cannot forget one either,
+  // and an axis promoted in the core arrives here with its reason the same day.
+  const leadReasons = useMemo(
+    () =>
+      new Map(
+        mode === null
+          ? []
+          : modeLeadAxes(mode).map(
+              (entry) => [entry.axis, leadReasonText(mode, entry.axis, locale)] as const,
+            ),
+      ),
+    [mode, locale],
+  );
+
+  // The day shape as the exported file carries it — w2-rythme (#208). Built from the SAME
+  // `Measured` the block above renders, so the file and the screen cannot disagree about the
+  // shape, its licence or its reserve; only the two sentences are added, and they come from the
+  // one function the block also calls.
+  const rythmeForDossier = useMemo(() => {
+    const measured = context.data?.rythme ?? null;
+    if (!measured || measured.value === null) return undefined;
+    const text = rythmeReadingText(measured.value, locale);
+    return { measured, reading: text.reading, settles: text.settles };
+  }, [context.data?.rythme, locale]);
+
+  // The provenance of the two datasets the checklist cites, fetched only once a mode has been
+  // chosen — the sheet `#180` brought under a second and a half pays nothing for a block nobody
+  // asked for.
+  const tradeOrigins = useTradeOrigins(mode !== null);
+
+  const checks = useMemo(
+    () =>
+      mode === null
+        ? []
+        : resolveChecks(mode, context.data?.trade ?? null, tradeOrigins.data ?? {}),
+    [mode, context.data?.trade, tradeOrigins.data],
   );
 
   const phrases = useMemo(() => {
@@ -218,14 +297,14 @@ const Context = () => {
 
   const comparison = useMemo(
     () =>
-      context.data && secondContext.data
+      findings && secondContext.data
         ? compareAddresses(
-            findingsFromScores(context.data.scores, context.data.withheldBy),
+            findings,
             findingsFromScores(secondContext.data.scores, secondContext.data.withheldBy),
             locale,
           )
         : null,
-    [context.data, secondContext.data, locale],
+    [findings, secondContext.data, locale],
   );
 
   // The invocation shown to a visitor is the comparison's when there is one, the sheet's
@@ -276,23 +355,40 @@ const Context = () => {
             <div className="mt-6 space-y-6">
               <ContextVerdict verdict={verdict} />
 
+              {/* Above the findings, because it changes the order they are read in: putting the
+                  control below the list it reorders would ask a visitor to scroll back up to
+                  see what their own click did. */}
+              <ContextModes
+                mode={mode}
+                hrefFor={(next) => withTradeMode(querySearch, next)}
+                checks={checks}
+              />
+
               <section aria-labelledby="findings">
                 <h2 id="findings" className="text-lg font-semibold">
                   {c.findingsHeading}
                 </h2>
                 <ul className="mt-3 space-y-3">
-                  {VERDICT_AXIS_ORDER.map((axis) => (
+                  {axisOrder.map((axis) => (
                     <ContextFinding
                       key={axis}
                       axis={axis}
                       measured={context.data.scores[axis]}
                       phrase={phrases.get(axis)}
+                      pending={enCours.has(axis)}
+                      lead={leadReasons.get(axis) ?? undefined}
                     />
                   ))}
                 </ul>
               </section>
 
-              <ContextGaps gaps={gaps} />
+              {/* Beside the six findings and after them, outside the list — w2-rythme (#208).
+                  Not a seventh card: a day's shape has no level, so it is a section of its own
+                  and `VERDICT_AXES` never hears of it. It sits AFTER the findings and BEFORE
+                  the gaps because it is an answer, not a hole. */}
+              <ContextRythme rythme={context.data.rythme} />
+
+              <ContextGaps gaps={orderedGaps} />
 
               {point && (
                 <Suspense fallback={null}>
@@ -344,6 +440,29 @@ const Context = () => {
                   />
                 )}
               </section>
+
+              {/* The export leaves from HERE and from nowhere else — `docs/PLAN.md` §2.6. It
+                  needs the point, so it renders with the sheet that resolved one. */}
+              {point && findings && verdict && (
+                <ContextDossier
+                  address={{
+                    label,
+                    lat: point.lat,
+                    lng: point.lng,
+                    ...banSource(locale, geocoded.data !== undefined),
+                  }}
+                  findings={findings}
+                  pending={enCours}
+                  operands={context.data.operands}
+                  verdict={verdict}
+                  labels={dossierLabels(locale)}
+                  // The exported file carries the day's shape under the same rule as any other
+                  // figure — criterion 7. The two sentences are written here rather than in the
+                  // core, for the reason a lead reason is: `src/core/` has no `src/i18n`, and a
+                  // sentence composed twice is a sentence free to disagree with itself.
+                  rythme={rythmeForDossier}
+                />
+              )}
 
               {agentCall && <ContextAgentCall call={agentCall} />}
             </div>

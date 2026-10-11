@@ -11,6 +11,27 @@ const WEIGHTS = [
   { familyFr: 'Parcs et espaces verts', familyEn: 'Parks and green spaces', weight: '15 %', saturation: '7', source: 'OpenStreetMap' },
 ];
 
+/**
+ * Les cinq familles MARCHANDES de la fiche de contexte — w6-amenites-corpus.
+ *
+ * Table distincte de `WEIGHTS` ci-dessus, et pas par commodité de mise en page : ce sont deux
+ * axes qui comptent deux populations. `WEIGHTS` note des « aménités » OpenStreetMap, écoles et
+ * parcs compris ; celui-ci note un relevé porte-à-porte qui ne connaît que le commerce. Publier
+ * une seule table ferait croire qu'un poids a bougé alors que c'est la population qui a changé.
+ *
+ * Les constantes ne sont pas recopiées de la première : une aménité OSM se compte par dizaines,
+ * un local relevé par centaines. Chacune est la médiane mesurée de sa famille divisée par ln 2,
+ * sur douze points parisiens, le 15 septembre 2026 — la valeur qui place une adresse médiane
+ * à 50 et laisse donc la moitié de l'échelle de chaque côté.
+ */
+const SERVICE_WEIGHTS_PUBLISHED = [
+  { familyFr: 'Commerces alimentaires', familyEn: 'Food shops', weight: '30 %', saturation: '100', source: 'APUR BDCom 2023' },
+  { familyFr: 'Santé-beauté', familyEn: 'Health and beauty', weight: '20 %', saturation: '55', source: 'APUR BDCom 2023' },
+  { familyFr: 'Cafés et restaurants', familyEn: 'Cafés and restaurants', weight: '20 %', saturation: '215', source: 'APUR BDCom 2023' },
+  { familyFr: 'Services aux particuliers et agences', familyEn: 'Personal services and agencies', weight: '20 %', saturation: '190', source: 'APUR BDCom 2023' },
+  { familyFr: 'Culture et loisirs', familyEn: 'Culture and leisure', weight: '10 %', saturation: '60', source: 'APUR BDCom 2023' },
+];
+
 const COPY = {
   fr: {
     seoTitle: 'Méthodologie de calcul des scores',
@@ -32,9 +53,22 @@ const COPY = {
     thSaturation: 'Constante de saturation',
     thSource: 'Source',
     saturationUnit: (n: string) => `${n} équipements`,
+    servicesTitle: 'Services marchands à pied',
+    servicesBody1:
+      'Sur la fiche de contexte d’une adresse, la marchabilité a changé d’énoncé le 15 septembre 2026, et le nom de l’axe le dit. Elle notait des « aménités » OpenStreetMap, qui contiennent du non marchand : écoles, bureaux de poste, équipements publics. Elle note désormais les commerces effectivement RELEVÉS par l’APUR dans un rayon de 400 mètres. Traduire l’ancien libellé sur la nouvelle mesure aurait donné un chiffre qui ment sur ce qu’il compte, et c’est exactement ce que Compass refuse.',
+    servicesBody2:
+      'Même courbe saturante que ci-dessus, cinq familles, poids qui somment à 1. Les constantes sont plus élevées d’un ordre de grandeur, et c’est la mesure qui l’impose : une enquête porte-à-porte trouve 87 commerces alimentaires dans 400 mètres rue de Bretagne, là où OpenStreetMap en compte quelques-uns. Réutiliser les constantes d’OpenStreetMap aurait donné 100 partout dans Paris.',
+    servicesLimit:
+      'Ce que cet axe ne voit pas, et il faut le nommer : le non marchand. Une école, une poste, un gymnase n’entrent dans aucun relevé BDCom, donc dans aucun de ces cinq sous-scores. La source juste pour cela est la base permanente des équipements de l’INSEE, à ingérer, et l’axe restera aveugle jusque-là. Par ailleurs, dans les quartiers les plus denses le service renvoie moins de locaux que le rayon n’en contient — mesuré sur trois points parisiens sur douze — et le compte porte alors sa réserve : c’est un plancher, pas un total.',
+    railTitle: 'Desserte ferrée',
+    railBody:
+      'La distance à l’arrêt ferré le plus proche — métro, RER ou tramway — cherché dans un rayon de 800 mètres, d’après le référentiel des arrêts d’Île-de-France Mobilités. Le score décroît exponentiellement avec la distance : à un rayon de marche de l’arrêt, il vaut 37.',
+    railLimitTitle: 'Deux limites, et la seconde est un changement de prétention',
+    railLimit:
+      'Les bus n’y sont pas : le référentiel lu est celui du réseau ferré, 258 arrêts dans Paris. L’axe est donc plus fiable que le comptage bénévole qu’il remplace là où il regarde, et aveugle là où il ne regarde pas. Et ce n’est plus un comptage mais une distance : le jeu de validations horaires d’Île-de-France Mobilités, chargé à côté, ne publie que la FORME de la journée d’une station en pourcentages, jamais un volume — deux stations n’y sont pas comparables sur leur fréquentation. Aucun chiffre de cette page n’en est tiré.',
     footTitle: 'Flux piéton estimé',
     footBody:
-      'Aucun comptage piéton ouvert ne couvre l’ensemble de l’Île-de-France. Compass publie donc un proxy : 65 % de densité de commerces actifs dans un rayon de 400 mètres (même courbe saturante, constante 90) et 35 % de score de transports. Il permet de comparer deux emplacements entre eux, pas de prévoir une fréquentation ou un chiffre d’affaires.',
+      'Aucun comptage piéton ouvert ne couvre l’ensemble de l’Île-de-France. Compass publie donc un proxy : 65 % de densité de commerces actifs dans un rayon de 400 mètres (même courbe saturante, constante 90) et 35 % de desserte ferrée. Sur la fiche de contexte, ses deux moitiés viennent donc du corpus depuis le 15 septembre 2026 — c’est ce qui lui permet de survivre à un miroir OpenStreetMap injoignable. Il permet de comparer deux emplacements entre eux, pas de prévoir une fréquentation ou un chiffre d’affaires.',
     noiseTitle: 'Exposition au bruit',
     noiseBody:
       'Le niveau de bruit est estimé, pas mesuré. Chaque axe routier situé à moins de 500 mètres contribue proportionnellement à sa classe (autoroute, voie primaire, secondaire, tertiaire) et de façon décroissante avec la distance. Le résultat est ramené sur une échelle 0-100, découpée en quatre niveaux (très faible, faible, modéré, élevé). Le remplacement par les cartes de bruit stratégiques de Bruitparif est prévu.',
@@ -90,7 +124,7 @@ const COPY = {
     verdictIntro:
       'La fiche de contexte d’une adresse ouvre sur une phrase. Cette phrase n’est pas rédigée : elle est composée par une fonction publiée, à partir des constats déjà calculés, et elle nomme ceux qu’elle a utilisés. Comme les formules ci-dessus, la règle est ici parce qu’elle est affichée à tout le monde.',
     verdictRule:
-      'Quatre constats portent le verdict — le tissu commercial, le passage, la desserte et les services à pied. Quand l’un des quatre est retenu pour licence, hors du corpus, issu d’une source injoignable ou simplement indéterminé, le verdict ne se compose pas : la fiche dit lequel manque et pourquoi, et affiche séparément les constats qui ont abouti. Conclure par-dessus une absence est le défaut que cette règle existe pour empêcher. Le tissu commercial est porteur depuis le 14 septembre 2026, et c’est une décision : Compass ne signe pas de verdict sur une adresse commerciale sans le relevé des commerces de cette adresse. Hors de Paris intra-muros, où le corpus s’arrête, le verdict refuse donc désormais.',
+      'Quatre constats portent le verdict — le tissu commercial, le passage, la desserte ferrée et les services marchands à pied, et depuis le 15 septembre 2026 les quatre se lisent dans le corpus plutôt que sur un miroir public gratuit. Quand l’un des quatre est retenu pour licence, hors du corpus, issu d’une source injoignable ou simplement indéterminé, le verdict ne se compose pas : la fiche dit lequel manque et pourquoi, et affiche séparément les constats qui ont abouti. Conclure par-dessus une absence est le défaut que cette règle existe pour empêcher. Le tissu commercial est porteur depuis le 14 septembre 2026, et c’est une décision : Compass ne signe pas de verdict sur une adresse commerciale sans le relevé des commerces de cette adresse. Hors de Paris intra-muros, où le corpus s’arrête, le verdict refuse donc désormais.',
     verdictSupport:
       'Les commerces alimentaires et le bruit routier viennent en appui. Leur absence ne bloque rien, et leur présence n’entre pas dans la phrase : ils qualifient une réponse, ils ne sont pas la réponse.',
     verdictNoScore:
@@ -107,6 +141,13 @@ const COPY = {
       'Le verdict est composé par une fonction du noyau, hors de toute page. Le serveur MCP de Compass compile ce même noyau et sert donc la même règle de composition : une fiche affiche l’appel qui rend la réponse correspondante. La parité ne se déclare pas — le contrôle recompose le verdict du serveur à partir des chiffres que le serveur publie, et rougit si les deux diffèrent.',
     parityLimit:
       'Ce que cette parité ne dit pas : les deux surfaces ne lisent pas le même corpus. Le navigateur compte les locaux dans OpenStreetMap, l’agent dans la BDCom de l’APUR — un relevé porte-à-porte, meilleure source. Les chiffres peuvent donc différer, et c’est assumé. Ce qui est partagé, c’est la règle de composition, pas le corpus.',
+    dossierTitle: 'Le dossier d’une adresse, et ce qu’il contient',
+    dossierBody:
+      'Une fiche de contexte se télécharge. Le fichier porte une ligne par constat, et à côté de chaque chiffre : sa source, sa licence, son millésime, sa méthode, la formule appliquée, ses constantes, le rayon, et l’opérande — le nombre de locaux compté, la distance à l’arrêt. Les formules et les constantes sont celles publiées ci-dessus, lues dans le code plutôt que recopiées : le fichier contient donc de quoi refaire chaque calcul sans nous croire sur parole.',
+    dossierNoBulk:
+      'Un dossier, une adresse. Il n’existe pas de bouton « tout exporter », et le départ se fait depuis une fiche et jamais depuis une liste de résultats : constituer un portefeuille de cinquante adresses est le geste que Compass refuse, pour la même raison que la comparaison s’arrête à deux. La limite tient dans la structure — la fonction qui produit un dossier prend une adresse et n’a pas de forme plurielle.',
+    dossierGaps:
+      'Un constat absent descend lui aussi, avec la cause de son absence — source injoignable, hors du corpus, retenu pour licence, indéterminé — et il n’est jamais rendu en zéro. Un constat dont la source n’avait pas encore répondu au moment du téléchargement est marqué comme tel : une réponse en route et un trou ne se lisent pas de la même manière.',
     missingTitle: 'Quand une source manque',
     missingBody:
       'Un score n’est calculé que si la couche de données dont il dépend a réellement été chargée. Si elle manque, Compass n’affiche pas 0 : il affiche « n/d » et indique pourquoi. La distinction compte surtout pour le bruit, où un 0 se lirait « très faible » — soit une rue calme affirmée à partir d’une donnée absente. Un quartier réellement dépourvu d’équipements, lui, reçoit bien un 0 : c’est un comptage, pas une lacune.',
@@ -138,9 +179,22 @@ const COPY = {
     thSaturation: 'Saturation constant',
     thSource: 'Source',
     saturationUnit: (n: string) => `${n} amenities`,
+    servicesTitle: 'Shops and services on foot',
+    servicesBody1:
+      'On the context sheet of an address, walkability changed what it claims on 15 September 2026, and the name of the axis says so. It used to rate OpenStreetMap "amenities", which include the non-merchant: schools, post offices, public facilities. It now rates the shops APUR actually SURVEYED within a 400-metre radius. Carrying the old label over the new measure would have produced a figure that lies about what it counts, which is precisely what Compass refuses.',
+    servicesBody2:
+      'Same saturating curve as above, five families, weights summing to 1. The constants are an order of magnitude higher, and measurement forces that: a door-to-door survey finds 87 food shops within 400 metres on rue de Bretagne, where OpenStreetMap holds a handful. Reusing the OpenStreetMap constants would have read 100 everywhere in Paris.',
+    servicesLimit:
+      'What this axis does not see, and it must be named: the non-merchant. A school, a post office, a sports hall appear in no BDCom survey, therefore in none of these five sub-scores. The right source for that is INSEE\u2019s permanent facilities base, still to be ingested, and the axis stays blind until then. In the densest neighbourhoods the service also returns fewer premises than the radius holds \u2014 measured on three of twelve Paris points \u2014 and the count then carries its caveat: it is a floor, not a total.',
+    railTitle: 'Rail access',
+    railBody:
+      'The distance to the nearest rail stop \u2014 metro, RER or tram \u2014 looked for within an 800-metre radius, from \u00cele-de-France Mobilit\u00e9s\u2019 stop reference. The score decays exponentially with distance: at one walking radius from the stop it reads 37.',
+    railLimitTitle: 'Two limits, and the second is a change of claim',
+    railLimit:
+      'Buses are not in it: the reference read is the rail network\u2019s, 258 stops inside Paris. The axis is therefore more reliable than the volunteer count it replaces where it looks, and blind where it does not. And it is no longer a count but a distance: the hourly validation dataset loaded beside it publishes only the SHAPE of a station\u2019s day, as percentages, never a volume \u2014 two stations cannot be compared there on how busy they are. No figure on this page is drawn from it.',
     footTitle: 'Estimated foot traffic',
     footBody:
-      'No open pedestrian count covers all of Île-de-France. Compass therefore publishes a proxy: 65% density of active shops within a 400-metre radius (same saturating curve, constant 90) and 35% transport score. It lets you compare two locations against each other, not predict footfall or revenue.',
+      'No open pedestrian count covers all of Île-de-France. Compass therefore publishes a proxy: 65% density of active shops within a 400-metre radius (same saturating curve, constant 90) and 35% rail access. On the context sheet both halves therefore come from the corpus since 15 September 2026 — which is what lets it survive an unreachable OpenStreetMap mirror. It lets you compare two locations against each other, not predict footfall or revenue.',
     noiseTitle: 'Noise exposure',
     noiseBody:
       'Noise level is estimated, not measured. Every road within 500 metres contributes proportionally to its class (motorway, primary, secondary, tertiary road) and decreasingly with distance. The result is mapped onto a 0-100 scale, split into four levels (very low, low, moderate, high). Replacement with Bruitparif’s strategic noise maps is planned.',
@@ -196,7 +250,7 @@ const COPY = {
     verdictIntro:
       'The context sheet of an address opens on one sentence. That sentence is not written by hand: it is composed by a published function from the findings already computed, and it names the ones it used. Like the formulas above, the rule is here because the sentence is shown to everyone.',
     verdictRule:
-      'Four findings bear the verdict — the commercial fabric, footfall, transit access and services on foot. When one of the four is withheld for licence, outside the corpus, coming from an unreachable source or simply undetermined, the verdict does not compose: the sheet says which one is missing and why, and shows the findings that did resolve separately. Concluding over an absence is the defect this rule exists to prevent. The commercial fabric has been bearing since 14 September 2026, and that is a decision: Compass does not sign a verdict about a commercial address without the survey of the commerce at that address. Outside Paris intra-muros, where the corpus stops, the verdict therefore now refuses.',
+      'Four findings bear the verdict — the commercial fabric, footfall, rail access and shops and services on foot, and since 15 September 2026 all four are read from the corpus rather than from a free public mirror. When one of the four is withheld for licence, outside the corpus, coming from an unreachable source or simply undetermined, the verdict does not compose: the sheet says which one is missing and why, and shows the findings that did resolve separately. Concluding over an absence is the defect this rule exists to prevent. The commercial fabric has been bearing since 14 September 2026, and that is a decision: Compass does not sign a verdict about a commercial address without the survey of the commerce at that address. Outside Paris intra-muros, where the corpus stops, the verdict therefore now refuses.',
     verdictSupport:
       'Food shops and road noise come alongside. Their absence blocks nothing, and their presence does not enter the sentence: they qualify an answer, they are not the answer.',
     verdictNoScore:
@@ -213,6 +267,13 @@ const COPY = {
       'The verdict is composed by a function of the core, outside any page. The Compass MCP server compiles that same core and therefore serves the same composition rule: a sheet displays the call that returns the corresponding answer. Parity is not declared — the check recomposes the server’s verdict from the figures the server publishes, and goes red if the two differ.',
     parityLimit:
       'What this parity does not say: the two surfaces do not read the same corpus. The browser counts premises from OpenStreetMap, the agent from APUR’s BDCom — a door-to-door survey, the better source. The figures may therefore differ, and that is deliberate. What is shared is the composition rule, not the corpus.',
+    dossierTitle: 'The dossier of an address, and what it holds',
+    dossierBody:
+      'A context sheet can be downloaded. The file carries one row per finding, and beside every figure: its source, its licence, its vintage, its method, the formula applied, its constants, the radius, and the operand — the premises counted, the distance to the stop. The formulas and the constants are the ones published above, read from the code rather than copied: the file therefore holds enough to redo each computation without taking our word for it.',
+    dossierNoBulk:
+      'One dossier, one address. There is no "export everything" button, and the export leaves from a sheet and never from a list of results: assembling a portfolio of fifty addresses is the gesture Compass refuses, for the same reason comparison stops at two. The bound is structural — the function that produces a dossier takes one address and has no plural form.',
+    dossierGaps:
+      'A missing finding goes down too, with the cause of its absence — source unreachable, outside the corpus, withheld for licence, undetermined — and it is never rendered as a zero. A finding whose source had not answered yet at the moment of download is marked as such: an answer on its way and a hole do not read alike.',
     missingTitle: 'When a source is missing',
     missingBody:
       'A score is only computed if the data layer it depends on actually loaded. When that layer is missing, Compass does not show 0: it shows "n/a" and says why. The distinction matters most for noise, where a 0 would read as "very low" — a quiet street asserted from absent data. A neighbourhood genuinely without amenities does get a 0: that is a count, not a gap.',
@@ -290,6 +351,50 @@ const Methodology = () => {
         <section>
           <h2 className="text-xl font-semibold">{c.densityTitle}</h2>
           <p className="mt-3 text-muted-foreground">{c.densityBody}</p>
+        </section>
+
+        {/* Les deux axes que w6-amenites-corpus a déplacés dans le corpus. Ils sont ici
+            parce que `CLAUDE.md` l'exige — toute formule de `src/core/scoring.ts` est
+            publiée — et AVANT le flux piéton, qui lit la desserte ferrée. */}
+        <section>
+          <h2 className="text-xl font-semibold">{c.servicesTitle}</h2>
+          <p className="mt-3 text-muted-foreground">{c.servicesBody1}</p>
+          <p className="mt-3 text-muted-foreground">{c.servicesBody2}</p>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-left text-sm border-collapse">
+              <thead>
+                <tr className="border-b bg-white">
+                  <th scope="col" className="py-2 pr-4 font-semibold">{c.thFamily}</th>
+                  <th scope="col" className="py-2 pr-4 font-semibold">{c.thWeight}</th>
+                  <th scope="col" className="py-2 pr-4 font-semibold">{c.thSaturation}</th>
+                  <th scope="col" className="py-2 font-semibold">{c.thSource}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {SERVICE_WEIGHTS_PUBLISHED.map((w) => (
+                  <tr key={w.familyFr} className="border-b">
+                    <td className="py-3 pr-4">{locale === 'fr' ? w.familyFr : w.familyEn}</td>
+                    <td className="py-3 pr-4 text-muted-foreground">{w.weight}</td>
+                    <td className="py-3 pr-4 text-muted-foreground">{c.saturationUnit(w.saturation)}</td>
+                    <td className="py-3 text-muted-foreground">{w.source}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-muted-foreground">{c.servicesLimit}</p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold">{c.railTitle}</h2>
+          <p className="mt-3 text-muted-foreground">{c.railBody}</p>
+          <p className="mt-3 text-muted-foreground">
+            <code className="mr-1 rounded bg-muted px-1 py-0.5 text-xs">
+              score = 100 × e^(−d / 400 m)
+            </code>
+          </p>
+          <h3 className="mt-4 font-semibold">{c.railLimitTitle}</h3>
+          <p className="mt-2 text-muted-foreground">{c.railLimit}</p>
         </section>
 
         <section>
@@ -391,6 +496,16 @@ const Methodology = () => {
           <h2 className="text-xl font-semibold">{c.parityTitle}</h2>
           <p className="mt-3 text-muted-foreground">{c.parityBody}</p>
           <p className="mt-3 text-muted-foreground">{c.parityLimit}</p>
+        </section>
+
+        {/* Same obligation again: a dossier is a document that LEAVES, so the rule it carries —
+            one address, no bulk export, and an absence that stays an absence — is published here
+            rather than only enforced in `src/core/dossier.ts`. w6-dossier (#33). */}
+        <section>
+          <h2 className="text-xl font-semibold">{c.dossierTitle}</h2>
+          <p className="mt-3 text-muted-foreground">{c.dossierBody}</p>
+          <p className="mt-3 text-muted-foreground">{c.dossierNoBulk}</p>
+          <p className="mt-3 text-muted-foreground">{c.dossierGaps}</p>
         </section>
 
         <section>

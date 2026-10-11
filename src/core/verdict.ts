@@ -37,20 +37,37 @@
  * of `scoring.ts`: a sentence shown to every visitor needs its method no less than a number.
  */
 
+import type { FigureMotif } from './motif';
 import { assertObservational } from './observational';
-import type { Measured } from './provenance';
+import { missingText, type Measured } from './provenance';
 import { noiseLabel, scoreLabel, type AreaScores, type Layer } from './scoring';
 
 /** Locale of the composed sentence. Declared here rather than imported from `src/i18n`:
  *  that module is the browser's, and `src/core` must stay callable from the MCP server. */
 export type VerdictLocale = 'fr' | 'en';
 
+/**
+ * The six axes of the sheet.
+ *
+ * **Three of them changed name on 15 September 2026 — w6-amenites-corpus — and the renaming
+ * IS the honesty.** `transit` became `rail`, `walkability` became `services`, `groceries`
+ * became `alimentaire`. Each now reads the corpus rather than a free public mirror, and each
+ * therefore counts a different population: rail stops instead of every transport node a
+ * volunteer tagged, surveyed merchant premises instead of OpenStreetMap « amenities » which
+ * include schools and post offices.
+ *
+ * Keeping the old names over the new measures was the available shortcut and it was refused,
+ * by Ivan on 14 September 2026: a figure that carries a label promising something it does not
+ * count is exactly the defect `Measured<T>` exists to prevent, moved up one level into the
+ * word above the number. The old axes are still computed from Overpass and still shown by
+ * `/carte` — see `AreaScores` — they simply no longer bear a verdict.
+ */
 export type VerdictAxis =
   | 'density'
   | 'footfall'
-  | 'transit'
-  | 'walkability'
-  | 'groceries'
+  | 'rail'
+  | 'services'
+  | 'alimentaire'
   | 'noise';
 
 /**
@@ -107,25 +124,32 @@ export interface VerdictAxisRule {
  * limits, and a better one than a verdict composed from OpenStreetMap alone in Massy. It
  * costs nothing inside Paris, where the layer answers and the three Overpass axes were
  * already bearing.
+ *
+ * **And since w6-amenites-corpus, EVERY bearing axis reads the corpus.** The table below was
+ * the ticket's whole argument: `footfall`, `transit` and `walkability` all listed `amenities`,
+ * a layer with one source, so one saturated Overpass mirror refused the verdict whatever else
+ * had arrived. Measured in production on 14 September 2026 at rue de Bretagne: one finding of
+ * six. `noise` is the only axis still reading Overpass, and it is deliberately NOT bearing —
+ * its absence colours an answer, it cannot refuse one.
  */
 export const VERDICT_AXES: Readonly<Record<VerdictAxis, VerdictAxisRule>> = {
   density: { bearing: true, layers: ['premises'] },
-  footfall: { bearing: true, layers: ['premises', 'amenities'] },
-  transit: { bearing: true, layers: ['amenities'] },
-  walkability: { bearing: true, layers: ['amenities'] },
-  groceries: { bearing: false, layers: ['amenities'] },
+  footfall: { bearing: true, layers: ['premises', 'stations'] },
+  rail: { bearing: true, layers: ['stations'] },
+  services: { bearing: true, layers: ['services'] },
+  alimentaire: { bearing: false, layers: ['services'] },
   noise: { bearing: false, layers: ['roads'] },
 };
 
 /** Reading order of the findings, on screen and in the sentence. The corpus leads, and the
  *  order is the doctrine of #157 made visible: what the database holds first, what a free
- *  public mirror adds second. */
+ *  public mirror adds second — which since w6-amenites-corpus means everything but `noise`. */
 export const VERDICT_AXIS_ORDER: readonly VerdictAxis[] = [
   'density',
   'footfall',
-  'transit',
-  'walkability',
-  'groceries',
+  'rail',
+  'services',
+  'alimentaire',
   'noise',
 ];
 
@@ -155,8 +179,17 @@ export interface VerdictClause {
 export interface VerdictGap {
   axis: VerdictAxis;
   because: Withholding;
-  /** The human-readable reason, straight from `Measured.missingReason`. Never rewritten. */
+  /**
+   * The human-readable reason, composed from `Measured.missing` in the verdict's own locale.
+   *
+   * **Never rewritten, and since w6-langue-absences (#181) never in the wrong language either.**
+   * It used to be `Measured.missingReason` copied through, which is the core's English; a
+   * refusal composed in French therefore ended on an English clause. The motif below is the
+   * same fact without a language, kept beside the sentence so a caller can act on it.
+   */
   reason: string;
+  /** The structured cause behind `reason`. Absent only when no finding was supplied at all. */
+  motif?: FigureMotif;
 }
 
 export type Verdict =
@@ -206,13 +239,24 @@ const CLAUSES: Record<VerdictLocale, Record<VerdictAxis, Record<Band, string>>> 
       faible: 'tissu commercial clairsemé',
     },
     footfall: { fort: 'passage soutenu', moyen: 'passage moyen', faible: 'passage faible' },
-    transit: { fort: 'desserte forte', moyen: 'desserte moyenne', faible: 'desserte faible' },
-    walkability: {
-      fort: 'services à pied nombreux',
-      moyen: 'services à pied moyennement présents',
-      faible: 'services à pied rares',
+    // « Desserte ferrée » and not « desserte » alone: the figure is the distance to the
+    // nearest metro, RER or tram stop and knows nothing of buses. A clause that said
+    // « desserte faible » about a street served by four bus lines would be a sentence the
+    // data cannot support — w6-amenites-corpus.
+    rail: {
+      fort: 'desserte ferrée forte',
+      moyen: 'desserte ferrée moyenne',
+      faible: 'desserte ferrée faible',
     },
-    groceries: {
+    // « Services MARCHANDS à pied », tranché par Ivan le 14 septembre 2026. The old clause
+    // said « services à pied » over a count that included schools and post offices; this one
+    // says it over a survey of shops, and the adjective is what keeps the two apart.
+    services: {
+      fort: 'services marchands à pied nombreux',
+      moyen: 'services marchands à pied moyennement présents',
+      faible: 'services marchands à pied rares',
+    },
+    alimentaire: {
       fort: 'commerces alimentaires nombreux',
       moyen: 'commerces alimentaires présents',
       faible: 'commerces alimentaires rares',
@@ -230,17 +274,17 @@ const CLAUSES: Record<VerdictLocale, Record<VerdictAxis, Record<Band, string>>> 
       faible: 'a sparse commercial fabric',
     },
     footfall: { fort: 'steady footfall', moyen: 'moderate footfall', faible: 'low footfall' },
-    transit: {
-      fort: 'strong transit access',
-      moyen: 'moderate transit access',
-      faible: 'weak transit access',
+    rail: {
+      fort: 'strong rail access',
+      moyen: 'moderate rail access',
+      faible: 'weak rail access',
     },
-    walkability: {
-      fort: 'many services within walking distance',
-      moyen: 'some services within walking distance',
-      faible: 'few services within walking distance',
+    services: {
+      fort: 'many shops and services within walking distance',
+      moyen: 'some shops and services within walking distance',
+      faible: 'few shops and services within walking distance',
     },
-    groceries: { fort: 'many food shops', moyen: 'some food shops', faible: 'few food shops' },
+    alimentaire: { fort: 'many food shops', moyen: 'some food shops', faible: 'few food shops' },
     noise: {
       fort: 'high road-noise exposure',
       moyen: 'moderate road-noise exposure',
@@ -256,17 +300,17 @@ const SUBJECTS: Record<VerdictLocale, Record<VerdictAxis, string>> = {
   fr: {
     density: 'le tissu commercial',
     footfall: 'le passage',
-    transit: 'la desserte',
-    walkability: 'les services à pied',
-    groceries: 'les commerces alimentaires',
+    rail: 'la desserte ferrée',
+    services: 'les services marchands à pied',
+    alimentaire: 'les commerces alimentaires',
     noise: 'le bruit routier',
   },
   en: {
     density: 'the commercial fabric',
     footfall: 'footfall',
-    transit: 'transit access',
-    walkability: 'services within walking distance',
-    groceries: 'food shops',
+    rail: 'rail access',
+    services: 'shops and services within walking distance',
+    alimentaire: 'food shops',
     noise: 'road noise',
   },
 };
@@ -372,8 +416,23 @@ export function findingsFromScores(
 export function composeVerdict(
   findings: readonly VerdictFinding[],
   locale: VerdictLocale = 'fr',
+  /**
+   * The reading order of the axes — w6-modes (#36). Defaults to the core's own.
+   *
+   * **It reorders, it never selects.** Which axes bear the verdict stays `VERDICT_AXES`, and an
+   * axis left out of this array still composes, in `VERDICT_AXIS_ORDER`'s position — a mode
+   * that could drop an axis from the sentence would be a mode that changes what the sentence
+   * claims, which is the one thing `w6-modes` may not do. `modeAxisOrder` in `modes.ts` already
+   * returns a permutation; the guard here is for every other caller.
+   *
+   * The default is what keeps `verify:mcp`'s parity arm meaningful: an agent receives the
+   * sentence composed in the core's order, and so does a visitor who has chosen no mode.
+   */
+  order: readonly VerdictAxis[] = VERDICT_AXIS_ORDER,
 ): Verdict {
   const byAxis = new Map(findings.map((f) => [f.axis, f] as const));
+  const reading = [...order, ...VERDICT_AXIS_ORDER.filter((a) => !order.includes(a))];
+  const bearingOrder = reading.filter((a) => VERDICT_AXES[a].bearing);
 
   const clauseOf = (f: VerdictFinding): VerdictClause | null => {
     if (f.measured.value === null) return null;
@@ -384,7 +443,7 @@ export function composeVerdict(
   const missing: VerdictGap[] = [];
   const bearingClauses: VerdictClause[] = [];
 
-  for (const axis of BEARING_AXES) {
+  for (const axis of bearingOrder) {
     const finding = byAxis.get(axis);
     // A bearing axis nobody supplied is as blocking as one that came back null: composing
     // over a finding that was never even attempted is the same defect, one step earlier.
@@ -397,7 +456,8 @@ export function composeVerdict(
       missing.push({
         axis,
         because: finding.withheldBecause ?? 'indetermine',
-        reason: finding.measured.missingReason ?? COPY[locale].noFinding,
+        reason: missingText(finding.measured, locale) ?? COPY[locale].noFinding,
+        ...(finding.measured.missing ? { motif: finding.measured.missing } : {}),
       });
       continue;
     }
@@ -420,7 +480,8 @@ export function composeVerdict(
     };
   }
 
-  const supporting = VERDICT_AXIS_ORDER.filter((a) => !VERDICT_AXES[a].bearing)
+  const supporting = reading
+    .filter((a) => !VERDICT_AXES[a].bearing)
     .map((a) => byAxis.get(a))
     .filter((f): f is VerdictFinding => f !== undefined)
     .map(clauseOf)

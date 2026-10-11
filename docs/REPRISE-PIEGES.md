@@ -1205,3 +1205,526 @@ et `verify:mcp` qui redit « absent » après qu'on croit l'avoir réparé.
 
 Les trois fichiers copiés sont ignorés par `.gitignore`, donc ils ne peuvent pas partir dans la
 proposition. Rien à nettoyer à la fin : `git worktree remove` emporte tout.
+
+### La première ligne du tableau ne dit pas ce qui arrive sous `.claude/worktrees/` — remesuré le 15 septembre 2026
+
+Elle annonce « `tsc`/`vitest` introuvable », c'est-à-dire un arrêt franc. **Ce n'est pas ce qui
+s'est produit** depuis un worktree créé à l'emplacement que la règle prescrit,
+`.claude/worktrees/<ID>` — donc **à l'intérieur du dépôt principal**. La résolution de Node
+remonte les répertoires parents, trouve le `node_modules` de la racine, et **`typecheck`, `build`
+et `vitest` lui-même passent au vert**.
+
+Ce qui tombe, c'est uniquement ce qui **lance un processus fils par chemin absolu** :
+
+```
+Error: Cannot find module
+  'C:\...\paris-compass\.claude\worktrees\<ID>\node_modules\tsx\dist\cli.mjs'
+```
+
+**Mesuré : 6 tests en échec sur 2 fichiers** — `scripts/porte/publie.test.ts` (5) et
+`scripts/eval/anon-http.test.ts` (1) — les 750 autres au vert. Après `npm.cmd install` dans le
+worktree : **756 sur 54, sortie 0**, sans qu'une ligne du code ait bougé.
+
+**Pourquoi c'est plus cher qu'un arrêt franc.** Un rouge qui nomme deux bras sans rapport avec le
+ticket en cours ressemble à une régression qu'on vient d'introduire, pas à un `node_modules`
+manquant — la même forme d'erreur que le `\y` mangé plus haut : ça ressemble à une découverte.
+**Le réflexe** : avant de diagnostiquer un rouge dans un worktree neuf, vérifier que
+`node_modules` existe à SA racine, même si les portes ont l'air de tourner.
+
+**Reproduit à l'identique le 15 septembre 2026 au soir**, depuis `.claude/worktrees/w6-dossier` :
+mêmes **6 échecs sur les 2 mêmes fichiers**, 779 autres au vert, et `typecheck`, `build` et
+`vitest` verts avant comme après. `npm.cmd install` dans le worktree : **785 sur 55, sortie 0**.
+Le piège tient, et il tient deux jours de suite sur deux tickets sans rapport.
+
+---
+
+## Smart App Control bloque le binaire natif de `@swc/core`, et `vite` refuse de démarrer — 26 août 2026, levé depuis
+
+**Déplacé de `CLAUDE.md` le 14 septembre 2026**, où il occupait 1 591 octets sur un fichier
+chargé à chaque session pour un cas qui ne se présente presque jamais. Le plafond de
+`scripts/porte/documents.test.ts` était atteint à l'octet près, et la règle du dépôt est
+qu'ajouter une règle coûte un retrait. Ce qui reste dans `CLAUDE.md` est la phrase de
+reconnaissance du symptôme, les trois commandes de contournement, et les deux règles
+permanentes — les deux configurations restent en phase, et toute montée de `vite` exige de
+lancer les deux builds. Rien n'est perdu : c'est le récit qui est ici.
+
+**Le symptôme.** `vite` refuse de démarrer sur « Failed to load native binding ».
+
+**La cause, le 26 août 2026.** Windows Smart App Control bloquait le binaire natif de
+`@swc/core` sur cette machine. Il n'a **ni liste d'autorisation ni exception par fichier** : on
+ne peut pas lui faire accepter ce fichier-là, et le désactiver est **irréversible sans
+réinstaller Windows**.
+
+**Depuis, le blocage a disparu — remesuré quatre fois**, le 28 août, le 31 août et deux fois le
+2 septembre 2026 : `require('@swc/core').transformSync` rend du code, et `npm.cmd run build` /
+`npm.cmd run build:dev` vont au bout en produisant des hashes identiques à `build:local`.
+
+**Ce qui se remesure ici est l'identité des trois chemins, pas les hashes eux-mêmes.** Ceux-ci
+bougent dès qu'une dépendance ou une source bouge, et les recopier sans les redater est le piège
+que `CLAUDE.md` interdit ailleurs.
+
+| Mesure | Empreintes |
+| --- | --- |
+| Les trois premières | `index-DKJzmj15.js`, `MapView-8C8F8Ymz.js`, `index-C7sT89I7.css` |
+| La quatrième, 2 septembre | `index-z86I-NBQ.js`, `MapView-CcIGsnA-.js`, `index-CXVx5M-3.css` |
+
+La quatrième suit la montée de `browserslist` en 4.28.8 et de `postcss-selector-parser` en
+6.1.4 — **les trois chemins toujours d'accord entre eux**. L'écart n'est pas attribuable à la
+seule montée : le dépôt a aussi reçu entre-temps le correctif de l'écran blanc (`2aaab7e`), qui
+touche l'environnement de build.
+
+**Pourquoi le contournement reste en place.** Rien n'explique la disparition — pas de changement
+connu de la politique Smart App Control entre les dates — **donc le blocage peut revenir**. Les
+trois commandes `*:local` lisent `vite.config.local.ts`, volontairement séparé de
+`vite.config.ts` que Lovable réécrit.
+
+**Ce que ça ne rattrape pas.** Le 26 août, les chemins `*:local` ne remplaçaient pas les portes
+d'origine à l'identique : le bundle produit divergeait de celui de SWC. Depuis le 28 et le
+31 août les deux chemins rendent le même bundle — mais si Smart App Control se remet à bloquer
+SWC, cette divergence peut revenir sans préavis, et aucune mesure ne la verrait avant qu'on
+compare les deux builds.
+
+---
+
+## Un jeu IDFM qui promet des « validations » ne porte aucun volume — 15 septembre 2026
+
+**`compass_station_profile` rend une FORME, jamais un compte.** Sa colonne utile s'appelle
+`pct_validations` et c'est la part d'une journée de station tombant dans une tranche horaire :
+les 24 tranches `JOHV` d'Oberkampf — Filles du Calvaire somment à **99,99 %**, mesuré ce jour-là.
+Le jeu IDFM ne publie **aucun compte absolu**, donc deux stations n'y sont pas comparables sur
+leur fréquentation — seulement sur le profil de leur journée.
+
+**Ce que ça coûte quand on ne le vérifie pas.** `docs/PLAN.md` §3.2 annonçait « Remplace le
+passage estimé par un nombre compté » ; `docs/tickets/w6-amenites-corpus.md` a recopié la phrase
+en « IDFM — comptages de validation réels par station » et a bâti son axe `transit` dessus. Les
+deux documents portaient la même erreur, donc **aucun des deux ne pouvait corriger l'autre** : il
+a fallu lire la migration et interroger la base. `20260907000002` le dit pourtant en toutes
+lettres dans son en-tête, et c'est la lecture qui a tranché.
+
+**Ce que la fonction donne réellement d'utilisable** : `station_name` et `distance_m`, l'arrêt
+ferré le plus proche dans le rayon. C'est ce que l'axe `rail` lit.
+
+**La règle, et elle est plus large que ce cas** : le nom d'un jeu de données décrit ce qu'il
+mesure, jamais la forme sous laquelle il le publie. Un jeu « validations » peut ne contenir que
+des pourcentages ; un jeu « trafic annuel » peut n'avoir aucun profil horaire (c'est pourquoi
+`w2-idfm` a écarté data.gouv.fr). **Interroger la table avant d'écrire un ticket qui compte
+dessus.** Le coût ici : une conception d'axe entièrement refaite en cours de session.
+
+---
+
+## Une fonction `compass_*` ne porte pas les colonnes de sa voisine — 15 septembre 2026
+
+**`compass_scoring_context_within` rend six colonnes et aucun code d'activité :**
+`lat, lng, is_vacant, total_matched, withheld, out_of_corpus`. Mesuré.
+
+Le ticket `w6-amenites-corpus` annonçait « BDCom — locaux commerciaux et **codes d'activité** —
+déjà lus par `compass_scoring_context_within` ». Faux : les codes vivent sur
+`compass_premises_within`, une autre fonction, avec sa propre forme de ligne et son propre
+plafond. Les deux lisent les mêmes tables, ce qui rend la confusion facile et la vérification
+rapide — un `POST /rest/v1/rpc/<nom>` et un `Object.keys` sur la première ligne.
+
+**Pourquoi ça compte plus qu'une ligne de ticket** : élargir la fonction aurait demandé une
+**migration**, et `supabase db push` est lancé par Ivan, pas par une session (voir le piège du
+classifieur). Un ticket qui suppose une colonne inexistante est donc un ticket dont le critère
+d'acceptation n'est pas atteignable dans la session qui le prend. La conception a été refaite
+autour des fonctions existantes.
+
+---
+
+## Couper les miroirs Overpass pour de bon, sans toucher au dépôt — 15 septembre 2026
+
+Plusieurs tickets demandent une démonstration « Overpass injoignable, **coupé** pour de bon, pas
+attendu ». Attendre un vrai 429 ne le démontre pas : un miroir qui met 70 s à mourir prouve le
+budget, pas l'indépendance. Deux voies, mesurées, aucune n'écrit dans le dépôt.
+
+**Dans le navigateur** — la coupure au résolveur, qui échoue immédiatement :
+
+```
+--host-resolver-rules=MAP overpass-api.de ~NOTFOUND,MAP overpass.kumi.systems ~NOTFOUND,MAP overpass.private.coffee ~NOTFOUND
+```
+
+127.0.0.1 reste joignable, donc un build local servi en statique marche, et Supabase et la BAN
+passent normalement : c'est une coupure de **source**, pas de réseau.
+
+**Dans Node** — un préchargement qui refuse les seules URL `overpass` :
+
+```
+NODE_OPTIONS=--import file:///<chemin>/coupe-miroirs.mjs   # remplace globalThis.fetch
+```
+
+`NODE_OPTIONS` se propage aux processus enfants, donc `npm.cmd run verify:mcp` le transmet au
+serveur MCP qu'il lance. C'est ainsi que le critère 2 de `w6-amenites-corpus` a été démontré.
+
+**Ce que ça ne démontre pas** : le comportement sous un miroir **lent**. Une résolution qui
+échoue en 1 ms et un miroir qui expire en 70 s prennent le même chemin de code mais pas le même
+temps — la fiche répond en 1 316 à 2 411 ms miroirs coupés, contre ~10 200 ms quand ils pendent
+et que `CONTEXT_BUDGET_MS` va au bout. Les deux mesures sont vraies et ne se remplacent pas.
+
+### Et un critère d'acceptation écrit sur « injoignable » ne teste alors RIEN — mesuré le 15 septembre 2026
+
+Le paragraphe ci-dessus n'est pas une précision d'écrivain : c'est ce qui décide si un ticket est
+démontrable. `w6-fiche-delai` (#180) demandait « miroirs Overpass **injoignables**, le verdict en
+moins de trois secondes ». Coupés au résolveur, **`main` rendait déjà son verdict en 480, 584 et
+915 ms** — trois passages, avant la première ligne du ticket. Le critère était donc **vert sur le
+dépôt qu'il existait pour corriger**.
+
+La raison est entière dans la phrase du dessus : un `~NOTFOUND` échoue en une milliseconde, donc
+le `Promise.allSettled` qui tenait la page ne tenait rien. Le défaut de production — 10 976 ms
+mesurés rue de Bretagne — est un miroir qui **pend**, pas un miroir qui refuse.
+
+**Le puits, qui reproduit le cas de production sans dépendre d'un miroir saturé** : pointer les
+trois hôtes sur un socket local qui accepte la connexion et ne renvoie jamais rien, donc une
+poignée de main TLS qui n'aboutit pas.
+
+```
+--host-resolver-rules=MAP overpass-api.de 127.0.0.1:<port>,MAP overpass.kumi.systems 127.0.0.1:<port>,MAP overpass.private.coffee 127.0.0.1:<port>
+```
+
+Sous cette condition, `main` mettait **10 178, 10 188 et 10 201 ms** — le budget consommé en
+entier, et le chiffre du ticket retrouvé. C'est la condition sous laquelle `#180` a été démontré.
+
+**Et pour la contre-preuve — « miroirs debout » — il faut un miroir à soi.** Aucun miroir public
+ne répond dans le budget de la fiche : `overpass-api.de` refuse en 0,2 s, et le seul qui ait
+jamais répondu à la vraie requête met 10 587 ms. Même recette, mais l'hôte pointe sur un serveur
+HTTPS local à certificat auto-signé qui rend une réponse Overpass valide, plus
+`--ignore-certificate-errors`. **Ce que ça ne démontre pas** : que le miroir public répondra.
+
+**La règle qui en sort** : un critère d'acceptation qui nomme une panne doit nommer LAQUELLE.
+« Injoignable », « lent » et « refuse » sont trois chemins de code identiques et trois mesures
+différentes ; écrire l'un et mesurer l'autre est comment un ticket se ferme sur un vert qui ne
+dit rien.
+## `\b` ne ferme jamais un mot accentué, en regex JavaScript — 15 septembre 2026
+
+`/Livré\b/` ne matche **jamais** `## Livré — 15 septembre 2026`. `é` n'est pas un caractère de
+mot pour une regex JavaScript : `\w` vaut `[A-Za-z0-9_]`, donc il n'existe aucune frontière entre
+`é` et l'espace qui suit, et `\b` échoue là où l'œil voit évidemment une fin de mot.
+
+Ce qui rend le piège cher, c'est qu'il **ne ressemble pas à un défaut d'échappement** : la regex
+est lisible, elle se compile, elle passe en revue, et elle rend simplement « aucun résultat » —
+c'est-à-dire exactement ce que rend une population réellement vide. Même forme d'erreur que le
+`\y` mangé du 26 août, consigné plus haut : un défaut de regex ressemble à une découverte.
+
+**Le geste** : après `é è à ç ô ù` — ou n'importe quel caractère hors `[A-Za-z0-9_]` — remplacer
+`\b` par une anticipation explicite, `(?=\s|$)` ou `(?=[\s—:,.])`. Et **jouer la regex contre la
+population du disque avant de la croire**, pas contre deux exemples écrits à la main : c'est le
+contrôle sur `docs/tickets/` de `scripts/brief.test.ts` qui a montré que les trois rapports
+`Livré` passaient encore au travers, après la correction censée les attraper.
+
+Trouvé en corrigeant `DIAGNOSTIC.md` §54 — la coupe du rapport de clôture de `scripts/brief.ts`.
+
+## Une issue fermée n'empêchait rien : `brief` assemblait son prompt quand même — 15 septembre 2026
+
+Une session a été lancée sur `w6-fiche-delai` (`#180`) **après** sa fermeture, sa fusion et la
+régénération de la table d'ordre. `npm.cmd run brief` ne lisait pas l'état de l'issue : il
+demandait `--state all` puis ne gardait que `number` et `title`. Corrigé le jour même, et le
+détail est dans `DIAGNOSTIC.md` §54.
+
+**Ce qui reste vrai après la correction, et c'est le piège** : le bandeau ne protège que ce qui
+passe par `npm.cmd run brief`. Un prompt de session écrit ou recopié à la main ne voit rien —
+c'est précisément par là que celui-ci est arrivé. **Avant de commencer un ticket, lire l'état de
+son issue**, une commande : `gh issue view <NUM> --json state`. Si elle est fermée, le
+« Fait quand » est un critère périmé et le redémontrer ne change rien dans le dépôt.
+
+
+---
+
+## Un chiffre ROND dans un gabarit de test rend une famille entière de sabotages invisible — 15 septembre 2026
+
+`w6-dossier` (#33) publie, à côté de chaque figure exportée, l'**opérande** sur lequel la formule
+a tourné — le nombre de locaux comptés, la distance à l'arrêt. Le test du ticket re-dérive chaque
+chiffre depuis ce que le fichier porte, et il est passé **du premier coup**. Un test qui n'a jamais
+été vu rouge ne prouve rien, donc trois sabotages ont été joués contre lui, chacun restauré après :
+
+| Sabotage de `src/core/dossier.ts` | Le test |
+| --- | --- |
+| constante de `density` recopiée à 91 au lieu d'importer `PREMISE_SATURATION` | **rouge**, sortie 1 |
+| distance ferrée publiée arrondie à la dizaine | **VERT — il ne voyait rien** |
+| absence de bruit re-dérivée en zéro plutôt qu'en `null` | **rouge**, sortie 1 |
+
+**Le contrôle était sain, le gabarit était aveugle.** Il posait `nearestStationM: 190`, et 190
+arrondi à la dizaine fait 190 : le sabotage était un no-op sur cette donnée-là, pas sur le code.
+Passé à **187**, le même sabotage rend la troisième colonne rouge comme les deux autres.
+
+**Le réflexe** : dans un gabarit, préférer un nombre que la moitié des transformations plausibles
+déplacerait — 187 plutôt que 190, 1 003 plutôt que 1 000, 48,8631 plutôt que 48,86. C'est la même
+famille que « ne pas épingler la page d'un portail à la place de son endpoint » : ce qu'on
+recoupe doit pouvoir être en désaccord.
+
+Et le corollaire, plus cher : **un sabotage vert n'accuse pas forcément le contrôle.** Le premier
+mouvement a été de croire le test mal écrit. Regarder la DONNÉE avant le code a coûté deux
+minutes ; réécrire le test en aurait coûté trente, pour un test moins bon.
+
+---
+
+## Télécharger un dossier depuis un navigateur sans tête, et le re-dériver — le geste — 15 septembre 2026
+
+La démonstration du « Fait quand » de `w6-dossier` (#33) — *« depuis une fiche, télécharger un
+fichier dont chaque figure est re-dérivable »* — ne peut pas se jouer hors ligne : un test unitaire
+prouve que la fonction rend un objet re-dérivable, jamais qu'un visiteur obtient un **fichier**.
+La sonde qui l'a démontré est **jetable et n'est pas au dépôt** — c'est le précédent de
+`scripts/eval/sonde-w1-81.ts`, qui a servi une fois et n'a pas été gardé. Voici de quoi la
+réécrire en dix minutes.
+
+```powershell
+npm.cmd run build
+npx serve dist -l 4179       # -s : repli sur index.html, sinon /contexte/... rend 404
+```
+
+Puis, en CDP — la même mécanique que `scripts/porte/chrome.ts`, et **sans Playwright** :
+
+1. `Browser.setDownloadBehavior` avec `behavior: "allow"` et un `downloadPath` temporaire.
+   **Sans lui, `<a download>` ne produit RIEN en `--headless=new`**, sans erreur et sans trace :
+   le clic réussit, la page ne bronche pas, et le répertoire reste vide.
+2. attendre que `#verdict` porte une phrase — le critère de `scripts/porte/page.ts`, à reprendre
+   tel quel plutôt qu'à réinventer ;
+3. cliquer le vrai bouton de la section `#dossier` ;
+4. **attendre le fichier sur le DISQUE** en relisant le répertoire, pas attendre un événement CDP ;
+5. le relire et re-dériver chaque figure **sans rien importer du dépôt** : réécrire
+   `100 × (1 − exp(−n / S))` et `100 × exp(−d / D)` depuis la chaîne `formula` que le fichier
+   publie. C'est le geste du lecteur qui ne nous croit pas, et c'est le seul qui démontre quelque
+   chose : re-dériver avec les fonctions du noyau prouverait que le noyau s'accorde avec lui-même.
+
+**Ce qu'on ne voit qu'à ce prix** : les deux défauts de `DIAGNOSTIC.md` §55 étaient invisibles au
+test unitaire et le seraient restés. Ils se lisent dans l'en-tête du fichier téléchargé.
+
+**Et le MOMENT du clic est une variable.** Cliquer 0,9 s après le verdict et cliquer 13 s après
+produisent deux fichiers différents et tous deux corrects — provenance de l'URL contre provenance
+BAN, `noise` en route contre `noise` injoignable. Une sonde qui ne joue qu'un des deux instants
+laisse l'autre moitié du comportement sans témoin.
+
+## Le drapeau PLU qui s'appelle `artisanat` est la protection GÉNÉRALE — 16 septembre 2026
+
+`plub_protcom` publie trois drapeaux par linéaire, et le nom de colonne choisi pour le premier
+induit exactement l'erreur qu'on vient chercher :
+
+| colonne de `premise_location` | drapeau source | ce que c'est | locaux sur 85 418 |
+| --- | --- | --- | ---: |
+| `plu_commerce_artisanat` | `pca` | protection **générale** du commerce et de l'artisanat | **26 074** |
+| `plu_commerce_proximite` | `ppa` | protection du **commerce artisanal de proximité** | **3 809** |
+| `plu_commerce_culturel` | `pcc` | protection du commerce culturel | **828** |
+| `plu_protected` | les trois | au moins l'une des trois, colonne générée | **29 338** |
+
+Mesuré le 16 septembre 2026 sur le distant, connexion directe. Une checklist artisanat qui lirait
+`plu_commerce_artisanat` parce que son nom contient « artisanat » compterait la protection
+générale — sept fois plus large — et dirait à un artisan que sa façade est protégée *au titre de
+son métier* dans 26 074 cas au lieu de 3 809. `w6-modes` lit donc `ppa` pour l'artisanat et
+`plu_protected` pour la boutique, et le nomme dans la phrase affichée.
+
+**Le nom vient de la source**, qui appelle bien `pca` « protection du commerce et de l'artisanat ».
+Il n'y a rien à corriger dans la migration — une migration posée ne se réécrit pas — et c'est
+donc ici que ça s'écrit.
+
+
+## `premise_location` et « les locaux relevés » ne comptent pas la même chose — 16 septembre 2026
+
+Deux mesures du même point, le même jour, qui ne s'accordent pas et ont toutes les deux raison :
+
+| point | `premise_location` dans 25 m | ce que la fiche affiche |
+| --- | ---: | ---: |
+| rue de Bretagne, `48.8631, 2.3621` | **28** | **25** |
+| 18ᵉ, `48.884943, 2.337073` | **11** | **10** |
+
+`premise_location` est la table des EMPLACEMENTS, tous millésimes confondus ;
+`compass_premises_within(…, p_vintage_year => 2023)` rend les locaux **relevés au millésime
+demandé**, en joignant `premise_observation`. Un emplacement relevé en 2017 et disparu en 2023
+existe dans la première et pas dans la seconde.
+
+**Conséquence pour une remesure** : recouper un compte d'écran par un `select count(*) from
+premise_location where ST_DWithin(...)` donnera toujours un nombre un peu plus grand, et conclure
+à un filtre cassé serait faux. Le recoupement juste passe par la même fonction, ou joint
+`premise_observation` sur le millésime que l'écran épingle (`SHEET_VINTAGE`).
+
+Corollaire utile : ce même `order by h.distance_m, h.location_id limit v_limit` fait qu'une
+réponse plafonnée par PostgREST perd les locaux les plus LOINTAINS. Un compte de champ proche —
+25 m — est donc entier même quand le compte à 400 m est un plancher.
+
+
+## Un worktree neuf n'a ni `node_modules`, ni `.env.local`, ni `mcp-server/.env` — 16 septembre 2026
+
+`git worktree add` copie ce que git suit, donc rien de tout ça. Six tests de `npm.cmd run test`
+échouent alors sur `Cannot find module …/node_modules/tsx/dist/cli.mjs` — **et `npx vitest`
+marche quand même**, parce que la résolution Node remonte jusqu'au `node_modules` du dépôt
+principal, tandis que les bras qui lancent `tsx` par un chemin ABSOLU dans le worktree ne le
+peuvent pas. Un échec qui ressemble à une régression du dépôt et n'en est pas.
+
+```powershell
+npm.cmd install                      # le worktree, pour les bras qui lancent tsx par son chemin
+cd mcp-server; npm.cmd install; cd ..  # sinon verify:mcp s'arrête avant de mesurer
+Copy-Item ..\..\..\.env.local .env.local
+Copy-Item ..\..\..\mcp-server\.env mcp-server\.env
+```
+
+Sans `.env.local`, `npm.cmd run build` s'arrête sur sa garde `prebuild` ; sans
+`mcp-server/.env`, `verify:mcp` s'arrête en le nommant, ce qui est le bon comportement et pas
+une panne.
+
+
+## Le `noise` de la fiche ne lit PAS les 25 094 tronçons du corpus — 16 septembre 2026
+
+`w6-mode-raison` (#197) est parti d'une phrase écrite dans son propre énoncé : « `noise` vient
+des voies, `footfall` de la densité et du rail, **sur 25 094 tronçons du même corpus** ». La
+première moitié est vraie, la seconde est fausse, et l'écart change ce qu'une mesure coûterait.
+
+| axe | ce qu'il lit vraiment | d'où |
+| --- | --- | --- |
+| `footfall` | 65 % densité de locaux + 35 % desserte ferrée (`FOOTFALL_WEIGHTS`) | le corpus : APUR BDCom et l'arrêt IDFM le plus proche |
+| `noise` | l'exposition aux voies, pondérée et décroissante (`noiseExposure`) | **OpenStreetMap, à la demande** |
+
+Lu le 16 septembre 2026 dans `src/core/scoring.ts`, `src/services/opendata/scoring.ts`
+(`snapshot.roads`) et `src/hooks/useAddressContext.ts` — où `OVERPASS_LAYERS` vaut
+`['amenities', 'roads']`, donc les voies sont la **seule couche encore lue sur Overpass** par la
+fiche. Les 25 094 tronçons existent bien : c'est `street_segment`, chargé le 8 août. Mais
+`grep -rn street_segment --include=*.ts src mcp-server/src` ne rend **qu'une ligne**,
+`street_segment_id` dans `src/types/database.ts` : aucun écran et aucun outil MCP ne les lit.
+
+**Pourquoi c'est un piège et pas une coquille.** Recouper le bruit et le passage — la mesure que
+`#197` déclare « mesurable, non mesurée » — ne se fait pas par une requête sur le corpus. Elle
+passe par la couche qui tombe, celle dont `#156` et `#163` racontent les miroirs à 429 et à 504 :
+des milliers d'appels Overpass, ou reprendre le bruit sur `street_segment`, qui est un autre
+ticket. Une session qui croirait le chiffre de l'énoncé estimerait cette mesure à une requête.
+
+**Ce que ça ne rattrape pas** : rien ici ne dit que le bruit DEVRAIT se lire sur `street_segment`.
+Les deux sources ne décrivent pas la même chose — un tronçon du corpus porte un côté de rue,
+une voie OSM porte une classe de trafic — et cette comparaison-là n'a pas été faite.
+
+---
+
+## Un commentaire de schéma qui décrit le SENS d'une donnée peut être faux, et rien ne le relit — 17 septembre 2026
+
+`w2-rythme` (#208) devait afficher la forme de la journée d'une station. Deux documents du dépôt
+et l'énoncé du ticket disaient comment la lire : *« gonflement à midi » = quartier de bureaux*,
+*« double pic matin-soir » = quartier d'où l'on part travailler*. Les trois étaient faux, et de
+la manière la plus coûteuse : **le signe était inversé**.
+
+Mesuré en `anon` sur les 258 stations avant d'écrire une ligne : la fenêtre 11h-14h est la plus
+forte des trois à **0 station sur 258**, et ce sont les quartiers résidentiels qui sont menés par
+le MATIN, les quartiers de destination par le SOIR. Cause : une validation se compte à la
+**montée**, et le réseau ferré parisien n'a pas de validation à la sortie — le profil d'une
+station est la forme des **départs** depuis ce lieu.
+
+**Le geste qui l'a trouvé**, et il tient en une requête : avant d'implémenter une lecture,
+compter sur la POPULATION ce que la lecture prétend distinguer.
+
+```ts
+// 6 099 lignes JOHV, 258 stations, lues par PostgREST avec la clé publiable.
+// Combien de stations ont bien le profil que le commentaire annonce ?
+const midiMax = stations.filter((b) => somme(b, 11, 14) > somme(b, 7, 10)
+                                    && somme(b, 11, 14) > somme(b, 17, 20)).length
+// → 0
+```
+
+**Pourquoi c'est un piège et pas une coquille.** Une lecture inversée passe tous les tests
+unitaires : aucun test ne lit un commentaire SQL, et une phrase d'interprétation n'a pas de
+valeur de retour à comparer. Elle serait arrivée à l'écran, plausible, sur chaque fiche, et le
+premier lecteur à s'en apercevoir aurait été un commerçant qui connaît sa rue.
+
+**Ce que ça ne rattrape pas** : rien dans la porte ne recoupe la prose d'un `comment on` avec ce
+que la donnée fait. Les deux commentaires du distant disent toujours l'inverse — `DIAGNOSTIC.md`
+§57, suivi en [#213](https://github.com/IvandeMurard/paris-compass/issues/213). Et la correction
+est **une migration de plus**, jamais une réécriture : `20260907000002` est posée.
+
+---
+
+## Une migration écrite dans une proposition qu'on ne peut pas pousser met la porte en ambre le lendemain — 17 septembre 2026
+
+Corollaire du piège ci-dessus, et la raison pour laquelle `#208` a ouvert une issue plutôt que
+d'écrire le fichier. `npm.cmd run ledger` classe une migration **suivie par git et non posée**
+en `absent-du-ledger`, avec sa propre phrase : *« du travail écrit et pas encore appliqué. Normal
+entre l'écriture et la poussée ; anormal le lendemain »*. Ce verdict sort en **3**.
+
+Donc une session qui livre une migration sans pouvoir lancer `supabase db push` — ce qui est le
+cas ici, la commande est bloquée côté classifieur et c'est Ivan qui la lance — laisse la porte
+du matin en ambre jusqu'à ce que quelqu'un pousse. Pour un fait déjà consigné dans
+`DIAGNOSTIC.md`, c'est du bruit qui coûte une lecture par matin.
+
+**La règle qui en sort** : écrire une migration et la pousser sont un seul geste. Si la session
+ne peut pas faire le second, elle ne fait pas le premier — elle ouvre l'issue avec le SQL décrit,
+et le prochain passage fait les deux. C'est la même leçon que « poser une cadence ne recharge
+rien », à l'envers : ici ce n'est pas la déclaration qui devance la mesure, c'est le fichier qui
+devance son application.
+
+**Ce que ça ne rattrape pas** : une migration écrite ET poussée le même jour ne pose aucun
+problème, et rien n'oblige à passer par une issue. La règle ne vaut que pour la session qui sait
+d'avance qu'elle ne poussera pas.
+
+---
+
+## Une étiquette `vague-N` sur une issue de défaut fait rougir `sessions:check` — 17 septembre 2026
+
+`w2-rythme` (#208) a ouvert #213 en passant, pour un défaut consigné dans `DIAGNOSTIC.md`, et
+lui a mis `plan-action` + `P2` + **`vague-2`** — le réflexe du ticket de plan. `npm.cmd run
+sessions:check` est sorti en **1** :
+
+```
+Les listes des épics ne disent plus ce que portent les étiquettes.
+  #43 — 1 écart(s)
+      convention #213 porte vague-2 et son titre ne suit pas « [Pn] <ticket> — … »
+```
+
+**La règle, et elle est juste.** Une étiquette `vague-N` déclare qu'une issue appartient à la
+liste d'un épic, et un épic lie ses lignes aux tickets **par le titre** — `[Pn] <ticket> — …`.
+Une issue sans identifiant de ticket ne peut donc pas y entrer, et lui poser la vague crée une
+ligne que rien ne peut résoudre. Ce n'est pas la vérification qui est trop stricte : c'est
+l'étiquette qui affirmait une appartenance fausse.
+
+**Ce que fait le dépôt, vérifié sur les quatre précédents** — #79, #80, #83, #88, toutes des
+issues de défaut nées d'une session : elles portent `plan-action` et/ou `Pn`, et **aucune ne
+porte de `vague-N`**. La convention existait, elle n'était juste écrite nulle part.
+
+**Le geste** : une issue ouverte en passant pour un défaut prend `plan-action` + `Pn`, jamais une
+vague, et gagne à nommer sa section dans son titre — `… — DIAGNOSTIC.md §57`, comme #80 le fait
+déjà pour §36. Une vague ne se pose que sur une issue qui a un fichier dans `docs/tickets/`.
+
+**Ce que ça ne rattrape pas** : la vérification lit les étiquettes et les titres, jamais si
+l'issue mérite d'exister. Et elle ne se déclenche qu'au `sessions:check` — une session qui
+ouvrirait l'issue sans rejouer la vérification laisserait le rouge au matin suivant, ce qui est
+exactement le trou que la règle de la cadence nomme ailleurs sur cette page.
+
+## Un worktree neuf n'a pas de `node_modules`, et seuls les tests qui LANCENT un sous-processus le disent — 17 septembre 2026
+
+Le worktree vit sous `.claude/worktrees/`, donc **dans** le dépôt : la résolution de modules de
+Node remonte et trouve `paris-compass/node_modules`. `npm.cmd run typecheck`, `npm.cmd run test`
+et `npm.cmd run build` marchent immédiatement, sans installer quoi que ce soit. C'est ce qui rend
+le piège cher : tout a l'air en place.
+
+Ce qui ne marche pas, ce sont les tests qui **relancent un bras dans un processus fils** en
+construisant le chemin absolu de `tsx` depuis la racine du worktree :
+
+```
+Error: Cannot find module
+'…\.claude\worktrees\w1-servi-contenu\node_modules\tsx\dist\cli.mjs'
+```
+
+Mesuré ce jour-là : `scripts/porte/publie.test.ts` (5 contrôles) et
+`scripts/eval/anon-http.test.ts` (1) échouent, **et eux seuls** — 7 rouges sur 899, tous verts sur
+`main` dans la minute qui suit. La lecture spontanée est « ma modification a cassé le bras
+voisin », alors que c'est l'environnement.
+
+**Le geste** : `npm.cmd install` dans le worktree avant de croire un rouge sur un test qui lance
+un sous-processus. Et avant ça, le contrôle qui coûte cinq secondes — rejouer le même fichier de
+test depuis l'arbre principal. S'il y est vert, la cause est le worktree, pas le diff.
+
+Cousin déjà consigné pour `verify:mcp`, qui veut en plus le `.env` copié. La règle générale :
+**ce qui est résolu par remontée de dossiers marche dans un worktree, ce qui est construit par
+chemin absolu ne marche pas.**
+
+## Un crawl d'un seul niveau ressemble à un vert, jamais à une mesure partielle — 17 septembre 2026
+
+Le quatorzième bras suit les morceaux à la demande d'un bundle publié. Son en-tête affirmait
+depuis quatre jours qu'il les suivait **tous** ; il n'appliquait `chunkNames` qu'au bundle
+d'entrée, donc il en atteignait **1 sur 29** sur un build de `main`.
+
+Rien ne le signalait, et c'est le cœur du piège : la population de l'époque — routes de
+`src/App.tsx` et libellés de `src/i18n/ui.ts` — vit précisément dans l'entrée et le morceau
+`App`, c'est-à-dire dans la moitié que le crawl lisait. Une mesure amputée de 424 003 octets
+rendait exactement le même verdict qu'une mesure complète. Elle n'est devenue visible qu'en
+élargissant la population à des tables qui vivent, elles, dans les morceaux de page.
+
+**Le geste, et il est général** : quand une règle lit une ressource qui en nomme d'autres,
+compter ce qu'elle a REELLEMENT lu et le comparer à ce qui existe, avant de croire son verdict.
+Ici, deux nombres suffisaient — morceaux demandés contre morceaux présents dans `dist/assets` —
+et ils étaient à 1 contre 29. Le bras les imprime désormais tous les deux.
+
+C'est la même famille que le `\y` mangé du 26 août et que le `\b` sur un mot accentué du
+15 septembre, consignés plus haut : **un défaut de mesure ne ressemble pas à un défaut, il
+ressemble à un résultat.** `DIAGNOSTIC.md` §59.

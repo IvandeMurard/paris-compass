@@ -21,8 +21,23 @@
  * cause is known.
  */
 
-import { BDCOM_ORIGIN, asWithholding, type Origin, type PremisePoint, type Withholding } from '@/core';
+import {
+  BDCOM_ORIGIN,
+  IDFM_ORIGIN,
+  PLU_ORIGIN,
+  TERRASSES_ORIGIN,
+  asWithholding,
+  serviceFamilyOf,
+  type Origin,
+  type PremisePoint,
+  type ServicePoint,
+  type StationHourShare,
+  type TradeFacts,
+  type TradeOrigins,
+  type Withholding,
+} from '@/core';
 import { supabase } from '@/lib/supabase';
+import { RESOLUTION_RADIUS_M } from '@/services/compass/premiseHistory';
 
 /**
  * The vintage the sheet reads, and the only one an anonymous caller may receive.
@@ -49,6 +64,17 @@ export const SHEET_VINTAGE = 2023;
  * below is reported rather than assumed away.
  */
 export { FOOTFALL_RADIUS_M as SHEET_RADIUS_M } from '@/core';
+
+/**
+ * The radius the nearest rail stop is looked for in — w6-amenites-corpus.
+ *
+ * `AMENITY_RADIUS_M` (800 m) and not the 400 m the premises use, because this call has no row
+ * cap to respect: it returns one station's profile whatever the radius. Narrowing it would buy
+ * nothing and would turn a measurable distance into « no stop found » at points where a stop
+ * is 500 m away — measured 15 September 2026, two of twelve sampled points have their nearest
+ * stop beyond 300 m, and rue de Bretagne's is at 317 m.
+ */
+export { AMENITY_RADIUS_M as STATION_RADIUS_M } from '@/core';
 
 /**
  * A corpus layer that did not arrive, with the motive the caller is allowed to say about it.
@@ -177,6 +203,259 @@ export async function fetchPremisesOrigin(): Promise<Origin> {
       ? `Licence APUR spécifique (non lue) — ${row.licence_note ?? ''}`.trim()
       : row.licence;
   return BDCOM_ORIGIN(row.vintage_year, licence, row.as_of);
+}
+
+/**
+ * The merchant services around a point, typed by family — w6-amenites-corpus.
+ *
+ * **Why a second call and not a wider `compass_scoring_context_within`.** That function returns
+ * six columns — lat, lng, is_vacant, total_matched, withheld, out_of_corpus — and no activity
+ * code at all; measured 15 September 2026, and it is the one thing the ticket got wrong about
+ * its own plan. The activity code lives on `compass_premises_within`, which is a different
+ * function with a different shape and its own row cap. Widening the first would have meant a
+ * migration, and a migration cannot be applied from here.
+ *
+ * **`out_of_corpus` is deliberately NOT read here.** This function has never carried the
+ * marker (see `20260907000002`, and `DIAGNOSTIC.md` §36): a point outside the 80 quartiers
+ * comes back as zero rows, indistinguishable from an empty radius. The corpus boundary is
+ * decided once, by `fetchCorpusPremises` above, and this layer follows it — which is why the
+ * hook withdraws both layers together on `hors_corpus`. Duplicating the test here would be a
+ * second authority on the same question, free to disagree with the first.
+ */
+export interface CorpusServices {
+  points: ServicePoint[];
+  /** Premises rows actually received — NOT `points.length`, which counts only the families
+   *  that map to a merchant service. The truncation ratio is a property of the rows. */
+  rendered: number;
+  /** How many premises the radius holds, before PostgREST's cap. */
+  totalMatched: number;
+  /** True when the rows are a floor — three of twelve sampled Paris points at 400 m. */
+  truncated: boolean;
+  /**
+   * The near-field facts the trade checklists read — w6-modes (#36).
+   *
+   * Counted here rather than fetched: the rows below already carry `terrasse_status` and the
+   * three `plu_*` flags, and have since `20260825000005` and `20260825000010`. The sheet threw
+   * them away. Reading them costs no second call, no second radius and no millisecond on the
+   * critical path — which is the only reason a mode can be switched without the page going back
+   * to the network.
+   *
+   * **Immune to the row cap, and that is a property of the SQL rather than a hope.**
+   * `compass_premises_within` ends on `order by h.distance_m, h.location_id limit v_limit`, so a
+   * response capped at 1 000 rows drops the FARTHEST premises. The near field is therefore whole
+   * whenever the radius holds anything at all, while `density` and `services` — which count over
+   * the full 400 m — carry `truncated` and say so.
+   */
+  trade: TradeFacts;
+}
+
+/**
+ * The radius the trade checks read, and why it is that one.
+ *
+ * `RESOLUTION_RADIUS_M`, the 25 m `premiseHistory.ts` measured for the question « which BDCom
+ * premise is this OpenStreetMap point », reused rather than re-chosen: it is the distance at
+ * which a set of premises describes one street number rather than a neighbourhood. A PLU
+ * protection belongs to a frontage and a terrace authorisation to a street number, so a count
+ * over 400 m would answer a question nobody asked — `docs/PLAN.md` §5.3, « la question n'est pas
+ * est-ce que ça varie mais est-ce que ça sépare ».
+ */
+export const TRADE_RADIUS_M = RESOLUTION_RADIUS_M;
+
+export async function fetchCorpusServices(
+  lat: number,
+  lng: number,
+  radiusM: number,
+): Promise<CorpusServices> {
+  const { data, error } = await supabase.rpc('compass_premises_within', {
+    p_lat: lat,
+    p_lng: lng,
+    p_radius_m: radiusM,
+    p_vintage_year: SHEET_VINTAGE,
+    // The cap PostgREST enforces anyway. Asking for the default 500 would truncate at
+    // half the points this layer can actually serve — measured, not assumed: nine of the
+    // twelve sampled points hold between 91 and 920 premises inside 400 m.
+    p_limit: 1000,
+  });
+  if (error) throw new Error(`compass_premises_within: ${error.message}`);
+  const rows = data ?? [];
+
+  if (rows.some((row) => row.withheld)) {
+    throw new CorpusUnavailable(
+      `Le millésime BDCom ${SHEET_VINTAGE} n’est pas redistribuable : sa licence APUR n’a pas ` +
+        `été lue, donc ni les activités relevées ni leurs comptes ne sont servis ici.`,
+      'retenue_licence',
+    );
+  }
+
+  const points = rows
+    .filter((row) => row.lat !== null && row.lng !== null)
+    .flatMap((row) => {
+      const family = serviceFamilyOf(row.activity_niv18);
+      // A premise whose activity group is not a merchant service on foot is dropped rather
+      // than bucketed into a catch-all: a clothes shop and a car dealer are real premises and
+      // they already count under `density`. Counting them twice, once as « services », is the
+      // double-attribution `LayerOrigins` was built to make visible.
+      if (family === null) return [];
+      return [{ lat: row.lat as number, lng: row.lng as number, family }];
+    });
+
+  // The near field — w6-modes (#36). The premises of THIS street number, never one premise:
+  // `docs/PLAN.md` §2.5's second founding error is attaching one premise's facts to another,
+  // and it is not committed by counting agreement over a named population.
+  const near = rows.filter((row) => (row.distance_m ?? Infinity) <= TRADE_RADIUS_M);
+  const trade: TradeFacts = {
+    radiusM: TRADE_RADIUS_M,
+    total: near.length,
+    // The register answers three states and only 'oui' is counted as one. 'inconnu' — a street
+    // number shared by several premises where the authorisation does not say which holds it —
+    // is carried beside it, never folded in: `src/i18n/terrasseText.ts` refused that once.
+    terrasseOui: near.filter((row) => row.terrasse_status === 'oui').length,
+    terrasseInconnu: near.filter((row) => row.terrasse_status === 'inconnu').length,
+    pluProtege: near.filter((row) => row.plu_protected === true).length,
+    pluProximite: near.filter((row) => row.plu_commerce_proximite === true).length,
+  };
+
+  const totalMatched = Number(rows[0]?.total_matched ?? rows.length);
+  return {
+    points,
+    rendered: rows.length,
+    totalMatched,
+    truncated: totalMatched > rows.length,
+    trade,
+  };
+}
+
+/**
+ * The producer's own date for the datasets the trade checks cite — w6-modes (#36).
+ *
+ * One call for both, and the reason is the shape of the function: `compass_source_freshness()`
+ * takes no argument and returns all eight sources, so `fetchSourceAsOf` — which
+ * `premiseHistory.ts` has called for the terrace block since 26 August — already fetches the
+ * whole table and discards seven rows. Calling it twice here would be two round trips for one
+ * answer.
+ *
+ * **A source that answers nothing leaves its origin undefined rather than dated today.**
+ * `resolveChecks` then renders that check as an absent layer, which is the truth: a count whose
+ * dataset cannot say how current it is would be a figure whose `asOf` was invented, and that is
+ * the failure `Measured<T>` exists to prevent.
+ */
+export async function fetchTradeOrigins(): Promise<TradeOrigins> {
+  const { data, error } = await supabase.rpc('compass_source_freshness');
+  if (error) throw new Error(`compass_source_freshness: ${error.message}`);
+  const asOf = (source: string) =>
+    (data ?? []).find((row) => row.source === source)?.source_as_of ?? null;
+
+  const terrasses = asOf('terrasses');
+  const plu = asOf('plu');
+  return {
+    ...(terrasses ? { terrasses: TERRASSES_ORIGIN(terrasses) } : {}),
+    ...(plu ? { plu: PLU_ORIGIN(plu) } : {}),
+  };
+}
+
+/**
+ * Distance to the nearest IDFM rail stop, and the provenance of that distance.
+ *
+ * **`null` distance means the layer answered and found none.** `compass_station_profile`
+ * returns zero rows when no Paris station with a profile sits inside the radius — measured
+ * 15 September 2026 at the Bois de Vincennes, which is a true statement about that place and
+ * not a failure. An unreachable database throws instead, and the two must not meet.
+ *
+ * **What the DISTANCE axis does not use, and what w2-rythme (#208) added.** The function's rows
+ * carry `pct_validations`: the share of one station's own day falling in each hour bucket. That
+ * is a SHAPE and never a volume — the dataset publishes no absolute count, as `20260907000002`
+ * states and as a measurement confirms (the JOHV buckets of all 258 stations sum to 99,96 % to
+ * 100,04 %, measured 17 September 2026). So « comptages de validation réels par station » is
+ * still not something this source can supply, and the rail AXIS reads the one thing it can:
+ * `distance_m`, the metres to the nearest stop.
+ *
+ * Since `#208` the same call also hands back `hours`, the rows themselves, for the day-shape
+ * block that sits beside the six findings and enters no score. Nothing new is fetched: those
+ * rows were already crossing the wire and being discarded — this function kept two of the six
+ * columns and threw the other four away on every sheet.
+ *
+ * **Measured before it was relied on, 17 September 2026, and the ticket asked for exactly
+ * this.** The precedent was `#97`, where `idfm_validation_profile` was invisible to a direct
+ * PostgREST caller (RLS on, no read policy) while the `security definer` function answered.
+ * Against the production project, as `anon`, with the publishable key and no other credential:
+ * `compass_station_profile` returns 117 rows at Châtelet (5 day-type codes, 24 JOHV buckets
+ * summing to 99,99 %) in 416 ms, 114 at Oberkampf, 113 at Poissonnière and 0 at the Bois de
+ * Vincennes. The two tables are readable directly as well — 29 489 profile rows and 258
+ * stations, both `200`. The layer reaches an anonymous visitor whole.
+ */
+export interface CorpusStation {
+  /** Metres to the nearest stop, or `null` when the radius holds none. */
+  distanceM: number | null;
+  /** The stop's own name, for the gaps block. `null` when there is none. */
+  name: string | null;
+  /**
+   * Every hourly share the nearest station carries, unfiltered — w2-rythme (#208).
+   *
+   * All five day-type codes, not only the one the reading uses: filtering here would put the
+   * choice of day type in the transport layer, where `rythme.ts` could not state it or test
+   * it. Empty exactly when `distanceM` is null.
+   */
+  hours: readonly StationHourShare[];
+}
+
+export async function fetchCorpusStation(
+  lat: number,
+  lng: number,
+  radiusM: number,
+): Promise<CorpusStation> {
+  const { data, error } = await supabase.rpc('compass_station_profile', {
+    p_lat: lat,
+    p_lng: lng,
+    p_radius_m: radiusM,
+  });
+  if (error) throw new CorpusUnavailable(`compass_station_profile: ${error.message}`, 'source_injoignable');
+  const rows = data ?? [];
+  const first = rows[0];
+  if (!first) return { distanceM: null, name: null, hours: [] };
+  return {
+    distanceM: Number(first.distance_m),
+    name: first.station_name ?? null,
+    hours: rows.map((row) => ({
+      catJour: row.cat_jour,
+      hourBucket: row.hour_bucket,
+      pct: Number(row.pct_validations),
+    })),
+  };
+}
+
+/**
+ * **The hourly profiles have NO origin fetcher of their own, and that is deliberate** —
+ * w2-rythme (#208).
+ *
+ * One ingestion run loads `idfm_station` and `idfm_validation_profile` together and writes one
+ * `ingestion_run` row, so `fetchStationOrigin` above already holds the date both need. A second
+ * lookup would be two calls free to disagree about one run. What the two do NOT share is the
+ * licence — Etalab for the stops, ODbL for the profiles — and that half is settled where it
+ * cannot be got wrong: `dayShape` takes the DATE and builds its own origin with
+ * `IDFM_PROFILE_ORIGIN`, so no caller ever names a licence for this figure.
+ */
+
+/**
+ * Provenance of the rail layer, read rather than written.
+ *
+ * `ingestion_run.source_as_of` for source `idfm` is the portal's own `modified` date, carried
+ * since `20260907000002`. Same discipline as `fetchPremisesOrigin`: a date typed into this
+ * file would be a claim about data this file does not hold.
+ */
+export async function fetchStationOrigin(): Promise<Origin> {
+  const { data, error } = await supabase
+    .from('ingestion_run')
+    .select('source_as_of')
+    .eq('source', 'idfm')
+    .maybeSingle();
+  if (error) throw new Error(`ingestion_run(idfm): ${error.message}`);
+  if (!data?.source_as_of) {
+    throw new Error(
+      `ingestion_run ne déclare aucune date pour la source « idfm » : le millésime de la ` +
+        `desserte ferrée est inconnu. Un chiffre qui ne peut pas dire sa provenance n’est pas montré.`,
+    );
+  }
+  return IDFM_ORIGIN(data.source_as_of);
 }
 
 /**

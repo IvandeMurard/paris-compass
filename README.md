@@ -2,29 +2,23 @@
 
 # Compass
 
-**Context is the product.**
+**Before you sign a lease, read the street.**
 
-*Most commercial-property tools describe the unit - floor area, rent, photos - and leave you to infer the rest. But, a shopfront is only one part of the answer.
-Compass reads the street around it: what was there, what is changing, and what shapes its daily life nearby.*
+*What traded at this address, how the street turns over, what goodwill sold for. Public sources only, every figure cited.*
 
-[![Live app](https://img.shields.io/badge/live-paris--compass.lovable.app-0f766e?style=flat)](https://paris-compass.lovable.app)
+[![Demo](https://img.shields.io/badge/demo-paris--compass.lovable.app-0f766e?style=flat)](https://paris-compass.lovable.app)
 [![Scope](https://img.shields.io/badge/scope-Paris%20intra--muros-334155?style=flat)](#scope)
 [![Data](https://img.shields.io/badge/data-public%20sources%20only-1d4ed8?style=flat)](#where-every-number-comes-from)
-[![Eval gate](https://img.shields.io/badge/eval%20gate-37%20invariants%20·%2024%20baselines-16a34a?style=flat)](#how-a-number-earns-its-place)
+[![Eval gate](https://img.shields.io/badge/eval%20gate-56%20invariants%20·%2024%20baselines-334155?style=flat)](#how-a-number-earns-its-place)
+[![MCP](https://img.shields.io/badge/MCP-npx%20paris--compass--mcp-7c3aed?style=flat)](https://www.npmjs.com/package/paris-compass-mcp)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue?style=flat)](LICENSE)
 [![Stack](https://img.shields.io/badge/React%2018-TypeScript-38bdf8?style=flat)](#stack)
 
-**[Open the map →](https://paris-compass.lovable.app)** · no account needed
+**[Open the demo →](https://paris-compass.lovable.app)** · no account needed · pre-recorded addresses, 17th arrondissement
+
+**For an agent →** `npx -y paris-compass-mcp` · six tools, read-only, on the hosted corpus
 
 </div>
-
----
-
-> Compass sells neither coverage nor granularity — it sells **interpretation**. The point is how clearly we turn a raw figure into a decision you can make today.
-
-> And an interpretation is worth only what you can check. The tools in this market promise answers *grounded in audited data* — that names who verified. Compass promises figures **re-derivable from a cited public source** — that names who *can* verify: you. An internal audit is a promise. A cited source is a test anyone can rerun, including against us.
-
-A 3/6/9 lease is a nine-year bet, made today on one visit, a hunch about passing trade, and whatever the landlord says.
 
 ---
 
@@ -36,8 +30,8 @@ Compass answers on six axes at once.
 
 | | |
 | --- | --- |
-| **What was here** | florist 2017 → florist 2020 → gone by 2023 |
-| **How the street behaves** | half the units turned over in three years — and the empty ones refilled |
+| **What was here** | 10 rue Mandar, 2e: an Asian restaurant in the 2023 census, and six goodwill sales at that street number since 2017 |
+| **How the street behaves** | turnover and survival by trade, measured across three censuses — withheld until the 2017 and 2020 licences are cleared |
 | **What it costs** | median *fonds* between 160 000 and 170 000 €, 220 000 € for a café |
 | **What is moving now** | an insolvency filed here is public months before any listing |
 | **What is around it** | schools, healthcare, food, parks and transit counted within **800 m**, aggregated into walkability |
@@ -55,7 +49,9 @@ Note the wording, because the product keeps it too: air quality is *measured*, n
 If a restaurant occupied the unit, the extraction, grease trap and power are probably already in. If not, creating them runs into tens of thousands and needs the building's agreement. The most expensive question this data answers — before you travel.
 
 **Is this a graveyard or a good street?**
-Rue d'Argout turned over half its shops in three years — but it also filled its three empty units. Churning upward, not dying. And turnover only means something against its own trade: of the cafés trading in 2017, **77% were still trading six years later around Les Halles, 56% in the quartier du Mail**. Same city, same trade, a different bet.
+A street that churns is not a street that dies: units can turn over and refill. And turnover only means something against its own trade, and against its own quartier — the same trade does not hold equally from one neighbourhood to the next. Compass measures both across three censuses.
+
+**Those figures are not printed here.** They rest on the 2017 and 2020 vintages, whose licence has not been cleared, and the server withholds them from an anonymous caller. This page follows the same rule as the product: a rate derived from a withheld vintage is withheld too.
 
 **What did people actually pay?**
 25 661 goodwill sales published with their price since 2015. For the 5 971 tied to a single shopfront, the median Paris *fonds* changes hands **between 160 000 and 170 000 €** — a range, not a point, because goodwill prices are declared in round numbers: the median sits on a step and moves in jumps, so a single figure would be precise about something the source is not. The trade decides almost everything.
@@ -63,6 +59,8 @@ Rue d'Argout turned over half its shops in three years — but it also filled it
 | Food shop | Café / restaurant | Clothing | Personal services |
 | --- | --- | --- | --- |
 | 250 000 € | 220 000 € | 86 000 € | 50 000 € |
+
+One address makes the point. At 10 rue Mandar, `trace_premise` returns six goodwill sales between 2017 and 2024, from 87 500 to 450 000 € — retrieved 7 October 2026. Each one is `probable`, not `established`: two shopfronts share that street number, and the notice does not say which was sold. The 2017 and 2020 census rows come back `withheld`, the 2023 one `established`.
 
 ---
 
@@ -90,19 +88,26 @@ flowchart LR
 
 > **Four levels, never a percentage.** A confidence score out of 100 would be exactly the kind of unverifiable number this product refuses. The level is *computed* from columns that already exist, and every row carries the reason that produced it.
 
-Today's composition across the corpus — this is the quality metric, and improving means moving these four numbers leftward:
+Composition across the corpus, measured 6 October 2026 — this is the quality metric, and improving means moving these four numbers leftward:
 
 | established | corroborated | probable | undetermined |
 | --- | --- | --- | --- |
-| **51.4%** | 5.9% | 36.7% | 6.0% |
+| **51.2%** | 5.9% | 37.0% | 5.9% |
 
-That 36.7% is structural, not laziness: BODACC names an *address*, BDCom names a *unit*, and 69% of units share their street number. No public data will say which of eight shopfronts was sold.
+That 37.0% is structural, not laziness: BODACC names an *address*, BDCom names a *unit*, and 69% of units share their street number. No public data will say which of eight shopfronts was sold.
 
-A gate runs the whole corpus against **41 invariants, 24 frozen baselines and 8 hand-verified chronologies** before anything ships — recounted 5 September 2026 with `grep -c '^-- @invariant ' eval/invariants.sql`; this line said 37, counted 2 September, and four have landed since. Most of them check what the functions return; one checks what they *are* — a function exposing an `observed` column must be `SECURITY DEFINER`, because row-level security silently turns a withheld row into "never surveyed".
+A gate runs the whole corpus against **56 invariants, 24 frozen baselines and 8 hand-verified chronologies** before anything ships, and again every day on a schedule — invariants counted 6 October 2026 with `grep -c '^-- @invariant ' eval/invariants.sql`. Most of them check what the functions return; one checks what they *are* — a function exposing an `observed` column must be `SECURITY DEFINER`, because row-level security silently turns a withheld row into "never surveyed".
+
+<!-- TEMPORARY — remove this paragraph and this comment once the scheduled gate runs green on every arm (the `porte-rouge` label has no open issue). -->
+The badge above counts invariants; it does not say the gate passes. The reds currently open are the issues labelled [`porte-rouge`](https://github.com/IvandeMurard/paris-compass/issues?q=is%3Aissue+is%3Aopen+label%3Aporte-rouge).
 
 ---
 
 ## Two founding constraints
+
+Most commercial-property tools describe the unit — floor area, rent, photos — and leave you to infer the rest. Compass sells neither coverage nor granularity: it sells **interpretation**, and context is the product.
+
+An interpretation is worth only what you can check. The tools in this market promise answers *grounded in audited data* — that names who verified. Compass promises figures **re-derivable from a cited public source** — that names who *can* verify: you. An internal audit is a promise. A cited source is a test anyone can rerun, including against us.
 
 > **If a number cannot be re-derived from a cited public source, it is not shown.**
 
@@ -116,7 +121,7 @@ The useful granularity is the street segment, sometimes the side of the pavement
 
 ## Who it is for
 
-**The entrepreneur** — the shopkeeper, restaurateur, craftsperson or franchisee who decides *where* to open. Once or twice in a working life, committing to nine years.
+**The entrepreneur** — the shopkeeper, restaurateur, craftsperson or franchisee who decides *where* to open. Once or twice in a working life, on a lease that binds for years.
 
 **An agent** — an LLM asking the same question through an MCP server. Same scoring core, same traceability requirement, different output: JSON and a chain of thought instead of a map.
 
@@ -170,13 +175,13 @@ Honest labels, in the sense that *built* means the code runs and the gate passes
 
 | Component | State |
 | --- | --- |
-| Map, neighbourhood scoring, environment panel | **Live** |
-| Provenance surfaced on every figure | **Built** — merged, ships on the next deploy |
-| BDCom ×3 · BODACC · Sirene · geography | **Built** — 85 418 units, 228 275 census records, gate green. 27 migration files in the repository, counted 24 August 2026 |
-| Deployed to the hosted database | **Live since 15 August 2026** — the browser reads it anonymously with the publishable key, verified 24 August |
-| Premise history in the browser — BDCom ×3 and BODACC on one timeline | **Built** — 24 August 2026, demonstrated against the hosted database in a dev browser; ships on the next deploy. [`docs/tickets/w0-fiche.md`](docs/tickets/w0-fiche.md) |
-| Exportable one-address file | **Design, next up** — prioritised 2 September 2026 |
-| MCP server for agents | **Published and listed** — `npx -y paris-compass-mcp` ([npm](https://www.npmjs.com/package/paris-compass-mcp), [MCP registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.IvandeMurard/paris-compass-mcp)), six tools, anonymous read-only, nothing to configure |
+| Map, neighbourhood scoring, environment panel | **Demo** — pre-recorded addresses in the 17th arrondissement, not yet wired to the ingested corpus |
+| Provenance surfaced on every figure | **Built** |
+| BDCom ×3 · BODACC · Sirene · geography | **Built** — 85 418 units, 228 275 census records |
+| Deployed to the hosted database | **Live since 15 August 2026** — read anonymously with the publishable key |
+| Premise history in the browser — BDCom ×3 and BODACC on one timeline | **Built** — demonstrated against the hosted database in a dev browser, not in the demo. [`docs/tickets/w0-fiche.md`](docs/tickets/w0-fiche.md) |
+| Exportable one-address file | **Design, next up** |
+| MCP server for agents | **Published and listed** — `npx -y paris-compass-mcp` ([npm](https://www.npmjs.com/package/paris-compass-mcp), [MCP registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.IvandeMurard/paris-compass-mcp)), six tools, anonymous read-only, nothing to configure. |
 | Agent self-assessment of its own confidence | Research |
 
 ---
@@ -201,7 +206,7 @@ Scores computed client-side: walkability, transport access, density per category
 </details>
 
 <details>
-<summary><b>Ingested, awaiting deployment</b></summary>
+<summary><b>Ingested in the hosted database, not yet in the demo</b></summary>
 
 <br/>
 

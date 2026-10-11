@@ -66,6 +66,11 @@ supabase/.temp/
 # les verifications manuelles passent par un bundle jetable. Voir docs/REPRISE.md.
 mcp-server/.build/
 
+# Copies of the root LICENSE and NOTICE that `mcp-server/build.mjs` writes before packing (#255).
+# npm only ships what sits in the package folder; tracking a second copy would let it drift.
+mcp-server/LICENSE
+mcp-server/NOTICE
+
 # Recueil de la porte planifiee : journaux des bras et compte rendu, ecrits par
 # .github/workflows/porte.yml sur le runner et par `npm.cmd run porte:rapport` en local.
 # Les journaux portent la cible de la base, et ce depot est public.

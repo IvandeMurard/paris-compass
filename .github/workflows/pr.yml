@@ -39,7 +39,7 @@ jobs:
       # cette migration. En profondeur 1 — le défaut d'actions/checkout — un commit du 25 août
       # est invisible et la règle se réduit à sa forme. Une entrée neuve arrive par une
       # proposition : c'est ici qu'elle doit être vérifiée pour de bon.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 

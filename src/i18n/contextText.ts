@@ -10,24 +10,31 @@
  * without a DOM, and the Leaflet popups of a later step cannot render a component.
  */
 
-import { AMENITY_RADIUS_M, FOOTFALL_RADIUS_M, NOISE_RADIUS_M, type VerdictAxis } from '@/core';
+import {
+  AMENITY_RADIUS_M as STATION_LOOKUP_M,
+  FOOTFALL_RADIUS_M,
+  NOISE_RADIUS_M,
+  SERVICE_RADIUS_M,
+  type DossierLabels,
+  type VerdictAxis,
+} from '@/core';
 import type { Locale } from '@/i18n/locale';
 
 export const AXIS_NAMES: Record<Locale, Record<VerdictAxis, string>> = {
   fr: {
     density: 'Tissu commercial',
     footfall: 'Passage',
-    transit: 'Desserte',
-    walkability: 'Services à pied',
-    groceries: 'Commerces alimentaires',
+    rail: 'Desserte ferrée',
+    services: 'Services marchands à pied',
+    alimentaire: 'Commerces alimentaires',
     noise: 'Bruit routier',
   },
   en: {
     density: 'Commercial fabric',
     footfall: 'Footfall',
-    transit: 'Transit access',
-    walkability: 'Services on foot',
-    groceries: 'Food shops',
+    rail: 'Rail access',
+    services: 'Shops and services on foot',
+    alimentaire: 'Food shops',
     noise: 'Road noise',
   },
 };
@@ -44,21 +51,41 @@ export const AXIS_NAMES: Record<Locale, Record<VerdictAxis, string>> = {
 export const AXIS_WHAT: Record<Locale, Record<VerdictAxis, string>> = {
   fr: {
     density: `Locaux commerciaux relevés dans ${FOOTFALL_RADIUS_M} m, avec rendement décroissant. Un relevé de terrain, pas un marquage bénévole — et le seul constat de cette page qui ne dépende d’aucun miroir public.`,
-    footfall: `Approximation dans ${FOOTFALL_RADIUS_M} m, à partir de la densité de commerces actifs et de l’accès aux transports. Aucun comptage piéton n’est publié en Île-de-France.`,
-    transit: `Arrêts et stations comptés dans ${AMENITY_RADIUS_M} m, avec rendement décroissant.`,
-    walkability: `Composite pondéré des cinq familles d’aménités dans ${AMENITY_RADIUS_M} m. Les poids sont publiés.`,
-    groceries: `Commerces alimentaires comptés dans ${AMENITY_RADIUS_M} m, avec rendement décroissant.`,
+    footfall: `Approximation dans ${FOOTFALL_RADIUS_M} m, à partir de la densité de commerces actifs et de la desserte ferrée. Aucun comptage piéton n’est publié en Île-de-France.`,
+    rail: `Distance à l’arrêt ferré le plus proche — métro, RER, tramway — cherché dans ${STATION_LOOKUP_M} m, avec décroissance exponentielle. Les bus n’y sont pas.`,
+    services: `Composite pondéré de cinq familles de commerces RELEVÉS dans ${SERVICE_RADIUS_M} m, avec rendement décroissant. Un relevé porte-à-porte ne connaît que le marchand : ni écoles, ni équipements publics. Les poids sont publiés.`,
+    alimentaire: `Commerces alimentaires relevés dans ${SERVICE_RADIUS_M} m, avec rendement décroissant.`,
     noise: `Exposition modélisée depuis la proximité et la classe des voies, jusqu’à ${NOISE_RADIUS_M} m. Ni le bâti, ni le trafic, ni l’heure n’entrent dedans.`,
   },
   en: {
     density: `Commercial premises surveyed within ${FOOTFALL_RADIUS_M} m, with diminishing returns. A field survey, not volunteer tagging — and the only finding on this page that depends on no public mirror.`,
-    footfall: `A proxy within ${FOOTFALL_RADIUS_M} m, built from active-business density and transport access. No pedestrian count is published for Île-de-France.`,
-    transit: `Stops and stations counted within ${AMENITY_RADIUS_M} m, with diminishing returns.`,
-    walkability: `Weighted composite of the five amenity families within ${AMENITY_RADIUS_M} m. The weights are published.`,
-    groceries: `Food shops counted within ${AMENITY_RADIUS_M} m, with diminishing returns.`,
+    footfall: `A proxy within ${FOOTFALL_RADIUS_M} m, built from active-business density and rail access. No pedestrian count is published for Île-de-France.`,
+    rail: `Distance to the nearest rail stop — metro, RER, tram — looked for within ${STATION_LOOKUP_M} m, with exponential decay. Buses are not in it.`,
+    services: `Weighted composite of five families of SURVEYED shops within ${SERVICE_RADIUS_M} m, with diminishing returns. A door-to-door survey knows only the merchant: no schools, no public facilities. The weights are published.`,
+    alimentaire: `Food shops surveyed within ${SERVICE_RADIUS_M} m, with diminishing returns.`,
     noise: `Exposure modelled from the proximity and class of major roads, up to ${NOISE_RADIUS_M} m. Buildings, traffic volume and time of day are not taken into account.`,
   },
 };
+
+/**
+ * The axis names and descriptions a dossier carries, in the reader's language — w6-dossier (#33).
+ *
+ * Assembled from the two tables above rather than written a third time. The exported file names
+ * the axes exactly as the sheet does, so a reader holding both never has to work out whether
+ * « Desserte ferrée » in the file is the same thing as « Desserte ferrée » on screen — and a
+ * reworded axis travels into the file the day it is reworded, without anyone remembering to.
+ *
+ * `src/core/dossier.ts` takes this as a parameter instead of importing it: the core is reachable
+ * from the MCP server, which has no `src/i18n`, and inverting the dependency would have made the
+ * dossier unavailable to the one consumer §2.6 says it must also serve.
+ */
+export const dossierLabels = (locale: Locale): DossierLabels =>
+  Object.fromEntries(
+    (Object.keys(AXIS_NAMES[locale]) as VerdictAxis[]).map((axis) => [
+      axis,
+      { label: AXIS_NAMES[locale][axis], counts: AXIS_WHAT[locale][axis] },
+    ]),
+  ) as DossierLabels;
 
 export const CONTEXT_COPY = {
   fr: {
@@ -84,6 +111,11 @@ export const CONTEXT_COPY = {
     method: 'Méthode',
     caveat: 'Réserve',
     whyMissing: 'Pourquoi ce chiffre manque',
+    /** Un constat dont la couche voyage encore — w6-fiche-delai (#180). Il reste nommé et
+     *  jamais retiré : une page plus rapide parce qu'elle en dit moins n'est pas une page plus
+     *  rapide. Et ce n'est pas « source injoignable » — un trou sur lequel revenir demain ne
+     *  change rien, une réponse en route, si. */
+    findingPending: 'Mesure en cours — la source n’a pas encore répondu.',
     gapsHeading: 'Ce que Compass ne sait pas ici',
     gapsIntro:
       'Cette liste est calculée pour cette adresse, pas recopiée. Elle est aussi un argument : une réponse qui ne dit pas ses trous ne se vérifie pas.',
@@ -130,6 +162,19 @@ export const CONTEXT_COPY = {
     agentArguments: 'Arguments',
     agentNote:
       'La parité est vérifiée par npm run verify:mcp, qui recompose le verdict du serveur à partir des chiffres que le serveur publie, et non par cette phrase.',
+    dossierHeading: 'Le dossier de cette adresse',
+    dossierIntro:
+      'Un fichier, une adresse. Chaque chiffre y descend avec sa source, sa licence, son millésime, sa méthode, la formule appliquée, ses constantes et ce à quoi elle a été appliquée : de quoi refaire le calcul sans nous croire sur parole.',
+    dossierButton: 'Télécharger le dossier (JSON)',
+    dossierDone: (nom: string) => `Dossier écrit : ${nom}`,
+    // La doctrine voyage DANS le fichier et pas seulement à côté du bouton : c'est le fichier
+    // qui circule, et c'est lui qu'on pourrait prendre pour le premier d'une série de cinquante.
+    dossierDoctrine:
+      'Un dossier, une adresse. Compass ne fournit pas d’export de masse : constituer un portefeuille est le geste du courtier, que ce produit refuse, et la limite tient dans sa structure plutôt que dans une intention.',
+    dossierMethodology:
+      'Les formules, leurs constantes et la règle de composition du verdict sont publiées sur la page de méthodologie de Compass.',
+    dossierNote:
+      'Un constat manquant descend lui aussi, avec la cause de son absence : un dossier qui tairait ses trous ne se vérifierait pas.',
     methods: {
       measured: 'compté ou relevé',
       modelled: 'sorti d’un modèle publié',
@@ -159,6 +204,7 @@ export const CONTEXT_COPY = {
     method: 'Method',
     caveat: 'Caveat',
     whyMissing: 'Why this figure is missing',
+    findingPending: 'Still being measured — the source has not answered yet.',
     gapsHeading: 'What Compass does not know here',
     gapsIntro:
       'This list is computed for this address, not copied. It is also an argument: an answer that does not state its holes cannot be checked.',
@@ -198,6 +244,17 @@ export const CONTEXT_COPY = {
     agentArguments: 'Arguments',
     agentNote:
       'Parity is checked by npm run verify:mcp, which recomposes the server’s verdict from the figures the server publishes — not by this sentence.',
+    dossierHeading: 'The dossier of this address',
+    dossierIntro:
+      'One file, one address. Every figure goes down with its source, its licence, its vintage, its method, the formula applied, its constants and what it was applied to: enough to redo the arithmetic without taking our word for it.',
+    dossierButton: 'Download the dossier (JSON)',
+    dossierDone: (nom: string) => `Dossier written: ${nom}`,
+    dossierDoctrine:
+      'One dossier, one address. Compass provides no bulk export: assembling a portfolio is the broker’s gesture, which this product refuses, and the bound holds in its structure rather than in an intention.',
+    dossierMethodology:
+      'The formulas, their constants and the rule that composes the verdict are published on the Compass methodology page.',
+    dossierNote:
+      'A missing finding goes down too, with the cause of its absence: a dossier that hid its holes could not be checked.',
     methods: {
       measured: 'counted or surveyed',
       modelled: 'output of a published model',

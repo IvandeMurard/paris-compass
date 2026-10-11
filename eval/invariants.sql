@@ -139,20 +139,20 @@ where t.kind in ('sale', 'proceeding')
   )
 limit 20;
 
--- @invariant I8 :: un relevé promu sans ligne de staging correspondante
+-- @invariant I8 :: un millésime dont les relevés promus ne font pas le compte chargé
 -- A half-loaded census is indistinguishable from an incomplete one.
-select o.id, o.vintage_id, o.source_ordre
-from public.premise_observation o
-where o.vintage_id in (2017, 2020)
-  and not exists (
-    select 1 from public.stg_bdcom_od s
-    where s.vintage_id = o.vintage_id and s.ordre = o.source_ordre)
-union all
-select o.id, o.vintage_id, o.source_ordre
-from public.premise_observation o
-where o.vintage_id = 2023
-  and not exists (
-    select 1 from public.stg_bdcom_2023 s where s.c_ord = o.source_ordre)
+-- Counts at rest, rows at load time — since 6 October 2026 (#239). The staging tables are
+-- emptied when a BDCom load commits, to hold the project under its 500 MB ceiling
+-- (DIAGNOSTIC-CORRIGES.md §62), so the row-by-row match this invariant used to make now runs
+-- INSIDE scripts/ingest/bdcom.ts, before the staging is emptied, and fails the load. What is
+-- left to check at rest is the trace the load writes: bdcom_vintage.record_count, the staging
+-- row count of that vintage. What this no longer catches at rest: a promoted row swapped for
+-- another with the same count — the load-time half is the only guard of that.
+select v.id as vintage_id, v.record_count,
+       (select count(*) from public.premise_observation o where o.vintage_id = v.id) as promoted
+from public.bdcom_vintage v
+where v.record_count is distinct from
+      (select count(*) from public.premise_observation o where o.vintage_id = v.id)
 limit 20;
 
 -- @invariant I9 :: un appelant anonyme voit le contenu d'un millésime non redistribuable
@@ -1951,8 +1951,9 @@ limit 20;
 -- IDFM la plus proche : ST_Covers doit trouver un carreau pour tout point
 -- réellement à l'intérieur de l'emprise chargée. Le repli sur le plus proche par
 -- centroïde ne sert qu'un local dont le carreau réel a été écarté par
--- restrictToQuartiers (un carreau à cheval sur la frontière des 80 quartiers,
--- tombé du mauvais côté) — voir l'en-tête de scripts/ingest/filosofi.ts.
+-- le recoupement par quartiers de loadGrid (`restrictToQuartiers` jusqu'à #244 :
+-- un carreau à cheval sur la frontière des 80 quartiers, tombé du mauvais côté)
+-- — voir l'en-tête de scripts/ingest/filosofi.ts.
 --
 -- CE QUE I51 NE RATTRAPE PAS : il compare le point stocké (premise_location.geom)
 -- à son carreau recalculé, jamais le CONTENU du carreau — c'est I53 qui garde la
@@ -2011,11 +2012,14 @@ limit 20;
 -- le cas qui compte.
 --
 -- L'ÉTAT VIDE EST ATTEIGNABLE SANS QUE LE CHARGEMENT ÉCHOUE, même mécanisme que
--- I49 pour IDFM : loadGrid fait `delete from filosofi_grid_200m` puis boucle sur
--- les lignes lues ; un champ renommé en amont (`idcar_200m`, `ind`, `ind_snv`,
--- ou la structure `bbox` elle-même) ferait échouer readParisCandidates avant le
--- delete OU rendrait un tableau vide que refuseLotVide attrape avant le delete —
--- mais un DELETE fait à la main sur le distant (psql, la console Supabase) ne
+-- I49 pour IDFM : loadGrid faisait `delete from filosofi_grid_200m` puis bouclait
+-- sur les lignes lues — depuis #244 il fait un upsert puis retire les carreaux
+-- absents du lot, ce qui sur un lot vide viderait tout de la même façon. Un
+-- champ renommé en amont (`idcar_200m`, `ind`, `ind_snv`, ou la structure `bbox`
+-- elle-même) ferait échouer readParisCandidates avant tout écrit, OU rendrait
+-- un lot vide que refuseLotVide refuse — avant tout écrit, et une seconde fois
+-- après le recoupement par quartiers, qui pourrait vider un lot non vide
+-- (revue de #245). Mais un DELETE fait à la main sur le distant (psql, la console Supabase) ne
 -- passe par aucun des deux, vide la table, efface tous les rattachements via
 -- `on delete set null`, et rien dans scripts/ingest/filosofi.ts ne le voit
 -- passer. C'est CET invariant qui rougit alors, quel que soit le chemin.

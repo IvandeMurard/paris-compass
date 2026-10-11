@@ -1,6 +1,6 @@
 {
   "name": "paris-compass-mcp",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "mcpName": "io.github.IvandeMurard/paris-compass-mcp",
   "type": "module",
   "description": "MCP server for Compass: address-level context on Paris commercial premises, from open data — what traded on a shopfront before, how the street turns over, what sources say and how sure they are. Anonymous read-only access, the same trust boundary as a visitor of the site.",
@@ -28,7 +28,9 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "NOTICE"
   ],
   "engines": {
     "node": ">=20.12"
@@ -40,13 +42,13 @@
     "prepack": "npm run typecheck && npm run build"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30.0",
-    "@supabase/supabase-js": "^2.112.3",
-    "zod": "^4.4.3"
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@supabase/supabase-js": "^2.117.2",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^22.5.5",
-    "tsx": "^4.19.2",
+    "tsx": "^4.23.15",
     "typescript": "^5.5.3"
   }
 }

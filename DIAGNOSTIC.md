@@ -1,7 +1,7 @@
 # Diagnostic du code — défauts ouverts
 
 Lecture du dépôt cloné, tenue depuis le 9 août 2026. **Le préambule d'origine annonçait
-« quatre défauts, par ordre de gravité » : il en porte 52 au 14 septembre 2026**, et la
+« quatre défauts, par ordre de gravité » : il en porte 65 au 6 octobre 2026**, et la
 phrase est restée fausse trois semaines. Le nombre est désormais dérivé du tableau
 ci-dessous par `scripts/porte/documents.test.ts` : le recopier faux fait rougir `test`.
 
@@ -72,10 +72,23 @@ réécrire, et bien mieux que cent trente occasions de dérive.
 | 46 | La table Filosofi carroyée ne porte pas `i_est_200`, l'indicateur d'imputation qu'INSEE dit obligatoire | **ouvert** — trouvé le 8 septembre 2026 par `w2-filosofi`, [#18](https://github.com/IvandeMurard/paris-compass/issues/18) | ici |
 | 47 | La `cadence_note` de `filosofi` annonce « NON CHARGÉ » à tout appelant, alors que la source est chargée depuis le 8 septembre 2026 | **ouvert** — trouvé le 8 septembre 2026 par `w2-filosofi`, P2 | ici |
 | 48 | Deux tables neuves sur trois ont oublié la contrainte de finitude, et la troisième dit pourquoi | **ouvert** — mesuré le 10 septembre 2026 par `w4-meubles`, P2 | ici |
-| 49 | Les raisons d'absence de `src/core` s'affichent en anglais sur les pages françaises | **ouvert** — mesuré le 10 septembre 2026 par `w6-contexte`, P2 | ici |
+| 49 | Les raisons d'absence de `src/core` s'affichent en anglais sur les pages françaises | clos le 16 septembre 2026, `w6-langue-absences` (#181) — le noyau produit un motif, plus une phrase | ici |
 | 50 | La fiche de contexte plante quand Overpass tombe, et n'appelle aucune fonction `compass_*` | clos les 13 et 14 septembre 2026 — le plantage par `#156`, l'absence de corpus par `#157` | ici |
 | 51 | Un compte de locaux plafonné à mille par PostgREST, rendu comme un total — `compass_scoring_context_within` | clos le 14 septembre 2026 par `w6-fiche-corpus`, `#157` | ici |
 | 52 | L'axe `tissu commercial` lit 100 sur la moitié de Paris : honnête, et presque sans pouvoir discriminant | **ouvert** — mesuré le 14 septembre 2026 par `w6-fiche-corpus`, P2, **décision Ivan** | ici |
+| 53 | Hors corpus, deux couches neuves rendaient un ZÉRO mesuré au lieu d'une absence — `services` et `stations` | clos le 15 septembre 2026 par `w6-amenites-corpus`, trouvé à l'écran | ici |
+| 54 | `brief` assemblait un prompt de session complet pour une issue FERMÉE, sans le dire | clos le 15 septembre 2026 — trouvé en étant la victime | ici |
+| 55 | Le dossier exporté citait la BAN sur un libellé qu'elle n'avait pas rendu, et perdait « mesure en cours » | clos le 15 septembre 2026 par `w6-dossier`, trouvé à l'écran | ici |
+| 56 | La checklist métier rendait « ne est », et « aucune terrasse » là où 26 emplacements sur 28 sont `inconnu` | clos le 16 septembre 2026 par `w6-modes`, trouvé à l'écran — les deux étaient verts au test unitaire | ici |
+| 57 | Le schéma se trompe de sens sur le profil horaire : « midi = bureaux » est faux à 258 stations sur 258 | **partiel** — mesuré le 17 septembre 2026 par `w2-rythme` ; le produit corrigé, les deux `comment on` du distant non, [#213](https://github.com/IvandeMurard/paris-compass/issues/213) | ici |
+| 58 | `src/i18n/survivalText.ts` : douze chaînes de prose qu'aucun import n'atteint, donc aucun écran ne rend | **ouvert** — mesuré le 17 septembre 2026 par `w1-servi-contenu` | ici |
+| 59 | `servi` ne lisait que les morceaux que l'ENTRÉE nomme : 1 sur 29, et 424 003 octets servis jamais demandés | clos le 17 septembre 2026 par `w1-servi-contenu` | ici |
+| 60 | La production sert un bundle antérieur à `#119` : `/carte` et `/contexte/` ne sont pas déclarés, la fiche rend une 404 | clos le 17 septembre 2026 par une republication d'Ivan — `servi` sortie 0, 1 168 jetons sur 1 168 | ici |
+| 61 | Le bundle publié vise `nwnhhvogwrzstslxtxca`, l'ANCIEN projet Supabase : la fiche rend un refus sur les quatre axes | **ouvert** — mesuré le 17 septembre 2026, appartient au déploiement ; la démo Lovable l'a remplacé le 6 octobre, voir sa fin | ici |
+| 62 | La base passait en lecture seule pendant les gros chargements : tables gonflées ×2 à ×3,7 par les rechargements | clos le 6 octobre 2026 par `VACUUM FULL` (964 → 393 Mo, sauvegarde vérifiée avant) ; chargeurs corrigés et bras `disque` posés par `#239`, **mesure au premier rechargement encore due** | corrigés |
+| 63 | Le bras B d'`eval` rougissait sur la croissance normale de BODACC | clos le 6 octobre 2026 : comptages bornés au gel, `borne.test.ts` | corrigés |
+| 64 | Le bras E compte 27 à 81 % de pages de plus que ses plafonds sur cinq fonctions, pendant que les temps baissent | **ouvert** — mesuré le 6 octobre 2026, `#240` | ici |
+| 65 | `geography.ts` échouait à chaque passage depuis le 25 août : `delete from quartier` contre la clé du stock SIRENE | clos le 6 octobre 2026 par `#239` | corrigés |
 | — | Points mineurs | clos le 15 août | corrigés |
 | — | Reste à traiter (non bloquant) | **ouvert** | ici |
 | — | Ordre d'attaque suggéré | **ouvert**, mais daté du 12 août — à recouper avant usage | ici |
@@ -838,6 +851,37 @@ que `#61` interdit.
 **Ce que ça ne rattrape pas.** Même corrigée, la règle ne dira rien des phrases écrites en SQL :
 les `evidence` de la base sont produites hors de TypeScript, et `I21` les garde séparément.
 
+> **CLOS le 16 septembre 2026 — `w6-langue-absences` (#181).** Le correctif est celui qui était
+> annoncé ci-dessus, et rien d'autre : `src/core/motif.ts` porte `FigureMotif`, une union
+> discriminée de six genres, et `motifText(motif, locale)` l'écrit dans la langue du lecteur.
+> `Measured<T>` gagne `missing` et `caveats` **à côté de** `missingReason` et `note`, qui
+> restent et sont maintenant **dérivés** du motif dans sa colonne anglaise — une source, deux
+> langues.
+>
+> **Ce qui rend le défaut irréversible et pas seulement réparé** : `unavailable(origin, motif)`
+> refuse une `string`. Une absence qui ne saurait dire pourquoi que dans une langue ne compile
+> plus, y compris sur un axe qui n'existe pas encore — c'est le livrable, pas les cinq phrases
+> traduites. Les deux langues vivent dans `src/core/` et non dans `src/i18n/` : ce module est
+> celui du navigateur, le serveur MCP ne compile que le noyau, et l'anglais ici avec le français
+> là aurait fait deux foyers pour une phrase. La raison est écrite en tête de `motif.ts`.
+>
+> **Un symétrique non consigné a été trouvé et corrigé avec** : `truncatedNote` de
+> `useAddressContext.ts` était écrite en français et partait telle quelle sur `/en/context/`,
+> pendant que `mcp-server/src/context.ts` écrivait sa propre version anglaise de la même mise en
+> garde. Le défaut n'était donc pas « le noyau est anglais » mais « chaque producteur choisit une
+> langue pour un lecteur qu'il ne connaît pas ».
+>
+> **Mesures, le 16 septembre 2026** : `test` **798 sur 56 fichiers** (785 sur 55 sur `main`),
+> `verify:mcp` **48 contrôles, 48 au vert**, dont le contrôle neuf `E8b` qui exige le motif à
+> côté de la phrase — **démontré rouge** motif retiré, phrase gardée. Le recensement du critère 1
+> est dans `src/core/motif.test.ts` et `src/lib/contextGaps.test.ts`, populations dérivées de
+> `MOTIF_KINDS` et de `LAYERS`. Le détail : `docs/tickets/w6-langue-absences.md`, « Livré ».
+>
+> **Ce que ça ne rattrape toujours pas** : les phrases SQL, comme annoncé — et deux limites que
+> le ticket n'avait pas vues. Ces contrôles jugent qu'il y a deux langues, jamais que chacune dit
+> vrai ; et aucun bras n'ouvre `/en/context/`, donc une régression propre à la page anglaise
+> passerait au vert chaque matin.
+
 ---
 
 ## 50. La fiche plante quand Overpass tombe, et ne lit pas le corpus — mesuré le 13 septembre 2026
@@ -1086,3 +1130,588 @@ l'intérieur de Paris commerçant, et rien de ce qu'il affiche n'est faux.
 **Décision attendue d'Ivan**, et elle est étroite : garder 90 partagée, ou publier une constante
 propre au tissu commercial avec la mesure qui la justifie. `#157` n'a pas tranché seul parce que la
 première branche touche une formule publiée que son périmètre écarte.
+
+---
+
+## 53. Hors corpus, deux couches neuves rendaient un zéro mesuré au lieu d'une absence
+
+**Trouvé à l'écran le 15 septembre 2026, pendant la démonstration du critère 5 de
+`w6-amenites-corpus`, et corrigé avant la livraison.** Pas en relecture : la contre-preuve du
+ticket — « un point hors de Paris intra-muros rend toujours un refus nommé » — a été jouée dans
+Chrome sans tête contre le build local, et l'écran a montré autre chose que ce que le code était
+censé faire.
+
+**Ce que Massy affichait**, miroirs Overpass coupés, avant correction :
+
+> **Pas de verdict ici** — le tissu commercial : hors du corpus ; le passage : hors du corpus.
+>
+> DESSERTE FERRÉE **0/100** · SERVICES MARCHANDS À PIED **0/100**
+
+Le refus était juste — `density` et `footfall` lisent `premises`, qui porte bien
+`out_of_corpus` — mais **deux axes affichaient un chiffre**, et ce chiffre était fabriqué. Massy
+a des commerces et une gare du RER B.
+
+**La cause, et elle est structurelle plutôt qu'accidentelle.** Les deux fonctions que les couches
+neuves appellent **réussissent** hors de Paris et rendent zéro ligne :
+
+| Fonction | Pourquoi zéro ligne hors de Paris | Marqueur ? |
+| --- | --- | :---: |
+| `compass_premises_within` | aucun local dans les 80 quartiers | **aucun** — c'est le §36, encore ouvert |
+| `compass_station_profile` | `idfm_station` est restreinte à Paris **à l'ingestion** (`zdapostalregion like '751%'`) | aucun |
+| `compass_scoring_context_within` | idem | **`out_of_corpus`**, posé par `20260825000003` |
+
+Une couche qui répond et ne rend rien compte comme « chargée et vide », et `src/core` lit alors un
+vrai zéro — ce qui est le comportement CORRECT et voulu à l'intérieur de Paris : le bois de
+Vincennes n'a réellement aucun local dans 400 m ni aucun arrêt ferré dans 800 m, et effacer cette
+réponse détruirait la seule chose que la couche dit avec certitude. La distinction ne peut donc pas
+se faire sur la vacuité ; elle ne peut se faire que sur la frontière, et **une seule fonction la
+connaît**.
+
+**C'est `DIAGNOSTIC.md` §16 un cran plus loin.** §16 était « un point hors corpus rendu comme un
+quartier sans commerces », clos le 25 août par le marqueur `out_of_corpus`. Le marqueur a tenu ; ce
+qui n'a pas tenu est qu'il n'existe que sur **une** des trois fonctions, et que deux couches neuves
+sont arrivées à côté sans hériter de sa réponse.
+
+**Corrigé** dans `src/hooks/useAddressContext.ts` et `mcp-server/src/context.ts`, des deux côtés
+et par la même règle : `compass_scoring_context_within` reste la **seule autorité** sur la
+frontière, et les couches `services` et `stations` sont retirées avec `premises` quand elle répond
+`hors_corpus`. Un second test de frontière dans chaque couche aurait été une deuxième autorité sur
+la même question, libre de contredire la première.
+
+**Ce que le correctif ne rattrape pas**, et il faut le nommer :
+
+- Il protège les **appelants** de ces fonctions, pas les fonctions elles-mêmes. Un agent qui
+  appelle `compass_premises_within` en direct par PostgREST reçoit toujours zéro ligne à Massy,
+  indistinguable d'un rayon vide : **c'est exactement le §36, qui reste ouvert**
+  ([#80](https://github.com/IvandeMurard/paris-compass/issues/80)). La sortie durable est un
+  marqueur `out_of_corpus` sur cette fonction-là, donc une migration.
+- Il est tenu par un test unitaire (`src/hooks/useAddressContext.test.ts`) et non par un
+  invariant : rien dans la base n'empêche une **troisième** couche d'arriver demain sans hériter
+  de la frontière. La règle est écrite ici et dans les deux fichiers ; elle n'est pas mécanique.
+## 54. `brief` assemblait un prompt de session complet pour une issue fermée, sans le dire
+
+**Mesuré le 15 septembre 2026, en en étant la victime.** Une session a été lancée sur
+`w6-fiche-delai` (`#180`) alors que l'issue était **fermée depuis 11:09** — livrée par `#185`,
+complétée par `#186`, démonstration en commentaire, table d'ordre déjà régénérée et
+`sessions:check` vert. Rien dans le prompt assemblé ne le disait. La session a payé la lecture du
+ticket, de `REPRISE.md`, des pièges et du code avant de découvrir elle-même que son « Fait quand »
+était un critère périmé.
+
+**Deux défauts indépendants, tous deux dans `scripts/brief.ts`.**
+
+**a. L'état de l'issue était demandé puis jeté.** `issueNumber()` appelait
+`gh issue list --state all` — donc les fermées comprises, volontairement — mais ne lisait que
+`--json number,title`. Le champ `state` n'était jamais demandé, donc jamais lu. Une issue fermée
+et une issue ouverte produisaient exactement le même prompt. C'est le défaut porteur : à lui seul
+il aurait arrêté la session en trois lignes.
+
+**b. La coupe du rapport de clôture ne reconnaissait pas le vocabulaire courant.** Le brief dit à
+la session quelle part du ticket est le sujet et quelle part est le rapport d'une session déjà
+close. La coupe cherchait `^#{1,3} Fait (le|les) `. Population mesurée le 15 septembre :
+**20 fichiers de `docs/tickets/` portent un rapport de clôture, 4 ne correspondaient à rien** —
+`w0-provenance` (`## Fait — mesuré le …`), `w6-fiche-corpus`, `w6-amenites-corpus` et
+`w6-fiche-delai` (`## Livré …`). **Les trois plus récents sont des ratés** : la convention
+`Livré` est la plus neuve, donc le défaut s'aggravait. Pour `w6-fiche-delai`, le brief disait
+`docs/tickets/w6-fiche-delai.md — en entier`, servant à la session son propre rapport de clôture
+comme travail à faire.
+
+### Ce qui est corrigé, et démontré
+
+`issueDuTicket()` lit `state` et rend `clos: boolean | null`. Sur `clos === true`, un bloc
+`ARRÊTE-TOI ET LIS CECI D'ABORD` ouvre la sortie collable **avant** le prompt commun — même place
+que le rouge en retard, et pour la même raison — et un `[STOP]` part sur `stderr` pour la personne
+devant le terminal. `clos === null` (GitHub injoignable, ou aucune issue ne nomme le ticket) dit
+qu'il ne sait pas, et **ne se fait jamais passer pour « ouvert »**.
+
+La coupe devient `coupeRapport()`, exportée et testée : `Fait le`, `Fait les`, `Fait —`, `Livré`.
+
+Démonstration, le 15 septembre 2026 :
+
+| `npm.cmd run brief <ticket>` | avant | après |
+| --- | --- | --- |
+| `w6-fiche-delai` (#180, **fermée**) | aucune mention ; `— en entier` | bandeau `#180 est FERMEE` + `[STOP]` ; `les 71 premières lignes seulement`, 68 lignes de rapport écartées |
+| `w6-langue-absences` (#181, **ouverte**) | prompt ordinaire | **inchangé** — aucun bandeau, aucun `[STOP]` |
+
+**Une regex qui ne pouvait pas marcher, et qui est le vrai enseignement.** La première correction
+écrivait `/Livré\b/`. Elle ne matchait **jamais** : `é` n'est pas un caractère de mot pour une
+regex JavaScript, donc il n'existe aucune frontière `\b` entre lui et l'espace qui suit. Les trois
+rapports `Livré` continuaient de passer au travers, et le test l'a montré avant que le code ne
+parte. Remplacé par `(?=\s|$)`.
+
+**Pourquoi la coupe reste lexicale.** Reconnaître un rapport de clôture à sa *date* plutôt qu'à son
+*verbe* a été essayé et mesuré : six titres datés vivent dans des tickets **ouverts** —
+`## Avancement — …`, `## État — …`, `## Relevé des appelants … — mesuré le …`, `## Ce que la pose
+a mesuré — …`, et deux décisions d'Ivan. Couper dessus amputerait six briefs de leur sujet. Le
+verbe est donc le signal, et la liste des verbes est une liste, avec ce que ça implique ci-dessous.
+
+### Ce que ça ne rattrape pas
+
+- **La liste des verbes reste une liste.** Un septième mot de clôture inventé demain ne sera pas
+  reconnu. `scripts/brief.test.ts` rougit dès qu'un titre commençant par `Fait`, `Livr`, `Clos`,
+  `Fermé` ou `Terminé` échappe à la coupe — mais ce filet est lui-même une liste de mots, et il ne
+  voit pas un verbe hors de ces cinq.
+- **Rien n'apparie l'état GitHub au fichier du ticket.** Une issue fermée dont le ticket ne porte
+  aucun titre de clôture n'est signalée par personne. L'appariement demanderait un jeton, donc un
+  bras à la manière de `sessions:check`, et il n'existe pas. C'est le défaut `a` qui protège ce
+  cas, pas le défaut `b` : le bandeau se déclenche sur l'état de l'issue, jamais sur la prose.
+- **Le garde-fou protège `brief`, pas une session lancée à la main.** Une session dont le prompt
+  est écrit sans passer par `npm.cmd run brief` ne voit aucun bandeau. C'est exactement ce qui
+  s'est produit ici.
+
+## 55. Le dossier exporté citait la Base Adresse Nationale sur un libellé qu'elle n'avait pas rendu
+
+**Trouvé à l'écran le 15 septembre 2026**, à la première exécution de la démonstration de
+`w6-dossier` (#33) — pas en relecture, et pas par un test : le fichier téléchargé par un vrai
+Chrome sans tête a été ouvert et lu ligne à ligne, et son en-tête disait ceci.
+
+> `"address": { "label": "rue de bretagne paris", "source": "Base Adresse Nationale",`
+> `"licence": "Licence Ouverte (Etalab 2.0)" }`
+
+**Ni la moitié ni l'autre ne venaient de la BAN.** `src/pages/Context.tsx` rend
+`geocoded.data?.label ?? search`, où `search` est le slug de l'URL dé-slugifié — d'où les
+minuscules et l'accent manquant, que la BAN n'aurait jamais rendus. Les coordonnées, elles,
+viennent de la chaîne de requête. Le clic a eu lieu **2,1 s** après le verdict, c'est-à-dire
+pendant que la BAN répondait encore : la fiche affiche à ce moment-là le texte provisoire, ce qui
+est son comportement voulu depuis `w6-contexte`, et le dossier le recopiait en lui attribuant un
+producteur.
+
+**C'est `Measured<T>` à l'envers, à l'endroit exact où ça compte le plus** : une provenance qui
+nomme quelqu'un qui n'a rien produit, dans le seul document de ce produit qui soit destiné à être
+transmis à un tiers et signé. Un lecteur qui voudrait recouper ce libellé auprès de la BAN ne le
+retrouverait pas, et conclurait que c'est la BAN qui a tort.
+
+**Corrigé dans `src/services/opendata/geocoding.ts`** : `banSource(locale, resolved)` rend la
+provenance de la BAN **seulement** quand elle a répondu, et sinon celle de l'URL, nommée comme
+telle — « Libellé et coordonnées lus dans l'URL — la Base Adresse Nationale n'avait pas
+répondu », licence « indéterminée ». Les deux cas sont mesurés dans le même navigateur : clic à
+0,9 s, provenance URL ; clic après 13 s, « Rue de Bretagne 75003 Paris », BAN, Licence Ouverte
+(Etalab 2.0).
+
+**Le second défaut de la même exécution, et il a la même forme.** `noise` descendait en
+`indetermine` alors que la couche OpenStreetMap était encore **en route** : `#180` a construit à
+l'écran la distinction entre « source injoignable » — un trou sur lequel revenir — et « mesure en
+cours » — une réponse qui arrive, et le fichier la perdait au dernier pas, dans l'objet qui
+circule. `DossierFigure.pending` la porte désormais, et ce n'est **pas** un cinquième
+`Withholding` : les quatre reflètent `public.question_outcome` et nomment chacun une issue
+décidée, celle-ci nomme une issue non décidée.
+
+### Ce que ça ne rattrape pas
+
+- **La provenance de l'adresse est déclarée par l'appelant, jamais vérifiée.** `banSource` croit
+  le booléen qu'on lui passe ; un appelant qui passerait `true` sur un libellé inventé produirait
+  la même fausse citation. La règle vit dans `src/pages/Context.tsx`, qui est le seul appelant, et
+  elle n'est pas mécanique.
+- **Aucun des deux défauts n'était visible sans ouvrir le fichier.** Le test unitaire du dossier
+  était vert sur les deux, et il le serait resté : il joue des gabarits où la BAN a toujours
+  répondu et où rien n'est en vol. Ce qui les a montrés est d'avoir lu un fichier réel, produit
+  par un vrai navigateur contre le vrai distant — et le test qui les tient aujourd'hui a été écrit
+  **après**, ce qui est l'ordre que `DIAGNOSTIC.md` §53 avait déjà établi.
+
+---
+
+## 56. Deux phrases fausses rendues à l'écran par la checklist métier, vertes au test unitaire
+
+**Trouvées à l'écran le 16 septembre 2026**, à la première exécution de la démonstration de
+`w6-modes` (#36) dans un Chrome sans tête — pas en relecture, et pas par un test. Les deux sont
+**corrigées avant livraison**, et ce qui compte ici n'est pas la ligne réparée mais le contrôle
+qui manquait : `CLAUDE.md`, « corriger une donnée n'est pas corriger un défaut ».
+
+### a. « ne est » — le gabarit ne peut pas savoir quelle lettre vient après
+
+La page rendait, mot pour mot :
+
+> *Aucun des 25 locaux relevés à moins de 25 m **ne est** sur un linéaire portant une protection.*
+
+`STATE_COPY.fr.none` écrivait la particule de négation et recevait un verbe nu. Le français élide
+devant une voyelle, et un gabarit qui compose « ne » + `${verbe}` ne sait pas si `verbe` commence
+par une. Le défaut ne pouvait apparaître que sur les deux contrôles du PLU, dont le verbe commence
+par *est*.
+
+**Le test unitaire était VERT dessus et le serait resté** : il demandait si la phrase de refus
+contenait `' ne '`, et elle en contenait un. C'est la forme exacte que `docs/SESSIONS.md`
+décrit en ouvrant « La revue » — un contrôle qui **échoue ouvert**, vert parce qu'il regarde la
+mauvaise propriété.
+
+**Corrigé** : `CheckCopy.negative` porte désormais la particule elle-même — `ne porte
+d'autorisation…`, `n'est sur un linéaire…` — donc l'élision appartient à celui qui écrit la
+phrase, qui connaît son premier mot. Et `modeText.test.ts` ne demande plus si « ne » est là : il
+balaie **toutes** les phrases françaises que le module peut produire, `TRADE_CHECK_IDS` ×
+états, et refuse `/\bne\s+[voyelle]/`. Sa contre-preuve est la phrase ci-dessus, inscrite telle
+quelle : une règle qu'on n'a jamais vue rougir est une règle dont on ne sait pas si elle regarde
+quelque chose.
+
+### b. « Aucune autorisation de terrasse » là où 26 emplacements sur 28 sont `inconnu`
+
+Rue de Bretagne, la page rendait *« Aucun des 25 locaux relevés à moins de 25 m ne porte
+d'autorisation de terrasse ou d'étalage »*. Mesuré en base le même jour, connexion directe, dans
+les 25 m de `48.8631, 2.3621` : **28 emplacements, 0 en `terrasse oui`, 26 en `inconnu`**.
+
+`inconnu` est le troisième état du registre et il a un sens précis, écrit dans
+`src/i18n/terrasseText.ts` depuis `w1-terrasses` : *un numéro de rue où une autorisation existe et
+où la source ne dit pas lequel des locaux la porte*. Compter seulement les `oui` et conclure
+« aucun » **invente une absence** — c'est la faute que ce fichier-là refuse depuis le 25 août,
+reproduite un cran plus haut, dans un agrégat plutôt que sur une ligne.
+
+`TradeFacts` portait déjà `terrasseInconnu`, et `resolveChecks` ne le lisait pas : le champ était
+là, la phrase l'ignorait. Le pire cas possible pour ce produit — la donnée est juste, la
+provenance est juste, et la phrase dit le contraire.
+
+**Corrigé** : `TradeCheckState.constate` porte `indetermine`, alimenté par `CHECK_UNKNOWN` — une
+table dérivée, vide pour les contrôles dont la source n'a que deux états, parce qu'un zéro qui
+veut dire « cette source tranche » et un zéro qui veut dire « personne n'a regardé » ne sont pas
+le même zéro. La phrase gagne sa queue : *« 4 relèvent d'une adresse où la source ne dit pas
+lequel est concerné : inconnu, pas absent »*.
+
+**Le recensement par `kind` seul était vert dessus**, et c'est le second enseignement : `constate`
+est le seul état porteur de trois nombres, donc énumérer les *genres* d'état ne l'énumère pas. Un
+contrôle séparé exige maintenant qu'un `constate` avec `indetermine > 0` soit visité.
+
+### Ce que ça ne rattrape pas
+
+- **Ces contrôles jugent qu'il y a deux langues et qu'aucune phrase n'est vide, jamais que chacune
+  dit vrai.** La même limite que `motif.test.ts` nomme pour lui-même.
+- **L'élision n'est vérifiée que pour « ne ».** « de » + voyelle, « le » + voyelle et « que » +
+  voyelle se composeraient de la même façon le jour où un gabarit les assemblerait, et rien ne les
+  regarde.
+- **Rien n'a ouvert la page dans un mode depuis un bras de porte** : les deux défauts ont été vus
+  parce qu'une session a lu la sortie d'une démonstration, pas parce qu'un instrument l'a lue.
+
+---
+
+## 57. Le schéma se trompe de sens sur le profil horaire : « midi = bureaux » est faux à 258 stations sur 258
+
+**Mesuré le 17 septembre 2026 par `w2-rythme` (#208)**, contre le distant, en `anon`, avant
+d'écrire une ligne de la lecture — et c'est le ticket lui-même qui a porté l'erreur en premier.
+
+### Ce que trois documents affirment, et qui est faux
+
+`20260907000002`, commentaire de colonne sur `idfm_validation_profile.cat_jour` :
+
+> *« JOHV […] is what distinguishes an office rhythm (**a lunchtime peak**) from a residential
+> one (**an evening peak**) »*
+
+`compass_station_profile`, commentaire de fonction dans la même migration, redit la même chose.
+Et l'énoncé de `#208` l'illustre à son tour : *« double pic matin et soir, creux à midi — un
+quartier d'où les gens partent travailler »* contre *« gonflement à midi — un quartier où les
+gens viennent travailler »*.
+
+### La mesure, sur la population entière
+
+6 099 lignes JOHV lues en direct sur `idfm_validation_profile`, 258 stations, toutes celles que
+le corpus porte :
+
+| Mesure | Valeur, 17 septembre 2026 |
+| --- | ---: |
+| Heure de pic la plus fréquente | **8h : 89 stations · 17h : 90 · 18h : 76 · 16h : 3** |
+| Stations dont la fenêtre 11h-14h est la plus forte des trois | **0 sur 258** |
+| Stations où matin 7h-10h dépasse soir 17h-20h | **59** ; l'inverse : **199** |
+| Extrêmes du rapport soir/matin | Château Landon **0,25** · Opéra **10,37** |
+
+**Aucune station parisienne ne culmine à midi.** Et le signe est inversé : les stations menées
+par le matin sont les quartiers RÉSIDENTIELS (Jourdain 29,6 % contre 21,3 %), celles menées par
+le soir sont les quartiers de DESTINATION — bureaux, études, sorties (Opéra 3,6 % contre 37,1 %).
+
+### La cause, et pourquoi ce n'est pas une coquille
+
+**Une validation se compte à la MONTÉE**, et le réseau ferré parisien n'a pas de validation à la
+sortie. Le profil d'une station est donc la forme des **départs** depuis ce lieu, jamais celle des
+arrivées. On part d'un quartier résidentiel le matin ; on part d'un quartier de bureaux le soir ;
+et personne ne prend le métro pour déjeuner, ce qui suffit à expliquer le zéro sur 258.
+
+Une session qui aurait implémenté la phrase du schéma aurait livré une lecture **inversée** :
+« double pic matin-soir » annoncé comme le profil d'un quartier qu'on quitte pour travailler, là
+où c'est le profil mixte, et « gonflement à midi » comme la signature des bureaux, là où il
+n'existe pas. L'erreur serait passée tous les tests unitaires, parce qu'aucun test ne lit un
+commentaire SQL.
+
+### Ce qui est fait, et ce qui reste
+
+**Fait par `#208`** : `src/core/rythme.ts` porte la mesure en tête, la lecture est construite sur
+l'asymétrie matin/soir, la réserve affichée à l'écran dit elle-même *« une validation se fait à la
+montée — le profil dit d'où l'on part, jamais où l'on arrive »*, et `rythme.test.ts` refuse qu'une
+forme se décide sur la fenêtre du midi. Le produit ne peut donc plus rendre la phrase fausse.
+
+**PAS fait, et c'est la partie qui demande une poussée** : les deux commentaires du distant
+disent toujours l'inverse, et un agent qui lit le schéma par `compass_station_profile` reçoit
+encore la phrase de 2026-09-07. `CLAUDE.md` interdit de réécrire une migration posée — la sortie
+est **une migration de plus**, deux `comment on` et rien d'autre. Elle n'est pas dans `#208`
+parce qu'une migration suivie par git et non posée fait sortir `npm.cmd run ledger` en **3** dès
+le lendemain matin, et `supabase db push` n'est pas lancé par une session ici. **Suivi en
+[#213](https://github.com/IvandeMurard/paris-compass/issues/213).**
+
+### Ce que ça ne rattrape pas
+
+- **Rien ne relit un commentaire SQL.** Ni `ledger`, ni les invariants, ni `verify:mcp` ne
+  comparent la prose d'un `comment on` à ce que la donnée fait. Ce défaut a été trouvé parce
+  qu'une session a mesuré avant de recopier ; il n'existe aucun instrument qui l'aurait trouvé.
+- **La mesure porte sur le millésime chargé** — `source_as_of` 2026-03-10, un trimestre. Que le
+  sens tienne sur les éditions 2015-2024 non chargées n'est pas établi ici, et la cause
+  (validation à la montée) rend l'inverse peu probable sans le démontrer.
+- **« Menée par le soir » ne dit pas « bureaux ».** Bureaux, universités et sorties produisent la
+  même forme, et rien dans le corpus ne les sépare : c'est pourquoi la lecture est rendue à
+  l'écran avec le statut `arbitrage` et non `mesure`.
+
+## 58. `src/i18n/survivalText.ts` : douze chaînes de prose qu'aucun écran ne rend — mesuré le 17 septembre 2026 par `w1-servi-contenu`
+
+Trouvé en élargissant la population du quatorzième bras (#217), et trouvé **parce que** la
+mesure a été faite avant d'être crue : sur les 920 chaînes distinctes que la dérivation
+proposait, **914 étaient dans le build de `main`, et les six absentes venaient toutes de ce
+fichier**.
+
+La cause n'est pas un défaut du bundler. **Personne n'importe `src/i18n/survivalText.ts`** —
+recoupé au `grep` sur `src/`, `scripts/` et `mcp-server/` : les trois seules occurrences du nom
+dans le dépôt sont des **commentaires** qui le citent en exemple, dans `src/core/observational.ts`
+et `src/i18n/terrasseText.ts`. Aucune ligne d'import. Le module est donc éliminé au build, et pas
+un octet de sa prose n'est dans les 1 247 018 que `npm.cmd run build` émet.
+
+Les six chaînes qui n'existent nulle part ailleurs :
+
+| Clé | Français | Anglais |
+| --- | --- | --- |
+| `operator` | `l'exploitant` | `the operator` |
+| `withheldMarker` | `millésime retenu` | `vintage withheld` |
+| `insufficientMarker` | `effectif insuffisant` | `cohort too small` |
+
+Les six autres entrées du module ne sont pas servies non plus ; elles sont simplement écrites à
+l'identique ailleurs, donc la population les porte sous un autre nom.
+
+**Pourquoi c'est un défaut et pas un détail.** Ce sont des phrases écrites pour l'écran, revues,
+traduites, et que personne ne lit. Soit un bloc de survie a été retiré sans emporter sa prose,
+soit il n'a jamais été branché — dans les deux cas le dépôt porte une intention produit qu'il ne
+sert pas.
+
+**Ce que ça a coûté immédiatement**, et c'est la raison pour laquelle la règle de #217 filtre par
+atteignabilité : sans ce filtre, le bras élargi serait sorti **rouge dès son premier matin**, sur
+de la prose que le produit ne rend pas. Un rouge permanent sans défaut derrière lui est celui
+qu'une session éteint — `scripts/porte/prose.ts` porte la règle et `scripts/porte/prose.test.ts`
+la rejoue sur ce cas précis.
+
+**Ce que ça ne dit pas.** La règle ne voit que les modules qu'aucun import n'atteint *depuis
+`src/main.tsx`*. Un module atteint mais dont le composant n'est jamais monté — une branche morte
+à l'exécution — reste invisible ici : sa prose est dans le bundle, donc elle est « servie » au
+sens de cette mesure, sans être rendue à qui que ce soit.
+
+**La sortie, et c'est une décision, pas un correctif mécanique** : brancher le bloc, ou retirer le
+module. Tant qu'aucune des deux n'est prise, le fichier reste hors population et ce constat le dit.
+
+## 59. `servi` ne lisait que les morceaux nommés par l'ENTRÉE — clos le 17 septembre 2026 par `w1-servi-contenu`
+
+Le quatorzième bras (#142) suit les morceaux à la demande, et son en-tête le revendique :
+« It follows every chunk, not just the first match ». Il en suivait **un niveau**.
+
+`chunkNames(entryJs)` n'était appliqué qu'au bundle d'entrée. Or dans cette application chaque
+écran est un `lazy(() => import(...))` **derrière le morceau `App`**, donc les noms vivent un
+cran plus bas et n'étaient jamais demandés. Mesuré le 17 septembre 2026 :
+
+| | Morceaux atteints | Octets lus | Octets réellement servis |
+| --- | ---: | ---: | ---: |
+| Build de `main`, un niveau | **1 sur 29** | 611 440 | 1 247 018 |
+| Production, un niveau | **2 sur 21** | 772 856 | 1 196 859 |
+| Production, transitif | 21 sur 21 | 1 196 859 | 1 196 859 |
+
+**424 003 octets de JavaScript servi que le bras appelait absents sans les avoir demandés.**
+
+**Pourquoi personne ne l'a vu pendant quatre jours.** Le défaut était *silencieux par chance* :
+la table des routes de `src/App.tsx` et la table `UI` vivent toutes deux dans l'entrée et le
+morceau `App`, c'est-à-dire exactement ce qu'un niveau atteint. Les deux populations de #152
+tombaient dans la moitié lue. Le jour où #217 a élargi la population aux tables de prose — qui
+vivent, elles, dans les morceaux de page — le bras serait sorti rouge sur **683 jetons sur 920**
+pour une raison entièrement fausse.
+
+C'est la forme d'erreur que `docs/REPRISE-PIEGES.md` consigne déjà deux fois : un défaut de
+mesure ne ressemble pas à un défaut de mesure, il ressemble à une découverte. Ici il aurait
+ressemblé à « la production est en retard de tout ».
+
+**Le correctif** est une file d'attente plutôt qu'une boucle : chaque morceau lu est à son tour
+interrogé pour les noms qu'il porte, chaque nom n'est demandé qu'une fois, et la borne
+`MAX_CHUNKS` passe de 24 à **60** — un peu plus du double des 29 mesurés. Le bras **dit tout
+haut** qu'il a atteint la borne au lieu de lire la moitié en silence, parce qu'un morceau non lu
+est un jeton faussement déclaré absent. L'entrée entre d'office dans le jeu des noms déjà
+demandés : elle s'auto-nomme, et le bras la retéléchargeait.
+
+**Ce qu'il faut noter sur le sens de la correction.** Lire plus d'octets rend le bras plus
+CLÉMENT à population constante, et la règle du dépôt interdit de desserrer un seuil pour éteindre
+un rouge. Ce n'en est pas un : le bras ne cesse pas de compter une absence, il cesse de compter
+comme absent ce qui était servi. La preuve que ça n'a rien éteint est dans la mesure du même
+jour — le rouge contre la production **tient**, à 358 jetons, crawl transitif compris.
+
+**Ce que ça ne rattrape pas.** Un morceau nommé autrement que par le motif de `chunkNames` — un
+nom construit à l'exécution, une concaténation — reste invisible, et le bras ne peut pas savoir
+qu'il existe. La borne de 60 est un fusible : si un build la dépasse un jour, c'est le message
+d'avertissement qu'il faudra lire, pas le verdict.
+
+## 60. La production sert un bundle antérieur à `#119` : la fiche de contexte rend une 404 — mesuré le 17 septembre 2026
+
+Trouvé en cherchant la contre-preuve de #217, et c'est **plus grave que ce que le ticket
+annonçait**. Le ticket disait « la production sert `index-BBCkdSb9.js`, le même bundle qu'avant
+`#204` ». Mesuré : elle sert `index-DAmk8dIZ.js`, et ce bundle **ne déclare ni `/carte` ni
+`/contexte/:slug`**.
+
+Les chemins lus dans le morceau `App` servi, au `grep -oE 'path:"[^"]*"'` : `/`, `/a-propos`,
+`/faq`, `/glossaire`, `/guides`, `/guides/:slug`, `/methodologie`, `/paris`, `/paris/:slug`,
+`/presentation`, `/profile`, `/signin`, `/signup`, `/sources`, `/travaux`, et leurs jumelles
+`/en`. **Ni `/carte`, ni `/contexte/`.** Le jeu de morceaux le confirme : la production sert un
+`Progress-*.js` et **aucun** `Carte-*.js`, `Context-*.js` ni `ContextMap-*.js`, là où un build de
+`main` du même jour émet les trois.
+
+C'est l'état d'avant `w6-contexte` (#119), fusionné le 11 septembre 2026 — donc l'incident
+fondateur de #142 **est revenu**, et sur la moitié qui porte le produit.
+
+**Recoupé par un second bras, qui ouvre la page pour de vrai.** `npm.cmd run page`, le quinzième,
+sortie **1** :
+
+```
+ÉCHEC — La page n'a rendu ni verdict ni refus nommé en 14000 ms —
+« 404 Oups ! Page introuvable Retour à l'accueil Edit with » à la place.
+```
+
+Deux mesures indépendantes, l'une sur le texte du bundle et l'autre sur le DOM rendu, disent la
+même chose : **la carte et la fiche de contexte ne sont pas servies au visiteur.**
+
+**Quand ça a basculé.** `docs/REPRISE.md` porte `page` **PASS, sortie 0, 10 901 ms sur un verdict
+composé** contre la production le 15 septembre 2026 au soir. La régression est donc postérieure
+au 15 et antérieure au 17 — deux jours pendant lesquels le produit servait une version d'il y a
+une semaine, et personne ne l'a lu.
+
+**Ce qui n'appartient pas au dépôt.** Le déploiement est à Lovable. Aucun bras d'ici ne peut dire
+POURQUOI la publication a reculé, ni la déclencher. Ce constat dit ce qui est servi, et rien de
+plus.
+
+**Ce qui attend une décision d'Ivan** : republier depuis Lovable, puis rejouer `npm.cmd run servi`
+et `npm.cmd run page`. Les deux doivent reverdir ; s'ils ne reverdissent pas, la cause est en
+amont du dépôt et c'est un ticket Lovable, pas un ticket ici.
+
+### Clos le 17 septembre 2026 — Ivan a republié, et les deux bras ont reverdi
+
+Remesuré dans l'heure. `servi` **sortie 0** : 1 282 169 octets servis, **1 168 jetons sur
+1 168**, toutes les routes déclarées — contre 758 sur 1 168 et quatre routes manquantes avant.
+`page` **sortie 0** : la page rend quelque chose de décidable en 1 535 ms, plus aucune 404.
+L'entrée servie est passée de `index-DAmk8dIZ.js` à `index-BsiM9msj.js`.
+
+La régression de déploiement est donc levée : **le code servi est celui de `main`**. Le témoin du
+bundle en retard reste dans `scripts/porte/servi-temoin-2026-09-17.json`, joué par
+`scripts/porte/servi.test.ts` — c'est exactement la raison pour laquelle il a été capturé avant
+la republication, et cette clôture est la preuve que la fenêtre était bien d'une journée.
+
+**Ce que la republication n'a PAS réglé, et il faut lire le §61 avant de conclure quoi que ce
+soit d'un site qui répond** : le bundle neuf est configuré pour l'**ancien** projet Supabase,
+donc la fiche rend un refus sur les quatre axes. Le code est à jour, la page est servie, et le
+produit ne peut répondre à aucune question.
+
+## 61. Le bundle publié vise `nwnhhvogwrzstslxtxca`, l'ANCIEN projet Supabase — mesuré le 17 septembre 2026
+
+Trouvé en rejouant `npm.cmd run page` après la republication qui a clos le §60. La page est
+servie, elle n'est plus en 404 — et elle rend un **refus sur les quatre axes**, en 1 535 ms :
+
+```
+PASS — La page rend un refus nommé en 1535 ms (délai 14000 ms) :
+« Compass ne compose pas de verdict pour cette adresse — le tissu commercial :
+source injoignable ; le passage : source injoignable ; la desserte ferrée :
+source injoignable ; les services marchands à pied : source injoignable. »
+```
+
+**Mille cinq cents millisecondes est la mesure qui oriente tout.** Un refus qui arrive dix fois
+sous le budget n'a pas attendu un réseau lent : quelque chose a échoué tout de suite.
+
+### Ce que le bundle porte
+
+`npm.cmd run porte:publie`, sortie **1** :
+
+```
+lu   /assets/index-BsiM9msj.js (163732 octets, 0 occurrence(s))
+lu   App-CEs5NX0V.js (467137 octets, 0 occurrence(s))
+note couples `void 0` dans l'entrée : 0 — compté, pas jugé
+ÉCHEC — la référence du projet Supabase n'est dans aucun des 2 bundle(s) servis
+```
+
+**Et ce n'est PAS le §32.** Le §32 — le build publié sans sa configuration, page muette — laisse
+une signature précise : des `void 0` figés là où les deux valeurs devraient être. Le bras les
+compte, et il en compte **zéro**. La configuration est là ; elle est simplement fausse. Lu dans
+l'entrée servie :
+
+```js
+const mp = {
+  VITE_SUPABASE_URL: "https://nwnhhvogwrzstslxtxca.supabase.co",
+  VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_x21GF-tZOR3F6G1hvVINSA_S1v8oHBq"
+}
+```
+
+Le dépôt, lui, déclare `dbefhvmyfmmhjeetdddu` dans `.env` — suivi par git depuis le §32
+précisément pour que le build publié l'ait. L'environnement du build Lovable prime donc sur le
+fichier du dépôt.
+
+`nwnhhvogwrzstslxtxca` n'est pas un projet inconnu : `docs/REPRISE.md`, « Le nœud Supabase, à ne
+pas redécouvrir », le nomme comme l'**ancienne cible** (backend Lovable Cloud), avec la mention
+*« Ne plus utiliser — absent du compte Supabase d'Ivan »* depuis le 15 août 2026.
+
+### La mesure qui ferme le raisonnement
+
+Les deux projets appelés sur la même adresse, au même instant, avec la clé publiable de chacun,
+sur la fonction dont la fiche a besoin :
+
+| Projet | Réponse à `compass_premises_within` (48.8631, 2.3621, 300 m) |
+| --- | --- |
+| `nwnhhvogwrzstslxtxca` — **servi** | **HTTP 404**, `PGRST202` : *« Could not find the function public.compass_premises_within … no matches were found in the schema cache »* |
+| `dbefhvmyfmmhjeetdddu` — dépôt | **HTTP 200**, `39 RUE BRETAGNE` à 13,81 m, quartier Enfants-Rouges |
+
+Le projet servi n'a pas le schéma de Compass. Chaque axe échoue immédiatement, et la fiche fait
+exactement ce qu'elle doit faire d'un échec de source : elle nomme le refus au lieu d'inventer
+un verdict. **Le produit se comporte correctement ; c'est sa configuration qui est fausse.**
+
+### Ce que ça dit des bras, et c'est plutôt une bonne nouvelle
+
+Trois bras ont parlé, et chacun a dit vrai sur sa question :
+
+- `servi` **sortie 0** — le code servi est bien celui de `main`. Il ne juge pas la configuration,
+  et son en-tête l'a toujours dit.
+- `page` **sortie 0** — un refus nommé est un succès pour ce bras, par construction (#156) : il
+  rougit quand la page ne dit *rien*, pas quand elle dit honnêtement qu'elle ne sait pas.
+- `porte:publie` **sortie 1** — le seul qui regarde la configuration, et le seul rouge. Il a
+  fonctionné.
+
+**Aucun instrument neuf n'est requis**, et c'est pour ça que ce constat n'ouvre pas de chantier
+d'outillage. Mais le message du rouge, lui, nomme une cause quand deux sont possibles : *« le
+build publié n'a pas eu sa configuration »* alors que la vérité est *« il en a une, pour un autre
+projet »*. C'est mot pour mot ce que
+[`#127`](https://github.com/IvandeMurard/paris-compass/issues/127) avait prévu, avant que le cas
+n'existe.
+
+### Ce qui attend une décision d'Ivan
+
+Corriger `VITE_SUPABASE_URL` et `VITE_SUPABASE_PUBLISHABLE_KEY` **dans l'environnement de build
+Lovable** pour viser `dbefhvmyfmmhjeetdddu`, republier, puis rejouer `npm.cmd run porte:publie`
+et `npm.cmd run page`. Le premier doit sortir en 0 ; le second doit rendre un **verdict composé**
+et non un refus.
+
+**Tant que ce n'est pas fait, le site est en ligne, complet, à jour — et ne peut répondre à
+aucune question.** C'est la forme la plus coûteuse de panne : tout a l'air de marcher.
+
+### Le 6 octobre 2026 : le site publié n'est plus ce bundle
+
+Remesuré : `porte:publie`, `servi` et `page` sortent en 1, mais plus pour la raison ci-dessus.
+`paris-compass.lovable.app` sert désormais la **démo du design 1c** (`docs/HANDOFF-1d.md`) :
+un jeu figé de 810 Ko (`fixture-*.js`), « Adresse absente de cette démo », et **aucun client
+Supabase** dans l'entrée servie (0 `createClient`, 0 `rest/v1`). D'où 842 jetons de `main`
+absents pour `servi`, et ni verdict ni refus pour `page`. Le correctif reste la Phase 0 du
+handoff — les variables `VITE_SUPABASE_*` de Lovable, puis la fusion Lovable — et il est
+toujours à Ivan.
+
+---
+
+## 64. Le bras E compte plus de pages que ses plafonds, sur cinq fonctions — mesuré le 6 octobre 2026
+
+`eval`, bras E, après le `VACUUM FULL` du §62 : `compass_street_rotation` +80,8 % au-dessus de
+son plafond de pages, `compass_price_by_activity` +57,0 %, `compass_voie_rotation` +32,0 %,
+`compass_scoring_context_within` +29,2 %, `compass_premises_within` +26,8 %. Les **temps**,
+eux, ont baissé et restent tous sous 510 ms pour un plafond de 1 020 ms : aucun visiteur ne le
+voit.
+
+Ce n'est pas le gonflement des tables : le `VACUUM` a fait *monter* ces nombres (le détail de la
+fausse piste est au §62, dans `DIAGNOSTIC-CORRIGES.md`). Le bras compte les pages *touchées* — une
+page relue compte à chaque fois — donc c'est la signature d'un **changement de plan**, sur des
+statistiques neuves et des tables plus petites. `scripts/eval/budget.ts` prévoit ce cas.
+
+**À faire** : comparer les plans (`EXPLAIN (ANALYZE, BUFFERS)`) des cinq fonctions, et décider
+pour chacune si le nouveau plan est meilleur — alors regeler son plafond avec cette preuve — ou
+s'il faut le contraindre. **Jamais** remonter un plafond sans le plan qui le justifie. Ticket :
+[`#240`](https://github.com/IvandeMurard/paris-compass/issues/240), `w1-budget-plans`.

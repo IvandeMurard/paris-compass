@@ -44,18 +44,33 @@
 //     wrong code passes.
 //   - It says nothing about WHY a deployment did not happen. Deployment belongs to Lovable; this
 //     repository sees only the result.
-//   - **A SHORT new label still slips through.** Labels shorter than `LONGUEUR_MINIMALE` — 12
+//   - **A SHORT new string still slips through.** Strings shorter than `LONGUEUR_MINIMALE` — 12
 //     characters, a measured number — are witnesses only, because at that length a string occurs
-//     incidentally in minified code: `Map` appears 91 times in the served bundle, `Data` 92. That
-//     costs 69 of the 258 labels: a stale bundle whose only novelty is « Aucune » or « Retry »
+//     incidentally in minified code: `Map` appears 91 times in the served bundle, `Data` 92.
+//     Re-counted on 17 September 2026 on the widened population: **225 of the 1 168 tokens** are
+//     witnesses for being short, so a stale bundle whose only novelty is « Aucune » or « Retry »
 //     passes. Lowering the threshold would trade a missed staleness for a false red, and a false
 //     red is the one a session switches off.
+//   - **A string QUOTED inside a longer one stops deciding**, and widening made that worse
+//     rather than better: **59 tokens of the 1 168** are witnesses for containment, against a
+//     handful before. The clearest casualty is `source injoignable` — the very string of #145
+//     that caused this arm to be widened once already — now quoted inside a sentence of
+//     `src/pages/Methodology.tsx`. The net is still strongly positive, and it is measured: 223
+//     deciding tokens before #217, **869** after.
+//   - **An interpolated template is invisible.** The bundle carries the fragments and the join,
+//     never the assembled sentence, so searching for the whole would be a red that means
+//     nothing. Twenty are skipped on 17 September 2026, and the arm prints the count rather than
+//     dropping them in silence.
 //   - It is blind to what leaves no literal at all: an internal logic fix, a style correction, a
 //     change creating no new string. No bundle inspection will ever see those, whatever the
-//     population.
-//   - **It only knows what `src/App.tsx` and `src/i18n/ui.ts` declare.** A user-facing string
-//     written straight into a component — not routed through `UI` — is invisible here. That is
-//     also an argument for putting it in `UI`.
+//     population. **This is not a delivery check and must not be read as one** — it sees the
+//     class of change that leaves text, which is most of them, and nothing of the rest.
+//   - **It knows what the product renders in one of its two languages, and nothing else.** Until
+//     #217 that meant `src/App.tsx` and `src/i18n/ui.ts` alone, which left out every prose table
+//     a later block brought with it — 307 strings against 360, measured on 17 September 2026.
+//     The population is now derived by `./prose.ts`: reachable from `src/main.tsx`, chosen by
+//     locale. A string written straight into JSX, outside any locale-keyed table, is still
+//     invisible here — and that is still an argument for the table.
 //
 // ── The limit this arm used to carry, kept because it explains the shape ──────────────────
 //
@@ -71,20 +86,32 @@
 // population had to be DERIVED, like the routes. `src/i18n/ui.ts` already holds every
 // user-facing string in one typed table, so it became the second population and nothing is
 // maintained by hand.
-
-import { UI } from "../../src/i18n/ui"
+//
+// ── And the limit #152 left behind, closed by #217 ────────────────────────────────────────
+//
+// `ui.ts` is not the only table. Seven deliveries in a row added a block to an existing page —
+// no route, no `UI` label, and therefore nothing this arm could miss. The second population is
+// now every string the product CHOOSES BY LOCALE in a module reachable from `src/main.tsx`,
+// derived in `./prose.ts`, which subsumes `ui.ts` without ever naming it. Same discipline, one
+// reach further: the question is what makes a string enter, never which file holds it.
 
 import { prefixOf, readRoutes, type RouteDeclaration } from "./sitemap"
+import { proseDuDepot, type BrinProse } from "./prose"
 
 /** Which derived population a token came from. Both are derived; neither is a hand-kept list. */
-export type Origine = "route" | "libellé"
+export type Origine = "route" | "prose"
 
 /** One thing the repository declares, reduced to the literal a production bundle must carry. */
 export interface Jeton {
-  /** What this token identifies: a route path, or an i18n key with its locale. */
+  /** What this token identifies: a route path, or a module and the key path under it. */
   nom: string
   origine: Origine
-  /** The string searched for: a path, a parameterised route's fixed prefix, or a UI label. */
+  /**
+   * The module that declares it, so a red names the file to open rather than a category.
+   * `null` for a route, which is declared by the route table and nowhere else.
+   */
+  fichier: string | null
+  /** The string searched for: a path, a parameterised route's fixed prefix, or a rendered string. */
   jeton: string
   /**
    * False when the token cannot prove its own presence — another token contains it, or it is
@@ -112,6 +139,11 @@ export interface Jeton {
  *
  * **What it costs**: 69 labels of the 258 never turn the arm red. A stale bundle missing only a
  * short new label — « Aucune », « Retry » — passes. That is written in the header's limits.
+ *
+ * **#217 left it at twelve on purpose.** Widening the population was the answer to the seven
+ * deliveries in the hold; lowering the threshold would have traded a missed staleness for a
+ * false red, and a false red is the one a session switches off. The number moves when somebody
+ * re-counts the noise, and only then.
  */
 export const LONGUEUR_MINIMALE = 12
 
@@ -139,8 +171,12 @@ export function jetonDeRoute(path: string): string | null {
  * Measured on 13 September 2026 before being built: **256 of the 258 UI strings** were in the
  * served bundle, and the two absent were exactly the two `#145` had just added. A hundred-percent
  * expectation is therefore realistic, and no sampling is needed.
+ *
+ * Re-measured on 17 September 2026 against the widened population of #217, on the 1 247 018
+ * octets a build of `main` emits: **920 distinct tokens, 920 present**. The expectation holds at
+ * the new size, which is the only reason a missing one can be read as « not deployed ».
  */
-export function jetonsAttendus(appSource: string, ui: typeof UI = UI): Jeton[] {
+export function jetonsAttendus(appSource: string, prose: readonly BrinProse[] = proseDuDepot().brins): Jeton[] {
   const bruts: Omit<Jeton, "discriminant">[] = []
 
   const routes: RouteDeclaration[] = readRoutes(appSource)
@@ -148,21 +184,28 @@ export function jetonsAttendus(appSource: string, ui: typeof UI = UI): Jeton[] {
     const jeton = jetonDeRoute(r.path)
     if (jeton === null) continue
     if (bruts.some((b) => b.jeton === jeton)) continue
-    bruts.push({ nom: r.path, origine: "route", jeton })
+    bruts.push({ nom: r.path, origine: "route", fichier: null, jeton })
   }
 
-  for (const [cle, valeurs] of Object.entries(ui)) {
-    for (const langue of ["fr", "en"] as const) {
-      const jeton = valeurs[langue]
-      if (!jeton || bruts.some((b) => b.jeton === jeton)) continue
-      bruts.push({ nom: `${cle} [${langue}]`, origine: "libellé", jeton })
-    }
+  // Deduplicated on the STRING, not on the key: two modules wording a label identically leave one
+  // literal in the bundle, and counting it twice would inflate the population without adding a
+  // thing the measurement can tell apart. First declaration seen keeps the naming.
+  const vus = new Set(bruts.map((b) => b.jeton))
+  for (const brin of prose) {
+    if (brin.valeur === "" || vus.has(brin.valeur)) continue
+    vus.add(brin.valeur)
+    bruts.push({
+      nom: `${brin.fichier} · ${brin.cle}`,
+      origine: "prose",
+      fichier: brin.fichier,
+      jeton: brin.valeur,
+    })
   }
 
   return bruts.map((b) => ({
     ...b,
     discriminant:
-      b.jeton.length >= (b.origine === "libellé" ? LONGUEUR_MINIMALE : 1) &&
+      b.jeton.length >= (b.origine === "prose" ? LONGUEUR_MINIMALE : 1) &&
       !bruts.some((autre) => autre.jeton !== b.jeton && autre.jeton.includes(b.jeton)),
   }))
 }
@@ -179,6 +222,8 @@ export interface Constat {
   nom: string
   /** Carried through so a red can name the file to open, rather than a word covering both. */
   origine: Origine
+  /** The declaring module, `null` for a route. What a red prints so the repair starts there. */
+  fichier: string | null
   jeton: string
   discriminant: boolean
   occurrences: number
@@ -202,19 +247,24 @@ function occurrences(botte: string, aiguille: string): number {
 }
 
 /**
- * Names what is missing by where it was declared, not by a single word covering both.
+ * Names what is missing by the FILE that declares it, not by a category covering everything.
  *
- * A red saying « 2 routes absentes » when the two are UI labels sends the reader to
- * `src/App.tsx` and wastes the first minute of the repair. The populations are derived from two
- * different files, so the message says which.
+ * A red saying « 2 routes absentes » when the two are labels sends the reader to `src/App.tsx`
+ * and wastes the first minute of the repair. Since #217 the prose side spans a dozen modules, so
+ * naming « libellé » would waste the same minute one level up: the count is broken down by
+ * module, heaviest first, and that breakdown IS the diagnosis — a red concentrated on
+ * `rythmeText.ts` says which merge is in the hold.
  */
-function decompte(constats: readonly Constat[]): string {
-  const routes = constats.filter((c) => c.origine === "route").length
-  const libelles = constats.length - routes
-  const parts: string[] = []
-  if (routes > 0) parts.push(`route(s) de src/App.tsx`)
-  if (libelles > 0) parts.push(`libellé(s) de src/i18n/ui.ts`)
-  return parts.join(" et ")
+export function decompte(constats: readonly Constat[]): string {
+  const parFichier = new Map<string, number>()
+  for (const c of constats) {
+    const ou = c.fichier ?? "src/App.tsx"
+    parFichier.set(ou, (parFichier.get(ou) ?? 0) + 1)
+  }
+  return [...parFichier]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([fichier, n]) => `${n} dans ${fichier}`)
+    .join(", ")
 }
 
 /**
@@ -236,6 +286,7 @@ export function verdictServi(
     return {
       nom: j.nom,
       origine: j.origine,
+      fichier: j.fichier,
       jeton: j.jeton,
       discriminant: j.discriminant,
       occurrences: n,
@@ -255,10 +306,10 @@ export function verdictServi(
       manquantes: [],
       temoins,
       dire:
-        `Aucune des ${constats.length} routes connues n'est dans le JavaScript lu — y compris ` +
-        "celles qui précèdent de plusieurs semaines toute publication récente. Un build ne rend " +
+        `Aucun des ${constats.length} jetons connus n'est dans le JavaScript lu — y compris ` +
+        "ceux qui précèdent de plusieurs semaines toute publication récente. Un build ne rend " +
         "pas ça. L'instrument a lu autre chose que le bundle applicatif : suivre les morceaux à " +
-        "la demande, pas seulement l'entrée. Rien n'est jugé.",
+        "la demande, transitivement, pas seulement ceux que l'entrée nomme. Rien n'est jugé.",
     }
   }
 
@@ -272,9 +323,9 @@ export function verdictServi(
       manquantes: [],
       temoins,
       dire:
-        `Les ${constats.filter((c) => c.discriminant).length} routes prouvables sont dans le ` +
+        `Les ${constats.filter((c) => c.discriminant).length} jetons prouvables sont dans le ` +
         `JavaScript servi (${temoins} jetons trouvés au total` +
-        (muets > 0 ? `, ${muets} route(s) non discriminante(s) muette(s), ce qui ne décide rien` : "") +
+        (muets > 0 ? `, ${muets} jeton(s) non discriminant(s) muet(s), ce qui ne décide rien` : "") +
         ").",
     }
   }
@@ -285,9 +336,9 @@ export function verdictServi(
     manquantes,
     temoins,
     dire:
-      `Le site publié ne porte pas ce que \`main\` porte : ${manquantes.length} ` +
-      `${decompte(manquantes)} absent(s) du JavaScript servi, alors que ${temoins} autres jetons ` +
-      "y sont — donc la mesure fonctionne. Le bundle servi est antérieur à une fusion. Le " +
+      `Le site publié ne porte pas ce que \`main\` porte : ${manquantes.length} jeton(s) ` +
+      `absent(s) du JavaScript servi — ${decompte(manquantes)} — alors que ${temoins} autres ` +
+      "jetons y sont, donc la mesure fonctionne. Le bundle servi est antérieur à une fusion. Le " +
       "déploiement appartient à Lovable ; ce bras dit qu'il n'a pas eu lieu, jamais pourquoi.",
   }
 }
