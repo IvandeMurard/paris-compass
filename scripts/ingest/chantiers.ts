@@ -24,6 +24,7 @@
 
 import type { Client } from "pg"
 
+import { checkColumns, differs, type Columns } from "./lib/columns"
 import { assertPrivileged, connect, inTransaction, log, recordRun } from "./lib/db"
 import { datasetModified, exportJson } from "./lib/parisOpendata"
 
@@ -69,13 +70,16 @@ interface Feature {
   }
 }
 
-/** Every column the loader writes, in the order `stage` binds them. */
+/**
+ * Every column the loader writes, in the order `stage` binds them. The only copy:
+ * `checkColumns` holds it to the table before the load, and the upsert and its comparison are
+ * built from it (#265).
+ */
 const COLUMNS = [
   "id", "arrondissement", "typologie", "objet", "description", "voie", "precision_localisation",
   "date_debut", "date_fin", "impact_circulation", "impact_circulation_detail",
   "niveau_perturbation", "statut", "statut_label", "maitre_ouvrage", "geom",
 ]
-const VALUE_COLUMNS = COLUMNS.filter((c) => c !== "id" && c !== "geom")
 
 /**
  * Refuses an empty batch before anything is written. Worksites absent from the batch are
@@ -116,7 +120,7 @@ async function fetchChantiers(): Promise<{ rows: Feature[]; skipped: number }> {
  * violates the primary key and fails the load loudly rather than letting the first copy win in
  * silence. Same choice as filosofi.ts (review of #245).
  */
-async function stage(client: Client, rows: Feature[]): Promise<void> {
+async function stage(client: Client, columns: Columns, rows: Feature[]): Promise<void> {
   await client.query(`
     create temporary table tmp_chantier (
       id text primary key, arrondissement smallint, typologie smallint, objet text,
@@ -160,33 +164,29 @@ async function stage(client: Client, rows: Feature[]): Promise<void> {
       )
     })
     await client.query(
-      `insert into tmp_chantier (${COLUMNS.join(", ")}) values ${tuples.join(", ")}`,
+      `insert into tmp_chantier (${columns.names.join(", ")}) values ${tuples.join(", ")}`,
       values,
     )
   }
 }
 
 /** Upserts the worksites that are new or changed. Removal of the absent ones waits for attach. */
-async function upsert(client: Client, dryRun: boolean): Promise<number> {
-  const differs = (left: string, right: string) =>
-    `(${VALUE_COLUMNS.map((c) => `${left}.${c}`).join(", ")}, ST_AsBinary(${left}.geom))
-     is distinct from
-     (${VALUE_COLUMNS.map((c) => `${right}.${c}`).join(", ")}, ST_AsBinary(${right}.geom))`
+async function upsert(client: Client, columns: Columns, dryRun: boolean): Promise<number> {
   if (dryRun) {
     const r = await client.query<{ n: string }>(`
       select count(*)::text as n
         from tmp_chantier t
         left join public.chantier_perturbant c on c.id = t.id
-       where c.id is null or ${differs("c", "t")}
+       where c.id is null or ${differs(columns, "c", "t")}
     `)
     return Number(r.rows[0].n)
   }
   const result = await client.query(`
-    insert into public.chantier_perturbant as c (${COLUMNS.join(", ")})
-    select ${COLUMNS.join(", ")} from tmp_chantier
+    insert into public.chantier_perturbant as c (${columns.names.join(", ")})
+    select ${columns.names.join(", ")} from tmp_chantier
     on conflict (id) do update
-       set ${COLUMNS.filter((c) => c !== "id").map((c) => `${c} = excluded.${c}`).join(", ")}
-     where ${differs("c", "excluded")}
+       set ${columns.names.filter((c) => c !== "id").map((c) => `${c} = excluded.${c}`).join(", ")}
+     where ${differs(columns, "c", "excluded")}
   `)
   return result.rowCount ?? 0
 }
@@ -232,13 +232,13 @@ async function attach(client: Client, dryRun: boolean): Promise<Attachment> {
   const target = `(select p.id, a.chantier_id, a.distance_m
                      from public.premise_location p
                      left join tmp_chantier_attach a on a.id = p.id) t`
-  const differs = `t.id = l.id
+  const exposureDiffers = `t.id = l.id
        and (l.nearest_chantier_id, l.chantier_distance_m)
            is distinct from (t.chantier_id, t.distance_m)`
   const changed = dryRun
     ? Number(
         (await client.query<{ n: string }>(
-          `select count(*)::text as n from public.premise_location l, ${target} where ${differs}`,
+          `select count(*)::text as n from public.premise_location l, ${target} where ${exposureDiffers}`,
         )).rows[0].n,
       )
     : ((await client.query(`
@@ -246,7 +246,7 @@ async function attach(client: Client, dryRun: boolean): Promise<Attachment> {
            set nearest_chantier_id = t.chantier_id,
                chantier_distance_m = t.distance_m
           from ${target}
-         where ${differs}
+         where ${exposureDiffers}
       `)).rowCount ?? 0)
 
   return { exposed: Number(exposed.rows[0].n), changed }
@@ -267,6 +267,12 @@ async function dropStale(client: Client, dryRun: boolean): Promise<number> {
  * Sentinel for --dry-run, as in terrasses.ts: the whole load runs inside the transaction and
  * is rolled back, every write to a real table replaced by the count it would have made — so
  * it leaves no dead row behind, whatever it finds.
+ *
+ * CE QUE ÇA NE RATTRAPE PAS : the real-table statements themselves never run in a dry run. It
+ * proves what a load would change, not that the upsert, `update` and `delete` that would change
+ * it are correct; a fault in one of them shows at the first real run, which rolls back and
+ * turns the gate red. Proved on the remote on 11 October 2026: a real run (8 written, 5
+ * removed, 358 premises, run 38141609039) then a dry run at 0 / 0 / 0 (#265).
  */
 class DryRunComplete extends Error {}
 
@@ -294,10 +300,11 @@ async function main(): Promise<void> {
       "chantiers perturbants",
       `${rows.length} lus${skipped ? `, ${skipped} ignorés (géométrie absente)` : ""}`,
     )
+    const columns = await checkColumns(client, "chantier_perturbant", COLUMNS)
 
     await inTransaction(client, async () => {
-      await stage(client, rows)
-      written = await upsert(client, dryRun)
+      await stage(client, columns, rows)
+      written = await upsert(client, columns, dryRun)
       attached = await attach(client, dryRun)
       stale = await dropStale(client, dryRun)
       if (dryRun) throw new DryRunComplete()

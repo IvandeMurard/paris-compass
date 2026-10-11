@@ -30,6 +30,7 @@
 
 import type { Client } from "pg"
 
+import { checkColumns, comparable, type Columns } from "./lib/columns"
 import { assertPrivileged, connect, inTransaction, log, recordRun } from "./lib/db"
 import { datasetModified, exportJson } from "./lib/parisOpendata"
 import { parseAddress } from "./lib/terrasseAddress"
@@ -67,7 +68,11 @@ interface Feature {
   }
 }
 
-/** Every column the loader writes — `id` and the generated `street_key` excepted. */
+/**
+ * Every column the loader writes, in the order `stage` binds them — `id` and the generated
+ * `street_key` excepted. The only copy: `checkColumns` holds it to the table before the load,
+ * and the row key below is built from it (#262).
+ */
 const COLUMNS = [
   "typologie", "categorie", "adresse", "arrondissement", "nom_enseigne", "nom_societe", "siret",
   "longueur", "largeur", "lien_affichette", "house_number", "way_type", "way_name", "geom",
@@ -79,9 +84,9 @@ const COLUMNS = [
  * geography, which compares bounding boxes. Identical rows do occur in a source like this one;
  * they are told apart by their rank (`rn`), so two copies in the batch keep two in the table.
  */
-const ROW_KEY = `md5(row(typologie, categorie, adresse, arrondissement, nom_enseigne, nom_societe,
-  siret, longueur, largeur, lien_affichette, house_number, way_type, way_name,
-  ST_AsBinary(geom))::text)`
+function rowKey(columns: Columns): string {
+  return `md5(row(${comparable(columns)})::text)`
+}
 
 /**
  * Refuses an empty batch before anything is written. The table is now synchronised to the
@@ -117,7 +122,7 @@ async function fetchTerrasses(): Promise<{ rows: Feature[]; skipped: number }> {
  * `tmp_terrasse_old`, both keyed by ROW_KEY and rank. Nothing outside the transaction's
  * temporary tables is written here.
  */
-async function stage(client: Client, rows: Feature[]): Promise<void> {
+async function stage(client: Client, columns: Columns, rows: Feature[]): Promise<void> {
   await client.query(`
     create temporary table tmp_terrasse_batch (
       typologie text, categorie text, adresse text, arrondissement smallint, nom_enseigne text,
@@ -158,7 +163,7 @@ async function stage(client: Client, rows: Feature[]): Promise<void> {
       )
     })
     await client.query(
-      `insert into tmp_terrasse_batch (${COLUMNS.join(", ")}) values ${tuples.join(", ")}`,
+      `insert into tmp_terrasse_batch (${columns.names.join(", ")}) values ${tuples.join(", ")}`,
       values,
     )
   }
@@ -170,17 +175,22 @@ async function stage(client: Client, rows: Feature[]): Promise<void> {
     create temporary table tmp_terrasse_new on commit drop as
     select b.*, public.compass_bodacc_street_key(b.way_type, b.way_name) as street_key,
            row_number() over (partition by k) as rn
-      from (select *, ${ROW_KEY} as k from tmp_terrasse_batch) b
+      from (select *, ${rowKey(columns)} as k from tmp_terrasse_batch) b
   `)
+  // Nothing reads the raw batch any more. Measured 11 October 2026: 9.5 MB, on a free tier whose
+  // read-only switch watches the disk, held until commit. `truncate`, not `drop`: a table created
+  // in this transaction is truncated in place, its file emptied at once, where a `drop` would
+  // only unlink it at commit — after the premise writes it was supposed to make room for.
+  await client.query("truncate tmp_terrasse_batch")
   await client.query(`
     create temporary table tmp_terrasse_old on commit drop as
     select id, k, row_number() over (partition by k order by id) as rn
-      from (select id, ${ROW_KEY} as k from public.terrasse_autorisation) a
+      from (select id, ${rowKey(columns)} as k from public.terrasse_autorisation) a
   `)
 }
 
 /** The table brought to the batch: rows it no longer has removed, rows it lacked added. */
-async function syncTable(client: Client, dryRun: boolean): Promise<{ removed: number; added: number }> {
+async function syncTable(client: Client, columns: Columns, dryRun: boolean): Promise<{ removed: number; added: number }> {
   const gone = `from tmp_terrasse_old o
      where not exists (select 1 from tmp_terrasse_new n where n.k = o.k and n.rn = o.rn)`
   const fresh = `from tmp_terrasse_new n
@@ -196,8 +206,8 @@ async function syncTable(client: Client, dryRun: boolean): Promise<{ removed: nu
       where a.id in (select o.id ${gone})`,
   )
   const added = await client.query(
-    `insert into public.terrasse_autorisation (${COLUMNS.join(", ")})
-     select ${COLUMNS.map((c) => `n.${c}`).join(", ")} ${fresh}`,
+    `insert into public.terrasse_autorisation (${columns.names.join(", ")})
+     select ${columns.names.map((c) => `n.${c}`).join(", ")} ${fresh}`,
   )
   return { removed: removed.rowCount ?? 0, added: added.rowCount ?? 0 }
 }
@@ -279,6 +289,12 @@ async function attach(client: Client, dryRun: boolean): Promise<Attachment> {
  * rolled back. Unlike bdcom.ts, a dry run here writes nothing but temporary tables — every
  * write to a real table is replaced by the count it would have made — so it leaves no dead
  * row behind, whatever it finds.
+ *
+ * CE QUE ÇA NE RATTRAPE PAS : the real-table statements themselves never run in a dry run. It
+ * proves what a load would change, not that the `delete`, `insert` and `update` that would
+ * change it are correct; a fault in one of them shows at the first real run, which rolls back
+ * and turns the gate red. Proved on the remote only by a real run followed by a dry run at
+ * 0 / 0 / 0 (#261).
  */
 class DryRunComplete extends Error {}
 
@@ -305,10 +321,11 @@ async function main(): Promise<void> {
       "terrasses et étalages",
       `${rows.length} lus${skipped ? `, ${skipped} ignorés (aucune typologie)` : ""}`,
     )
+    const columns = await checkColumns(client, "terrasse_autorisation", COLUMNS)
 
     await inTransaction(client, async () => {
-      await stage(client, rows)
-      table = await syncTable(client, dryRun)
+      await stage(client, columns, rows)
+      table = await syncTable(client, columns, dryRun)
       attached = await attach(client, dryRun)
       if (dryRun) throw new DryRunComplete()
     })
