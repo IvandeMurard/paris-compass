@@ -119,7 +119,7 @@ async function fetchTerrasses(): Promise<{ rows: Feature[]; skipped: number }> {
 
 /**
  * Stages the batch in `tmp_terrasse_new` and ranks the table's current rows in
- * `tmp_terrasse_old`, both keyed by ROW_KEY and rank. Nothing outside the transaction's
+ * `tmp_terrasse_old`, both keyed by rowKey and rank. Nothing outside the transaction's
  * temporary tables is written here.
  */
 async function stage(client: Client, columns: Columns, rows: Feature[]): Promise<void> {
