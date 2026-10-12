@@ -55,7 +55,7 @@ npm.cmd run eval            # invariants, baselines, jeu doré, budget anon — 
 npm.cmd run eval:anon       # ce qu'un visiteur sans clé atteint vraiment — ~5 s
 npm.cmd run verify:mcp      # les six outils MCP contre le distant — 2 à 4 min
 npm.cmd run freshness       # les huit sources et leurs cadences
-npm.cmd run catalogue       # les 35 sources du catalogue : l'endpoint repond-il, la licence tient-elle
+npm.cmd run catalogue       # les sources du catalogue : l'endpoint repond-il, la licence tient-elle
 npm.cmd run porte:publie    # la page publiée porte-t-elle sa configuration
 npm.cmd run ledger          # le ledger de migrations contre les migrations suivies par git
 npm.cmd run avis            # les avis de securite npm contre leurs verdicts d'atteignabilite

@@ -11,6 +11,54 @@ n'accumule que des bonnes idées est un catalogue d'envies.
 
 ---
 
+## Atlas de la fréquentation piétonne, APUR, septembre 2026
+
+Signalé le 12 octobre 2026 par un article du Collectif Paris Piétons daté de la veille, qui
+relaie l'atlas sans l'avoir produit. Le produit est de l'**APUR**, publié en septembre 2026.
+
+### Le fait
+
+L'atlas cartographie une **fréquentation piétonne moyenne hebdomadaire** sur septembre 2025, à
+l'échelle de Paris, des arrondissements, des rues, des avenues et des grands parcs. La page de
+l'APUR nomme sa source : des données de géolocalisation mobile **achetées à MyTraffic**, issues
+d'« une centaine d'applications mobiles », puis redressées. Elle les qualifie elle-même
+d'estimations à lire en ordres de grandeur. Le seul livrable est un **PDF**. Vérifié le
+12 octobre 2026 : aucune couche de fréquentation sur `carto2.apur.org`, ni dans le dossier
+`OPENDATA` (plus de 70 services), ni dans `MOBILITE`. Aucune licence déclarée.
+
+### Ce qui est retenu
+
+- **Le sujet reste ouvert.** Statut `veille` au catalogue, et non `refusée`. MyTraffic est un
+  acteur sérieux, qui documente sa chaîne (`docs/PLAN.md`, « Concurrence — Gini (MyTraffic) »).
+  Un acteur public qui achète ce panel et le publie, c'est un signal : d'autres jeux plus
+  exploitables peuvent suivre.
+- **La largeur des trottoirs**, repérée en suivant l'atlas, qui croise les rues fréquentées et
+  les trottoirs étroits. C'est une couche ouverte de l'APUR, sous ODbL, déjà au catalogue en
+  `nouvelle`.
+
+### Ce qui est écarté, et pourquoi
+
+- **Ingérer ou recopier un chiffre de l'atlas.** Lire un PDF n'est pas brancher une source, et
+  l'absence de licence suffit à l'exclure. La méthode suffirait aussi : un panel redressé est
+  `modelled`, jamais `measured`, et le lecteur ne peut pas rejouer le calcul sur sa rue. La
+  maille ne convient pas non plus : la rue et une moyenne hebdomadaire ne séparent pas deux
+  locaux d'une même rue, ni le midi du soir.
+
+### Ce qui rouvrirait la ligne
+
+L'une de ces trois conditions, et chacune se vérifie à l'endpoint, jamais sur la page qui
+l'annonce :
+
+1. une **couche ou un fichier** de l'atlas publié par l'APUR ou la Ville, **avec une licence** ;
+2. une maille au **tronçon**, ou un **profil horaire** ;
+3. une **méthode publiée avec la taille de l'échantillon** par maille, qui rendrait le
+   redressement vérifiable, même modélisé.
+
+**Ce qui ne la rattrape pas** : aucune sonde ne verra paraître ce jeu. La relecture de cette
+entrée est le seul filet.
+
+---
+
 ## Meetup ClickHouse, Station F, septembre 2026
 
 Noté le 17 septembre 2026, d'après les photos de slides prises en séance et les notes de

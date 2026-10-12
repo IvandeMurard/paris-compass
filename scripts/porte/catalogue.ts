@@ -31,6 +31,13 @@
 // thing, and this repository has already ruled on what happens to those. `écartée` — a track
 // closed after verification, like the DIA one on 27 August 2026 — is the same class.
 //
+// `veille` is the third, and it is NOT a refusal: the subject matters and the producer is
+// serious, but nothing exploitable is published yet — the APUR pedestrian atlas of September
+// 2026 is a PDF of MyTraffic panel estimates, no licence. There is no endpoint to probe, and
+// probing the page that announces it would cross-check a page with a page. What reopens it is
+// a dataset appearing, and no probe here can see that: the condition is written beside the
+// entry in docs/VEILLE.md, and a human reading it is the only thing that covers the case.
+//
 // Deliberately without a markdown parser, for the reason arms.ts and cadences.ts already give:
 // a handful of pipes does not justify a dependency. Carriage returns are normalised first —
 // the trap that cost half an hour on 31 August 2026, written in docs/REPRISE-PIEGES.md.
@@ -59,6 +66,7 @@ export const STATUSES: Record<string, { canonical: string; interroge: boolean }>
   "partenariat": { canonical: "partenariat", interroge: true },
   "refusée": { canonical: "refusee", interroge: false },
   "écartée": { canonical: "ecartee", interroge: false },
+  "veille": { canonical: "veille", interroge: false },
 }
 
 export type CanonicalStatus = string
