@@ -47,7 +47,7 @@ jobs:
       # Épinglé par SHA (v4, résolu le 9 octobre 2026), et sans laisser le jeton du dépôt sur le
       # disque : c'est le seul workflow du dépôt qui détient `id-token: write`, et chaque étape
       # du job peut demander un jeton OIDC.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 

@@ -345,3 +345,49 @@ export function estClasse(state: PinState): boolean {
 export function epinglesDeNode(): PinVerdict[] {
   return classifyWorkflows(readWorkflows(), readDivergences())
 }
+
+/** One `uses:` pin: the action, and the ref it is pinned to. */
+export interface ActionPin {
+  /** `owner/name`, without the ref. Composite and local actions are not matched. */
+  action: string
+  /** Whatever follows `@` — a tag, a branch, or a commit sha. */
+  ref: string
+}
+
+/**
+ * Every `uses: owner/action@ref` this workflow pins, in file order.
+ *
+ * **Why this lives beside the Node rule.** It is the same fault, measured on a second
+ * population — `#268`'s run, 12 October 2026, warned that `actions/checkout` was still on the
+ * deprecated Node 20. Three workflows carried `@v7`; `registre-mcp.yml` carried the v4 commit
+ * sha. The automatic bumps had moved the three pinned by TAG and left the one pinned by SHA,
+ * whose only statement of its version was a trailing `# v4` comment that nothing reads.
+ *
+ * A sha pin is not wrong — it is the stricter form, and a repository may want it. What is
+ * wrong is two workflows claiming different versions of one action without saying why, which
+ * is exactly what `accordDe` already refuses for Node.
+ */
+export function readActionPins(text: string): ActionPin[] {
+  return [...structure(text).matchAll(/^[ \t]*-?[ \t]*uses:[ \t]*([^\s@#]+)@([^\s#]+)/gm)]
+    .map((m) => ({ action: m[1], ref: valeur(m[2]) }))
+    .filter((p) => p.action.includes("/") && !p.action.startsWith("."))
+}
+
+/**
+ * The actions used by more than one workflow under more than one ref.
+ *
+ * Returns a map of action to the refs seen, each with the files that carry it. Empty when the
+ * repository agrees with itself. The population is derived from `.github/workflows/`, never
+ * listed — a workflow added tomorrow enters the check without anyone editing this file.
+ */
+export function desaccordsDActions(workflows: Workflow[]): Map<string, Map<string, string[]>> {
+  const vus = new Map<string, Map<string, string[]>>()
+  for (const w of workflows) {
+    for (const { action, ref } of readActionPins(w.text)) {
+      const parRef = vus.get(action) ?? new Map<string, string[]>()
+      parRef.set(ref, [...(parRef.get(ref) ?? []), w.file])
+      vus.set(action, parRef)
+    }
+  }
+  return new Map([...vus].filter(([, parRef]) => parRef.size > 1))
+}

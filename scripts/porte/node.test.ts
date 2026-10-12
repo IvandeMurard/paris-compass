@@ -23,8 +23,10 @@ import {
   accordDe,
   champsManquants,
   classifyWorkflows,
+  desaccordsDActions,
   epinglesDeNode,
   estClasse,
+  readActionPins,
   readDivergences,
   readPins,
   readWorkflows,
@@ -272,5 +274,57 @@ describe("la règle, jouée sur le dépôt tel qu'il est", () => {
     expect(regle).toMatch(/14 September 2026/)
     const declare = readFileSync(resolve(ROOT, "scripts/porte/node.json"), "utf8")
     expect(declare).toMatch(/engines/)
+  })
+})
+
+describe("les actions s'accordent sur leur version, comme les workflows sur Node", () => {
+  // Né du run du 12 octobre 2026 : GitHub a prévenu que `actions/checkout` tournait encore sur
+  // Node 20, déprécié. Trois workflows portaient `@v7`, `registre-mcp.yml` portait l'empreinte
+  // de la v4 — les montées automatiques avaient déplacé ceux épinglés par ÉTIQUETTE et laissé
+  // celui épinglé par EMPREINTE, dont la seule mention de version était un `# v4` en fin de
+  // ligne que rien ne lit. La règle de Node n'a pas vu passer ça : elle recoupe les versions de
+  // Node, jamais celles des actions.
+
+  it("lit une épingle par étiquette comme par empreinte, et ignore une action locale", () => {
+    const pins = readActionPins(
+      [
+        "      - uses: actions/checkout@v7",
+        "      - uses: actions/setup-node@11d5960a326750d5838078e36cf38b85af677262 # v4",
+        "      - uses: ./.github/actions/maison",
+        "      - run: echo pas une action",
+      ].join("\n"),
+    )
+    expect(pins).toEqual([
+      { action: "actions/checkout", ref: "v7" },
+      { action: "actions/setup-node", ref: "11d5960a326750d5838078e36cf38b85af677262" },
+    ])
+  })
+
+  it("rougit sur le désaccord exact du 12 octobre 2026 — la contre-preuve", () => {
+    // Une règle qu'on n'a jamais vue rougir est une règle dont on ne sait pas si elle regarde
+    // quelque chose. Les deux textes ci-dessous sont ceux d'avant le correctif.
+    const desaccords = desaccordsDActions([
+      { file: "porte.yml", text: "      - uses: actions/checkout@v7" },
+      { file: "registre-mcp.yml", text: "      - uses: actions/checkout@11d5960a # v4" },
+    ])
+    expect([...desaccords.keys()]).toEqual(["actions/checkout"])
+    expect([...desaccords.get("actions/checkout")!.keys()].sort()).toEqual(["11d5960a", "v7"])
+  })
+
+  it("ne dit rien quand une action n'est utilisée que par un seul workflow", () => {
+    const desaccords = desaccordsDActions([
+      { file: "a.yml", text: "      - uses: actions/checkout@v7" },
+      { file: "b.yml", text: "      - uses: actions/cache@v4" },
+    ])
+    expect(desaccords.size).toBe(0)
+  })
+
+  it("le dépôt tel qu'il est s'accorde avec lui-même", () => {
+    const desaccords = desaccordsDActions(readWorkflows())
+    const dit = [...desaccords].map(
+      ([action, parRef]) =>
+        `${action} : ${[...parRef].map(([ref, f]) => `${ref} dans ${f.join(", ")}`).join(" / ")}`,
+    )
+    expect(dit, dit.join(" · ")).toEqual([])
   })
 })
