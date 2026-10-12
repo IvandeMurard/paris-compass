@@ -323,7 +323,7 @@ function couverture(verdicts: CatalogueVerdict[]): ArmOutcome {
       exitCode: EXIT.pass,
       output:
         `${verdicts.length} sources au catalogue — ${probes} vérifiées, ${excuses} avec une ` +
-        `raison écrite, ${hors} refusées ou écartées. Aucun silence.`,
+        `raison écrite, ${hors} refusées, écartées ou en veille. Aucun silence.`,
     }
   }
   return {

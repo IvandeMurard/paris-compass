@@ -69,6 +69,17 @@ describe("la règle, jouée sur des entrées substituées", () => {
     expect(classifyCatalogue([refusee], { "Portails d'annonces": SONDE }, {})[0].state).toBe("contradictoire")
   })
 
+  it("n'interroge pas une source en veille, et refuse qu'on lui donne une sonde", () => {
+    // Not a refusal — the subject stays open — but there is nothing published to probe, and a
+    // probe on the page announcing it would cross-check a page with a page.
+    const veille = entry("Atlas de la fréquentation piétonne", "veille — PDF seul", "aucune déclarée")
+    expect(veille.canonical).toBe("veille")
+    expect(classifyCatalogue([veille], {}, {})[0].state).toBe("hors-population")
+    expect(classifyCatalogue([veille], { "Atlas de la fréquentation piétonne": SONDE }, {})[0].state).toBe(
+      "contradictoire",
+    )
+  })
+
   it("lit le statut malgré ce qui est écrit après lui", () => {
     expect(statusOf("ingérée · affichée").canonical).toBe("ingeree")
     expect(statusOf("ingérée · affichée").affichee).toBe(true)

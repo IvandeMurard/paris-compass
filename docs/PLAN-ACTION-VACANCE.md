@@ -706,13 +706,18 @@ La granularité utile est le tronçon, parfois le côté du trottoir. Un indicat
 
 ## Catalogue des sources
 
-**Trente-cinq lignes, et c'est la population d'un contrôle** depuis `w1-catalogue`
-([#73](https://github.com/IvandeMurard/paris-compass/issues/73)), le 5 septembre 2026 — le
-ticket en annonçait « trente », comptées à vue. `scripts/porte/catalogue.ts` lit ce tableau et
+**Trente-sept lignes au 12 octobre 2026, et c'est la population d'un contrôle** depuis
+`w1-catalogue` ([#73](https://github.com/IvandeMurard/paris-compass/issues/73)), le 5 septembre
+2026 — il y en avait trente-cinq ce jour-là, et le ticket en annonçait « trente », comptées à
+vue. `scripts/porte/catalogue.ts` lit ce tableau et
 exige que chaque source non refusée porte soit une vérification dans
 `scripts/porte/catalogue.json`, soit une raison écrite de ne pas en avoir. **Une ligne ajoutée
 ici sans l'un ou l'autre fait échouer `npm.cmd run test`.** Trois statuts sortent de la
-population — `refusée` et `écartée` : un refus est une décision, pas une panne à surveiller.
+population — `refusée` et `écartée` : un refus est une décision, pas une panne à surveiller ;
+et `veille`, depuis le 12 octobre 2026 : le sujet reste ouvert, mais rien d'exploitable n'est
+publié, donc rien à sonder. **Ce que `veille` ne rattrape pas** : aucune sonde ne verra paraître
+le jeu qui rouvrirait la ligne. La condition est écrite dans `docs/VEILLE.md`, et seul un lecteur
+la vérifie.
 Le colonne `Statut` n'accepte que les mots que `STATUSES` connaît ; un mot neuf est un rouge,
 jamais un rangement dans le voisin.
 
@@ -729,6 +734,7 @@ jamais un rangement dans le voisin.
 | PLU linéaires protégés (plub_protcom) | Ville de Paris | ingérée · affichée — **statut remesuré le 16/09/2026** : 5 107 linéaires chargés le 25/08 par `w0-plu` (#9), **29 338 des 85 418 locaux sur linéaire protégé** — 26 074 `pca`, 3 809 `ppa`, 828 `pcc` — et lus à l'écran depuis `w6-modes` (#36). La ligne disait « planifiée … pas encore ingéré » trois semaines après le chargement | ODbL (déclarée par le portail, mesurée le 05/09/2026) | linéaire de façade | Sur ce linéaire, le RDC ne peut pas changer de destination. | Informatif, sans valeur réglementaire. **La colonne `plu_commerce_artisanat` est `pca`, la protection GÉNÉRALE ; celle qui vise l'artisanat est `ppa`, `plu_commerce_proximite`** — le nom de colonne et le sens du drapeau ne coïncident pas. |
 | Chantiers de voirie | Ville de Paris | planifiée | ODbL (déclarée par le portail, mesurée le 05/09/2026) | polygone + dates | 40 m d'un chantier perturbant, sept. 2026 → mars 2027. | Fait d'exposition, jamais une prévision d'impact sur le CA. |
 | Terrasses et étalages | Ville de Paris | ingérée · affichée | ODbL (mesuré le 26/08) | autorisation géolocalisée, rattachée par numéro de rue | Une terrasse permanente est déjà autorisée sur cette façade — trois états, `inconnu` quand plusieurs locaux partagent le numéro. | Autorisation ≠ terrasse installée aujourd'hui : ni date de délivrance, ni expiration, ni statut dans la source. |
+| Largeur des trottoirs | APUR, d'après le plan de voirie de la Ville (DVD, 2019) | nouvelle — repérée le 12/10/2026 | ODbL (déclarée par le hub `opendata.apur.org` et le géocatalogue APUR, mesurée le 12/10/2026 ; la couche elle-même porte un `copyrightText` vide) | segment de trottoir, ~3 m en moyenne, largeur en mètres — 885 389 segments mesurés le 12/10/2026 | Trottoir de moins de 2,5 m devant la vitrine : pas de place pour une terrasse ni pour une file d'attente. | Calculée par traitement automatique sur un plan de 2019 : un trottoir élargi depuis n'y est pas. Valeurs jusqu'à 204 m sur les places, et 138 950 segments sans catégorie `C_CAT`, dont le sens n'est pas documenté. Une largeur n'est pas une fréquentation. |
 | DIA / droit de préemption commercial | Ville de Paris | **écartée — non publiée, vérifié le 27/08** | aucune — seul le périmètre d'application est en open data | — | — | Les DIA elles-mêmes ne sont pas publiées ; seules les parcelles soumises au droit le sont (`plu-annexes-droit-de-preemption-urbain-renforce`). Piste close, `w1-dia`. |
 | Validations transport IDFM | Île-de-France Mobilités | ingérée — chargée le 7/09/2026, 258 stations et 29 489 lignes de profil | ODbL (« Licence ODbL Version Française », portail IDFM) | station, profil horaire par jour type, trimestre courant | Part du jour de chaque station par tranche horaire — jamais un effectif. | Un id de jeu qui tourne chaque trimestre (docs/REPRISE-PIEGES.md), jamais l'historique 2015-2024 (fichier, hors périmètre de w2-idfm). |
 | Mobiliscope | CNRS | planifiée | ODbL | secteur, heure, âge, CSP | Population réellement présente à 12h vs 20h. | Présence de secteur, pas passage devant la porte. |
@@ -752,6 +758,7 @@ jamais un rangement dans le voisin.
 | Comptes RNE / INPI | INPI | nouvelle | Licence Ouverte 2.0 (comptes non confidentiels) | entreprise | Parmi n commerces du tronçon ayant publié, médiane de CA X. Les autres : confidentialité. | ~45 % confidentiels, biais grandes structures. Jamais une moyenne de rue. Jamais un prévisionnel. |
 | Fichiers fonciers / MAJIC | DGFiP / Cerema | partenariat | Accès restreint acteurs publics · EmpCom open trop grossier | local fiscal (nature, surface, étage) | Ce local est commercial au cadastre, surface S, même sans SIRET. | Pas un fetch anonyme. Convention Ville / APUR / Cerema. |
 | Portails d'annonces (SeLoger, Appear Here, LeBonCoin) | Privé | refusée | CGU, réutilisation interdite | annonce | — | Aval du marché, fausse absence, ToS. Compass perd dès qu'il concurrence un stock. |
+| Atlas de la fréquentation piétonne | APUR, sur données MyTraffic | veille — PDF seul, publié en septembre 2026, aucune couche sur `carto2.apur.org` (vérifié le 12/10/2026) | aucune déclarée | rue, avenue, grand parc ; moyenne hebdomadaire de septembre 2025 | — | Panel de téléphones redressé : `modelled`, jamais `measured`, et l'APUR le dit lui-même (« ordres de grandeur »). Ne pas en recopier un chiffre à la main. Ce qui rouvrirait la ligne : `docs/VEILLE.md`. |
 | Telco / cartes bancaires / trajectoires | Privé | refusée | Propriétaire, GDPR lourd | flux | — | Ferait de Compass un vendeur de flux comme les autres. Hors doctrine. |
 
 ## IA

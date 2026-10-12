@@ -1328,6 +1328,16 @@ rue, ne peut pas voir le pas de redressement, ne peut pas rejouer le calcul, et 
 qu'un chiffre de l'an dernier a changé parce que la calibration a été refaite. Rien de tout ça
 n'est caché par malice ; c'est structurellement invisible parce que la donnée est fermée.
 
+**Ajouté le 12 octobre 2026 : un acteur public a acheté ce panel.** En septembre 2026, l'APUR a
+publié un *Atlas de la fréquentation piétonne des espaces publics parisiens*, bâti sur des
+données MyTraffic. Il est livré en PDF, sans licence, et l'APUR le présente lui-même comme des
+ordres de grandeur. C'est une caution institutionnelle pour MyTraffic, et l'argument de la
+vérifiabilité doit en tenir compte. L'argument ne tombe pas : le chiffre reste invérifiable par
+le lecteur, que l'acheteur soit public ou privé. Il devient en revanche moins facile à tenir,
+puisque l'objection « même l'APUR s'en sert » est désormais disponible. Au catalogue, l'atlas
+est en `veille`, pas en `refusée`, et les conditions qui rouvriraient la ligne sont dans
+`docs/VEILLE.md`.
+
 ### À reprendre
 
 - **Les hypothèses et le niveau de confiance, en plus des sources.** Ils annoncent la triade
