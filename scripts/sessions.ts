@@ -177,6 +177,14 @@ const ORDER = [
   // L'accueil d'abord parce qu'il fait les deux à la fois : il porte l'écran que la démo a déjà
   // tranché, ET il branche `compass_bodacc_within`, qui a zéro lecteur — la démo montre du BODACC
   // figé pendant que le dépôt sait servir le vrai.
+  // Ouvert le 12 octobre 2026, apres une operation faite a la main le jour meme. #239 a regle la
+  // CAUSE — les chargeurs ne rechargent plus en bloc, et la preuve tient : six jours de
+  // chargements n'ont repris que quelques megaoctets de gonflement, contre 571 avant le
+  // correctif. Mais Postgres ne rend jamais la place au systeme tout seul : seul un VACUUM FULL
+  // rend le fichier, et le 12 octobre il n'a eu lieu que parce qu'Ivan a demande une mise a jour
+  // de l'etat. Le bras `disque` sait dire que c'est du ; rien ne sait le faire. Place en tete
+  // parce qu'il supprime une tache qui ne depend aujourd'hui que de la chance.
+  "w1-disque-entretien",
   "w6-accueil-reel",
   // Juste derrière, et c'est délibéré : le recensement dit ce que les écrans suivants peuvent
   // montrer. Mesuré le 5 octobre, sept fonctions `compass_*` n'ont aucun lecteur. #209 a été
