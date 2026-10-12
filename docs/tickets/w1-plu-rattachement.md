@@ -12,7 +12,8 @@
 - Jusqu'à #244, `distinct on … order by distance` gardait la première ligne à égalité dans l'ordre physique. Le `VACUUM FULL` du 6 octobre a changé cet ordre : sans que la source bouge, **13 424 locaux** différaient de ce qu'un passage aurait calculé.
 - #244 départage par identifiant de tronçon. Le choix est désormais reproductible, mais pas juste : il peut retenir le tronçon voisin plutôt que celui que le linéaire longe.
 - Le nombre de locaux protégés dépend de la règle :
-  - 29 481 aujourd'hui en base ;
+  - 29 338 en base (`plu_protected`, remesuré le 11 octobre 2026 ; dernier passage de plu le 9 septembre 2026) ;
+  - 29 481 avec l'ancienne règle, l'ordre physique d'après le `VACUUM FULL`, ce qu'un passage aurait calculé le 10 octobre 2026 ;
   - 28 374 avec le départage par identifiant ;
   - 34 659 si l'on départage par la distance au milieu du linéaire.
 

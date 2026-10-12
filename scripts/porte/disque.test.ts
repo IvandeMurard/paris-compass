@@ -135,11 +135,12 @@ describe("un chargement partitionné compte son plus gros morceau, pas sa table"
   const sirene = config.blocs.find((b) => b.nom === "sirene")!
 
   it("divise le stock SIRENE par sa plus grosse part", () => {
-    expect(ajoutDuBloc(stock, 74, 0.12)).toBeCloseTo(74 * 0.12)
+    // ajout_mo (its temp tables, #265) is added once, never scaled by the part.
+    expect(ajoutDuBloc(stock, 74, 0.12)).toBeCloseTo(74 * 0.12 + stock.ajout_mo)
   })
 
   it("compte tout un bloc qui ne déclare pas de partition", () => {
-    expect(ajoutDuBloc(sirene, 15, 0.12)).toBe(15 * sirene.facteur)
+    expect(ajoutDuBloc(sirene, 15, 0.12)).toBe(15 * sirene.facteur + sirene.ajout_mo)
   })
 })
 

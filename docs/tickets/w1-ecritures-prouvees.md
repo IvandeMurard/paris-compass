@@ -32,12 +32,30 @@ La revue de #264 a rendu son verdict : fusionnable, mais à suivre. Elle a relev
   - terrasses 11 → 40 Mo.
 
   Effet sur `npm run disque` : plu 458 → 479 Mo (signal, pour mars 2027) ; **terrasses 466 → 498 Mo pour le 8 novembre 2026**, à 2 Mo du plafond réel de 500. C'est le pire cas, une source réécrite en entier. Le cas mesuré, 437 locaux, reste vers 475.
+- **Tables temporaires des autres chargeurs**, mesurées le 11 octobre 2026 de la même façon (base 400,03 Mo, revenue à 400,03 après chaque annulation) :
+
+  | Chargeur | Table temporaire | Taille | `ajout_mo` | Pic `npm run disque` |
+  | --- | --- | --- | --- | --- |
+  | SIRENE | `stg_sirene` | 6,01 Mo | 0 → 6 | 475 → **482** (16 octobre 2026) |
+  | SIRENE stock | `tmp_quartier`, toute la session | 4,84 Mo | 0 → 5 | 453 → **459** (16 octobre 2026) |
+  | BODACC | `tmp_address_geom`, toute la session | 5,84 Mo | 0 → 6 | 446 → **453** (chaque nuit) |
+  | filosofi | `tmp_cells` (à son pic, avant le tri) + `tmp_filo` | 2,38 + 6,05 Mo | 0 → 9 | 490 → 500 (6 mars 2027) |
+  | idfm | `tmp_nearest` | 4,50 Mo | 0 → 5 | 489 → 495 (5 mars 2027) |
+  | BDCom | aucune : son staging est une vraie table, déjà comptée (44 Mo) | — | 44 | 489 |
+
+  Le bloc SIRENE comptait le staging **à la place** de l'ancien fichier : un `truncate` d'une table qui existait avant la transaction garde l'ancien fichier jusqu'au commit, donc l'ancienne table, la nouvelle et le staging coexistent. Sa confirmation ne réécrit que les verdicts qui changent : 30 au changement de millésime du 25 août 2026, négligeable. Un régéocodage complet par l'INSEE en ferait basculer jusqu'à 85 486, ~45 Mo : non compté, écrit dans le bloc.
+
+  **BODACC passe au rouge** (453 Mo, seuil 450), et il se charge chaque nuit. Ce n'est pas une aggravation : c'est ce que le bloc oubliait. Le plafond réel de 500 reste à 47 Mo. La réduction de #260 le ramène sous le seuil.
 
 ## À faire
 
 1. **plu** : passage réel puis essai à blanc à 0 / 0 / 0. Son prochain passage planifié est le 9 mars 2027 ; un passage à la main avant est possible, mais il réécrira une fois les 13 116 locaux du départage (#263).
 2. **Les écritures réelles sur une base locale**, deux passages, le second à 0. Faute de Docker fiable sur le poste, un coureur CI fera l'affaire.
-3. **Les tables temporaires des autres chargeurs** (filosofi, idfm, BDCom, BODACC, SIRENE) : leurs blocs ne les comptent pas non plus, ou les disent « dans la marge » sans mesure. À mesurer de la même façon.
+3. ~~Les tables temporaires des autres chargeurs~~ : mesurées le 11 octobre 2026, voir plus haut.
+4. **Tenir `checkColumns` par un test durable** (revue de #266). Sa seule preuve est la mesure du 11 octobre 2026 contre le catalogue distant. Il faut un test qui épingle le filtre « hors générées et identité » sur une vraie table, et l'égalité de `rowKey(COLUMNS)` avec l'ancienne `ROW_KEY` de terrasses. Option : jouer `checkColumns` des trois chargeurs dans une porte planifiée, pour qu'une migration rougisse le lendemain plutôt qu'au chargement suivant.
+
+5. **Relier chaque `create temporary table` des chargeurs à la raison de son bloc** (revue de #267). Une septième table temporaire passerait aujourd'hui sans être comptée : un test qui balaie `scripts/ingest/` et exige que chaque nom figure dans la `raison` du bloc de son chargeur. Il ne vérifierait que le nom, pas la taille.
+6. **filosofi à 500 Mo pour le 6 mars 2027** : trier les carreaux à Paris avant de les insérer dans `tmp_cells`, plutôt qu'après, rendrait ~1,7 Mo. Ce n'est pas assez seul : la réduction de #260 reste le levier.
 
 ## Critère de sortie
 
