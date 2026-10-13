@@ -30,10 +30,11 @@
 
 import type { Client } from "pg"
 
-import { checkColumns, comparable, type Columns } from "./lib/columns"
+import { checkColumns, type Columns } from "./lib/columns"
 import { assertPrivileged, connect, inTransaction, log, recordRun } from "./lib/db"
 import { datasetModified, exportJson } from "./lib/parisOpendata"
 import { parseAddress } from "./lib/terrasseAddress"
+import { rowKey, TERRASSE_COLUMNS } from "./lib/terrasseColumns"
 
 const DATASET = "terrasses-autorisations"
 
@@ -68,25 +69,9 @@ interface Feature {
   }
 }
 
-/**
- * Every column the loader writes, in the order `stage` binds them — `id` and the generated
- * `street_key` excepted. The only copy: `checkColumns` holds it to the table before the load,
- * and the row key below is built from it (#262).
- */
-const COLUMNS = [
-  "typologie", "categorie", "adresse", "arrondissement", "nom_enseigne", "nom_societe", "siret",
-  "longueur", "largeur", "lien_affichette", "house_number", "way_type", "way_name", "geom",
-]
-
-/**
- * What identifies a row: its whole content. The source publishes no identifier, so a row is
- * "the same" when every column is — the geometry compared as binary, never by the `=` of
- * geography, which compares bounding boxes. Identical rows do occur in a source like this one;
- * they are told apart by their rank (`rn`), so two copies in the batch keep two in the table.
- */
-function rowKey(columns: Columns): string {
-  return `md5(row(${comparable(columns)})::text)`
-}
+// The written columns and the row key built from them live in ./lib/terrasseColumns.ts, where
+// a test pins the key (#265).
+const COLUMNS = TERRASSE_COLUMNS
 
 /**
  * Refuses an empty batch before anything is written. The table is now synchronised to the

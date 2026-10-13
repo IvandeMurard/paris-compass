@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { columnDrift, columnsFrom, comparable, differs } from "./columns"
+import { columnDrift, columnsFrom, comparable, differs, writable } from "./columns"
 
 const catalog = [
   { name: "id", type: "int4" },
@@ -36,6 +36,29 @@ describe("columnsFrom", () => {
     const columns = columnsFrom("t", ["label", "geom", "id"], catalog)
     expect(columns.names).toEqual(["label", "geom", "id"])
     expect([...columns.binary]).toEqual(["geom"])
+  })
+})
+
+describe("writable", () => {
+  // The shape of terrasse_autorisation as information_schema returned it on 11 October 2026:
+  // `id` an identity, `street_key` generated, everything else plain.
+  const terrasse = [
+    { name: "id", type: "int8", generated: false, identity: true },
+    { name: "adresse", type: "text", generated: false, identity: false },
+    { name: "street_key", type: "text", generated: true, identity: false },
+    { name: "geom", type: "geography", generated: false, identity: false },
+  ]
+
+  it("leaves out exactly what the database fills itself: generated and identity", () => {
+    expect(writable(terrasse).map((c) => c.name)).toEqual(["adresse", "geom"])
+  })
+
+  it("keeps a column with a DEFAULT, so that the load is refused until it is declared", () => {
+    // information_schema says nothing of a default in these two flags: a `created_at default
+    // now()` arrives as a plain column, and the loader must declare it (review of #266).
+    const withDefault = [...terrasse, { name: "created_at", type: "timestamptz", generated: false, identity: false }]
+    expect(writable(withDefault).map((c) => c.name)).toContain("created_at")
+    expect(() => columnsFrom("t", ["adresse", "geom"], writable(withDefault))).toThrow(/n'écrit pas : created_at/)
   })
 })
 
