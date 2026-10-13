@@ -2270,3 +2270,31 @@ select * from (
        select 1 from public.compass_meubles_within(48.849141, 2.342178, 200))
 ) x
 limit 20;
+
+-- @invariant I57 :: le stock SIRENE ne couvre pas la plus ancienne cohorte de survie
+-- Depuis #260 (option S2), sirene-stock.ts ne garde que les établissements créés depuis le
+-- 1er janvier du plus ancien millésime BDCom, borne qu'il lit dans bdcom_vintage à chaque
+-- passage (cohortStart). La borne suit donc les millésimes, mais avec un retard : un millésime
+-- plus ancien ajouté par bdcom.ts ne recule la borne qu'au passage suivant du stock, le vendredi.
+-- Dans l'intervalle, compass_survival_by_trade ouvrirait une cohorte sur un stock qui n'a
+-- aucune ligne de cette année-là, et rendrait un effectif nul ou faible SANS dire pourquoi —
+-- une absence lue comme un fait. Décidé par Ivan le 13 octobre 2026 (revue de #272, point B).
+--
+-- La clause rougit quand le stock n'est pas vide et qu'aucun établissement n'y est daté de la
+-- première année de la plus ancienne cohorte. Aujourd'hui, 2017 en porte des milliers : un
+-- rouge veut dire que la borne du chargeur n'a pas suivi bdcom_vintage, ou qu'il a régressé.
+--
+-- CE QUE ÇA NE RATTRAPE PAS : la borne HAUTE. Les lignes créées depuis le dernier millésime
+-- sont gardées exprès (décision d'Ivan, même date), donc rien à garder de ce côté. Et la
+-- clause voit une année vide, pas une année amputée : un stock qui n'aurait gardé que
+-- décembre 2017 la laisserait verte. Un stock vide n'est pas jugé ici : la fonction dit déjà
+-- « jamais chargé ».
+select v.first_year::text as plus_ancien_millesime,
+       (select min(s.date_creation) from public.sirene_etablissement_stock s)::text as plus_ancienne_creation
+  from (select min(year) as first_year from public.bdcom_vintage) v
+ where v.first_year is not null
+   and exists (select 1 from public.sirene_etablissement_stock)
+   and not exists (
+     select 1 from public.sirene_etablissement_stock s
+      where s.date_creation >= make_date(v.first_year, 1, 1)
+        and s.date_creation <  make_date(v.first_year + 1, 1, 1));

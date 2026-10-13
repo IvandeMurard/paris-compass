@@ -45,10 +45,14 @@ Ivan a écarté le plan payant le 6 octobre 2026. Le seuil et le plafond de `scr
 
 - **Revue de #272, le 13 octobre 2026** : fusionnable mais à suivre. Le filtre est exact **par le bas** (le plus ancien millésime, le quartier), mais **volontairement large par le haut**. Le lecteur ferme aussi sa fenêtre au 1er janvier du millésime de fin, et le dernier est 2023 : 62 071 des 116 890 lignes gardées (53 %) ne sont lues par aucune cohorte aujourd'hui.
 
-## À décider le 17 octobre 2026, avec la mesure
+## Décidé par Ivan le 13 octobre 2026, après la revue de #272
 
-- **A. Couper aussi par le haut ?** Dériver une borne haute de `max(year)` de `bdcom_vintage` libérerait encore environ la moitié des lignes écrites (de l'ordre de 12 Mo sur 25,8, à mesurer). Le prix : quand un millésime est ajouté, sa survie lirait un stock tronqué jusqu'au vendredi suivant. **Décision d'Ivan.**
-- **B. Garder le retard d'une borne qui bouge.** Aujourd'hui, seul l'en-tête de `cohortStart` le dit. Piste peu coûteuse : un contrôle de la porte qui compare `min(year)` de `bdcom_vintage` (et `max(year)` si A) aux bornes de `date_creation` du stock, ou enchaîner `sirene_stock` derrière `bdcom` dans `ingestion.yml`. À faire avec A, ou seul si la borne basse reste la seule.
+- **A. Les lignes postérieures au dernier millésime sont gardées.** Pas de borne haute. Les couper aurait libéré de l'ordre de 12 Mo de plus, mais un millésime ajouté aurait lu un stock tronqué jusqu'au vendredi suivant. S2 seule ramène déjà les pics sous le seuil.
+- **B. La garde est appliquée** : l'invariant **I57** de `eval/invariants.sql`, joué chaque matin par la porte. Il rougit quand le stock n'a aucun établissement daté de la première année de la plus ancienne cohorte, autrement dit quand la borne du chargeur n'a pas suivi `bdcom_vintage`. Vérifié le 13 octobre 2026 : 0 ligne sur la base, et 1 ligne (le rouge) en retirant dans une transaction annulée les 11 246 établissements de 2017. Il ne voit qu'une année vide, pas une année amputée : c'est écrit dans son en-tête.
+
+## Reste à décider le 17 octobre 2026, avec la mesure
+
+Fusionner #272 ou non. C'est la suppression elle-même, réversible par rechargement.
 
 ## Critère de sortie
 
