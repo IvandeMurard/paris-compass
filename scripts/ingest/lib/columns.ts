@@ -11,7 +11,10 @@
 //
 // CE QUE ÇA NE RATTRAPE PAS : the check compares names, not meaning. A column renamed in both
 // the migration and the list passes, and so does a value the loader stages wrongly — the
-// mapping from a source field to a column is still written by hand in each `stage`.
+// mapping from a source field to a column is still written by hand in each `stage`. A column
+// with a DEFAULT is NOT left out: the database could fill it, but the check makes the loader
+// declare it, and refuses the load until it does — loud, before anything is written (review of
+// #266). And the check runs at the next load, not at the migration: March 2027 for plu.
 
 import type { Client } from "pg"
 
@@ -20,6 +23,19 @@ export interface CatalogColumn {
   name: string
   /** `information_schema.columns.udt_name` — `geography`, `text`, `int2`… */
   type: string
+  /** `is_generated <> 'NEVER'`: the database computes it, and a write to it is refused. */
+  generated?: boolean
+  /** `is_identity = 'YES'`: the database numbers it. */
+  identity?: boolean
+}
+
+/**
+ * The columns a load must write: every one except those the database fills itself — generated
+ * and identity, and nothing else. A column with a DEFAULT stays in (see the header). Kept out
+ * of the SQL so that a test holds the rule, not only the measure of 11 October 2026.
+ */
+export function writable(catalog: readonly CatalogColumn[]): CatalogColumn[] {
+  return catalog.filter((c) => !c.generated && !c.identity)
 }
 
 /** The declared columns, checked, and which of them compare as binary. */
@@ -70,15 +86,15 @@ export function columnsFrom(table: string, declared: readonly string[], catalog:
  */
 export async function checkColumns(client: Client, table: string, declared: readonly string[]): Promise<Columns> {
   const r = await client.query<CatalogColumn>(
-    `select column_name as name, udt_name as type
+    `select column_name as name, udt_name as type,
+            is_generated <> 'NEVER' as generated, is_identity = 'YES' as identity
        from information_schema.columns
       where table_schema = 'public' and table_name = $1
-        and is_generated = 'NEVER' and is_identity = 'NO'
       order by ordinal_position`,
     [table],
   )
   if (r.rows.length === 0) throw new Error(`${table} : table introuvable dans public.`)
-  return columnsFrom(table, declared, r.rows)
+  return columnsFrom(table, declared, writable(r.rows))
 }
 
 /** The columns as a comparable list, spatial ones as binary: `a.x, ST_AsBinary(a.geom)`. */
