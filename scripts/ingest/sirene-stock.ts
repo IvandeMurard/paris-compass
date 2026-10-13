@@ -48,6 +48,34 @@ const PARIS_COMMUNE_PREFIX = "751"
  */
 const STREET_LEVEL_NAF = ["45", "47", "56", "95", "96"]
 
+/**
+ * The first day any survival cohort can start, read from the base rather than written here.
+ *
+ * The table's only reader, compass_survival_by_trade (20260827000001), opens its window at
+ * 1 January of a BDCom vintage year and drops a null date_creation. An establishment created
+ * before the oldest vintage, or with no date, can therefore enter no cohort whatever the NAF
+ * bridge says — measured 11 October 2026: 258 739 of 375 629 rows were unreadable for that
+ * reason or for want of a quartier (#260, option S2). Keeping them cost ~65 MB on a project
+ * that turns read-only at 500.
+ *
+ * Read from bdcom_vintage, not pinned to 2017: a vintage added before 2017 moves the bound at
+ * the next load of this file, with nothing to edit. Throws when BDCom holds no vintage —
+ * this loader runs after bdcom.ts, and without a vintage no row could ever be read.
+ */
+async function cohortStart(client: Client): Promise<string> {
+  const result = await client.query<{ year: number | null }>(
+    "select min(year)::int as year from public.bdcom_vintage",
+  )
+  const year = result.rows[0]?.year
+  if (!year) {
+    throw new Error(
+      "bdcom_vintage est vide : aucune cohorte de survie ne peut s'ouvrir, et le stock SIRENE " +
+        "n'aurait aucun lecteur. Lancer bdcom.ts d'abord.",
+    )
+  }
+  return `${year}-01-01`
+}
+
 interface ResolvedParquet {
   url: string
   /** INSEE's own publication stamp, read from the URL. Becomes `source_as_of`. */
@@ -132,10 +160,10 @@ type StockRow = [
  *
  * `try_cast` on the house number rather than a plain cast: INSEE publishes it as text and a
  * handful of Paris rows carry things a number cannot hold. A row whose number does not parse
- * keeps its address and simply attaches to nothing, which is the same treatment terrasses.ts
- * gives its 59 unparsed addresses — left unattached rather than guessed at.
+ * attaches to nothing rather than being guessed at — and since #260 an unattached row is not
+ * stored (see load).
  */
-async function readFromInsee(parquetUrl: string): Promise<StockRow[]> {
+async function readFromInsee(parquetUrl: string, createdFrom: string): Promise<StockRow[]> {
   const db = await DuckDBInstance.create(":memory:")
   const connection = await db.connect()
   await connection.run("install httpfs; load httpfs;")
@@ -164,6 +192,9 @@ async function readFromInsee(parquetUrl: string): Promise<StockRow[]> {
       and substr(e.activitePrincipaleEtablissement, 1, 2) in (${nafList})
       and e.libelleVoieEtablissement is not null
       and e.numeroVoieEtablissement is not null
+      -- No cohort opens before the oldest BDCom vintage: see cohortStart. A null or
+      -- unparsable date fails the comparison and is dropped, as the reader drops it.
+      and try_cast(e.dateCreationEtablissement as date) >= date '${createdFrom}'
   `)
 
   return reader.getRows().map(
@@ -246,7 +277,9 @@ async function load(client: Client, rows: unknown[][]): Promise<{ attached: numb
         insert into public.sirene_etablissement_stock (${COLUMNS.join(", ")}, quartier_id)
         select v.*, q.quartier_id
           from ${values}
-          left join tmp_quartier q
+          -- An inner join since #260: a row with no quartier enters no cohort, so it is not
+          -- stored. Recomputed at every load, so a premise added later brings its rows back.
+          join tmp_quartier q
             on q.street_key = public.compass_bodacc_street_key(v.way_type, v.way_name)
            and q.num = v.house_number
         on conflict (siret) do nothing
@@ -273,8 +306,8 @@ async function load(client: Client, rows: unknown[][]): Promise<{ attached: numb
 }
 
 /**
- * What a load WOULD do, without writing: how many establishments, and how many would find their
- * quartier. Rolling back a full load is no longer a dry run worth having — it would raise the
+ * What a load WOULD do, without writing: how many establishments were read, and how many would
+ * find their quartier — since #260, the only ones written. Rolling back a full load is no longer a dry run worth having — it would raise the
  * very peak #239 removed — so this reads the same join and writes nothing.
  */
 async function dryRunCounts(client: Client, rows: unknown[][]): Promise<{ attached: number; total: number }> {
@@ -318,16 +351,17 @@ async function main(): Promise<void> {
       log("CHANGEMENT DE MILLÉSIME", `${held} -> ${parquet.asOf} — les cohortes vont bouger`)
     }
 
-    log("lecture INSEE", "parquet distant, filtré à Paris et aux métiers de pied de rue")
+    const createdFrom = await cohortStart(client)
+    log("lecture INSEE", `parquet distant, filtré à Paris, aux métiers de pied de rue, créés depuis le ${createdFrom}`)
     const started = Date.now()
-    const rows = await readFromInsee(parquet.url)
+    const rows = await readFromInsee(parquet.url, createdFrom)
     log("  lu", `${rows.length} établissements en ${((Date.now() - started) / 1000).toFixed(0)}s`)
 
     if (dryRun) {
       const counts = await dryRunCounts(client, rows)
       log("ESSAI — rien n'est écrit")
-      log("  établissements", `${counts.total}`)
-      log("  rattachés à un quartier", `${counts.attached}`)
+      log("  établissements lus", `${counts.total}`)
+      log("  rattachés à un quartier, donc écrits", `${counts.attached}`)
       log("  millésime", `${held ?? "aucun"} -> ${parquet.asOf}`)
       return
     }
