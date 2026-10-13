@@ -43,6 +43,13 @@ Ivan a écarté le plan payant le 6 octobre 2026. Le seuil et le plafond de `scr
   - la table filtrée, reconstruite avec ses index : **25,8 Mo contre 74,2**, soit −48,4 Mo Postgres (~−53 au tableau de bord). C'est moins que les ~65 du chiffrage, parce que le `VACUUM FULL` du 12 en a déjà repris une partie.
 - **Le gain n'atteint le disque qu'après un `VACUUM FULL` de la seule table**, une fois, après le premier passage filtré. Le passage par code postal libère la place à l'intérieur du fichier sans la rendre au disque. Ce compactage suit la procédure de #268 : sauvegarde vérifiée d'abord, puis confirmation écrite d'Ivan.
 
+- **Revue de #272, le 13 octobre 2026** : fusionnable mais à suivre. Le filtre est exact **par le bas** (le plus ancien millésime, le quartier), mais **volontairement large par le haut**. Le lecteur ferme aussi sa fenêtre au 1er janvier du millésime de fin, et le dernier est 2023 : 62 071 des 116 890 lignes gardées (53 %) ne sont lues par aucune cohorte aujourd'hui.
+
+## À décider le 17 octobre 2026, avec la mesure
+
+- **A. Couper aussi par le haut ?** Dériver une borne haute de `max(year)` de `bdcom_vintage` libérerait encore environ la moitié des lignes écrites (de l'ordre de 12 Mo sur 25,8, à mesurer). Le prix : quand un millésime est ajouté, sa survie lirait un stock tronqué jusqu'au vendredi suivant. **Décision d'Ivan.**
+- **B. Garder le retard d'une borne qui bouge.** Aujourd'hui, seul l'en-tête de `cohortStart` le dit. Piste peu coûteuse : un contrôle de la porte qui compare `min(year)` de `bdcom_vintage` (et `max(year)` si A) aux bornes de `date_creation` du stock, ou enchaîner `sirene_stock` derrière `bdcom` dans `ingestion.yml`. À faire avec A, ou seul si la borne basse reste la seule.
+
 ## Critère de sortie
 
 `npm run disque` sans rouge, et sans signal pour BDCom ni filosofi, mesuré après le passage SIRENE qui suit la réduction.

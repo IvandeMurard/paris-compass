@@ -61,6 +61,12 @@ const STREET_LEVEL_NAF = ["45", "47", "56", "95", "96"]
  * Read from bdcom_vintage, not pinned to 2017: a vintage added before 2017 moves the bound at
  * the next load of this file, with nothing to edit. Throws when BDCom holds no vintage —
  * this loader runs after bdcom.ts, and without a vintage no row could ever be read.
+ *
+ * Exact from below only. The reader also closes its window at 1 January of the END vintage, so
+ * nothing created from the latest vintage on (2023 today) enters a cohort either: measured
+ * 13 October 2026, 62 071 of the 116 890 rows kept (53 %). They are kept on purpose — a vintage
+ * added later would otherwise read a truncated stock until the next Friday — and whether to cut
+ * them too is Ivan's call (review of #272, w1-marge-disque).
  */
 async function cohortStart(client: Client): Promise<string> {
   const result = await client.query<{ year: number | null }>(
@@ -307,8 +313,9 @@ async function load(client: Client, rows: unknown[][]): Promise<{ attached: numb
 
 /**
  * What a load WOULD do, without writing: how many establishments were read, and how many would
- * find their quartier — since #260, the only ones written. Rolling back a full load is no longer a dry run worth having — it would raise the
- * very peak #239 removed — so this reads the same join and writes nothing.
+ * find their quartier — since #260, the only ones written. Rolling back a full load is no
+ * longer a dry run worth having — it would raise the very peak #239 removed — so this reads the
+ * same join and writes nothing.
  */
 async function dryRunCounts(client: Client, rows: unknown[][]): Promise<{ attached: number; total: number }> {
   await client.query(`
