@@ -30,6 +30,30 @@ Ivan a écarté le plan payant le 6 octobre 2026. Le seuil et le plafond de `scr
    - les deux index jamais lus.
 3. **La décision revient à Ivan.** Confirmation écrite avant toute suppression de jeu de données (décision du 6 octobre 2026).
 
+## Déjà fait, le 13 octobre 2026 — en brouillon, rien de supprimé
+
+- **Chiffrage** posé le 11 octobre 2026 dans #260. Recommandation : **S2**, ne garder du stock SIRENE que les établissements créés depuis le premier millésime BDCom **et** rattachés à un quartier.
+- **Le 12 octobre 2026**, un `VACUUM FULL` manuel (#268) a ramené la base de 400 à 361 Mo Postgres. Le 13 octobre, elle était déjà remontée à 382,6 Mo.
+- **Le filtre S2 est écrit dans `sirene-stock.ts`**, en proposition non fusionnée :
+  - la date est filtrée à la lecture INSEE ; la borne est lue dans `bdcom_vintage` (`min(year)`, 2017 aujourd'hui) et pas écrite en dur ;
+  - le rattachement au quartier passe d'un `left join` à un `join`.
+- **Mesuré le 13 octobre 2026** :
+  - `sirene-stock.ts --dry-run` : 156 685 lus depuis 2017, **116 890 écrits**, contre 375 629 en base ;
+  - **0 réponse de `compass_survival_by_trade` changée** sur 1 440 (80 quartiers × métiers du pont × paires de millésimes), en retirant les 258 739 lignes écartées dans une transaction annulée ;
+  - la table filtrée, reconstruite avec ses index : **25,8 Mo contre 74,2**, soit −48,4 Mo Postgres (~−53 au tableau de bord). C'est moins que les ~65 du chiffrage, parce que le `VACUUM FULL` du 12 en a déjà repris une partie.
+- **Le gain n'atteint le disque qu'après un `VACUUM FULL` de la seule table**, une fois, après le premier passage filtré. Le passage par code postal libère la place à l'intérieur du fichier sans la rendre au disque. Ce compactage suit la procédure de #268 : sauvegarde vérifiée d'abord, puis confirmation écrite d'Ivan.
+
+- **Revue de #272, le 13 octobre 2026** : fusionnable mais à suivre. Le filtre est exact **par le bas** (le plus ancien millésime, le quartier), mais **volontairement large par le haut**. Le lecteur ferme aussi sa fenêtre au 1er janvier du millésime de fin, et le dernier est 2023 : 62 071 des 116 890 lignes gardées (53 %) ne sont lues par aucune cohorte aujourd'hui.
+
+## Décidé par Ivan le 13 octobre 2026, après la revue de #272
+
+- **A. Les lignes postérieures au dernier millésime sont gardées.** Pas de borne haute. Les couper aurait libéré de l'ordre de 12 Mo de plus, mais un millésime ajouté aurait lu un stock tronqué jusqu'au vendredi suivant. S2 seule ramène déjà les pics sous le seuil.
+- **B. La garde est appliquée** : l'invariant **I57** de `eval/invariants.sql`, joué chaque matin par la porte. Il rougit quand le stock n'a aucun établissement daté de la première année de la plus ancienne cohorte, autrement dit quand la borne du chargeur n'a pas suivi `bdcom_vintage`. Vérifié le 13 octobre 2026 : 0 ligne sur la base, et 1 ligne (le rouge) en retirant dans une transaction annulée les 11 246 établissements de 2017. Il ne voit qu'une année vide, pas une année amputée : c'est écrit dans son en-tête.
+
+## Reste à décider le 17 octobre 2026, avec la mesure
+
+Fusionner #272 ou non. C'est la suppression elle-même, réversible par rechargement.
+
 ## Critère de sortie
 
 `npm run disque` sans rouge, et sans signal pour BDCom ni filosofi, mesuré après le passage SIRENE qui suit la réduction.
